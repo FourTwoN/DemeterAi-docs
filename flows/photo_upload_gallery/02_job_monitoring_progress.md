@@ -30,7 +30,7 @@ This diagram documents the **job monitoring and progress tracking mechanism** th
 
 ### Why Polling?
 
-**Problem:** ML processing takes 5-10 minutes per photo. Users need feedback without blocking.
+**Problem:** ML processing takes 2-3 minutes per photo. Users need feedback without blocking.
 
 **Solution:** HTTP long polling with 2-second interval
 

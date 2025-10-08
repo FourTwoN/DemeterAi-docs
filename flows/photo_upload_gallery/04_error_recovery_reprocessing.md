@@ -657,7 +657,7 @@ def process_uploaded_photo(
 5. **User clicks "Reprocess"** (triggers API call)
 6. **Backend creates new Celery job** (from S3 original, with manual overrides)
 7. **User navigates to job monitor** (polls for status)
-8. **ML processing runs** (5-10 minutes, same as initial upload)
+8. **ML processing runs** (2-3 minutes, same as initial upload)
 9. **Result appears in gallery** (success or new error state)
 
 **Key advantages:**

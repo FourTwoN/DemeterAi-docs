@@ -420,77 +420,54 @@ Content-Type: application/json
 
 ## Celery Tasks
 
-### Task: process_uploaded_photo
-Main task for processing a single uploaded photo.
+**IMPORTANT:** Processing happens through 4-phase pipeline with multiple task types. See `flows/procesamiento_ml_upload_s3_principal/` for complete details.
 
-**Queue:** `ml_processing` (GPU workers)
-**Pool:** `solo` (one task per worker, GPU-bound)
-**Estimated time:** 5-10 minutes per photo
-**Max retries:** 3
-**Retry backoff:** Exponential (60s, 300s, 900s)
+### Phase 1: S3 Upload (Chunked)
 
-**Task signature:**
-```python
-@celery_app.task(
-    name='process_uploaded_photo',
-    queue='ml_processing',
-    bind=True,
-    max_retries=3,
-    default_retry_delay=60
-)
-def process_uploaded_photo(
-    self,
-    image_id: str,
-    s3_key_original: str,
-    upload_session_id: str
-) -> dict:
-    """
-    Process uploaded photo: ML detection, storage location matching,
-    result aggregation
+**Task:** `upload_s3_batch`
+**Queue:** `io_workers` (gevent pool, I/O-bound)
+**Input:** List of 20 image_id UUIDs
+**Time:** 4-10 seconds per chunk
+**Details:** See `03_s3_upload_circuit_breaker_detailed.mmd`
 
-    Args:
-        image_id: UUID of s3_images record
-        s3_key_original: S3 key for original image
-        upload_session_id: Grouping ID for batch uploads
+Uploads photos to S3 with circuit breaker, extracts EXIF, generates thumbnails.
 
-    Returns:
-        {
-            "session_id": "processing-session-uuid",
-            "total_detected": 120,
-            "status": "completed",
-            "storage_location_id": 42
-        }
-    """
-```
+### Phase 2: ML Parent Task
 
-**Error handling:**
-- **Retry on transient errors**: S3 timeout, DB connection lost
-- **Fail gracefully on permanent errors**: Invalid image format, corrupt file
-- **Warning states**: Missing location, missing config (save partial results)
+**Task:** `process_photo_ml`
+**Queue:** `gpu_workers` (solo pool, GPU-bound)
+**Input:** Single image_id UUID
+**Time:** 30-60 seconds per photo
+**Details:** See `04_ml_parent_segmentation_detailed.mmd`
 
-### Task: generate_thumbnail
-Generate thumbnail for gallery view.
+Geolocates photo, runs YOLO segmentation, classifies masks, spawns child tasks.
 
-**Queue:** `image_processing` (I/O-bound)
-**Pool:** `gevent` (concurrent)
-**Estimated time:** 1-2 seconds per photo
-**Max retries:** 2
+**Warning states:**
+- `needs_location`: No GPS or outside cultivation areas
+- `needs_config`: Location not configured
+- `needs_calibration`: Density estimation unavailable
 
-**Task signature:**
-```python
-@celery_app.task(name='generate_thumbnail', queue='image_processing')
-def generate_thumbnail(
-    image_id: str,
-    s3_key_original: str,
-    thumbnail_size: tuple = (300, 300)
-) -> str:
-    """
-    Generate and upload thumbnail to S3
+### Phase 3: Child Tasks (Parallel)
 
-    Returns:
-        s3_key_thumbnail: S3 key for thumbnail
-    """
-```
+**Task:** `detect_sahi` (SAHI detection for segments)
+**Queue:** `gpu_workers` (solo pool)
+**Time:** 1-2 minutes
+**Details:** See `05_sahi_detection_child_detailed.mmd`
+
+**Task:** `detect_direct` (Direct detection for boxes/plugs)
+**Queue:** `gpu_workers` (solo pool)
+**Time:** 30-60 seconds
+**Details:** See `06_boxes_plugs_detection_detailed.mmd`
+
+### Phase 4: Callback Aggregation
+
+**Task:** `aggregate_results`
+**Queue:** `cpu_workers` (prefork pool)
+**Input:** Results from all child tasks
+**Time:** 10-20 seconds
+**Details:** See `07_callback_aggregation_detailed.mmd`
+
+Aggregates detections/estimations, generates visualization, creates stock batches.
 
 ## S3 Storage Structure
 
