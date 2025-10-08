@@ -1,0 +1,546 @@
+---
+config:
+  theme: dark
+  themeVariables:
+    primaryColor: '#E8F5E9'
+    primaryTextColor: '#1B5E20'
+    primaryBorderColor: '#4CAF50'
+    lineColor: '#388E3C'
+    secondaryColor: '#E3F2FD'
+    tertiaryColor: '#FFF3E0'
+  layout: elk
+---
+flowchart TB
+    %% ═══════════════════════════════════════════════════════════════════════
+    %% S3 UPLOAD WITH CIRCUIT BREAKER - ULTRA DETAILED
+    %% ═══════════════════════════════════════════════════════════════════════
+    %% Purpose: Celery task for S3 upload with circuit breaker pattern
+    %% Scope: Chunked upload (20 images), EXIF extraction, thumbnail generation
+    %% Detail: Circuit breaker state machine, retry logic, AWS SDK calls
+    %% Version: 1.0 | Updated: 2025-10-07 | Mermaid v11.3.0+
+    %% ═══════════════════════════════════════════════════════════════════════
+    %% Pattern: Circuit Breaker prevents S3 API exhaustion during AWS outages
+    %% ═══════════════════════════════════════════════════════════════════════
+
+    START@{ shape: stadium, label: "⚙️ Celery Task Start
+@app.task(bind=True, max_retries=3)
+def upload_s3_batch(self, chunk: List[str]):
+  # chunk = List of UUID strings
+  # Pool: gevent (I/O bound)
+⏱️ Task entry point" }
+
+    INIT_CIRCUIT@{ shape: rect, label: "🔌 Initialize Circuit Breaker
+from circuitbreaker import CircuitBreaker
+
+circuit = CircuitBreaker(
+  failure_threshold=10,
+  recovery_timeout=60,
+  expected_exception=S3Error
+)
+⏱️ ~1ms" }
+
+    CHECK_CIRCUIT@{ shape: diamond, label: "Circuit Breaker State?
+circuit.current_state" }
+
+    CIRCUIT_OPEN@{ shape: rect, label: "🔴 Circuit OPEN
+State: Circuit breaker triggered
+Reason: Too many S3 failures (≥50%)
+Action: Reject task immediately
+⏱️ ~1ms" }
+
+    RAISE_CIRCUIT_ERROR@{ shape: rect, label: "❌ Raise CircuitBreakerError
+raise CircuitBreakerOpenError(
+  'S3 service unavailable',
+  retry_after=60
+)
+⏱️ ~2ms" }
+
+    SCHEDULE_RETRY@{ shape: rect, label: "⏰ Schedule Celery Retry
+self.retry(
+  exc=CircuitBreakerOpenError(),
+  countdown=60,  # Wait 60s
+  max_retries=3
+)
+⏱️ ~5ms" }
+
+    INIT_COUNTERS@{ shape: rect, label: "📊 Initialize Counters
+successful = 0
+failed = 0
+warnings = 0
+processing_times = []
+⏱️ ~1ms" }
+
+    LOOP_START@{ shape: rect, label: "🔄 For Loop Start
+for image_id_str in chunk:
+  image_id = UUID(image_id_str)
+⚡ Sequential within chunk
+⏱️ Loop through 20 images" }
+
+    QUERY_DB@{ shape: cyl, label: "📊 SELECT FROM s3_images
+SELECT *
+FROM s3_images
+WHERE image_id = image_id
+LIMIT 1
+
+⚠️ Direct query by UUID PK
+⏱️ ~5-10ms (indexed)" }
+
+    CHECK_RECORD@{ shape: diamond, label: "Record Exists?
+result is not None" }
+
+    LOG_MISSING@{ shape: rect, label: "📝 Log Missing Record
+logger.warning(
+  f'Image {image_id} not in DB',
+  extra={'image_id': str(image_id)}
+)
+warnings += 1
+⏱️ ~3ms" }
+
+    NEXT_ITERATION@{ shape: rect, label: "Continue to Next
+Loop iteration" }
+
+    CHECK_TEMP_FILE@{ shape: diamond, label: "Temp File Exists?
+os.path.exists(
+  f'/tmp/uploads/{image_id}.jpg'
+)" }
+
+    LOG_NOTFOUND@{ shape: rect, label: "🚨 Critical: File Not Found
+logger.critical(
+  f'Temp file missing for {image_id}',
+  extra={
+    'image_id': str(image_id),
+    'possible_race_condition': True
+  }
+)
+⏱️ ~5ms" }
+
+    UPDATE_FAILED_NOTFOUND@{ shape: cyl, label: "📊 UPDATE s3_images
+SET status = 'failed'
+error_details = 'Temporary file not found'
+processing_status_updated_at = NOW()
+WHERE image_id = image_id
+
+⏱️ ~20ms" }
+
+    READ_FILE@{ shape: rect, label: "📖 Read Temp File
+file_path = Path(f'/tmp/uploads/{image_id}.jpg')
+with open(file_path, 'rb') as f:
+  file_data = f.read()
+file_size = len(file_data)
+⏱️ ~10ms (disk I/O)" }
+
+    EXTRACT_EXIF@{ shape: subproc, label: "🔍 Extract EXIF Metadata
+from PIL import Image
+from PIL.ExifTags import TAGS, GPSTAGS
+
+with Image.open(file_path) as img:
+  exif_data = img.getexif()
+
+  # Extract GPS
+  gps_info = {}
+  if 34853 in exif_data:  # GPSInfo tag
+    gps_data = exif_data.get_ifd(34853)
+    for tag, value in gps_data.items():
+      tag_name = GPSTAGS.get(tag, tag)
+      gps_info[tag_name] = value
+
+  # Convert GPS to lat/lon
+  lat, lon = None, None
+  if gps_info:
+    lat = convert_gps_to_decimal(
+      gps_info.get('GPSLatitude'),
+      gps_info.get('GPSLatitudeRef')
+    )
+    lon = convert_gps_to_decimal(
+      gps_info.get('GPSLongitude'),
+      gps_info.get('GPSLongitudeRef')
+    )
+
+  # Other EXIF
+  width = img.width
+  height = img.height
+  camera_model = exif_data.get(272, None)  # Model
+  timestamp = exif_data.get(306, None)  # DateTime
+
+exif_json = {
+  'camera_model': camera_model,
+  'timestamp': timestamp,
+  'width': width,
+  'height': height,
+  'orientation': exif_data.get(274, 1)
+}
+
+⏱️ ~20-30ms" }
+
+    CHECK_GPS@{ shape: diamond, label: "GPS Coordinates Found?
+lat is not None and lon is not None" }
+
+    LOG_GPS_WARNING@{ shape: rect, label: "⚠️ Warning: GPS Missing
+logger.warning(
+  f'No GPS for {image_id}',
+  extra={'image_id': str(image_id)}
+)
+warnings += 1
+⏱️ ~3ms" }
+
+    UPDATE_NO_GPS@{ shape: cyl, label: "📊 UPDATE s3_images
+SET exif_metadata = exif_json::jsonb
+gps_coordinates = NULL
+width_px = width
+height_px = height
+status = 'ready'
+error_details = 'GPS missing - manual location needed'
+WHERE image_id = image_id
+
+⚠️ Status 'ready' allows manual retry
+⏱️ ~30ms" }
+
+    CIRCUIT_UPLOAD@{ shape: subproc, label: "☁️ S3 Upload with Circuit Breaker
+@circuit.call
+def upload_to_s3():
+  import boto3
+  from botocore.exceptions import ClientError
+
+  s3_client = boto3.client('s3',
+    region_name='us-east-1',
+    config=Config(
+      retries={'max_attempts': 0}  # No boto retry
+    )
+  )
+
+  try:
+    response = s3_client.upload_fileobj(
+      BytesIO(file_data),
+      Bucket='demeterai-photos',
+      Key=record.s3_key_original,
+      ExtraArgs={
+        'ServerSideEncryption': 'AES256',
+        'ContentType': 'image/jpeg',
+        'Metadata': {
+          'image_id': str(image_id),
+          'uploaded_by': str(record.uploaded_by_user_id)
+        }
+      }
+    )
+    return response
+  except ClientError as e:
+    logger.error(f'S3 upload failed: {e}')
+    raise
+
+# Call with circuit breaker
+upload_to_s3()
+
+⏱️ ~200-500ms per upload
+🔥 Critical path - AWS network I/O" }
+
+    CHECK_UPLOAD@{ shape: diamond, label: "Upload Success?
+No exception raised" }
+
+    LOG_S3_ERROR@{ shape: rect, label: "📝 Log S3 Error
+error_code = e.response['Error']['Code']
+error_msg = e.response['Error']['Message']
+
+logger.error(
+  f'S3 upload failed for {image_id}',
+  extra={
+    'image_id': str(image_id),
+    'error_code': error_code,
+    'error_message': error_msg,
+    's3_key': record.s3_key_original
+  }
+)
+
+failed += 1
+⏱️ ~5ms" }
+
+    INCREMENT_CIRCUIT@{ shape: rect, label: "📊 Increment Circuit Failure
+circuit.record_failure()
+⏱️ ~1ms" }
+
+    CHECK_THRESHOLD@{ shape: diamond, label: "Failure Rate ≥ 50%?
+(failed / (successful + failed)) ≥ 0.50" }
+
+    OPEN_CIRCUIT@{ shape: rect, label: "🔴 OPEN Circuit Breaker
+circuit.open()
+logger.critical(
+  'Circuit breaker opened for S3',
+  extra={
+    'failed_count': failed,
+    'success_count': successful,
+    'failure_rate': failure_rate
+  }
+)
+# Alert ops team (PagerDuty, Slack, etc.)
+⏱️ ~10ms" }
+
+    MOVE_FAILED@{ shape: rect, label: "📁 Move to Failed Directory
+failed_dir = Path('/tmp/failed_uploads')
+failed_dir.mkdir(exist_ok=True)
+shutil.move(
+  file_path,
+  failed_dir / f'{image_id}.jpg'
+)
+⏱️ ~10ms" }
+
+    UPDATE_FAILED@{ shape: cyl, label: "📊 UPDATE s3_images
+SET status = 'failed'
+error_details = error_msg
+processing_status_updated_at = NOW()
+WHERE image_id = image_id
+⏱️ ~20ms" }
+
+    CHECK_RETRY@{ shape: diamond, label: "Can Retry?
+self.request.retries < self.max_retries" }
+
+    EXPONENTIAL_BACKOFF@{ shape: rect, label: "⏰ Exponential Backoff with Jitter
+import random
+base_delay = 60  # seconds
+retry_num = self.request.retries
+max_delay = 600  # 10 minutes
+
+# Exponential with full jitter (AWS recommended)
+delay = random.uniform(
+  0,
+  min(max_delay, base_delay * (2 ** retry_num))
+)
+
+self.retry(countdown=int(delay))
+⏱️ ~2ms" }
+
+    UPDATE_GPS@{ shape: cyl, label: "📊 UPDATE s3_images
+SET exif_metadata = exif_json::jsonb
+gps_coordinates = ST_SetSRID(
+  ST_MakePoint(lon, lat),
+  4326
+)::jsonb
+width_px = width
+height_px = height
+WHERE image_id = image_id
+⏱️ ~30ms" }
+
+    GENERATE_THUMB@{ shape: subproc, label: "🖼️ Generate Thumbnail
+from PIL import Image
+
+with Image.open(file_path) as img:
+  # Preserve aspect ratio
+  img.thumbnail(
+    (400, 400),
+    Image.Resampling.LANCZOS
+  )
+
+  # Save to temp
+  thumb_path = Path(f'/tmp/thumbs/{image_id}_thumb.jpg')
+  thumb_path.parent.mkdir(exist_ok=True)
+  img.save(thumb_path, 'JPEG', quality=90)
+
+⏱️ ~50ms" }
+
+    COMPRESS_AVIF@{ shape: subproc, label: "🗜️ Compress to AVIF
+import pillow_avif  # Register AVIF plugin
+
+try:
+  avif_path = Path(f'/tmp/thumbs/{image_id}_thumb.avif')
+
+  with Image.open(thumb_path) as img:
+    img.save(
+      avif_path,
+      'AVIF',
+      quality=85,
+      speed=4  # 0=slowest/best, 10=fastest/worst
+    )
+
+  # Verify size reduction
+  jpeg_size = thumb_path.stat().st_size
+  avif_size = avif_path.stat().st_size
+  reduction = (1 - avif_size/jpeg_size) * 100
+
+  logger.info(f'AVIF: {reduction:.1f}% smaller')
+
+  thumb_final = avif_path
+
+except Exception as e:
+  # Fallback to WebP
+  logger.warning(f'AVIF failed, using WebP: {e}')
+  webp_path = Path(f'/tmp/thumbs/{image_id}_thumb.webp')
+  with Image.open(thumb_path) as img:
+    img.save(webp_path, 'WEBP', quality=85)
+  thumb_final = webp_path
+
+⏱️ ~100ms (AVIF encoding is slow)" }
+
+    UPLOAD_THUMB@{ shape: rect, label: "☁️ Upload Thumbnail to S3
+thumb_key = record.s3_key_original.replace(
+  '.jpg',
+  '_thumb.avif'
+)
+
+with open(thumb_final, 'rb') as f:
+  s3_client.upload_fileobj(
+    f,
+    Bucket='demeterai-photos',
+    Key=thumb_key,
+    ExtraArgs={
+      'ServerSideEncryption': 'AES256',
+      'ContentType': 'image/avif'
+    }
+  )
+
+⏱️ ~100ms (small file)" }
+
+    UPDATE_SUCCESS@{ shape: cyl, label: "📊 UPDATE s3_images
+SET status = 'ready'
+s3_key_thumbnail = thumb_key
+processing_status_updated_at = NOW()
+WHERE image_id = image_id
+
+✅ Success - upload complete
+⏱️ ~30ms" }
+
+    INCREMENT_SUCCESS@{ shape: rect, label: "📊 Increment Success Counter
+successful += 1
+circuit.record_success()
+
+# Track processing time
+processing_times.append(time_taken)
+⏱️ ~1ms" }
+
+    CHECK_HALF_OPEN@{ shape: diamond, label: "Circuit HALF_OPEN?
+circuit.current_state == 'half_open'" }
+
+    CLOSE_CIRCUIT@{ shape: rect, label: "🟢 CLOSE Circuit Breaker
+circuit.close()
+logger.info(
+  'Circuit breaker closed (recovered)',
+  extra={
+    'successful_tests': test_count
+  }
+)
+⏱️ ~5ms" }
+
+    LOOP_CHECK@{ shape: diamond, label: "More Images in Chunk?
+Loop not finished" }
+
+    CLEANUP_TEMPS@{ shape: rect, label: "🧹 Cleanup Temp Files
+for image_id in processed_ids:
+  try:
+    os.remove(f'/tmp/uploads/{image_id}.jpg')
+    os.remove(f'/tmp/thumbs/{image_id}_thumb.*')
+  except FileNotFoundError:
+    pass
+⏱️ ~20ms" }
+
+    BUILD_SUMMARY@{ shape: rect, label: "📊 Build Chunk Summary
+avg_time = mean(processing_times) if processing_times else 0
+
+summary = {
+  'chunk_size': len(chunk),
+  'successful': successful,
+  'failed': failed,
+  'warnings': warnings,
+  'avg_processing_time_ms': avg_time * 1000,
+  'circuit_state': circuit.current_state,
+  'total_time_seconds': time.time() - start_time
+}
+
+⏱️ ~2ms" }
+
+    LOG_SUMMARY@{ shape: rect, label: "📝 Log Task Summary
+logger.info(
+  f'S3 chunk complete: {summary}',
+  extra=summary
+)
+⏱️ ~5ms" }
+
+    RETURN_SUMMARY@{ shape: stadium, label: "✅ Return Summary
+return summary
+
+⏱️ Total: 4-10s per 20-image chunk
+Celery result available for callback" }
+
+    END@{ shape: circle, label: "🎉 Task Complete" }
+
+    %% ═══════════════════════════════════════════════════════════════════════
+    %% CONNECTIONS
+    %% ═══════════════════════════════════════════════════════════════════════
+
+    START --> INIT_CIRCUIT
+    INIT_CIRCUIT --> CHECK_CIRCUIT
+    CHECK_CIRCUIT -- "🔴 OPEN" --> CIRCUIT_OPEN
+    CIRCUIT_OPEN --> RAISE_CIRCUIT_ERROR
+    RAISE_CIRCUIT_ERROR --> SCHEDULE_RETRY
+    CHECK_CIRCUIT -- "🟢 CLOSED/🟡 HALF_OPEN" --> INIT_COUNTERS
+    INIT_COUNTERS --> LOOP_START
+    LOOP_START --> QUERY_DB
+    QUERY_DB --> CHECK_RECORD
+    CHECK_RECORD -- "❌ Not found" --> LOG_MISSING
+    LOG_MISSING --> NEXT_ITERATION
+    CHECK_RECORD -- "✅ Found" --> CHECK_TEMP_FILE
+    CHECK_TEMP_FILE -- "❌ Missing" --> LOG_NOTFOUND
+    LOG_NOTFOUND --> UPDATE_FAILED_NOTFOUND
+    UPDATE_FAILED_NOTFOUND --> NEXT_ITERATION
+    CHECK_TEMP_FILE -- "✅ Exists" --> READ_FILE
+    READ_FILE --> EXTRACT_EXIF
+    EXTRACT_EXIF --> CHECK_GPS
+    CHECK_GPS -- "❌ No GPS" --> LOG_GPS_WARNING
+    LOG_GPS_WARNING --> UPDATE_NO_GPS
+    UPDATE_NO_GPS --> CIRCUIT_UPLOAD
+    CHECK_GPS -- "✅ Has GPS" --> UPDATE_GPS
+    UPDATE_GPS --> CIRCUIT_UPLOAD
+    CIRCUIT_UPLOAD --> CHECK_UPLOAD
+    CHECK_UPLOAD -- "❌ Failed" --> LOG_S3_ERROR
+    LOG_S3_ERROR --> INCREMENT_CIRCUIT
+    INCREMENT_CIRCUIT --> CHECK_THRESHOLD
+    CHECK_THRESHOLD -- "✅ Threshold reached" --> OPEN_CIRCUIT
+    CHECK_THRESHOLD -- "No" --> MOVE_FAILED
+    OPEN_CIRCUIT --> MOVE_FAILED
+    MOVE_FAILED --> UPDATE_FAILED
+    UPDATE_FAILED --> CHECK_RETRY
+    CHECK_RETRY -- "✅ Can retry" --> EXPONENTIAL_BACKOFF
+    CHECK_RETRY -- "❌ Max retries" --> NEXT_ITERATION
+    CHECK_UPLOAD -- "✅ Success" --> GENERATE_THUMB
+    GENERATE_THUMB --> COMPRESS_AVIF
+    COMPRESS_AVIF --> UPLOAD_THUMB
+    UPLOAD_THUMB --> UPDATE_SUCCESS
+    UPDATE_SUCCESS --> INCREMENT_SUCCESS
+    INCREMENT_SUCCESS --> CHECK_HALF_OPEN
+    CHECK_HALF_OPEN -- "Yes" --> CLOSE_CIRCUIT
+    CHECK_HALF_OPEN -- "No" --> NEXT_ITERATION
+    CLOSE_CIRCUIT --> NEXT_ITERATION
+    NEXT_ITERATION --> LOOP_CHECK
+    LOOP_CHECK -- "✅ More images" --> LOOP_START
+    LOOP_CHECK -- "❌ Loop done" --> CLEANUP_TEMPS
+    CLEANUP_TEMPS --> BUILD_SUMMARY
+    BUILD_SUMMARY --> LOG_SUMMARY
+    LOG_SUMMARY --> RETURN_SUMMARY
+    RETURN_SUMMARY --> END
+
+    %% ═══════════════════════════════════════════════════════════════════════
+    %% STYLING
+    %% ═══════════════════════════════════════════════════════════════════════
+
+    classDef errorStyle fill:#f44336,color:#fff,stroke:#b71c1c,stroke-width:2px
+    classDef successStyle fill:#4CAF50,color:#fff,stroke:#2E7D32,stroke-width:2px
+    classDef warningStyle fill:#FFF9C4,stroke:#F9A825,stroke-width:2px
+    classDef processStyle fill:#E3F2FD,stroke:#1976D2,stroke-width:2px
+    classDef criticalStyle fill:#FFF3E0,stroke:#F57C00,stroke-width:3px
+
+    CIRCUIT_OPEN:::errorStyle
+    RAISE_CIRCUIT_ERROR:::errorStyle
+    LOG_NOTFOUND:::errorStyle
+    UPDATE_FAILED_NOTFOUND:::errorStyle
+    LOG_S3_ERROR:::errorStyle
+    OPEN_CIRCUIT:::errorStyle
+    UPDATE_FAILED:::errorStyle
+
+    LOG_GPS_WARNING:::warningStyle
+    LOG_MISSING:::warningStyle
+    SCHEDULE_RETRY:::warningStyle
+
+    RETURN_SUMMARY:::successStyle
+    UPDATE_SUCCESS:::successStyle
+    CLOSE_CIRCUIT:::successStyle
+    END:::successStyle
+
+    CIRCUIT_UPLOAD:::criticalStyle
+    COMPRESS_AVIF:::criticalStyle
+    EXTRACT_EXIF:::processStyle
