@@ -103,9 +103,9 @@ async def upload_photo(
 
 ## Database Layer
 
-### PostgreSQL 15+
+### PostgreSQL 18+
 
-**Version:** PostgreSQL 15.x (with PostGIS 3.3+)
+**Version:** PostgreSQL 18.x (with PostGIS 3.3+)
 
 **Why PostgreSQL:**
 - ✅ **ACID compliance:** Transactional integrity for inventory data
