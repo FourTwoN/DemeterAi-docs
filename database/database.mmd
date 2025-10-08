@@ -1,0 +1,361 @@
+---
+config:
+  theme: redux-dark-color
+  layout: elk
+---
+erDiagram
+    warehouses ||--o{ storage_areas : "contains"
+    storage_areas ||--o{ storage_locations : "contains"
+    storage_locations ||--o{ storage_bins : "contains"
+    storage_bin_types ||--o{ storage_bins : "defines"
+    warehouses {
+        int id PK
+        varchar code UK
+        varchar name
+        varchar type "greenhouse|shadehouse|open_field|tunnel"
+        geometry geojson_coordinates "PostGIS"
+        geometry centroid "PostGIS"
+        numeric area_m2 "GENERATED ST_Area(geojson_coordinates::geography)"
+        boolean active "default true"
+        timestamp created_at
+        timestamp updated_at
+    }
+    storage_areas {
+        int id PK
+        int warehouse_id FK
+        varchar code UK
+        varchar name
+        varchar position "N|S|E|W|C"
+        geometry geojson_coordinates "PostGIS"
+        geometry centroid "PostGIS"
+        numeric area_m2 "GENERATED ST_Area(geojson_coordinates::geography)"
+        boolean active "default true"
+        timestamp created_at
+        timestamp updated_at
+    }
+    storage_locations {
+        int id PK
+        int storage_area_id FK
+        varchar code UK
+        varchar qr_code UK
+        varchar name
+        text description
+        geometry geojson_coordinates "PostGIS"
+        geometry centroid "PostGIS"
+        numeric area_m2 "GENERATED ST_Area(geojson_coordinates::geography)"
+        boolean active "default true"
+        timestamp created_at
+        timestamp updated_at
+    }
+    storage_bin_types {
+        int id PK
+        varchar code UK
+        varchar name
+        varchar category "plug|seedling_tray|box|segment|pot"
+        text description
+        int rows "nullable"
+        int columns "nullable"
+        int capacity "nullable"
+        numeric length_cm "nullable"
+        numeric width_cm "nullable"
+        numeric height_cm "nullable"
+        boolean is_grid "nullable"
+        timestamp created_at
+        timestamp updated_at
+    }
+    storage_bins {
+        int id PK
+        int storage_location_id FK
+        int storage_bin_type_id FK
+        int photo_session_id FK "NEW - links to session"
+        varchar code UK
+        varchar label
+        text description
+        jsonb position_metadata "segmentation_mask, bbox, confidence"
+        varchar status "active|maintenance|retired"
+        timestamp created_at
+    }
+    product_categories ||--o{ product_families : "groups"
+    product_families ||--o{ products : "contains"
+    product_categories {
+        int id PK
+        varchar code UK
+        varchar name
+        text description
+    }
+    product_families {
+        int id PK
+        int category_id FK
+        varchar name
+        varchar scientific_name
+        text description
+    }
+    products {
+        int id PK
+        int family_id FK
+        varchar sku UK
+        varchar common_name
+        varchar scientific_name
+        text description
+        jsonb custom_attributes
+    }
+    product_states {
+        int id PK
+        varchar code UK
+        varchar name
+        text description
+        boolean is_sellable "default false"
+        int sort_order
+    }
+    product_sizes {
+        int id PK
+        varchar code UK
+        varchar name
+        text description
+        numeric min_height_cm
+        numeric max_height_cm
+        numeric price_factor "default 1.0"
+        int sort_order
+    }
+    packaging_types ||--o{ packaging_catalog : "defines"
+    packaging_materials ||--o{ packaging_catalog : "defines"
+    packaging_colors ||--o{ packaging_catalog : "defines"
+    packaging_types {
+        int id PK
+        varchar code UK
+        varchar name
+        text description
+        numeric price_factor "default 1.0"
+    }
+    packaging_materials {
+        int id PK
+        varchar code UK
+        varchar name
+        text description
+    }
+    packaging_colors {
+        int id PK
+        varchar name UK
+        varchar hex_code
+        numeric price_factor "default 1.0"
+    }
+    packaging_catalog {
+        int id PK
+        int packaging_type_id FK
+        int packaging_material_id FK
+        int packaging_color_id FK
+        varchar sku UK
+        varchar name
+        numeric volume_liters
+        numeric diameter_cm
+        numeric height_cm
+        numeric unit_price
+    }
+    storage_bins ||--o{ stock_batches : "stores"
+    products ||--o{ stock_batches : "product_of"
+    product_states ||--o{ stock_batches : "state_of"
+    product_sizes ||--o{ stock_batches : "size_of"
+    packaging_catalog ||--o{ stock_batches : "packaged_in"
+    stock_batches ||--o{ stock_movements : "has_movements"
+    users ||--o{ stock_movements : "performs"
+    storage_bins ||--o{ stock_movements : "source_bin"
+    storage_bins ||--o{ stock_movements : "destination_bin"
+    photo_processing_sessions ||--o{ stock_movements : "generated_by"
+    stock_batches {
+        int id PK
+        varchar batch_code UK
+        int current_storage_bin_id FK
+        int product_id FK
+        int product_state_id FK
+        int product_size_id FK "nullable"
+        boolean has_packaging "default false"
+        int packaging_catalog_id FK "nullable"
+        int quantity_initial "CHECK >= 0"
+        int quantity_current "CHECK >= 0"
+        int quantity_empty_containers "default 0"
+        numeric quality_score "0-5"
+        date planting_date "nullable"
+        date germination_date "nullable"
+        date transplant_date "nullable"
+        date expected_ready_date "nullable"
+        text notes
+        jsonb custom_attributes
+        timestamp created_at
+        timestamp updated_at
+    }
+    stock_movements {
+        int id PK
+        uuid movement_id UK
+        int batch_id FK
+        varchar movement_type "plantar|sembrar|transplante|muerte|ventas|foto|ajuste"
+        int source_bin_id FK "nullable"
+        int destination_bin_id FK "nullable"
+        int quantity "CHECK != 0"
+        int user_id FK
+        numeric unit_price "KEEP for COGS"
+        numeric total_price "nullable"
+        text reason_description
+        int processing_session_id FK "nullable"
+        varchar source_type "manual|ia"
+        boolean is_inbound "ingreso or egreso"
+        timestamp created_at
+    }
+    s3_images ||--o{ photo_processing_sessions : "references"
+    s3_images ||--o{ product_sample_images : "references"
+    s3_images {
+        int id PK
+        uuid image_id UK
+        varchar s3_bucket
+        varchar s3_key_original UK
+        varchar s3_key_thumbnail
+        varchar content_type "image/jpeg|image/png"
+        bigint file_size_bytes
+        int width_px
+        int height_px
+        jsonb exif_metadata
+        jsonb gps_coordinates
+        varchar upload_source "web|mobile|api"
+        int uploaded_by_user_id FK
+        varchar status "uploaded|processing|ready|failed"
+        text error_details "NEW - for failures"
+        timestamp processing_status_updated_at "NEW"
+        timestamp created_at
+        timestamp updated_at
+    }
+    storage_locations ||--o{ photo_processing_sessions : "processed_in"
+    photo_processing_sessions ||--o{ detections : "contains"
+    photo_processing_sessions ||--o{ estimations : "contains"
+    users ||--o{ photo_processing_sessions : "validates"
+    stock_movements ||--o{ detections : "created_by"
+    stock_movements ||--o{ estimations : "created_by"
+    photo_processing_sessions {
+        int id PK
+        uuid session_id UK
+        int storage_location_id FK "nullable"
+        int original_image_id FK "s3_images"
+        int processed_image_id FK "s3_images"
+        int total_detected
+        int total_estimated
+        int total_empty_containers
+        numeric avg_confidence
+        jsonb category_counts
+        varchar status "pending|processing|completed|failed"
+        text error_message
+        boolean validated "default false"
+        int validated_by_user_id FK
+        timestamp validation_date
+        jsonb manual_adjustments
+        timestamp created_at
+        timestamp updated_at
+    }
+    classifications ||--o{ detections : "classifies"
+    classifications ||--o{ estimations : "classifies"
+    detections {
+        int id PK
+        int session_id FK
+        int stock_movement_id FK
+        int classification_id FK
+        numeric center_x_px "renamed from x_coord_px"
+        numeric center_y_px "renamed from y_coord_px"
+        int width_px "renamed from bbox_width_px"
+        int height_px "renamed from bbox_height_px"
+        numeric area_px "GENERATED width_px * height_px"
+        jsonb bbox_coordinates "x1,y1,x2,y2"
+        numeric detection_confidence "renamed from category_confidence"
+        boolean is_empty_container "default false"
+        boolean is_alive "default true"
+        timestamp created_at
+    }
+    estimations {
+        int id PK
+        int session_id FK
+        int stock_movement_id FK
+        int classification_id FK
+        jsonb vegetation_polygon
+        numeric detected_area_cm2
+        int estimated_count
+        varchar calculation_method "band_estimation|density_estimation|grid_analysis"
+        numeric estimation_confidence "default 0.70"
+        boolean used_density_parameters
+        timestamp created_at
+    }
+    products ||--o{ classifications : "species"
+    product_sizes ||--o{ classifications : "size"
+    packaging_catalog ||--o{ classifications : "pot_type"
+    classifications {
+        int id PK
+        int product_id FK
+        int product_size_id FK "nullable"
+        int packaging_catalog_id FK "nullable"
+        int product_conf "NEW - product classification confidence"
+        int packaging_conf "NEW - packaging classification confidence"
+        int product_size_conf "NEW - size classification confidence"
+        varchar model_version "NEW - ML model version"
+        varchar name
+        text description
+        timestamp created_at
+    }
+    products ||--o{ product_sample_images : "has_samples"
+    product_states ||--o{ product_sample_images : "state_at_capture"
+    product_sizes ||--o{ product_sample_images : "size_at_capture"
+    storage_locations ||--o{ product_sample_images : "captured_at"
+    users ||--o{ product_sample_images : "captured_by"
+    product_sample_images {
+        int id PK
+        int product_id FK
+        int image_id FK "s3_images"
+        int product_state_id FK "nullable"
+        int product_size_id FK "nullable"
+        int storage_location_id FK "nullable"
+        varchar sample_type "reference|growth_stage|quality_check|monthly_sample"
+        date capture_date
+        int captured_by_user_id FK
+        text notes
+        int display_order
+        boolean is_primary
+        timestamp created_at
+    }
+    storage_locations ||--o{ storage_location_config : "configured_with"
+    products ||--o{ storage_location_config : "grows"
+    packaging_catalog ||--o{ storage_location_config : "uses"
+    product_states ||--o{ storage_location_config : "expected_state"
+    storage_bin_types ||--o{ density_parameters : "calibrated_for"
+    products ||--o{ density_parameters : "calibrated_for"
+    packaging_catalog ||--o{ density_parameters : "calibrated_for"
+    storage_location_config {
+        int id PK
+        int storage_location_id FK
+        int product_id FK
+        int packaging_catalog_id FK "nullable"
+        int expected_product_state_id FK
+        numeric area_cm2
+        boolean active "default true"
+        text notes
+        timestamp created_at
+        timestamp updated_at
+    }
+    density_parameters {
+        int id PK
+        int storage_bin_type_id FK
+        int product_id FK
+        int packaging_catalog_id FK
+        numeric avg_area_per_plant_cm2
+        numeric plants_per_m2
+        numeric overlap_adjustment_factor "default 0.85"
+        numeric avg_diameter_cm
+        text notes
+        timestamp created_at
+        timestamp updated_at
+    }
+    users {
+        int id PK
+        varchar email UK
+        varchar password_hash
+        varchar first_name
+        varchar last_name
+        varchar role "admin|supervisor|worker|viewer"
+        boolean active "default true"
+        timestamp last_login
+        timestamp created_at
+        timestamp updated_at
+    }

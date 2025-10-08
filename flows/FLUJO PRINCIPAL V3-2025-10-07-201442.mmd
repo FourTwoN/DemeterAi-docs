@@ -1,0 +1,572 @@
+---
+config:
+  theme: dark
+  themeVariables:
+    primaryColor: '#E8F5E9'
+    primaryTextColor: '#1B5E20'
+    primaryBorderColor: '#4CAF50'
+    lineColor: '#388E3C'
+    secondaryColor: '#E3F2FD'
+    tertiaryColor: '#FFF3E0'
+    noteBkgColor: '#FFFDE7'
+    noteBorderColor: '#FBC02D'
+  layout: dagre
+---
+flowchart TB
+ subgraph API_ENTRY["🎯 API CONTROLLER - POST /api/stock/photo"]
+    direction TB
+        START(["📸 Recibe Request<br>MultipartForm con fotos<br>+ metadata opcional"])
+        VALIDATE_REQUEST{"Validar Request<br>- Content-Type<br>- File extensions<br>- File size &lt; 50MB"}
+        RETURN_400["❌ Return 400<br>Bad Request<br>Invalid file format"]
+        COUNT_PHOTOS{"Contar<br>fotos"}
+        LOOP_PHOTOS["📋 Para cada foto"]
+        GENERATE_UUID["🆔 Generar UUID v4<br>image_id = uuid.uuid4<br>⚠️ CRÍTICO: UUID es PK"]
+        SAVE_TEMP["💾 Guardar temporalmente<br>/tmp/uploads/image_id.jpg<br>+ metadata opcional<br>/tmp/metadata/image_id.json"]
+        GEN_S3_KEYS["🔗 Generar S3 keys<br>original: original/YYYY/MM/DD/image_id.jpg<br>processed: processed/YYYY/MM/DD/image_id_viz.jpg"]
+        INSERT_S3_ROW@{ label: "📊 INSERT INTO s3_images<br>⚠️ REFACTORIZADO:<br>image_id = UUID PK no más SERIAL<br>s3_bucket = 'demeterai-photos'<br>s3_key_original = 'original/...'<br>content_type = 'image/jpeg'<br>file_size_bytes = SIZE<br>upload_source = 'web'<br>uploaded_by_user_id = USER_ID<br>status = 'uploaded'<br>created_at = NOW<br><br>⚠️ SIN RETURNING - UUID ya existe" }
+        COLLECT_IDS["📦 Recolectar<br>image_id UUID<br>en array"]
+        CREATE_CHUNKS["📦 Crear chunks para Celery<br>S3: chunks de 20 UUIDs<br>ML: 1 UUID por task"]
+        LAUNCH_TASKS["🚀 LANZAR CELERY TASKS"]
+        CHUNK_S3["📤 S3 Upload con CHUNKS<br>upload_s3_batch.chunks<br>image_ids, chunk_size=20<br>Circuit breaker enabled"]
+        PARALLEL_ML["🤖 ML Processing<br>process_photo_ml.delay<br>1 task por UUID<br>Pool=solo GPU workers"]
+        COLLECT_TASK_IDS["📋 Recolectar todos<br>task_ids generados<br>para polling"]
+        RETURN_RESPONSE["✅ Return 202 Accepted<br>JSON Response<br>task_ids: array<br>total_photos: count<br>estimated_time: seconds"]
+        API_END(["✅ API Response enviada"])
+  end
+ subgraph S3_UPLOAD_CHUNKS["📤 CELERY TASK: S3 Upload Batch with Circuit Breaker"]
+    direction TB
+        S3_CHUNK_START(["⚙️ Task recibe CHUNK<br>image_ids: List UUID<br>chunk_size=20<br>max_retries=3<br>bind=True"])
+        S3_CIRCUIT_CHECK{"Circuit Breaker<br>State?"}
+        S3_CIRCUIT_REJECT["⚠️ Circuit OPEN<br>Reject task immediately<br>Raise CircuitBreakerError"]
+        S3_SCHEDULE_RETRY["⏰ Schedule retry<br>countdown = 60s<br>Wait for circuit recovery"]
+        S3_LOOP_START{"📋 Para cada<br>image_id UUID"}
+        S3_GET_RECORD[("📊 SELECT * FROM s3_images<br>WHERE image_id = UUID<br>⚠️ Query directo por UUID PK<br>Sin JOIN, instantáneo")]
+        S3_CHECK_FILE{"¿Existe archivo<br>temporal?"}
+        S3_ERROR_NOTFOUND["🚨 ERROR: File not found<br>Log critical error<br>Posible race condition"]
+        S3_UPDATE_ERROR_NOTFOUND@{ label: "📊 UPDATE s3_images<br>SET status = 'failed'<br>error_details = 'Temp file missing'<br>processing_status_updated_at = NOW<br>WHERE image_id = UUID" }
+        S3_NEXT_PHOTO["S3_NEXT_PHOTO"]
+        S3_READ_FILE["📖 Leer archivo<br>/tmp/uploads/UUID.jpg<br>+ metadata JSON si existe"]
+        S3_EXTRACT_EXIF["🔍 Extraer EXIF con PIL<br>- GPS coordinates<br>- Timestamp original<br>- Camera model<br>- Resolution WxH<br>- Orientation EXIF"]
+        S3_CHECK_GPS{"¿Tiene GPS<br>coordinates?"}
+        S3_WARNING_GPS["⚠️ WARNING no ERROR<br>GPS missing<br>Continuar con upload"]
+        S3_UPDATE_NO_GPS@{ label: "📊 UPDATE s3_images<br>SET exif_metadata = JSON<br>gps_coordinates = NULL<br>width_px = W, height_px = H<br>status = 'ready'<br>error_details = 'Missing GPS - needs manual location'<br>WHERE image_id = UUID<br><br>⚠️ Status=ready permite retry posterior" }
+        S3_UPLOAD_TRY["☁️ Upload a S3 con boto3<br>with circuit_breaker decorator<br>s3.upload_fileobj<br>Key = s3_key_original<br>Bucket = bucket<br>ServerSideEncryption = AES256"]
+        S3_UPDATE_METADATA@{ label: "📊 UPDATE s3_images<br>SET exif_metadata = JSON<br>gps_coordinates = lat, lon<br>width_px = W, height_px = H<br>status = 'ready'<br>WHERE image_id = UUID" }
+        S3_UPLOAD_CHECK{"¿Upload<br>exitoso?"}
+        S3_LOG_S3_ERROR["📝 Log S3 error<br>Increment failure counter<br>Check circuit threshold"]
+        S3_CIRCUIT_UPDATE{"Failures ≥<br>threshold?"}
+        S3_OPEN_CIRCUIT["🔴 OPEN Circuit<br>Block subsequent requests<br>Alert ops team"]
+        S3_MOVE_FAILED["📁 Mover a<br>/tmp/failed_uploads/UUID.jpg<br>Preservar para retry manual"]
+        S3_UPDATE_FAILED@{ label: "📊 UPDATE s3_images<br>SET status = 'failed'<br>error_details = S3_ERROR<br>WHERE image_id = UUID" }
+        S3_RETRY{"Retry attempt<br>&lt; max_retries?"}
+        S3_BACKOFF["⏰ Exponential backoff<br>countdown = 2^retry * 60<br>with full jitter"]
+        S3_GENERATE_THUMB["🖼️ Generar thumbnail<br>PIL.Image.thumbnail<br>400x400 max size<br>LANCZOS resampling"]
+        S3_COMPRESS_THUMB["🗜️ Compress thumbnail<br>AVIF format quality=85<br>Fallback WebP si no soporta<br>50% size reduction"]
+        S3_UPLOAD_THUMB@{ label: "☁️ Upload thumbnail<br>Key = original_key + '_thumb.avif'" }
+        S3_UPDATE_SUCCESS@{ label: "📊 UPDATE s3_images<br>SET status = 'ready'<br>s3_key_thumbnail = KEY<br>processing_status_updated_at = NOW<br>WHERE image_id = UUID<br><br>✅ Success - Circuit healthy" }
+        S3_SUCCESS_COUNTER["📊 Increment success counter<br>Consider HALF_OPEN → CLOSED"]
+        S3_CHUNK_SUMMARY["📊 Chunk summary<br>successful: count<br>failed: count<br>warnings: count"]
+        S3_CHUNK_END(["✅ Task complete<br>Return summary dict"])
+  end
+ subgraph ML_PROCESSING["🤖 CELERY TASK: ML Parent - Segmentador"]
+    direction TB
+        ML_START(["🎬 Task recibe<br>image_id: UUID<br>user_id: int<br>Pool=solo GPU<br>max_retries=1<br>⚠️ NUEVO: 2-3 modelos singleton<br>para paralelizar workers"])
+        ML_LOAD_MODEL@{ label: "🔧 Load Model Singleton<br>⚠️ MODIFICADO: Pool de modelos<br>worker_id = current_worker_id % num_gpus<br>model_key = f'yolo_v11_seg_worker_id'<br>if not model_cache.get model_key :<br>  model = YOLO 'yolo11m-seg.pt' <br>  model.to f'cuda:worker_id' <br>  model.fuse<br>  model_cache model_key  = model" }
+        ML_READ_TEMP["📖 Leer imagen temporal<br>/tmp/uploads/UUID.jpg<br>⚠️ NO accede a s3_images<br>Lectura directa archivo"]
+        ML_CHECK_EXISTS{"¿Archivo<br>existe?"}
+        ML_FALLBACK_S3["🔄 FALLBACK S3<br>⚠️ NUEVO: Último recurso<br>Verificar status en s3_images"]
+        ML_CHECK_S3_STATUS[("📊 SELECT status FROM s3_images<br>WHERE image_id = UUID<br>⚠️ ¿Task S3 marcó SUCCESS?")]
+        ML_S3_STATUS_CHECK@{ label: "Status =<br>'ready'?" }
+        ML_CRITICAL_NOTFOUND["🚨 ERROR CRÍTICO<br>Imagen no disponible<br>Status S3 no es success"]
+        ML_DOWNLOAD_S3["☁️ Download desde S3<br>s3.download_file<br>Bucket, s3_key_original<br>/tmp/uploads/UUID.jpg<br>⚠️ Último fallback antes error"]
+        ML_S3_DOWNLOAD_CHECK{"¿Download<br>exitoso?"}
+        ML_EXTRACT_EXIF["🔍 Extraer EXIF<br>DIRECTAMENTE de archivo<br>with PIL.Image.open<br>NO desde database"]
+        ML_LOG_FAILURE["📝 Log critical failure<br>Send alert to ops<br>Mark session as failed"]
+        ML_END_FAILURE(["❌ Task FAILURE<br>raise TemporaryFileNotFound"])
+        ML_CHECK_GPS{"¿Tiene GPS<br>metadata?"}
+        ML_WARNING_GPS_ML@{ label: "⚠️ WARNING GPS missing<br>⚠️ MODIFICADO: Termina aquí<br>Status = 'needs_location'<br>NO continuar procesamiento" }
+        ML_CREATE_WARNING_SESSION["📋 Crear Warning Session"]
+        ML_GEOLOCATE["📍 GEOLOCALIZACIÓN PostGIS<br>Buscar storage_location"]
+        ML_QUERY_LOCATION[("📊 SELECT sl.id, sl.code, sl.name,<br>sl.warehouse_id, sl.storage_area_id<br>FROM storage_locations sl<br>WHERE ST_Contains<br>  sl.geojson_coordinates,<br>  ST_SetSRID ST_MakePoint lon, lat , 4326 <br>AND sl.active = true<br>LIMIT 1<br><br>⚠️ Usa índice SP-GiST optimizado")]
+        ML_LOCATION_FOUND{"¿Location<br>encontrada?"}
+        ML_WARNING_LOCATION@{ label: "⚠️ WARNING Location not found<br>⚠️ MODIFICADO: Termina aquí<br>Coords fuera de cultivo<br>Status = 'needs_location'<br>NO continuar procesamiento" }
+        ML_GET_CONFIG[("📊 SELECT<br>slc.product_id, slc.packaging_catalog_id,<br>slc.expected_product_state_id,<br>p.common_name, p.scientific_name,<br>pc.diameter_cm, pc.volume_liters<br>FROM storage_location_config slc<br>JOIN products p ON slc.product_id = p.id<br>JOIN packaging_catalog pc<br>  ON slc.packaging_catalog_id = pc.id<br>WHERE slc.storage_location_id = ?<br>AND slc.active = true<br>LIMIT 1")]
+        ML_CONFIG_EXISTS{"¿Config<br>existe?"}
+        ML_WARNING_CONFIG@{ label: "⚠️ WARNING Config missing<br>⚠️ MODIFICADO: Termina aquí<br>Sin config precargada<br>Status = 'needs_config'<br>NO continuar procesamiento<br>Clasificación es crítica" }
+        ML_GET_DENSITY[("📊 SELECT<br>dp.avg_area_per_plant_cm2,<br>dp.plants_per_m2,<br>dp.overlap_adjustment_factor<br>FROM density_parameters dp<br>WHERE dp.product_id = ?<br>AND dp.packaging_catalog_id = ?<br>LIMIT 1<br>⚠️ CRÍTICO: Si no existe, NO continuar")]
+        ML_DENSITY_EXISTS{"¿Density params<br>existen?"}
+        ML_WARNING_DENSITY@{ label: "⚠️ WARNING Density params missing<br>Status = 'needs_calibration'<br>NO continuar procesamiento" }
+        ML_CREATE_SESSION["📋 Crear Processing Session"]
+        ML_INSERT_WARNING_SESSION@{ label: "📊 INSERT INTO photo_processing_sessions<br>session_id = gen_random_uuid<br>storage_location_id = NULL or LOCATION_ID<br>original_image_id = UUID<br>status = 'needs_location' or 'needs_config' or 'needs_calibration'<br>error_message = Detalle específico<br>created_at = NOW<br><br>RETURNING id AS session_id_pk<br>⚠️ MODIFICADO: Diferentes status según caso" }
+        ML_END_WARNING(["⚠️ Task SUCCESS with warning<br>Return session_id_pk<br>Frontend permite acción manual:<br>- Añadir ubicación manual<br>- Configurar storage location<br>- Calibrar density parameters"])
+        ML_INSERT_SESSION@{ label: "📊 INSERT INTO photo_processing_sessions<br>session_id = gen_random_uuid<br>storage_location_id = LOCATION_ID<br>original_image_id = UUID<br>status = 'pending'<br>created_at = NOW<br><br>RETURNING id AS session_id_pk" }
+        ML_UPDATE_PROCESSING@{ label: "📊 UPDATE photo_processing_sessions<br>SET status = 'processing'<br>updated_at = NOW<br>WHERE id = session_id_pk" }
+        ML_SEGMENT@{ label: "🔪 SEGMENTACIÓN YOLO v11<br>model = model_cache get_worker_model<br>results = model.predict<br>  image,<br>  conf=0.30,<br>  iou=0.50,<br>  imgsz=1024,<br>  device=f'cuda:worker_id',<br>  half=True" }
+        ML_PROCESS_MASKS["📐 Procesar máscaras<br>For cada detection:<br>  mask = result.masks 0 .data<br>  # Suavizado morfológico<br>  kernel = cv2.getStructuringElement<br>  mask = cv2.morphologyEx MORPH_CLOSE<br>  mask = cv2.GaussianBlur 5,5 , 0<br>  # Rellenar huecos<br>  contours = cv2.findContours<br>  cv2.drawContours FILLED"]
+        ML_CLASSIFY_MASKS@{ label: "🏷️ Clasificar por clase YOLO<br>class_map = <br>  0: 'segment',<br>  1: 'cajon',<br>  2: 'almacigo',<br>  3: 'plug'<br>" }
+        ML_SAVE_MASKS["💾 Guardar máscaras temp<br>/tmp/masks/session_id_pk/<br>  class_name_idx.npy<br>  metadata.json"]
+        ML_CHECK_DETECTED{"¿Detecciones<br>encontradas?"}
+        ML_NO_DETECTION@{ label: "⚠️ WARNING Imagen sin detecciones<br>⚠️ MODIFICADO: Especificar detalle<br>- 'No se pudo segmentar nada'<br>- 'No se detectaron plantas'<br>- 'Foto no válida'<br>Foto almacenada para revisión" }
+        ML_UPDATE_EMPTY@{ label: "📊 UPDATE photo_processing_sessions<br>SET status = 'completed'<br>total_detected = 0<br>total_estimated = 0<br>error_message = DETALLE_ESPECIFICO<br>WHERE id = session_id_pk<br>⚠️ Session SIN detections/estimations<br>Foto disponible para usuario revisar" }
+        ML_END_SUCCESS_EMPTY(["✅ Task SUCCESS<br>Empty but valid<br>Usuario puede ver foto<br>y re-sacar si es perro/etc"])
+        ML_PREPARE_CHORD["⚙️ Preparar CHORD pattern<br>Celery canvas para children"]
+        ML_BUILD_TASKS["🏗️ Build task signatures<br>tasks ="]
+        ML_SEGMENT_TASKS{"¿Hay<br>segmentos?"}
+        ML_ADD_SAHI["➕ Add SAHI tasks<br>for cada segment:<br>  tasks.append<br>    detect_segment_sahi.si<br>      session_id_pk,<br>      mask_path,<br>      config,<br>      density_params"]
+        ML_CHECK_BOXES{"¿Hay cajones/<br>plugs/almácigos?"}
+        ML_ADD_DIRECT@{ label: "➕ Add direct detection<br>for cada class in 'cajon','plug','almacigo' :<br>  tasks.append<br>    detect_direct.si<br>      session_id_pk,<br>      mask_path,<br>      class_type,<br>      config,<br>      density_params" }
+        ML_LAUNCH_CHORD["🚀 LANZAR CHORD"]
+        ML_CHORD_STRUCTURE@{ label: "🎼 Celery Chord<br>chord<br>  group *tasks ,<br>  aggregate_results.s session_id_pk <br> .apply_async<br>   queue='gpu_queue'" }
+        ML_EXECUTE_CHORD["⚡ Execute async<br>Children en paralelo<br>Callback al completar"]
+        ML_WAIT["⏳ Parent task WAIT<br>Liberando GPU worker"]
+        ML_CALLBACK_TRIGGER["🔔 Callback triggered<br>All children completed"]
+  end
+ subgraph CHILD_SAHI["🎯 CHILD TASK: SAHI Detection - Segmentos"]
+    direction TB
+        SAHI_START(["⚙️ Signature recibe<br>session_id_pk: int<br>mask_path: str<br>config: dict<br>density_params: dict<br>Pool=solo GPU"])
+        SAHI_LOAD_MASK["📖 Load mask<br>mask = np.load mask_path <br>image_crop = apply_mask original"]
+        SAHI_CREATE_MOVEMENT@{ label: "📊 INSERT INTO stock_movements<br>movement_id = gen_random_uuid<br>batch_id = NULL<br>movement_type = 'foto'<br>quantity = 0<br>user_id = USER_ID<br>source_type = 'ia'<br>is_inbound = true<br>processing_session_id = session_id_pk<br>created_at = NOW<br><br>RETURNING id AS movement_id_pk" }
+        SAHI_DETECT@{ label: "🤖 SAHI Slicing + Detection<br>⚠️ MODIFICADO: Todo en uno con librería<br>from sahi.predict import get_sliced_prediction<br>result = get_sliced_prediction<br>  image_crop,<br>  detection_model=sahi_wrapped_model,<br>  slice_height=640,<br>  slice_width=640,<br>  overlap_height_ratio=0.2,<br>  overlap_width_ratio=0.2,<br>  postprocess_type='NMS',<br>  postprocess_match_threshold=0.5<br>⚠️ Librería hace: slice, detect, NMS automático" }
+        SAHI_COLLECT_DETS["📦 Collect all detections<br>detections_list = result.object_prediction_list<br>Extract bboxes, confidence, class"]
+        SAHI_GET_CLASSIFICATION["🏷️ Get/Create Classification"]
+        SAHI_QUERY_CLASS@{ label: "📊 SELECT id FROM classifications<br>WHERE product_id = config 'product_id' <br>AND packaging_catalog_id = config 'packaging_id' <br>AND model_version = 'yolo-v11-seg'<br>LIMIT 1" }
+        SAHI_CLASS_EXISTS{"¿Exists?"}
+        SAHI_CREATE_CLASS@{ label: "📊 INSERT INTO classifications<br>product_id = config 'product_id' <br>packaging_catalog_id = config 'packaging_id' <br>model_version = 'yolo-v11-seg'<br>name = config 'product_name' <br>RETURNING id" }
+        SAHI_USE_CLASS["Use existing classification_id"]
+        SAHI_BULK_INSERT["⚡ BULK INSERT Detections<br>⚠️ NOTA: asyncpg como mejora futura<br>Por ahora usar ORM bulk operations<br>Si necesario: asyncpg COPY después"]
+        SAHI_PREPARE_RECORDS["📋 Prepare records list<br>records = <br>  session_id_pk,<br>  movement_id_pk,<br>  classification_id,<br>  center_x, center_y,<br>  width, height,<br>  bbox_json,<br>  confidence,<br>  is_empty,<br>  created_at<br> for det in detections_list"]
+        SAHI_BULK_OP[("📊 Bulk INSERT<br>ORM bulk_insert_mappings<br>O asyncpg si performance crítico")]
+        SAHI_COUNT_DETECTIONS[("📊 SELECT<br>COUNT * AS total,<br>COUNT * FILTER WHERE is_empty AS empty,<br>AVG detection_confidence AS avg_conf<br>FROM detections<br>WHERE stock_movement_id = movement_id_pk<br><br>⚠️ Query en partición específica")]
+        SAHI_ESTIMATION["📏 ESTIMACIÓN área restante"]
+        SAHI_CREATE_DET_MASK["🎨 Create detection mask<br>det_mask = np.zeros_like mask <br>for bbox in detections:<br>  cv2.rectangle det_mask, bbox, 255, -1"]
+        SAHI_SUBTRACT["➖ Subtract masks<br>remaining = segment_mask - det_mask<br>remaining = cv2.morphologyEx remaining, OPEN"]
+        SAHI_DIVIDE_BANDS["📏 DIVIDIR en franjas<br>⚠️ NUEVO PASO CRÍTICO<br>num_bands = 5<br>band_height = remaining.shape 0  / num_bands<br>bands = split remaining into horizontal bands"]
+        SAHI_CHECK_BAND_DETS["🔍 Verificar detecciones en franjas<br>⚠️ FLUJO MODIFICADO<br>band_areas = <br>for band in bands:<br>  band_detections = get_dets_in_band band <br>  if len band_detections  &gt; 0:<br>    avg_area = mean det.area for det in band_dets <br>    band_areas.append avg_area"]
+        SAHI_HAS_BAND_DETS{"¿Hay detecciones<br>en franjas?"}
+        SAHI_USE_AVG_AREA@{ label: "📊 Usar promedio de detecciones<br>⚠️ PRIORITARIO sobre density_params<br>avg_plant_area = mean band_areas <br>estimation_method = 'band_average'<br>⚠️ ACTUALIZAR density_parameters" }
+        SAHI_UPDATE_DENSITY[("📊 UPDATE density_parameters<br>SET avg_area_per_plant_cm2 = NEW_AVG<br>WHERE product_id AND packaging_id<br>⚠️ Auto-calibración con datos reales")]
+        SAHI_HSV_FILTER["🌿 HSV vegetation filter<br>hsv = cv2.cvtColor BGR2HSV<br># Verde vegetation<br>lower = 35, 40, 40<br>upper = 85, 255, 255<br>veg_mask = cv2.inRange hsv, lower, upper<br>remaining = remaining &amp; veg_mask"]
+        SAHI_USE_DENSITY@{ label: "📊 Recurrir a density_parameters<br>⚠️ FALLBACK si no hay detecciones<br>avg_plant_area = density_params 'avg_area' <br>estimation_method = 'density_parameters'" }
+        SAHI_CALC_AREA@{ label: "📐 Calculate area cm²<br>pixels = cv2.countNonZero remaining <br>pixel_to_cm2 = <br>  config 'area_m2'  * 10000 / <br>  image.width * image.height <br>area_cm2 = pixels * pixel_to_cm2" }
+        SAHI_CALCULATE@{ label: "🧮 Calculate estimate<br>estimated_count = round<br>  area_cm2 / avg_plant_area<br>  * density_params 'overlap_factor' <br>⚠️ avg_plant_area puede ser<br>de franjas O de density_params" }
+        SAHI_INSERT_EST[("📊 INSERT INTO estimations<br>session_id = session_id_pk<br>stock_movement_id = movement_id_pk<br>classification_id = classification_id<br>vegetation_polygon = GeoJSON<br>detected_area_cm2 = area_cm2<br>estimated_count = count<br>calculation_method = METHOD<br>estimation_confidence = 0.70-0.85<br>used_density_parameters = bool<br>created_at = NOW<br>⚠️ calculation_method indica origen")]
+        SAHI_UPDATE_MOVEMENT[("📊 UPDATE stock_movements<br>SET quantity = total + estimated_count<br>WHERE id = movement_id_pk")]
+        SAHI_CLEANUP["🧹 Cleanup temp mask<br>os.remove mask_path"]
+        SAHI_RETURN@{ label: "📤 Return results dict<br>class: 'segment'<br>total_detected: int<br>total_estimated: int<br>avg_confidence: float<br>movement_id: int<br>calibration_updated: bool" }
+        SAHI_END(["✅ Child task complete"])
+  end
+ subgraph CHILD_BOXES["📦 CHILD TASK: Direct Detection - Cajones/Plugs"]
+    direction TB
+        BOXES_START(["⚙️ Signature recibe<br>session_id_pk: int<br>mask_path: str<br>class_type: str<br>config: dict<br>density_params: dict<br>Pool=solo GPU"])
+        BOXES_LOAD["📖 Load mask<br>mask = np.load mask_path <br>image_crop = apply_mask"]
+        BOXES_CREATE_MOVEMENT[("📊 INSERT stock_movements<br>Similar to SAHI<br>RETURNING movement_id_pk")]
+        BOXES_DETECT["🤖 Direct YOLO Detection<br>⚠️ SIN SAHI<br>results = model.predict<br>  image_crop,<br>  conf=0.30,<br>  iou=0.45,<br>  max_det=2000"]
+        BOXES_GET_CLASS["🏷️ Get/Create Classification<br>⚠️ MISMO flujo que SAHI"]
+        BOXES_BULK_INSERT["⚡ BULK INSERT<br>⚠️ MISMO pattern que SAHI<br>ORM bulk operations<br>asyncpg como mejora futura"]
+        BOXES_COUNT[("📊 SELECT COUNT, AVG<br>FROM detections partition<br>WHERE stock_movement_id")]
+        BOXES_ESTIMATE["📏 Estimation process<br>⚠️ MISMO flujo que SAHI:<br>1. Create det mask<br>2. Subtract<br>3. Dividir en franjas<br>4. Verificar detecciones en franjas<br>5. Usar promedio O density_params<br>6. HSV filter vegetation<br>7. Calculate area<br>8. Estimate count<br>9. Actualizar density si procede"]
+        BOXES_INSERT_EST[("📊 INSERT estimations<br>⚠️ MISMO schema que SAHI")]
+        BOXES_UPDATE_MOV[("📊 UPDATE stock_movements<br>SET quantity")]
+        BOXES_RETURN["📤 Return results<br>class: class_type<br>totals + avg<br>calibration_updated: bool"]
+        BOXES_END(["✅ Child complete"])
+  end
+ subgraph CALLBACK_AGGREGATE["📊 CALLBACK: Aggregate & Generate Viz"]
+    direction TB
+        CALLBACK_START(["🔔 Callback triggered<br>results: List dict <br>session_id_pk from results 0"])
+        CALLBACK_SUM@{ label: "➕ Aggregate totals<br>total_detected = sum r 'total_detected' <br>total_estimated = sum r 'total_estimated' <br>total_empty = sum r 'total_empty'" }
+        CALLBACK_AVG["📊 Weighted avg confidence<br>Weighted by detection count"]
+        CALLBACK_CATEGORY[("📊 SELECT c.name, COUNT *<br>FROM detections d<br>JOIN classifications c ON d.classification_id<br>WHERE d.session_id = session_id_pk<br>GROUP BY c.name<br><br>→ category_counts JSONB")]
+        CALLBACK_UPDATE_SESSION@{ label: "📊 UPDATE photo_processing_sessions<br>SET total_detected = TOTAL<br>total_estimated = EST<br>total_empty_containers = EMPTY<br>avg_confidence = AVG<br>category_counts = JSONB<br>status = 'generating_viz'<br>WHERE id = session_id_pk" }
+        CALLBACK_LOAD_IMAGE["📖 Load original image<br>/tmp/uploads/UUID.jpg"]
+        CALLBACK_GET_DETS[("📊 SELECT d.*, c.name<br>FROM detections d<br>JOIN classifications c ON d.classification_id<br>WHERE d.session_id = session_id_pk<br>⚠️ Partition-aware query")]
+        CALLBACK_GET_ESTS[("📊 SELECT * FROM estimations<br>WHERE session_id = session_id_pk")]
+        CALLBACK_DRAW_DETS["⭕ Draw detections<br>for det in detections:<br>  center = center_x, center_y<br>  radius = min width, height  * 0.4<br>  # Círculos transparentes<br>  overlay = image.copy<br>  cv2.circle overlay, center, radius, COLOR, -1<br>  image = cv2.addWeighted image, 0.7, overlay, 0.3, 0"]
+        CALLBACK_DRAW_ESTS@{ label: "🟦 Draw estimations<br>for est in estimations:<br>  polygon = est 'vegetation_polygon' <br>  pts = np.array polygon, np.int32<br>  overlay = image.copy<br>  cv2.fillPoly overlay, pts , EST_COLOR<br>  image = cv2.addWeighted image, 0.8, overlay, 0.2, 0<br>  cv2.GaussianBlur overlay, 9,9 , 0" }
+        CALLBACK_LEGEND@{ label: "🏷️ Add legend<br>cv2.putText image,<br>  f'Detected: total_detected ',<br>  10, 30 , FONT, 1, WHITE, 2<br>cv2.putText 'Estimated: ...'<br>cv2.putText 'Confidence: avg %'" }
+        CALLBACK_COMPRESS@{ label: "🗜️ Compress viz image<br>⚠️ AVIF format<br>from PIL import Image<br>img_pil = Image.fromarray image<br>img_pil.save<br>  path, 'AVIF',<br>  quality=85, speed=4<br>50% size reduction vs JPEG" }
+        CALLBACK_SAVE_TEMP["💾 Save temp viz<br>/tmp/processed/session_id_viz.avif"]
+        CALLBACK_LAUNCH_S3_VIZ["🚀 Launch S3 upload viz<br>upload_processed_image.delay<br>  session_id_pk,<br>  viz_path,<br>  image_id_uuid<br>Queue: io_queue gevent"]
+        CALLBACK_CREATE_BATCHES["📦 CREATE STOCK BATCHES"]
+        CALLBACK_GROUP_MOVEMENTS[("📊 SELECT sm.id, sm.quantity,<br>d.classification_id, COUNT *<br>FROM stock_movements sm<br>JOIN detections d ON d.stock_movement_id<br>WHERE sm.processing_session_id = session_id_pk<br>AND d.is_empty_container = false<br>GROUP BY sm.id, d.classification_id")]
+        CALLBACK_BATCH_LOOP{"📋 For each<br>movement group"}
+        CALLBACK_GET_CONFIG[("📊 SELECT slc.*, c.product_size_id<br>FROM storage_location_config slc<br>JOIN classifications c<br>WHERE c.id = classification_id")]
+        CALLBACK_FIND_BIN@{ label: "📊 SELECT sb.id FROM storage_bins sb<br>JOIN storage_bin_types sbt<br>WHERE sl.id = location_id<br>AND sbt.category = class_type<br>AND sb.status = 'active'<br>LIMIT 1<br><br>⚠️ If not exists, CREATE new bin" }
+        CALLBACK_GEN_CODE@{ label: "🔤 Generate batch_code<br>f'LOC location_id -PROD product_id -<br> datetime.now.strftime '%Y%m%d' -<br> sequence.zfill 3 '<br>Example: LOC15-PROD42-20250107-001" }
+        CALLBACK_INSERT_BATCH@{ label: "📊 INSERT INTO stock_batches<br>batch_code = GENERATED<br>current_storage_bin_id = bin_id<br>product_id, product_state_id,<br>product_size_id, packaging_catalog_id,<br>has_packaging = true<br>quantity_initial = quantity<br>quantity_current = quantity<br>quantity_empty_containers = empty_count<br>quality_score = avg_confidence<br>notes = 'Auto-generated ML detection'<br>custom_attributes = JSONB metadata<br>RETURNING id AS batch_id" }
+        CALLBACK_LINK_BATCH[("📊 UPDATE stock_movements<br>SET batch_id = batch_id<br>WHERE id = movement_id")]
+        CALLBACK_VERIFY["✅ VERIFICATION COMPREHENSIVE<br>⚠️ MEJORADO: Verificar TODO"]
+        CALLBACK_CHECK_FK{"Verificar FKs<br>válidos?"}
+        CALLBACK_CHECK_BATCHES{"Verificar batches<br>correctos?"}
+        CALLBACK_CHECK_MOVEMENTS{"Verificar movements<br>consistentes?"}
+        CALLBACK_CHECK_COUNTS{"Verificar counts<br>totals = sum?"}
+        CALLBACK_ALL_VALID{"Todo<br>válido?"}
+        CALLBACK_LOG_ERROR["📝 Log critical error<br>Full traceback + context<br>Specific failure details"]
+        CALLBACK_ROLLBACK["🔄 PARTIAL Rollback<br>DELETE stock_batches<br>WHERE processing_session_id<br>Keep detections for debug"]
+        CALLBACK_UPDATE_FAILED@{ label: "📊 UPDATE photo_processing_sessions<br>SET status = 'failed'<br>error_message = DETAILED_ERROR" }
+        CALLBACK_NO_DELETE_S3["⚠️ DO NOT delete S3<br>Keep for manual retry<br>Only mark session failed"]
+        CALLBACK_END_FAILURE(["❌ Callback FAILURE"])
+        CALLBACK_UPDATE_SUCCESS@{ label: "📊 UPDATE photo_processing_sessions<br>SET status = 'completed'<br>updated_at = NOW<br>WHERE id = session_id_pk<br><br>✅ PROCESSING COMPLETE" }
+        CALLBACK_CLEANUP["🧹 Cleanup temps<br>rm /tmp/uploads/UUID.jpg<br>rm /tmp/masks/session_id_pk/<br>Keep /tmp/processed/ 24h for recovery"]
+        CALLBACK_GPU_CACHE["🔧 Clear GPU cache<br>if torch.cuda.is_available:<br>  torch.cuda.empty_cache<br>Every 100 tasks"]
+        CALLBACK_END_SUCCESS(["✅ Callback SUCCESS"])
+  end
+ subgraph FRONTEND_POLLING["💻 FRONTEND: Status Polling"]
+    direction TB
+        FE_START(["⏰ Poll every 3s<br>Exponential backoff after 5min"])
+        FE_REQUEST["📡 GET /api/stock/tasks/status<br>?task_ids=uuid1,uuid2,...<br>Authorization: Bearer token"]
+        FE_CONTROLLER["🎯 Controller handler"]
+        FE_LOOP_IDS{"📋 For each<br>task_id"}
+        FE_CELERY_QUERY["🔍 AsyncResult query<br>from celery.result import AsyncResult<br>result = AsyncResult task_id <br>state = result.state<br>info = result.info"]
+        FE_CHECK_STATE{"Task state?"}
+        FE_PENDING@{ label: "📊 status: 'pending'<br>progress: 0<br>message: 'Queued'<br>estimated_time: null" }
+        FE_PROCESSING@{ label: "📊 status: 'processing'<br>progress: result.info 'progress' <br>message: result.info 'message' <br>current_step: result.info 'step'" }
+        FE_QUERY_SESSION@{ label: "📊 SELECT pps.*, sl.name, sl.code<br>FROM photo_processing_sessions pps<br>LEFT JOIN storage_locations sl<br>  ON pps.storage_location_id = sl.id<br>WHERE pps.session_id =<br>  result.result 'session_id' <br><br>⚠️ Extract from result.result" }
+        FE_QUERY_IMAGES@{ label: "📊 SELECT<br>orig.s3_bucket  '/'  orig.s3_key_original,<br>proc.s3_bucket  '/'  proc.s3_key_original<br>FROM s3_images orig<br>LEFT JOIN photo_processing_sessions pps<br>  ON orig.image_id = pps.original_image_id<br>LEFT JOIN s3_images proc<br>  ON pps.processed_image_id = proc.image_id<br>WHERE orig.image_id = result.result 'image_id' <br><br>⚠️ Construct CDN URLs" }
+        FE_QUERY_BATCHES[("📊 SELECT sb.batch_code, sb.quantity_current,<br>p.common_name, pc.name<br>FROM stock_batches sb<br>JOIN stock_movements sm ON sb.id = sm.batch_id<br>JOIN products p ON sb.product_id = p.id<br>JOIN packaging_catalog pc<br>  ON sb.packaging_catalog_id = pc.id<br>WHERE sm.processing_session_id = session_id_pk")]
+        FE_BUILD_SUCCESS["📦 Build SUCCESS response<br>image_urls: original, processed<br>totals: detected, estimated, empty<br>category_breakdown: JSONB<br>batches_created: array<br>location_info: dict<br>confidence_metrics: dict"]
+        FE_QUERY_ERROR[("📊 SELECT pps.error_message, pps.status<br>FROM photo_processing_sessions pps<br>WHERE session_id = extracted_id<br><br>⚠️ If no PPS, error earlier in pipeline")]
+        FE_BUILD_ERROR["📦 Build ERROR response<br>error_type: categorized<br>error_message: user-friendly<br>can_retry: boolean<br>suggested_action: string<br>support_ticket_id: optional"]
+        FE_COLLECT["📋 Collect all responses"]
+        FE_RETURN["✅ Return 200 OK<br>Array of task statuses<br>Cache-Control: no-cache"]
+        FE_DECIDE{"Frontend logic"}
+        FE_BACKOFF["⏰ Exponential backoff<br>if duration &lt; 5min:<br>  wait 3s<br>else:<br>  wait min 30s, 2^attempts"]
+        FE_STOP["⏹️ Stop polling"]
+        FE_DISPLAY{"Any errors?"}
+        FE_SUCCESS["✅ Gallery view<br>Thumbnails + overlays<br>Click for detail modal<br>Batch summary cards"]
+        FE_PARTIAL["⚠️ Partial results<br>Success: gallery<br>Failures: error list<br>Retry buttons<br>Manual location option"]
+        FE_RETRY["🔄 Retry options<br>1. Re-upload photo NEW image_id<br>2. Manual location if GPS missing<br>3. Add config if missing<br>4. Calibrate density params"]
+  end
+    START --> VALIDATE_REQUEST
+    VALIDATE_REQUEST -- ❌ Invalid --> RETURN_400
+    VALIDATE_REQUEST -- ✅ Valid --> COUNT_PHOTOS
+    COUNT_PHOTOS --> LOOP_PHOTOS
+    LOOP_PHOTOS --> GENERATE_UUID
+    GENERATE_UUID --> SAVE_TEMP
+    SAVE_TEMP --> GEN_S3_KEYS
+    GEN_S3_KEYS --> INSERT_S3_ROW
+    INSERT_S3_ROW --> COLLECT_IDS
+    COLLECT_IDS --> LOOP_PHOTOS
+    LOOP_PHOTOS -- Todas procesadas --> CREATE_CHUNKS
+    CREATE_CHUNKS --> LAUNCH_TASKS
+    LAUNCH_TASKS --> CHUNK_S3 & PARALLEL_ML
+    CHUNK_S3 --> COLLECT_TASK_IDS
+    PARALLEL_ML --> COLLECT_TASK_IDS
+    COLLECT_TASK_IDS --> RETURN_RESPONSE
+    RETURN_RESPONSE --> API_END
+    S3_CHUNK_START --> S3_CIRCUIT_CHECK
+    S3_CIRCUIT_CHECK -- 🔴 OPEN --> S3_CIRCUIT_REJECT
+    S3_CIRCUIT_REJECT --> S3_SCHEDULE_RETRY
+    S3_CIRCUIT_CHECK -- 🟢 CLOSED/HALF_OPEN --> S3_LOOP_START
+    S3_LOOP_START --> S3_GET_RECORD
+    S3_GET_RECORD --> S3_CHECK_FILE
+    S3_CHECK_FILE -- ❌ No existe --> S3_ERROR_NOTFOUND
+    S3_ERROR_NOTFOUND --> S3_UPDATE_ERROR_NOTFOUND
+    S3_UPDATE_ERROR_NOTFOUND --> S3_NEXT_PHOTO
+    S3_CHECK_FILE -- ✅ Existe --> S3_READ_FILE
+    S3_READ_FILE --> S3_EXTRACT_EXIF
+    S3_EXTRACT_EXIF --> S3_CHECK_GPS
+    S3_CHECK_GPS -- ❌ NO GPS --> S3_WARNING_GPS
+    S3_WARNING_GPS --> S3_UPDATE_NO_GPS
+    S3_UPDATE_NO_GPS --> S3_UPLOAD_TRY
+    S3_CHECK_GPS -- ✅ GPS OK --> S3_UPDATE_METADATA
+    S3_UPDATE_METADATA --> S3_UPLOAD_TRY
+    S3_UPLOAD_TRY --> S3_UPLOAD_CHECK
+    S3_UPLOAD_CHECK -- ❌ S3 Error --> S3_LOG_S3_ERROR
+    S3_LOG_S3_ERROR --> S3_CIRCUIT_UPDATE
+    S3_CIRCUIT_UPDATE -- ✅ Sí --> S3_OPEN_CIRCUIT
+    S3_CIRCUIT_UPDATE -- No --> S3_MOVE_FAILED
+    S3_OPEN_CIRCUIT --> S3_MOVE_FAILED
+    S3_MOVE_FAILED --> S3_UPDATE_FAILED
+    S3_UPDATE_FAILED --> S3_RETRY
+    S3_RETRY -- ✅ Sí --> S3_BACKOFF
+    S3_RETRY -- ❌ Max retries --> S3_NEXT_PHOTO
+    S3_UPLOAD_CHECK -- ✅ Success --> S3_GENERATE_THUMB
+    S3_GENERATE_THUMB --> S3_COMPRESS_THUMB
+    S3_COMPRESS_THUMB --> S3_UPLOAD_THUMB
+    S3_UPLOAD_THUMB --> S3_UPDATE_SUCCESS
+    S3_UPDATE_SUCCESS --> S3_SUCCESS_COUNTER
+    S3_SUCCESS_COUNTER --> S3_NEXT_PHOTO
+    S3_NEXT_PHOTO --> S3_LOOP_START
+    S3_LOOP_START -- Todas procesadas --> S3_CHUNK_SUMMARY
+    S3_CHUNK_SUMMARY --> S3_CHUNK_END
+    ML_START --> ML_LOAD_MODEL
+    ML_LOAD_MODEL --> ML_READ_TEMP
+    ML_READ_TEMP --> ML_CHECK_EXISTS
+    ML_CHECK_EXISTS -- ❌ No --> ML_FALLBACK_S3
+    ML_FALLBACK_S3 --> ML_CHECK_S3_STATUS
+    ML_CHECK_S3_STATUS --> ML_S3_STATUS_CHECK
+    ML_S3_STATUS_CHECK -- ❌ No ready --> ML_CRITICAL_NOTFOUND
+    ML_S3_STATUS_CHECK -- ✅ Ready --> ML_DOWNLOAD_S3
+    ML_DOWNLOAD_S3 --> ML_S3_DOWNLOAD_CHECK
+    ML_S3_DOWNLOAD_CHECK -- ❌ Fallo --> ML_CRITICAL_NOTFOUND
+    ML_S3_DOWNLOAD_CHECK -- ✅ OK --> ML_EXTRACT_EXIF
+    ML_CRITICAL_NOTFOUND --> ML_LOG_FAILURE
+    ML_LOG_FAILURE --> ML_END_FAILURE
+    ML_CHECK_EXISTS -- ✅ Sí --> ML_EXTRACT_EXIF
+    ML_EXTRACT_EXIF --> ML_CHECK_GPS
+    ML_CHECK_GPS -- ❌ NO GPS --> ML_WARNING_GPS_ML
+    ML_WARNING_GPS_ML --> ML_CREATE_WARNING_SESSION
+    ML_CHECK_GPS -- ✅ GPS OK --> ML_GEOLOCATE
+    ML_GEOLOCATE --> ML_QUERY_LOCATION
+    ML_QUERY_LOCATION --> ML_LOCATION_FOUND
+    ML_LOCATION_FOUND -- ❌ No --> ML_WARNING_LOCATION
+    ML_WARNING_LOCATION --> ML_CREATE_WARNING_SESSION
+    ML_LOCATION_FOUND -- ✅ Sí --> ML_GET_CONFIG
+    ML_GET_CONFIG --> ML_CONFIG_EXISTS
+    ML_CONFIG_EXISTS -- ⚠️ No --> ML_WARNING_CONFIG
+    ML_CONFIG_EXISTS -- ✅ Sí --> ML_GET_DENSITY
+    ML_WARNING_CONFIG --> ML_CREATE_WARNING_SESSION
+    ML_GET_DENSITY --> ML_DENSITY_EXISTS
+    ML_DENSITY_EXISTS -- ✅ Sí --> ML_CREATE_SESSION
+    ML_CREATE_WARNING_SESSION --> ML_INSERT_WARNING_SESSION
+    ML_INSERT_WARNING_SESSION --> ML_END_WARNING
+    ML_CREATE_SESSION --> ML_INSERT_SESSION
+    ML_INSERT_SESSION --> ML_UPDATE_PROCESSING
+    ML_UPDATE_PROCESSING --> ML_SEGMENT
+    ML_SEGMENT --> ML_PROCESS_MASKS
+    ML_PROCESS_MASKS --> ML_CLASSIFY_MASKS
+    ML_CLASSIFY_MASKS --> ML_SAVE_MASKS
+    ML_SAVE_MASKS --> ML_CHECK_DETECTED
+    ML_CHECK_DETECTED -- ❌ Ninguna --> ML_NO_DETECTION
+    ML_NO_DETECTION --> ML_UPDATE_EMPTY
+    ML_UPDATE_EMPTY --> ML_END_SUCCESS_EMPTY
+    ML_CHECK_DETECTED -- ✅ Sí --> ML_PREPARE_CHORD
+    ML_PREPARE_CHORD --> ML_BUILD_TASKS
+    ML_BUILD_TASKS --> ML_SEGMENT_TASKS
+    ML_SEGMENT_TASKS -- ✅ Sí --> ML_ADD_SAHI
+    ML_SEGMENT_TASKS -- No --> ML_CHECK_BOXES
+    ML_ADD_SAHI --> ML_CHECK_BOXES
+    ML_CHECK_BOXES -- ✅ Sí --> ML_ADD_DIRECT
+    ML_CHECK_BOXES -- No --> ML_LAUNCH_CHORD
+    ML_ADD_DIRECT --> ML_LAUNCH_CHORD
+    ML_LAUNCH_CHORD --> ML_CHORD_STRUCTURE
+    ML_CHORD_STRUCTURE --> ML_EXECUTE_CHORD
+    ML_EXECUTE_CHORD --> ML_WAIT
+    ML_WAIT --> ML_CALLBACK_TRIGGER
+    SAHI_START --> SAHI_LOAD_MASK
+    SAHI_LOAD_MASK --> SAHI_CREATE_MOVEMENT
+    SAHI_CREATE_MOVEMENT --> SAHI_DETECT
+    SAHI_DETECT --> SAHI_COLLECT_DETS
+    SAHI_COLLECT_DETS --> SAHI_GET_CLASSIFICATION
+    SAHI_GET_CLASSIFICATION --> SAHI_QUERY_CLASS
+    SAHI_QUERY_CLASS --> SAHI_CLASS_EXISTS
+    SAHI_CLASS_EXISTS -- ❌ No --> SAHI_CREATE_CLASS
+    SAHI_CLASS_EXISTS -- ✅ Sí --> SAHI_USE_CLASS
+    SAHI_CREATE_CLASS --> SAHI_BULK_INSERT
+    SAHI_USE_CLASS --> SAHI_BULK_INSERT
+    SAHI_BULK_INSERT --> SAHI_PREPARE_RECORDS
+    SAHI_PREPARE_RECORDS --> SAHI_BULK_OP
+    SAHI_BULK_OP --> SAHI_COUNT_DETECTIONS
+    SAHI_COUNT_DETECTIONS --> SAHI_ESTIMATION
+    SAHI_ESTIMATION --> SAHI_CREATE_DET_MASK
+    SAHI_CREATE_DET_MASK --> SAHI_SUBTRACT
+    SAHI_SUBTRACT --> SAHI_DIVIDE_BANDS
+    SAHI_DIVIDE_BANDS --> SAHI_CHECK_BAND_DETS
+    SAHI_CHECK_BAND_DETS --> SAHI_HAS_BAND_DETS
+    SAHI_HAS_BAND_DETS -- ✅ Sí --> SAHI_USE_AVG_AREA
+    SAHI_USE_AVG_AREA --> SAHI_UPDATE_DENSITY
+    SAHI_UPDATE_DENSITY --> SAHI_HSV_FILTER
+    SAHI_HAS_BAND_DETS -- ❌ No --> SAHI_USE_DENSITY
+    SAHI_USE_DENSITY --> SAHI_HSV_FILTER
+    SAHI_HSV_FILTER --> SAHI_CALC_AREA
+    SAHI_CALC_AREA --> SAHI_CALCULATE
+    SAHI_CALCULATE --> SAHI_INSERT_EST
+    SAHI_INSERT_EST --> SAHI_UPDATE_MOVEMENT
+    SAHI_UPDATE_MOVEMENT --> SAHI_CLEANUP
+    SAHI_CLEANUP --> SAHI_RETURN
+    SAHI_RETURN --> SAHI_END
+    BOXES_START --> BOXES_LOAD
+    BOXES_LOAD --> BOXES_CREATE_MOVEMENT
+    BOXES_CREATE_MOVEMENT --> BOXES_DETECT
+    BOXES_DETECT --> BOXES_GET_CLASS
+    BOXES_GET_CLASS --> BOXES_BULK_INSERT
+    BOXES_BULK_INSERT --> BOXES_COUNT
+    BOXES_COUNT --> BOXES_ESTIMATE
+    BOXES_ESTIMATE --> BOXES_INSERT_EST
+    BOXES_INSERT_EST --> BOXES_UPDATE_MOV
+    BOXES_UPDATE_MOV --> BOXES_RETURN
+    BOXES_RETURN --> BOXES_END
+    CALLBACK_START --> CALLBACK_SUM
+    CALLBACK_SUM --> CALLBACK_AVG
+    CALLBACK_AVG --> CALLBACK_CATEGORY
+    CALLBACK_CATEGORY --> CALLBACK_UPDATE_SESSION
+    CALLBACK_UPDATE_SESSION --> CALLBACK_LOAD_IMAGE
+    CALLBACK_LOAD_IMAGE --> CALLBACK_GET_DETS
+    CALLBACK_GET_DETS --> CALLBACK_GET_ESTS
+    CALLBACK_GET_ESTS --> CALLBACK_DRAW_DETS
+    CALLBACK_DRAW_DETS --> CALLBACK_DRAW_ESTS
+    CALLBACK_DRAW_ESTS --> CALLBACK_LEGEND
+    CALLBACK_LEGEND --> CALLBACK_COMPRESS
+    CALLBACK_COMPRESS --> CALLBACK_SAVE_TEMP
+    CALLBACK_SAVE_TEMP --> CALLBACK_LAUNCH_S3_VIZ
+    CALLBACK_LAUNCH_S3_VIZ --> CALLBACK_CREATE_BATCHES
+    CALLBACK_CREATE_BATCHES --> CALLBACK_GROUP_MOVEMENTS
+    CALLBACK_GROUP_MOVEMENTS --> CALLBACK_BATCH_LOOP
+    CALLBACK_BATCH_LOOP --> CALLBACK_GET_CONFIG
+    CALLBACK_GET_CONFIG --> CALLBACK_FIND_BIN
+    CALLBACK_FIND_BIN --> CALLBACK_GEN_CODE
+    CALLBACK_GEN_CODE --> CALLBACK_INSERT_BATCH
+    CALLBACK_INSERT_BATCH --> CALLBACK_LINK_BATCH
+    CALLBACK_LINK_BATCH --> CALLBACK_BATCH_LOOP
+    CALLBACK_BATCH_LOOP -- All done --> CALLBACK_VERIFY
+    CALLBACK_VERIFY --> CALLBACK_CHECK_FK
+    CALLBACK_CHECK_FK --> CALLBACK_CHECK_BATCHES
+    CALLBACK_CHECK_BATCHES --> CALLBACK_CHECK_MOVEMENTS
+    CALLBACK_CHECK_MOVEMENTS --> CALLBACK_CHECK_COUNTS
+    CALLBACK_CHECK_COUNTS --> CALLBACK_ALL_VALID
+    CALLBACK_ALL_VALID -- ❌ ERROR --> CALLBACK_LOG_ERROR
+    CALLBACK_LOG_ERROR --> CALLBACK_ROLLBACK
+    CALLBACK_ROLLBACK --> CALLBACK_UPDATE_FAILED
+    CALLBACK_UPDATE_FAILED --> CALLBACK_NO_DELETE_S3
+    CALLBACK_NO_DELETE_S3 --> CALLBACK_END_FAILURE
+    CALLBACK_ALL_VALID -- ✅ OK --> CALLBACK_UPDATE_SUCCESS
+    CALLBACK_UPDATE_SUCCESS --> CALLBACK_CLEANUP
+    CALLBACK_CLEANUP --> CALLBACK_GPU_CACHE
+    CALLBACK_GPU_CACHE --> CALLBACK_END_SUCCESS
+    FE_START --> FE_REQUEST
+    FE_REQUEST --> FE_CONTROLLER
+    FE_CONTROLLER --> FE_LOOP_IDS
+    FE_LOOP_IDS --> FE_CELERY_QUERY
+    FE_CELERY_QUERY --> FE_CHECK_STATE
+    FE_CHECK_STATE -- PENDING --> FE_PENDING
+    FE_CHECK_STATE -- PROCESSING --> FE_PROCESSING
+    FE_CHECK_STATE -- SUCCESS --> FE_QUERY_SESSION
+    FE_QUERY_SESSION --> FE_QUERY_IMAGES
+    FE_QUERY_IMAGES --> FE_QUERY_BATCHES
+    FE_QUERY_BATCHES --> FE_BUILD_SUCCESS
+    FE_CHECK_STATE -- FAILURE --> FE_QUERY_ERROR
+    FE_QUERY_ERROR --> FE_BUILD_ERROR
+    FE_PENDING --> FE_COLLECT
+    FE_PROCESSING --> FE_COLLECT
+    FE_BUILD_SUCCESS --> FE_COLLECT
+    FE_BUILD_ERROR --> FE_COLLECT
+    FE_COLLECT --> FE_LOOP_IDS
+    FE_LOOP_IDS -- All processed --> FE_RETURN
+    FE_RETURN --> FE_DECIDE
+    FE_DECIDE -- Some pending/processing --> FE_BACKOFF
+    FE_DECIDE -- All complete --> FE_STOP
+    FE_STOP --> FE_DISPLAY
+    FE_DISPLAY -- ✅ All OK --> FE_SUCCESS
+    FE_DISPLAY -- ⚠️ Some errors --> FE_PARTIAL
+    FE_PARTIAL --> FE_RETRY
+    FE_BACKOFF -. loop .-> FE_START
+    CHUNK_S3 -. async spawn .-> S3_CHUNK_START
+    PARALLEL_ML -. async spawn .-> ML_START
+    ML_EXECUTE_CHORD -. spawn .-> SAHI_START & BOXES_START
+    SAHI_END -. result .-> ML_CALLBACK_TRIGGER
+    BOXES_END -. result .-> ML_CALLBACK_TRIGGER
+    ML_CALLBACK_TRIGGER -. trigger .-> CALLBACK_START
+    CALLBACK_END_SUCCESS -. notify .-> FE_START
+    CALLBACK_END_FAILURE -. notify .-> FE_START
+    S3_CHUNK_END -. notify .-> FE_START
+    API_END -. 202 sent .-> FE_START
+    INSERT_S3_ROW@{ shape: cylinder}
+    S3_UPDATE_ERROR_NOTFOUND@{ shape: cylinder}
+    S3_UPDATE_NO_GPS@{ shape: cylinder}
+    S3_UPDATE_METADATA@{ shape: cylinder}
+    S3_UPDATE_FAILED@{ shape: cylinder}
+    S3_UPLOAD_THUMB@{ shape: rect}
+    S3_UPDATE_SUCCESS@{ shape: cylinder}
+    ML_LOAD_MODEL@{ shape: rect}
+    ML_S3_STATUS_CHECK@{ shape: diamond}
+    ML_WARNING_GPS_ML@{ shape: rect}
+    ML_WARNING_LOCATION@{ shape: rect}
+    ML_WARNING_CONFIG@{ shape: rect}
+    ML_WARNING_DENSITY@{ shape: rect}
+    ML_INSERT_WARNING_SESSION@{ shape: cylinder}
+    ML_INSERT_SESSION@{ shape: cylinder}
+    ML_UPDATE_PROCESSING@{ shape: cylinder}
+    ML_SEGMENT@{ shape: rect}
+    ML_CLASSIFY_MASKS@{ shape: rect}
+    ML_NO_DETECTION@{ shape: rect}
+    ML_UPDATE_EMPTY@{ shape: cylinder}
+    ML_ADD_DIRECT@{ shape: rect}
+    ML_CHORD_STRUCTURE@{ shape: rect}
+    SAHI_CREATE_MOVEMENT@{ shape: cylinder}
+    SAHI_DETECT@{ shape: rect}
+    SAHI_QUERY_CLASS@{ shape: cylinder}
+    SAHI_CREATE_CLASS@{ shape: cylinder}
+    SAHI_USE_AVG_AREA@{ shape: rect}
+    SAHI_USE_DENSITY@{ shape: rect}
+    SAHI_CALC_AREA@{ shape: rect}
+    SAHI_CALCULATE@{ shape: rect}
+    SAHI_RETURN@{ shape: rect}
+    CALLBACK_SUM@{ shape: rect}
+    CALLBACK_UPDATE_SESSION@{ shape: cylinder}
+    CALLBACK_DRAW_ESTS@{ shape: rect}
+    CALLBACK_LEGEND@{ shape: rect}
+    CALLBACK_COMPRESS@{ shape: rect}
+    CALLBACK_FIND_BIN@{ shape: cylinder}
+    CALLBACK_GEN_CODE@{ shape: rect}
+    CALLBACK_INSERT_BATCH@{ shape: cylinder}
+    CALLBACK_UPDATE_FAILED@{ shape: cylinder}
+    CALLBACK_UPDATE_SUCCESS@{ shape: cylinder}
+    FE_PENDING@{ shape: rect}
+    FE_PROCESSING@{ shape: rect}
+    FE_QUERY_SESSION@{ shape: cylinder}
+    FE_QUERY_IMAGES@{ shape: cylinder}
+     GENERATE_UUID:::criticalStyle
+     S3_WARNING_GPS:::warningStyle
+     S3_OPEN_CIRCUIT:::errorStyle
+     S3_CHUNK_END:::successStyle
+     ML_LOAD_MODEL:::criticalStyle
+     ML_CRITICAL_NOTFOUND:::errorStyle
+     ML_LOG_FAILURE:::errorStyle
+     ML_END_FAILURE:::errorStyle
+     ML_WARNING_GPS_ML:::warningStyle
+     ML_WARNING_LOCATION:::warningStyle
+     ML_WARNING_CONFIG:::warningStyle
+     ML_WARNING_DENSITY:::warningStyle
+     ML_END_WARNING:::warningStyle
+     ML_SEGMENT:::processingStyle
+     ML_END_SUCCESS_EMPTY:::successStyle
+     SAHI_DETECT:::criticalStyle
+     SAHI_BULK_INSERT:::criticalStyle
+     SAHI_ESTIMATION:::processingStyle
+     SAHI_END:::successStyle
+     BOXES_ESTIMATE:::processingStyle
+     BOXES_END:::successStyle
+     CALLBACK_COMPRESS:::criticalStyle
+     CALLBACK_NO_DELETE_S3:::warningStyle
+     CALLBACK_END_FAILURE:::errorStyle
+     CALLBACK_END_SUCCESS:::successStyle
+     FE_SUCCESS:::successStyle
+     FE_PARTIAL:::warningStyle
+    classDef errorStyle fill:#f44336,color:#fff,stroke:#b71c1c,stroke-width:2px
+    classDef successStyle fill:#4CAF50,color:#fff,stroke:#2E7D32,stroke-width:2px
+    classDef warningStyle fill:#FFF9C4,stroke:#F9A825,stroke-width:2px
+    classDef criticalStyle fill:#FFF3E0,stroke:#F57C00,stroke-width:3px
+    classDef processingStyle fill:#E3F2FD,stroke:#1976D2,stroke-width:2px
+    style START fill:#4CAF50,color:#fff
+    style RETURN_400 fill:#f44336,color:#fff
+    style GENERATE_UUID fill:#FFF3E0,stroke:#F57C00,stroke-width:3px
+    style RETURN_RESPONSE fill:#4CAF50,color:#fff
+    style S3_WARNING_GPS fill:#FFF9C4,stroke:#F9A825,stroke-width:2px
+    style S3_OPEN_CIRCUIT fill:#f44336,color:#fff
+    style S3_UPDATE_SUCCESS fill:#4CAF50,color:#fff
+    style S3_CHUNK_END fill:#4CAF50,color:#fff
+    style ML_LOAD_MODEL fill:#FFF3E0,stroke:#F57C00,stroke-width:3px
+    style ML_FALLBACK_S3 fill:#FFE0B2,stroke:#F57C00,stroke-width:2px
+    style ML_CRITICAL_NOTFOUND fill:#f44336,color:#fff
+    style ML_DOWNLOAD_S3 fill:#FFE0B2,stroke:#F57C00,stroke-width:2px
+    style ML_END_FAILURE fill:#f44336,color:#fff
+    style ML_WARNING_GPS_ML fill:#FFF9C4,stroke:#F9A825
+    style ML_WARNING_LOCATION fill:#FFF9C4,stroke:#F9A825
+    style ML_WARNING_CONFIG fill:#FFF9C4,stroke:#F9A825
+    style ML_WARNING_DENSITY fill:#FFF9C4,stroke:#F9A825
+    style ML_END_WARNING fill:#FFF9C4,stroke:#F9A825
+    style ML_EXECUTE_CHORD fill:#E3F2FD
+    style SAHI_DETECT fill:#E3F2FD,stroke:#1976D2,stroke-width:3px
+    style SAHI_BULK_INSERT fill:#FFF3E0,stroke:#F57C00,stroke-width:3px
+    style SAHI_USE_AVG_AREA fill:#E8F5E9,stroke:#4CAF50,stroke-width:2px
+    style SAHI_UPDATE_DENSITY fill:#E8F5E9,stroke:#4CAF50,stroke-width:2px
+    style SAHI_END fill:#4CAF50,color:#fff
+    style BOXES_END fill:#4CAF50,color:#fff
+    style CALLBACK_COMPRESS fill:#FFF3E0,stroke:#F57C00,stroke-width:3px
+    style CALLBACK_VERIFY fill:#E8F5E9,stroke:#4CAF50,stroke-width:2px
+    style CALLBACK_NO_DELETE_S3 fill:#FFF9C4,stroke:#F9A825
+    style CALLBACK_END_FAILURE fill:#f44336,color:#fff
+    style CALLBACK_END_SUCCESS fill:#4CAF50,color:#fff
+    style FE_BUILD_ERROR fill:#FFEBEE
+    style FE_SUCCESS fill:#4CAF50,color:#fff
+    style FE_PARTIAL fill:#FFF9C4,stroke:#F9A825

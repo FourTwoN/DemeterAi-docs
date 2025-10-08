@@ -1,0 +1,182 @@
+---
+config:
+  theme: dark
+  themeVariables:
+    primaryColor: '#E8F5E9'
+    primaryTextColor: '#1B5E20'
+    primaryBorderColor: '#4CAF50'
+    lineColor: '#388E3C'
+    secondaryColor: '#E3F2FD'
+    tertiaryColor: '#FFF3E0'
+    noteBkgColor: '#FFFDE7'
+    noteBorderColor: '#FBC02D'
+  layout: dagre
+---
+flowchart TB
+  subgraph TRIGGER_SALES["📊 TRIGGER: Nueva Foto Completada"]
+    direction TB
+      TRIGGER_START(["🔔 Callback aggregate completó<br>Session status = 'completed'<br>⚠️ AUTOMÁTICO post-ML"])
+      TRIGGER_GET_SESSION[("📊 SELECT pps.storage_location_id,<br>pps.total_detected + pps.total_estimated AS actual_count,<br>pps.created_at AS new_photo_date<br>FROM photo_processing_sessions pps<br>WHERE pps.id = session_id_pk<br>⚠️ Nueva foto es el conteo ACTUAL")]
+      TRIGGER_CHECK_LOCATION{"¿Location<br>válido?"}
+      TRIGGER_WARNING_NO_LOC["⚠️ WARNING<br>Session sin location<br>No calcular ventas<br>Log para revisión manual"]
+      TRIGGER_END_NO_CALC(["✅ END<br>No sales calculation<br>Session marcada needs_location"])
+      TRIGGER_FIND_PREVIOUS[("📊 SELECT pps.id, pps.created_at,<br>pps.total_detected + pps.total_estimated AS previous_count<br>FROM photo_processing_sessions pps<br>WHERE pps.storage_location_id = location_id<br>AND pps.status = 'completed'<br>AND pps.created_at < new_photo_date<br>AND pps.is_baseline = true<br>ORDER BY pps.created_at DESC<br>LIMIT 1<br>⚠️ Buscar foto ANTERIOR (baseline)")]
+      TRIGGER_PREVIOUS_EXISTS{"¿Hay foto<br>anterior?"}
+      TRIGGER_MARK_NEW_BASELINE@{ label: "📊 UPDATE photo_processing_sessions<br>SET is_baseline = true<br>WHERE id = session_id_pk<br>⚠️ Primera foto = baseline para próximo mes<br>NO calcular ventas aún" }
+      TRIGGER_END_FIRST(["✅ END<br>Primera foto del location<br>Baseline establecida"])
+      TRIGGER_GET_DATE_RANGE["📅 Definir rango temporal<br>date_from = previous_photo_date<br>date_to = new_photo_date<br>⚠️ Ventana para movimientos manuales"]
+  end
+
+  subgraph CALC_MOVEMENTS["➕ CÁLCULO: Sumar Movimientos Manuales"]
+    direction TB
+      CALC_START(["⚙️ Calcular stock esperado"])
+      CALC_QUERY_MOVEMENTS[("📊 SELECT<br>SUM(quantity) FILTER (WHERE is_inbound = true) AS total_inbound,<br>SUM(quantity) FILTER (WHERE is_inbound = false) AS total_outbound<br>FROM stock_movements sm<br>JOIN storage_bins sb<br>  ON sm.destination_bin_id = sb.id<br>  OR sm.source_bin_id = sb.id<br>WHERE sb.storage_location_id = location_id<br>AND sm.source_type = 'manual'<br>AND sm.created_at > date_from<br>AND sm.created_at <= date_to<br>⚠️ Solo movimientos MANUALES en ventana")]
+      CALC_PLANTADO["➕ Plantado = total_inbound<br>Suma de movimientos is_inbound=true<br>movement_type = 'plantar'"]
+      CALC_MUERTE["➖ Muerte = ABS(total_outbound)<br>movement_type = 'muerte'"]
+      CALC_TRANSPLANTE["±️ Transplante neto<br>IN - OUT para mismo location<br>Puede ser + o -"]
+      CALC_EXPECTED@{ label: "📊 Calcular expected_stock<br>expected = previous_count<br>  + plantado<br>  - muerte<br>  ± transplante_neto<br>⚠️ Stock que DEBERÍA haber" }
+      CALC_GET_ACTUAL["📊 Obtener actual_count<br>Ya tenemos de session:<br>actual_count = total_detected + total_estimated<br>⚠️ Stock REAL de nueva foto"]
+      CALC_DIFF@{ label: "🔢 Calcular diferencia<br>sales_qty = expected_stock - actual_count<br>⚠️ Si positivo = VENTAS<br>⚠️ Si negativo = MÁS plantas que esperadas" }
+      CALC_CHECK_DIFF{"¿sales_qty<br>> 0?"}
+      CALC_ZERO_SALES["✅ Sales = 0<br>No hubo ventas<br>O conteo inconsistente"]
+      CALC_LOG_NEGATIVE@{ label: "⚠️ WARNING sales_qty < 0<br>MÁS plantas que esperadas<br>Posibles causas:<br>- Error en conteo anterior<br>- Plantado no reportado<br>- Crecimiento vegetativo<br>Log para revisión" }
+      CALC_ADJUSTMENT_NEEDED{"¿Crear<br>ajuste?"}
+      CALC_CREATE_ADJUSTMENT@{ label: "📊 INSERT stock_movements<br>movement_type = 'ajuste'<br>quantity = ABS(sales_qty)<br>is_inbound = true<br>reason_description = 'Ajuste automático - más plantas detectadas'<br>⚠️ Ajuste positivo para reconciliar" }
+      CALC_SKIP_ADJUSTMENT["⏭️ Skip adjustment<br>Mantener inconsistencia<br>Para revisión manual"]
+  end
+
+  subgraph CREATE_SALES["💰 CREAR: Stock Movement de Ventas"]
+    direction TB
+      SALES_START(["⚙️ Crear registro ventas"])
+      SALES_FIND_BATCHES[("📊 SELECT sb.id, sb.quantity_current,<br>sb.product_id, sb.packaging_catalog_id<br>FROM stock_batches sb<br>JOIN storage_bins sbin<br>  ON sb.current_storage_bin_id = sbin.id<br>WHERE sbin.storage_location_id = location_id<br>AND sb.quantity_current > 0<br>ORDER BY sb.created_at ASC<br>⚠️ FIFO: vender batches más antiguos primero")]
+      SALES_DISTRIBUTE{"¿Cómo<br>distribuir?"}
+      SALES_SINGLE_BATCH["📊 1 batch suficiente<br>Tomar sales_qty del batch"]
+      SALES_MULTIPLE_BATCHES["📊 Múltiples batches<br>Distribuir FIFO<br>Hasta completar sales_qty"]
+      SALES_LOOP_BATCHES["🔄 Para cada batch<br>hasta sales_remaining = 0"]
+      SALES_CALC_QTY@{ label: "📊 qty_from_batch = <br>MIN(batch.quantity_current, sales_remaining)<br>⚠️ No exceder disponible en batch" }
+      SALES_GEN_MOVEMENT_ID["🆔 Gen movement_id = UUID"]
+      SALES_INSERT_MOVEMENT@{ label: "📊 INSERT INTO stock_movements<br>movement_id = UUID<br>batch_id = batch_id<br>movement_type = 'ventas'<br>source_bin_id = batch.current_bin_id<br>destination_bin_id = NULL<br>quantity = -qty_from_batch<br>user_id = NULL<br>unit_price = batch.unit_price<br>total_price = qty * unit_price<br>reason_description = 'Ventas calculadas automáticamente'<br>processing_session_id = session_id_pk<br>source_type = 'ia'<br>is_inbound = false<br>created_at = NOW<br>⚠️ Quantity NEGATIVO - egreso" }
+      SALES_UPDATE_BATCH@{ label: "📊 UPDATE stock_batches<br>SET quantity_current = quantity_current - qty_from_batch<br>updated_at = NOW<br>WHERE id = batch_id" }
+      SALES_DECREMENT["📊 sales_remaining -= qty_from_batch"]
+      SALES_CHECK_REMAINING{"¿sales_remaining<br>> 0?"}
+      SALES_NEXT_BATCH["⏭️ Siguiente batch"]
+      SALES_VERIFY["✅ VERIFICATION<br>⚠️ Sum(sales movements) = sales_qty<br>⚠️ All batches updated correctly<br>⚠️ No negative quantities"]
+      SALES_ALL_VALID{"Todo<br>válido?"}
+      SALES_ROLLBACK["🔄 ROLLBACK<br>DELETE sales movements<br>REVERT batch updates<br>Log error"]
+      SALES_ERROR_END(["❌ Sales Calc FAILURE"])
+      SALES_COMMIT["✅ COMMIT Transaction"]
+      SALES_UPDATE_SESSION@{ label: "📊 UPDATE photo_processing_sessions<br>SET sales_calculated = true<br>sales_quantity = sales_qty<br>sales_calculated_at = NOW<br>WHERE id = session_id_pk<br>⚠️ Marcar como procesado" }
+      SALES_MARK_OLD_BASELINE[("📊 UPDATE photo_processing_sessions<br>SET is_baseline = false<br>WHERE id = previous_session_id<br>⚠️ Desactivar baseline anterior")]
+      SALES_MARK_NEW_BASELINE[("📊 UPDATE photo_processing_sessions<br>SET is_baseline = true<br>WHERE id = session_id_pk<br>⚠️ Nueva foto = baseline para próximo mes")]
+      SALES_BUILD_SUMMARY["📦 Build summary<br>storage_location_id: int<br>previous_count: int<br>movements_summary: dict<br>expected_stock: int<br>actual_count: int<br>sales_qty: int<br>batches_affected: int<br>calculation_date: timestamp"]
+      SALES_END(["✅ Sales Calculated<br>Return summary"])
+  end
+
+  subgraph NOTIFICATION["📧 NOTIFICACIÓN: Alertas Opcionales"]
+    direction TB
+      NOTIFY_START(["📬 Sistema de alertas"])
+      NOTIFY_CHECK_THRESHOLD{"¿sales_qty ><br>threshold?"}
+      NOTIFY_LARGE_SALES["📧 Alert: Ventas grandes<br>Email a supervisor<br>Sales > 20% stock anterior"]
+      NOTIFY_NEGATIVE_SALES["📧 Alert: Conteo inconsistente<br>Email a admin<br>Más plantas que esperadas"]
+      NOTIFY_ZERO_SALES["ℹ️ Info: Sin ventas<br>Log informativo<br>No alert necesaria"]
+      NOTIFY_LOG["📝 Log final<br>Registrar en audit log<br>Todas las operaciones"]
+      NOTIFY_END(["✅ Notificaciones enviadas"])
+  end
+
+  TRIGGER_START --> TRIGGER_GET_SESSION
+  TRIGGER_GET_SESSION --> TRIGGER_CHECK_LOCATION
+  TRIGGER_CHECK_LOCATION -- ❌ NULL --> TRIGGER_WARNING_NO_LOC
+  TRIGGER_WARNING_NO_LOC --> TRIGGER_END_NO_CALC
+  TRIGGER_CHECK_LOCATION -- ✅ Valid --> TRIGGER_FIND_PREVIOUS
+  TRIGGER_FIND_PREVIOUS --> TRIGGER_PREVIOUS_EXISTS
+  TRIGGER_PREVIOUS_EXISTS -- ❌ No --> TRIGGER_MARK_NEW_BASELINE
+  TRIGGER_MARK_NEW_BASELINE --> TRIGGER_END_FIRST
+  TRIGGER_PREVIOUS_EXISTS -- ✅ Sí --> TRIGGER_GET_DATE_RANGE
+  TRIGGER_GET_DATE_RANGE --> CALC_START
+
+  CALC_START --> CALC_QUERY_MOVEMENTS
+  CALC_QUERY_MOVEMENTS --> CALC_PLANTADO
+  CALC_PLANTADO --> CALC_MUERTE
+  CALC_MUERTE --> CALC_TRANSPLANTE
+  CALC_TRANSPLANTE --> CALC_EXPECTED
+  CALC_EXPECTED --> CALC_GET_ACTUAL
+  CALC_GET_ACTUAL --> CALC_DIFF
+  CALC_DIFF --> CALC_CHECK_DIFF
+  CALC_CHECK_DIFF -- = 0 --> CALC_ZERO_SALES
+  CALC_CHECK_DIFF -- < 0 --> CALC_LOG_NEGATIVE
+  CALC_LOG_NEGATIVE --> CALC_ADJUSTMENT_NEEDED
+  CALC_ADJUSTMENT_NEEDED -- ✅ Sí --> CALC_CREATE_ADJUSTMENT
+  CALC_ADJUSTMENT_NEEDED -- ❌ No --> CALC_SKIP_ADJUSTMENT
+  CALC_CREATE_ADJUSTMENT --> SALES_START
+  CALC_SKIP_ADJUSTMENT --> TRIGGER_END_NO_CALC
+  CALC_CHECK_DIFF -- > 0 --> SALES_START
+  CALC_ZERO_SALES --> TRIGGER_END_NO_CALC
+
+  SALES_START --> SALES_FIND_BATCHES
+  SALES_FIND_BATCHES --> SALES_DISTRIBUTE
+  SALES_DISTRIBUTE -- 1 batch --> SALES_SINGLE_BATCH
+  SALES_DISTRIBUTE -- Multiple --> SALES_MULTIPLE_BATCHES
+  SALES_SINGLE_BATCH --> SALES_LOOP_BATCHES
+  SALES_MULTIPLE_BATCHES --> SALES_LOOP_BATCHES
+  SALES_LOOP_BATCHES --> SALES_CALC_QTY
+  SALES_CALC_QTY --> SALES_GEN_MOVEMENT_ID
+  SALES_GEN_MOVEMENT_ID --> SALES_INSERT_MOVEMENT
+  SALES_INSERT_MOVEMENT --> SALES_UPDATE_BATCH
+  SALES_UPDATE_BATCH --> SALES_DECREMENT
+  SALES_DECREMENT --> SALES_CHECK_REMAINING
+  SALES_CHECK_REMAINING -- ✅ Sí --> SALES_NEXT_BATCH
+  SALES_NEXT_BATCH --> SALES_LOOP_BATCHES
+  SALES_CHECK_REMAINING -- ❌ No --> SALES_VERIFY
+  SALES_VERIFY --> SALES_ALL_VALID
+  SALES_ALL_VALID -- ❌ Error --> SALES_ROLLBACK
+  SALES_ROLLBACK --> SALES_ERROR_END
+  SALES_ALL_VALID -- ✅ OK --> SALES_COMMIT
+  SALES_COMMIT --> SALES_UPDATE_SESSION
+  SALES_UPDATE_SESSION --> SALES_MARK_OLD_BASELINE
+  SALES_MARK_OLD_BASELINE --> SALES_MARK_NEW_BASELINE
+  SALES_MARK_NEW_BASELINE --> SALES_BUILD_SUMMARY
+  SALES_BUILD_SUMMARY --> SALES_END
+  SALES_END --> NOTIFY_START
+
+  NOTIFY_START --> NOTIFY_CHECK_THRESHOLD
+  NOTIFY_CHECK_THRESHOLD -- > threshold --> NOTIFY_LARGE_SALES
+  NOTIFY_CHECK_THRESHOLD -- < 0 --> NOTIFY_NEGATIVE_SALES
+  NOTIFY_CHECK_THRESHOLD -- = 0 --> NOTIFY_ZERO_SALES
+  NOTIFY_LARGE_SALES --> NOTIFY_LOG
+  NOTIFY_NEGATIVE_SALES --> NOTIFY_LOG
+  NOTIFY_ZERO_SALES --> NOTIFY_LOG
+  NOTIFY_LOG --> NOTIFY_END
+
+  CALC_EXPECTED@{ shape: rect }
+  CALC_DIFF@{ shape: rect }
+  CALC_CREATE_ADJUSTMENT@{ shape: cylinder }
+  CALC_LOG_NEGATIVE@{ shape: rect }
+  SALES_CALC_QTY@{ shape: rect }
+  SALES_INSERT_MOVEMENT@{ shape: cylinder }
+  SALES_UPDATE_BATCH@{ shape: cylinder }
+  SALES_UPDATE_SESSION@{ shape: cylinder }
+  TRIGGER_MARK_NEW_BASELINE@{ shape: cylinder }
+
+  TRIGGER_WARNING_NO_LOC:::warningStyle
+  TRIGGER_END_NO_CALC:::warningStyle
+  TRIGGER_END_FIRST:::successStyle
+  CALC_ZERO_SALES:::successStyle
+  CALC_LOG_NEGATIVE:::warningStyle
+  CALC_SKIP_ADJUSTMENT:::warningStyle
+  SALES_ROLLBACK:::errorStyle
+  SALES_ERROR_END:::errorStyle
+  SALES_COMMIT:::successStyle
+  SALES_END:::successStyle
+  NOTIFY_LARGE_SALES:::warningStyle
+  NOTIFY_NEGATIVE_SALES:::errorStyle
+  NOTIFY_ZERO_SALES:::successStyle
+  NOTIFY_END:::successStyle
+  CALC_EXPECTED:::criticalStyle
+  CALC_DIFF:::criticalStyle
+  SALES_CALC_QTY:::criticalStyle
+
+  classDef errorStyle fill:#f44336,color:#fff,stroke:#b71c1c,stroke-width:2px
+  classDef successStyle fill:#4CAF50,color:#fff,stroke:#2E7D32,stroke-width:2px
+  classDef warningStyle fill:#FFF9C4,stroke:#F9A825,stroke-width:2px
+  classDef criticalStyle fill:#FFF3E0,stroke:#F57C00,stroke-width:3px
+  classDef processingStyle fill:#E3F2FD,stroke:#1976D2,stroke-width:2px
