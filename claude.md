@@ -272,50 +272,237 @@ mmdc --validateDiagram -i path/to/diagram.mmd
 - **Markdown formatting** in labels: `` "`**bold** _italic_`" ``
 - **Subgraphs** for organization
 - **classDef** for consistent styling
+- **Edge IDs** for critical path highlighting (NEW)
 
-### Diagram Structure
+### Modern v11.3.0+ Syntax (MANDATORY)
+
+**ALL nodes must use the new `@{ shape, label }` syntax:**
+
+```mermaid
+%% Database operations
+NODE@{ shape: cyl, label: "📊 SELECT FROM table
+WHERE condition
+⏱️ ~20ms" }
+
+%% Decision points
+NODE@{ shape: diamond, label: "Check Condition?
+Validation logic" }
+
+%% Complex processes (multi-step)
+NODE@{ shape: subproc, label: "🔧 Complex Process
+Step 1, Step 2, Step 3
+⏱️ ~500ms" }
+
+%% Simple processes
+NODE@{ shape: rect, label: "📋 Simple Action
+Single operation
+⏱️ ~10ms" }
+
+%% Start/End points
+NODE@{ shape: stadium, label: "✅ Start/End Event
+Status info" }
+
+%% Events/Triggers
+NODE@{ shape: circle, label: "🔔 Event
+Callback triggered" }
+```
+
+**❌ OLD SYNTAX (Do NOT use)**:
+```mermaid
+NODE["Description"]
+NODE{"Decision"}
+NODE[("Database")]
+NODE(["Start/End"])
+```
+
+### Performance Annotation Format (REQUIRED)
+
+Add performance metadata to ALL significant nodes:
+
+```mermaid
+NODE@{ shape: subproc, label: "Process Name
+Business logic description
+
+⏱️ ~500ms (timing estimate)
+⚡ Parallel execution (parallelism indicator)
+♻️ Max 3 retries (retry logic)
+⏰ Timeout: 60s (timeout info)
+🔥 HOT PATH (criticality marker)" }
+```
+
+**Symbols**:
+- ⏱️ **Timing**: Approximate duration
+- ⚡ **Parallelism**: Parallel vs sequential
+- ♻️ **Retry**: Max retries, backoff strategy
+- ⏰ **Timeout**: Circuit breaker, async timeouts
+- 🔥 **Critical**: Hot path, bottleneck
+
+### Edge IDs for Critical Path Highlighting
+
+Use edge IDs to style critical paths differently:
+
+```mermaid
+%% Define edges with IDs
+START e1@--> VALIDATE
+VALIDATE e2@-- "✅ Valid" --> PROCESS
+PROCESS e3@--> END
+
+%% Apply styling to edge IDs
+e1@{ class: critical-path }
+e2@{ class: critical-path }
+e3@{ class: critical-path }
+
+%% Define the class
+classDef criticalPath stroke:#FF6B6B,stroke-width:4px
+```
+
+### Large Diagram Management (1000+ lines)
+
+For diagrams over 500 lines:
+
+1. **Use Section Headers**:
+```mermaid
+%% ═══════════════════════════════════════════════════════════════════════
+%% SECTION 1: API ENTRY POINT
+%% ═══════════════════════════════════════════════════════════════════════
+%% Detail: See flows/02_api_entry_detailed.mmd for line-by-line code
+%% Pattern: FastAPI async controller with validation
+```
+
+2. **Reference Detailed Diagrams**:
+```mermaid
+%% ───────────────────────────────────────────────────────────────────────
+%% S3 Upload Task (I/O Workers - pool=gevent)
+%% ───────────────────────────────────────────────────────────────────────
+%% Detail: See flows/03_s3_upload_circuit_breaker_detailed.mmd
+```
+
+3. **Create Hierarchy**:
+   - **00_master_overview.mmd**: Executive level (~50 nodes)
+   - **01_complete_pipeline_vX.mmd**: Full detail (~1000 lines)
+   - **02-08_detailed_subflows.mmd**: Ultra-detail (line-by-line)
+
+### Diagram Structure (Complete Template)
+
 ```mermaid
 ---
 config:
   theme: dark
-  layout: dagre
+  themeVariables:
+    primaryColor: '#E8F5E9'
+    primaryTextColor: '#1B5E20'
+    primaryBorderColor: '#4CAF50'
+    lineColor: '#388E3C'
+    secondaryColor: '#E3F2FD'
+    tertiaryColor: '#FFF3E0'
+    noteBkgColor: '#FFFDE7'
+    noteBorderColor: '#FBC02D'
+  layout: dagre  # or 'elk' for complex diagrams
 ---
 flowchart TB
+    %% ═══════════════════════════════════════════════════════════════════════
+    %% DIAGRAM TITLE - PURPOSE
+    %% ═══════════════════════════════════════════════════════════════════════
+    %% Purpose: What this diagram represents
+    %% Scope: What's included/excluded
+    %% Detail: Level of granularity
+    %% Updated: YYYY-MM-DD | Version: X.X | Mermaid v11.3.0+
+    %% ═══════════════════════════════════════════════════════════════════════
+
     subgraph SECTION["🎯 Section Name"]
         direction TB
-        NODE1["Description"]
-        NODE2["Description"]
+
+        NODE@{ shape: stadium, label: "Start
+Description
+⏱️ timing" }
     end
+
+    %% Connections
+    NODE1 e1@--> NODE2
+    e1@{ class: critical-path }
+
+    %% Styling
+    classDef criticalPath stroke:#FF6B6B,stroke-width:4px
+    classDef errorStyle fill:#f44336,color:#fff,stroke:#b71c1c,stroke-width:2px
+    classDef successStyle fill:#4CAF50,color:#fff,stroke:#2E7D32,stroke-width:2px
 ```
 
-### Styling Conventions (From Existing Diagrams)
+### Styling Conventions (Standard Palette)
+
 ```mermaid
+%% Error states (red)
 classDef errorStyle fill:#f44336,color:#fff,stroke:#b71c1c,stroke-width:2px
+
+%% Success states (green)
 classDef successStyle fill:#4CAF50,color:#fff,stroke:#2E7D32,stroke-width:2px
+
+%% Warning states (yellow)
 classDef warningStyle fill:#FFF9C4,stroke:#F9A825,stroke-width:2px
+
+%% Critical processes (orange)
 classDef criticalStyle fill:#FFF3E0,stroke:#F57C00,stroke-width:3px
+
+%% Active processing (blue)
 classDef processingStyle fill:#E3F2FD,stroke:#1976D2,stroke-width:2px
+
+%% Critical path edges (red thick)
+classDef criticalPath stroke:#FF6B6B,stroke-width:4px
+
+%% Apply to nodes
+NODE1:::errorStyle
+NODE2:::successStyle
 ```
 
-### Node Shape Conventions
-- **Cylinders** (`@{ shape: cylinder }`): Database operations (SELECT, INSERT, UPDATE)
-- **Diamonds** (`{}`): Decision points
-- **Rectangles** (`[]`): Process steps
-- **Rounded** (`()`): Start/End points
-- **Subgraphs**: Logical groupings (API layer, Celery tasks, etc.)
+### Node Shape Semantic Meanings
+
+- **`@{ shape: cyl }`**: Database operations (SELECT, INSERT, UPDATE, DELETE)
+- **`@{ shape: diamond }`**: Decision points (if/else, validation checks)
+- **`@{ shape: rect }`**: Simple processes (single action)
+- **`@{ shape: subproc }`**: Complex processes (multi-step algorithms)
+- **`@{ shape: stadium }`**: Start/End points (entry/exit)
+- **`@{ shape: circle }`**: Events (callbacks, triggers, signals)
 
 ### Comments for Clarity
+
 ```mermaid
-%% This section handles S3 upload with circuit breaker
-flowchart LR
+%% ═══════════════════════════════════════════════════════════════════════
+%% Major Section Header
+%% ═══════════════════════════════════════════════════════════════════════
+
+%% ───────────────────────────────────────────────────────────────────────
+%% Subsection Header
+%% ───────────────────────────────────────────────────────────────────────
+
+%% Regular comment explaining logic
+flowchart TB
     A --> B
 ```
 
+### File Naming Convention
+
+Use numbered prefixes for ordered diagrams:
+
+```
+flows/
+├── 00_master_overview.mmd           # Executive overview
+├── 01_complete_pipeline_v4.mmd      # Full detail
+├── 02_api_entry_detailed.mmd        # API controller
+├── 03_s3_upload_detailed.mmd        # S3 upload
+├── 04_ml_parent_detailed.mmd        # ML parent
+├── 05_sahi_detection_detailed.mmd   # SAHI child
+├── 06_boxes_detection_detailed.mmd  # Boxes child
+├── 07_callback_aggregate_detailed.mmd  # Callback
+├── 08_frontend_polling_detailed.mmd    # Frontend
+```
+
 ### Keep Diagrams Manageable
-- If a flowchart exceeds ~50 nodes, consider splitting into:
-  - High-level overview diagram
-  - Detailed subflow diagrams
-- Use **links between diagrams** in Markdown docs
+
+- **< 50 nodes**: Single diagram OK
+- **50-300 nodes**: Consider splitting into overview + details
+- **300+ nodes**: MUST split into:
+  - High-level overview diagram (00_)
+  - Full detail diagram (01_)
+  - Ultra-detailed subflows (02-08_)
 
 ---
 
@@ -323,26 +510,60 @@ flowchart LR
 
 ### Mermaid CLI
 - **Path**: `/home/lucasg/.nvm/versions/node/v24.8.0/bin/mmdc`
-- **Validation**:
-  ```bash
-  mmdc --validateDiagram -i flows/diagram.mmd
-  ```
-- **Render to PNG** (for testing):
-  ```bash
-  mmdc -i flows/diagram.mmd -o /tmp/test.png
-  ```
-- **Render to SVG**:
-  ```bash
-  mmdc -i flows/diagram.mmd -o /tmp/test.svg
-  ```
+
+### Validation (MANDATORY Before Commit)
+
+**Correct command** (with --no-sandbox for Linux systems):
+```bash
+mmdc -i "path/to/diagram.mmd" -o /tmp/test.png --puppeteerConfigFile <(echo '{"args":["--no-sandbox"]}')
+```
+
+**What it does**:
+- Validates Mermaid syntax by attempting to render
+- If successful → diagram is valid
+- If errors → shows syntax issues to fix
+- Output file is discarded (just for validation)
+
+**Example**:
+```bash
+mmdc -i "flows/00_master_overview.mmd" -o /tmp/master_test.png --puppeteerConfigFile <(echo '{"args":["--no-sandbox"]}')
+```
+
+**Expected output on success**:
+```
+Generating single mermaid chart
+```
+
+**On error, you'll see**:
+- Parse errors
+- Invalid syntax
+- Missing node definitions
+
+### Render to PNG (for Testing)
+```bash
+mmdc -i flows/diagram.mmd -o /tmp/test.png --puppeteerConfigFile <(echo '{"args":["--no-sandbox"]}')
+```
+
+### Render to SVG
+```bash
+mmdc -i flows/diagram.mmd -o /tmp/test.svg --puppeteerConfigFile <(echo '{"args":["--no-sandbox"]}')
+```
 
 ### Git Commands
 ```bash
 # After creating/modifying files
-git add .
+git add flows/diagram.mmd flows/diagram.md
 git commit -m "docs: your descriptive message"
-git push origin main
+git push origin main  # if needed
 ```
+
+### Validation Workflow
+
+1. **Create/Edit diagram** → Use Write or Edit tool
+2. **Validate syntax** → Run mmdc render command
+3. **Fix errors** → If validation fails
+4. **Create companion .md** → Document the diagram
+5. **Commit** → Granular commit with descriptive message
 
 ---
 
@@ -573,7 +794,141 @@ Plan:
 
 ---
 
-## 14. Troubleshooting
+## 14. Companion Documentation Template
+
+Every `.mmd` diagram MUST have a companion `.md` file with the same base name.
+
+### Template Structure
+
+```markdown
+# [Diagram Title]
+
+## Purpose
+
+[2-4 sentences explaining what this diagram represents]
+
+## Scope
+
+- **Level**: [High-level | Full detail | Ultra-detail]
+- **Audience**: [Who should use this]
+- **Detail**: [Level of granularity]
+- **Mermaid Version**: v11.3.0+
+
+## What It Represents
+
+[Detailed explanation of the diagram's content, broken into sections if needed]
+
+### Key Sections
+1. **Section 1**: Description
+2. **Section 2**: Description
+3. **Section 3**: Description
+
+## Performance [if applicable]
+
+| Phase | Duration | Bottleneck | Optimization |
+|-------|----------|------------|--------------|
+| ... | ... | ... | ... |
+
+**Total**: ~X minutes
+
+## Related Detailed Diagrams
+
+For [more/less] detail, see:
+- **Diagram Name**: `flows/XX_name.mmd` (description)
+- **Diagram Name**: `flows/XX_name.mmd` (description)
+
+## How It Fits in the System
+
+[Explain the diagram's role in the larger system architecture]
+
+## Key Components [if applicable]
+
+### Component 1
+Description
+
+### Component 2
+Description
+
+## Technical Highlights [if applicable]
+
+### Feature 1
+Explanation
+
+### Feature 2
+Explanation
+
+## Usage
+
+Use this diagram to:
+- Task 1
+- Task 2
+- Task 3
+
+---
+
+**Version**: X.X
+**Last Updated**: YYYY-MM-DD
+**Author**: DemeterAI Engineering Team
+```
+
+### Example: Minimal Companion Doc
+
+For simple diagrams:
+
+```markdown
+# API Entry Detailed Flow
+
+## Purpose
+
+This diagram shows the line-by-line code flow for the FastAPI POST /api/stock/photo controller, from request validation through Celery task dispatch.
+
+## Scope
+
+- **Level**: Ultra-detail (implementation code)
+- **Audience**: Developers implementing or debugging the API
+- **Detail**: Every validation step, database query, error path
+
+## What It Represents
+
+The complete API entry point including:
+- Pydantic request validation
+- UUID v4 generation strategy
+- Temporary file handling
+- Database INSERT operations
+- Task chunking and dispatch
+
+## Related Diagrams
+
+- **Master Overview**: `flows/00_master_overview.mmd` (high-level context)
+- **Complete Pipeline**: `flows/01_complete_pipeline_v4.mmd` (full flow)
+
+---
+
+**Version**: 1.0
+**Last Updated**: 2025-10-07
+**Author**: DemeterAI Engineering Team
+```
+
+### Required Sections
+
+**Minimum** (always include):
+- Purpose (2-4 sentences)
+- Scope (level, audience, detail)
+- What It Represents
+- Related Diagrams (links to hierarchy)
+- Version + Date + Author
+
+**Optional** (include when relevant):
+- Performance metrics
+- Key Components breakdown
+- Technical Highlights
+- Usage instructions
+- Code examples
+- Error handling details
+
+---
+
+## 15. Troubleshooting
 
 ### Mermaid Syntax Errors
 
