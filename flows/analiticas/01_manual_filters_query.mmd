@@ -1,0 +1,391 @@
+---
+title: "01 - Manual Filtering Analytics - Detailed Flow"
+author: "DemeterAI Documentation Team"
+date: "2025-10-08"
+version: "1.0.0"
+mermaid_version: "v11.3.0+"
+description: "Ultra-detailed subflow: Manual analytics with UI filters, query building, and visualization"
+parent_diagram: "00_comprehensive_view.mmd"
+---
+
+flowchart TB
+    %% =================================================================
+    %% DIAGRAM 01: MANUAL FILTERING ANALYTICS
+    %% =================================================================
+    %%
+    %% PURPOSE:
+    %% Shows how users select filters through the UI to generate
+    %% reports and visualizations from the cultivation database.
+    %%
+    %% SCOPE: Complete flow from filter selection to chart display
+    %% INPUT: User-selected filters from UI
+    %% OUTPUT: Aggregated data + visualizations
+    %%
+    %% PERFORMANCE TARGET: < 500ms for most queries
+    %% =================================================================
+
+    START@{ shape: stadium, label: "📊 User Navigates to Analytics
+    Route: /analytics/manual
+    UI loads filter panel
+
+    Available filters:
+    • Warehouse
+    • Storage Area/Location
+    • Product (category/family)
+    • Packaging
+    • Date range
+    • Analysis type
+
+    ⏱️ Page load: < 1s" }
+
+    %% =================================================================
+    %% LAYER 1: FILTER SELECTION
+    %% =================================================================
+
+    subgraph FILTER_UI["🎯 FILTER SELECTION UI"]
+        direction TB
+
+        SELECT_GEO@{ shape: rect, label: "🗺️ Geographic Filters
+        Dropdown multi-select:
+        • Warehouses (fetch from DB)
+        • Storage Areas (N/S/E/W/C)
+        • Storage Locations (optional)
+
+        Backend call:
+        GET /api/analytics/filter-options" }
+
+        SELECT_PRODUCT@{ shape: rect, label: "🌵 Product Filters
+        Cascading dropdowns:
+        1. Category (cactus/suculenta/injerto)
+        2. Family (filtered by category)
+        3. Product (filtered by family)
+        4. Size (small/medium/large)
+        5. State (germinado/plantín/ready)" }
+
+        SELECT_PACKAGING@{ shape: rect, label: "📦 Packaging Filters
+        Multi-select:
+        • Packaging Type (pot/tray/plug)
+        • Packaging Catalog (R7/R10/etc.)
+        • Color (optional)
+
+        Fetched from packaging_catalog" }
+
+        SELECT_TEMPORAL@{ shape: rect, label: "📅 Temporal Filters
+        Date range picker:
+        • From Date
+        • To Date
+        • Or: Last 7/30/90 days
+
+        Optional:
+        • Specific photo sessions" }
+
+        SELECT_ANALYSIS@{ shape: rect, label: "📈 Analysis Type
+        Radio buttons:
+        • Current Stock
+        • Stock Movements
+        • Mortality Analysis
+        • Occupancy Analysis
+        • Value Analysis
+
+        Determines query structure" }
+
+        APPLY_FILTERS@{ shape: rect, label: "✅ Apply Filters Button
+        Validates selections
+        Disables button
+        Shows loading spinner" }
+    end
+
+    %% =================================================================
+    %% LAYER 2: BACKEND QUERY BUILDING
+    %% =================================================================
+
+    subgraph BACKEND_PROCESSING["⚙️ BACKEND PROCESSING"]
+        direction TB
+
+        RECEIVE_REQUEST@{ shape: subproc, label: "POST /api/analytics/manual-query
+        Request body:
+        {
+          'warehouse_ids': [1, 2],
+          'product_category_ids': [1],
+          'date_from': '2025-01-01',
+          'date_to': '2025-10-08',
+          'analysis_type': 'current_stock',
+          'chart_type': 'bar'
+        }
+
+        ⏱️ ~5ms parsing" }
+
+        CHECK_CACHE@{ shape: diamond, label: "Check Redis Cache?
+        Key: analytics:hash(filters)
+        TTL: 300s (5 min)
+
+        ⏱️ ~10ms lookup" }
+
+        CACHE_HIT@{ shape: rect, label: "✅ Cache Hit
+        Return cached result
+        Skip query execution
+
+        ⏱️ ~50ms total" }
+
+        BUILD_QUERY@{ shape: subproc, label: "🔨 Build Dynamic SQL Query
+        Template: base_analytics_query.sql
+
+        Steps:
+        1. Select base template by analysis_type
+        2. Add JOINs for selected entities
+        3. Inject WHERE filters
+        4. Add GROUP BY dimensions
+        5. Add ORDER BY clause
+
+        Example:
+        SELECT w.name, pc.name,
+               SUM(sb.quantity_current)
+        FROM stock_batches sb
+        INNER JOIN ... (7 joins)
+        WHERE w.id IN (1,2)
+          AND pc.id IN (1)
+          AND pps.created_at BETWEEN ...
+        GROUP BY w.name, pc.name
+
+        ⏱️ ~20ms" }
+
+        VALIDATE_QUERY@{ shape: diamond, label: "Validate Query Safety?
+        Checks:
+        • No DELETE/UPDATE/DROP
+        • Parameterized (no SQL injection)
+        • Estimated rows < 1M
+        • Estimated time < 10s
+
+        ⏱️ ~5ms" }
+
+        QUERY_INVALID@{ shape: rect, label: "❌ Return 400 Error
+        'Query complexity too high'
+        or
+        'Invalid parameters'
+
+        Suggest: narrow filters" }
+
+        EXECUTE_QUERY@{ shape: cyl, label: "Execute SQL Query
+        Database: PostgreSQL
+        Connection: Async pool
+        Timeout: 30s
+
+        Query uses:
+        • Indexes on filters
+        • Materialized views (if available)
+        • EXPLAIN ANALYZE for optimization
+
+        ⏱️ 100ms - 2s (depends on filters)" }
+
+        CHECK_RESULT_SIZE@{ shape: diamond, label: "Result Size OK?
+        Max rows: 10,000
+
+        If larger:
+        Require pagination" }
+
+        TOO_LARGE@{ shape: rect, label: "⚠️ Return 413 Payload Too Large
+        'Result set too large'
+        'Please add more filters'
+        or
+        'Use pagination'
+
+        row_count: N" }
+    end
+
+    %% =================================================================
+    %% LAYER 3: DATA PROCESSING & AGGREGATION
+    %% =================================================================
+
+    subgraph DATA_PROCESSING["📊 DATA PROCESSING"]
+        direction TB
+
+        AGGREGATE_DATA@{ shape: rect, label: "Aggregate Results
+        Group by requested dimensions
+        Calculate:
+        • Totals (SUM)
+        • Averages (AVG)
+        • Counts (COUNT)
+        • Percentages
+
+        Format numbers:
+        • Quantities: 1,234
+        • Currency: $1,234.56
+        • Percentages: 12.34%
+
+        ⏱️ ~50ms" }
+
+        CALCULATE_METRICS@{ shape: rect, label: "Calculate Derived Metrics
+        Based on analysis_type:
+
+        • Mortality Rate:
+          deaths / initial_count * 100
+
+        • Occupancy:
+          current / capacity * 100
+
+        • Value:
+          quantity * unit_price
+
+        • Growth Rate:
+          (current - initial) / initial
+
+        ⏱️ ~30ms" }
+
+        SORT_RESULTS@{ shape: rect, label: "Sort & Limit Results
+        Default sort: by total DESC
+        Limit: top 50 results
+
+        User can change:
+        • Sort column
+        • Sort direction
+        • Page size
+
+        ⏱️ ~10ms" }
+    end
+
+    %% =================================================================
+    %% LAYER 4: VISUALIZATION GENERATION
+    %% =================================================================
+
+    subgraph VISUALIZATION["📈 VISUALIZATION GENERATION"]
+        direction TB
+
+        GENERATE_CHART_CONFIG@{ shape: rect, label: "Generate Chart.js Config
+        Based on chart_type:
+
+        • bar: Grouped/stacked bar
+        • line: Time series
+        • pie: Category distribution
+        • doughnut: Proportions
+        • table: Data grid
+
+        Config includes:
+        • Labels (x-axis)
+        • Datasets (y-values)
+        • Colors (theme)
+        • Tooltips
+        • Legend
+
+        ⏱️ ~20ms" }
+
+        FORMAT_TABLE@{ shape: rect, label: "Format Data Table
+        Library: AG Grid config
+
+        Features:
+        • Sortable columns
+        • Filterable cells
+        • Pagination
+        • Export to CSV
+
+        ⏱️ ~15ms" }
+
+        CACHE_RESULT@{ shape: rect, label: "Cache Result in Redis
+        Key: analytics:hash(filters)
+        Value: {
+          data: [...],
+          chart_config: {...},
+          table_config: {...},
+          metadata: {
+            row_count: N,
+            execution_time_ms: T,
+            cached_at: ISO8601
+          }
+        }
+        TTL: 300s
+
+        ⏱️ ~20ms" }
+    end
+
+    %% =================================================================
+    %% LAYER 5: RESPONSE & FRONTEND DISPLAY
+    %% =================================================================
+
+    RETURN_RESPONSE@{ shape: rect, label: "✅ Return 200 OK Response
+    JSON:
+    {
+      'data': [...],
+      'chart_config': {...},
+      'table_config': {...},
+      'metadata': {
+        'row_count': 123,
+        'execution_time_ms': 450,
+        'cached': false
+      }
+    }
+
+    ⏱️ Total: 100ms - 2s" }
+
+    FRONTEND_RENDER@{ shape: rect, label: "🖥️ Frontend Renders Results
+    1. Hide loading spinner
+    2. Render chart using Chart.js
+    3. Render table using AG Grid
+    4. Show metadata (row count, time)
+    5. Enable export buttons
+
+    ⏱️ ~100ms rendering" }
+
+    DISPLAY_RESULTS@{ shape: stadium, label: "📊 User Views Analytics
+    Interactive features:
+    • Hover tooltips
+    • Drill-down (click bar → filter)
+    • Sort table columns
+    • Export to Excel/CSV
+
+    User can:
+    • Modify filters → re-query
+    • Change chart type → re-render
+    • Export results" }
+
+    %% =================================================================
+    %% CONNECTIONS
+    %% =================================================================
+
+    START --> SELECT_GEO
+    SELECT_GEO --> SELECT_PRODUCT
+    SELECT_PRODUCT --> SELECT_PACKAGING
+    SELECT_PACKAGING --> SELECT_TEMPORAL
+    SELECT_TEMPORAL --> SELECT_ANALYSIS
+    SELECT_ANALYSIS --> APPLY_FILTERS
+
+    APPLY_FILTERS --> RECEIVE_REQUEST
+    RECEIVE_REQUEST --> CHECK_CACHE
+
+    CHECK_CACHE -->|Cache Hit| CACHE_HIT
+    CHECK_CACHE -->|Cache Miss| BUILD_QUERY
+
+    CACHE_HIT --> RETURN_RESPONSE
+
+    BUILD_QUERY --> VALIDATE_QUERY
+    VALIDATE_QUERY -->|Invalid| QUERY_INVALID
+    VALIDATE_QUERY -->|Valid| EXECUTE_QUERY
+
+    EXECUTE_QUERY --> CHECK_RESULT_SIZE
+    CHECK_RESULT_SIZE -->|Too Large| TOO_LARGE
+    CHECK_RESULT_SIZE -->|OK| AGGREGATE_DATA
+
+    AGGREGATE_DATA --> CALCULATE_METRICS
+    CALCULATE_METRICS --> SORT_RESULTS
+
+    SORT_RESULTS --> GENERATE_CHART_CONFIG
+    GENERATE_CHART_CONFIG --> FORMAT_TABLE
+    FORMAT_TABLE --> CACHE_RESULT
+
+    CACHE_RESULT --> RETURN_RESPONSE
+    RETURN_RESPONSE --> FRONTEND_RENDER
+    FRONTEND_RENDER --> DISPLAY_RESULTS
+
+    %% =================================================================
+    %% STYLING
+    %% =================================================================
+
+    classDef uiStyle fill:#E3F2FD,stroke:#1976D2,stroke-width:2px
+    classDef backendStyle fill:#FFF3E0,stroke:#F57C00,stroke-width:2px
+    classDef dataStyle fill:#F3E5F5,stroke:#7B1FA2,stroke-width:2px
+    classDef vizStyle fill:#E8F5E9,stroke:#388E3C,stroke-width:2px
+    classDef errorStyle fill:#FFEBEE,stroke:#C62828,stroke-width:2px
+
+    class SELECT_GEO,SELECT_PRODUCT,SELECT_PACKAGING,SELECT_TEMPORAL,SELECT_ANALYSIS,APPLY_FILTERS uiStyle
+    class RECEIVE_REQUEST,BUILD_QUERY,VALIDATE_QUERY,EXECUTE_QUERY backendStyle
+    class AGGREGATE_DATA,CALCULATE_METRICS,SORT_RESULTS dataStyle
+    class GENERATE_CHART_CONFIG,FORMAT_TABLE,CACHE_RESULT,FRONTEND_RENDER vizStyle
+    class QUERY_INVALID,TOO_LARGE errorStyle

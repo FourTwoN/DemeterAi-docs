@@ -1,0 +1,524 @@
+---
+title: "02 - Sales vs Stock Comparison - Detailed Flow"
+author: "DemeterAI Documentation Team"
+date: "2025-10-08"
+version: "1.0.0"
+mermaid_version: "v11.3.0+"
+description: "Ultra-detailed subflow: CSV upload for sales data, variance calculation, and comparison reporting"
+parent_diagram: "00_comprehensive_view.mmd"
+---
+
+flowchart TB
+    %% =================================================================
+    %% DIAGRAM 02: SALES VS STOCK COMPARISON
+    %% =================================================================
+    %%
+    %% PURPOSE:
+    %% Shows how users upload sales CSV files and compare with
+    %% calculated stock to generate estimated current stock levels.
+    %%
+    %% BUSINESS CONTEXT:
+    %% Clients take photos every 2-3 months. Between sessions, they
+    %% need to estimate current stock by subtracting sales from last
+    %% calculated stock.
+    %%
+    %% CRITICAL RULE:
+    %% Only latest active stock is used. Historical data stays frozen.
+    %%
+    %% SCOPE: CSV upload → parsing → stock query → variance → report
+    %% PERFORMANCE TARGET: < 3s for files up to 10,000 rows
+    %% =================================================================
+
+    START@{ shape: stadium, label: "📊 User Navigates to Sales Comparison
+    Route: /analytics/sales-vs-stock
+
+    UI shows:
+    • Upload area for CSV files
+    • CSV format instructions
+    • Example template download
+    • Last photo session date
+
+    Business rule displayed:
+    'Comparison uses stock from last photo'
+
+    ⏱️ Page load: < 1s" }
+
+    %% =================================================================
+    %% LAYER 1: CSV UPLOAD
+    %% =================================================================
+
+    subgraph CSV_UPLOAD["📤 CSV UPLOAD"]
+        direction TB
+
+        SELECT_FILES@{ shape: rect, label: "📁 User Selects CSV Files
+        Multi-file upload supported:
+        • sales_sept_2025.csv
+        • sales_oct_2025.csv
+        • sales_nov_2025.csv
+
+        File constraints:
+        • Max size: 10MB per file
+        • Max files: 10
+        • Format: .csv only
+
+        Frontend validation:
+        • File extension
+        • File size
+        • MIME type" }
+
+        PREVIEW_FILES@{ shape: rect, label: "👁️ Preview Files
+        Show file list:
+        • Filename
+        • Size
+        • Row count (estimated)
+
+        User can:
+        • Remove files
+        • Add more files
+        • See total rows
+
+        Frontend: FileReader API" }
+
+        UPLOAD_CLICK@{ shape: rect, label: "🚀 User Clicks Upload
+        Button disabled during upload
+        Progress bar shown
+        Files uploaded via multipart/form-data
+
+        ⏱️ Upload time: varies by size" }
+    end
+
+    %% =================================================================
+    %% LAYER 2: BACKEND PROCESSING
+    %% =================================================================
+
+    subgraph BACKEND_UPLOAD["⚙️ BACKEND PROCESSING"]
+        direction TB
+
+        RECEIVE_FILES@{ shape: subproc, label: "POST /api/analytics/sales-comparison
+        Receives:
+        • files: List[UploadFile]
+        • user_id: from auth token
+
+        Generate upload_session_id: UUID
+
+        Save files to temp storage:
+        /tmp/sales_uploads/{session_id}/
+
+        ⏱️ ~100ms per file" }
+
+        CHECK_FILE_COUNT@{ shape: diamond, label: "File Count Valid?
+        Check: 1 ≤ files ≤ 10
+
+        If invalid:
+        Return 400 Bad Request" }
+
+        TOO_MANY_FILES@{ shape: rect, label: "❌ Error: Too Many Files
+        Response:
+        {
+          'error': 'Too many files',
+          'max_allowed': 10,
+          'received': N
+        }
+
+        Status: 400" }
+
+        PARSE_CSV@{ shape: subproc, label: "📋 Parse CSV Files
+        For each file:
+
+        1. Read with pandas/csv module
+        2. Validate headers:
+           Required: product_sku, packaging_sku, quantity_sold
+           Optional: sale_date, notes
+
+        3. Validate data types
+        4. Check for duplicates
+
+        Library: pandas.read_csv()
+
+        ⏱️ ~500ms per 1,000 rows" }
+
+        CSV_VALID@{ shape: diamond, label: "CSV Format Valid?
+        Checks:
+        • Required columns present
+        • No empty rows
+        • Data types correct
+        • SKUs format valid
+
+        ⏱️ ~100ms" }
+
+        CSV_ERROR@{ shape: rect, label: "❌ CSV Format Error
+        Return 400 with details:
+        {
+          'error': 'Invalid CSV format',
+          'file': 'sales_sept.csv',
+          'line': 15,
+          'column': 'product_sku',
+          'issue': 'Missing value'
+        }
+
+        Frontend highlights error" }
+    end
+
+    %% =================================================================
+    %% LAYER 3: DATA VALIDATION
+    %% =================================================================
+
+    subgraph DATA_VALIDATION["✅ DATA VALIDATION"]
+        direction TB
+
+        VALIDATE_PRODUCTS@{ shape: cyl, label: "Validate Products Exist
+        Query:
+        SELECT id, sku
+        FROM products
+        WHERE sku IN (csv_product_skus)
+
+        Check:
+        All SKUs from CSV exist in DB
+
+        ⏱️ ~200ms" }
+
+        PRODUCTS_VALID@{ shape: diamond, label: "All Products Found?
+        Compare CSV SKUs with DB results
+
+        If mismatch:
+        Collect invalid SKUs" }
+
+        PRODUCT_NOT_FOUND@{ shape: rect, label: "⚠️ Products Not Found
+        Return 422 Unprocessable:
+        {
+          'error': 'Products not found',
+          'invalid_skus': ['INVALID-001', ...],
+          'action': 'Verify SKUs or add to catalog'
+        }
+
+        User can:
+        • Fix CSV
+        • Skip invalid rows
+        • Cancel upload" }
+
+        VALIDATE_PACKAGING@{ shape: cyl, label: "Validate Packaging Exists
+        Query:
+        SELECT id, sku
+        FROM packaging_catalog
+        WHERE sku IN (csv_packaging_skus)
+
+        ⏱️ ~200ms" }
+
+        PACKAGING_VALID@{ shape: diamond, label: "All Packaging Found?" }
+
+        PACKAGING_NOT_FOUND@{ shape: rect, label: "⚠️ Packaging Not Found
+        Similar error as products
+        Collect invalid packaging SKUs" }
+
+        VALIDATE_QUANTITIES@{ shape: rect, label: "Validate Quantities
+        For each row:
+        • quantity_sold > 0
+        • quantity_sold is integer
+        • quantity_sold < 1,000,000
+
+        Collect validation errors
+
+        ⏱️ ~50ms per 1,000 rows" }
+
+        QUANTITIES_VALID@{ shape: diamond, label: "All Quantities Valid?
+        Check for:
+        • Negative values
+        • Non-numeric values
+        • Unrealistic values" }
+
+        QUANTITY_ERROR@{ shape: rect, label: "❌ Invalid Quantities
+        Return errors with line numbers
+        User must fix CSV" }
+    end
+
+    %% =================================================================
+    %% LAYER 4: STOCK QUERY
+    %% =================================================================
+
+    subgraph STOCK_QUERY["📊 STOCK QUERY"]
+        direction TB
+
+        INSERT_TEMP_TABLE@{ shape: cyl, label: "Insert to Temp Table
+        CREATE TEMP TABLE temp_sales_upload
+        (
+          product_id INT,
+          packaging_catalog_id INT,
+          quantity_sold INT,
+          sale_date DATE,
+          notes TEXT
+        )
+
+        Batch INSERT validated rows
+
+        ⏱️ ~500ms for 10,000 rows" }
+
+        QUERY_LATEST_STOCK@{ shape: cyl, label: "Query Latest Active Stock
+        SELECT
+          p.id, p.sku, p.common_name,
+          pkgc.id, pkgc.sku, pkgc.name,
+          SUM(sb.quantity_current) as stock,
+          MAX(pps.created_at) as last_photo
+        FROM stock_batches sb
+        JOIN products p ON sb.product_id = p.id
+        JOIN packaging_catalog pkgc
+          ON sb.packaging_catalog_id = pkgc.id
+        JOIN storage_bins sbin
+          ON sb.current_storage_bin_id = sbin.id
+        JOIN storage_locations sl
+          ON sbin.storage_location_id = sl.id
+        JOIN photo_processing_sessions pps
+          ON sl.id = pps.storage_location_id
+        WHERE
+          sb.quantity_current > 0
+          AND pps.status = 'completed'
+          AND pps.created_at = (
+            SELECT MAX(created_at)
+            FROM photo_processing_sessions
+            WHERE storage_location_id = sl.id
+          )
+        GROUP BY p.id, pkgc.id
+
+        Uses materialized view if available
+
+        ⏱️ 500ms - 2s" }
+
+        AGGREGATE_SALES@{ shape: rect, label: "Aggregate Sales by Product-Packaging
+        SELECT
+          product_id,
+          packaging_catalog_id,
+          SUM(quantity_sold) as total_sales
+        FROM temp_sales_upload
+        GROUP BY product_id, packaging_catalog_id
+
+        ⏱️ ~100ms" }
+    end
+
+    %% =================================================================
+    %% LAYER 5: VARIANCE CALCULATION
+    %% =================================================================
+
+    subgraph VARIANCE_CALC["🔢 VARIANCE CALCULATION"]
+        direction TB
+
+        JOIN_STOCK_SALES@{ shape: rect, label: "Join Stock with Sales
+        Full outer join:
+        stock LEFT JOIN sales
+        UNION
+        sales LEFT JOIN stock
+
+        Handles:
+        • Products in stock but no sales
+        • Products with sales but no stock (alerts)
+
+        ⏱️ ~200ms" }
+
+        CALCULATE_VARIANCE@{ shape: rect, label: "Calculate Variance for Each Row
+        For each product-packaging combo:
+
+        estimated_stock = current_stock - total_sales
+        variance_pct = (total_sales / current_stock) * 100
+
+        Determine status:
+        • CRITICAL: estimated ≤ 0
+        • LOW: estimated < 20% of original
+        • MEDIUM: estimated < 50%
+        • OK: estimated ≥ 50%
+
+        Calculate values:
+        • stock_value = stock * unit_price
+        • sales_value = sales * unit_price
+        • estimated_value = estimated * unit_price
+
+        ⏱️ ~100ms" }
+
+        FIND_DISCREPANCIES@{ shape: rect, label: "Identify Discrepancies
+        Find rows where:
+        • sales > stock (oversold)
+        • No stock found for sales
+        • Unusual variance (> 100%)
+
+        Generate alerts:
+        {
+          'product_sku': 'CACT-001',
+          'issue': 'Sales exceed stock',
+          'stock': 100,
+          'sales': 150,
+          'diff': -50,
+          'actions': [
+            'Verify sales data',
+            'Check if sales from previous period',
+            'Take new photo to recalculate'
+          ]
+        }
+
+        ⏱️ ~50ms" }
+
+        CALCULATE_SUMMARY@{ shape: rect, label: "Calculate Summary Stats
+        Aggregate:
+        • total_products_analyzed
+        • total_stock_value
+        • total_sales_value
+        • total_estimated_value
+        • avg_depletion_rate
+        • count by status (CRITICAL/LOW/MEDIUM/OK)
+
+        ⏱️ ~50ms" }
+    end
+
+    %% =================================================================
+    %% LAYER 6: VISUALIZATION & RESPONSE
+    %% =================================================================
+
+    subgraph VISUALIZATION["📈 VISUALIZATION"]
+        direction TB
+
+        GENERATE_CHARTS@{ shape: rect, label: "Generate Chart Configs
+        1. Bar Chart: Stock vs Sales vs Estimated
+           (top 20 products)
+
+        2. Pie Chart: Status distribution
+           (CRITICAL/LOW/MEDIUM/OK)
+
+        3. Bar Chart: Top 10 best sellers
+           (by sales volume)
+
+        4. Table: All product details
+           (sortable, filterable)
+
+        Chart.js config generated
+
+        ⏱️ ~100ms" }
+
+        BUILD_RESPONSE@{ shape: rect, label: "Build Response Object
+        {
+          'summary': {...},
+          'details': [...],
+          'discrepancies': [...],
+          'visualizations': {
+            'comparison_chart': {...},
+            'status_pie': {...},
+            'best_sellers': {...},
+            'data_table': {...}
+          },
+          'metadata': {
+            'upload_session_id': UUID,
+            'files_processed': 3,
+            'rows_processed': 1234,
+            'last_photo_date': '2025-09-01',
+            'execution_time_ms': 2450
+          }
+        }
+
+        ⏱️ ~50ms" }
+    end
+
+    CLEANUP@{ shape: rect, label: "🧹 Cleanup Temp Data
+    • DROP temp_sales_upload table
+    • Delete uploaded files from /tmp/
+    • Clear processing cache
+
+    ⏱️ ~50ms" }
+
+    RETURN_RESPONSE@{ shape: rect, label: "✅ Return 200 OK
+    Send JSON response to frontend
+
+    ⏱️ Total: 1s - 5s
+    (depends on file size)" }
+
+    FRONTEND_RENDER@{ shape: rect, label: "🖥️ Frontend Renders Report
+    1. Hide upload UI
+    2. Show summary cards:
+       • Total stock value
+       • Total sales
+       • Estimated value
+       • Depletion rate
+
+    3. Render charts using Chart.js
+    4. Render data table using AG Grid
+    5. Highlight discrepancies in red
+    6. Enable export buttons
+
+    ⏱️ ~200ms rendering" }
+
+    DISPLAY_RESULTS@{ shape: stadium, label: "📊 User Views Comparison Report
+    Interactive features:
+    • Click bar → drill into product
+    • Sort table columns
+    • Filter by status
+    • Export to Excel/CSV
+
+    Discrepancies shown with:
+    • Warning icons
+    • Recommended actions
+    • Links to take new photo
+
+    User can:
+    • Upload more sales files
+    • Start new comparison
+    • Export results" }
+
+    %% =================================================================
+    %% CONNECTIONS
+    %% =================================================================
+
+    START --> SELECT_FILES
+    SELECT_FILES --> PREVIEW_FILES
+    PREVIEW_FILES --> UPLOAD_CLICK
+
+    UPLOAD_CLICK --> RECEIVE_FILES
+    RECEIVE_FILES --> CHECK_FILE_COUNT
+
+    CHECK_FILE_COUNT -->|Invalid| TOO_MANY_FILES
+    CHECK_FILE_COUNT -->|Valid| PARSE_CSV
+
+    PARSE_CSV --> CSV_VALID
+    CSV_VALID -->|Invalid| CSV_ERROR
+    CSV_VALID -->|Valid| VALIDATE_PRODUCTS
+
+    VALIDATE_PRODUCTS --> PRODUCTS_VALID
+    PRODUCTS_VALID -->|Not Found| PRODUCT_NOT_FOUND
+    PRODUCTS_VALID -->|Found| VALIDATE_PACKAGING
+
+    VALIDATE_PACKAGING --> PACKAGING_VALID
+    PACKAGING_VALID -->|Not Found| PACKAGING_NOT_FOUND
+    PACKAGING_VALID -->|Found| VALIDATE_QUANTITIES
+
+    VALIDATE_QUANTITIES --> QUANTITIES_VALID
+    QUANTITIES_VALID -->|Invalid| QUANTITY_ERROR
+    QUANTITIES_VALID -->|Valid| INSERT_TEMP_TABLE
+
+    INSERT_TEMP_TABLE --> QUERY_LATEST_STOCK
+    QUERY_LATEST_STOCK --> AGGREGATE_SALES
+
+    AGGREGATE_SALES --> JOIN_STOCK_SALES
+    JOIN_STOCK_SALES --> CALCULATE_VARIANCE
+    CALCULATE_VARIANCE --> FIND_DISCREPANCIES
+    FIND_DISCREPANCIES --> CALCULATE_SUMMARY
+
+    CALCULATE_SUMMARY --> GENERATE_CHARTS
+    GENERATE_CHARTS --> BUILD_RESPONSE
+    BUILD_RESPONSE --> CLEANUP
+    CLEANUP --> RETURN_RESPONSE
+
+    RETURN_RESPONSE --> FRONTEND_RENDER
+    FRONTEND_RENDER --> DISPLAY_RESULTS
+
+    %% =================================================================
+    %% STYLING
+    %% =================================================================
+
+    classDef uploadStyle fill:#E3F2FD,stroke:#1976D2,stroke-width:2px
+    classDef backendStyle fill:#FFF3E0,stroke:#F57C00,stroke-width:2px
+    classDef validationStyle fill:#F3E5F5,stroke:#7B1FA2,stroke-width:2px
+    classDef queryStyle fill:#E0F2F1,stroke:#00796B,stroke-width:2px
+    classDef calcStyle fill:#FCE4EC,stroke:#C2185B,stroke-width:2px
+    classDef vizStyle fill:#E8F5E9,stroke:#388E3C,stroke-width:2px
+    classDef errorStyle fill:#FFEBEE,stroke:#C62828,stroke-width:2px
+
+    class SELECT_FILES,PREVIEW_FILES,UPLOAD_CLICK uploadStyle
+    class RECEIVE_FILES,PARSE_CSV backendStyle
+    class VALIDATE_PRODUCTS,VALIDATE_PACKAGING,VALIDATE_QUANTITIES validationStyle
+    class INSERT_TEMP_TABLE,QUERY_LATEST_STOCK,AGGREGATE_SALES queryStyle
+    class JOIN_STOCK_SALES,CALCULATE_VARIANCE,FIND_DISCREPANCIES,CALCULATE_SUMMARY calcStyle
+    class GENERATE_CHARTS,BUILD_RESPONSE,FRONTEND_RENDER vizStyle
+    class TOO_MANY_FILES,CSV_ERROR,PRODUCT_NOT_FOUND,PACKAGING_NOT_FOUND,QUANTITY_ERROR errorStyle
