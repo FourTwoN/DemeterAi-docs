@@ -423,9 +423,11 @@ async def get_job_status(
 - **Redis cache miss**: ~50ms (lookup from DB)
 - **Database fallback**: ~100-200ms (if Redis unavailable)
 
-### 5. Job Status Updates (Celery Workers) (lines 620-720)
+### 5. Job Status Updates (Celery Workers)
 
-**How Celery workers update job status:**
+**IMPORTANT:** Processing happens in **4 distinct phases** with multiple task types. See `flows/procesamiento_ml_upload_s3_principal/` for complete pipeline details.
+
+**Task lifecycle base class:**
 
 ```python
 from celery import Task
@@ -465,68 +467,175 @@ class CallbackTask(Task):
             172800,  # 48 hours
             json.dumps(job_data)
         )
+```
 
+**Phase 1: S3 Upload (Chunked - 20 images/batch)**
 
-@celery_app.task(
-    name='process_uploaded_photo',
-    base=CallbackTask,
-    bind=True
-)
-def process_uploaded_photo(
-    self,
-    image_id: str,
-    s3_key_original: str,
-    upload_session_id: str
-):
-    """
-    Process uploaded photo with status tracking
-    """
+See: `flows/procesamiento_ml_upload_s3_principal/03_s3_upload_circuit_breaker_detailed.mmd`
 
-    # Update status to 'processing'
+```python
+@celery_app.task(name='upload_s3_batch', base=CallbackTask, bind=True)
+def upload_s3_batch(self, chunk: List[str]):
+    """Upload batch to S3 with circuit breaker"""
+
+    for i, image_id in enumerate(chunk):
+        progress = int((i / len(chunk)) * 20)  # 0-20% of total
+        self.update_job_status(
+            self.request.id,
+            'processing',
+            phase='s3_upload',
+            current_image=i+1,
+            total_images=len(chunk),
+            progress_percent=progress
+        )
+
+        # Extract EXIF, upload original + thumbnail
+        # (see detailed flow)
+```
+
+**Phase 2: ML Parent Task (Segmentation & Classification)**
+
+See: `flows/procesamiento_ml_upload_s3_principal/04_ml_parent_segmentation_detailed.mmd`
+
+```python
+@celery_app.task(name='process_photo_ml', base=CallbackTask, bind=True)
+def process_photo_ml(self, image_id: str):
+    """ML parent task - segmentation and classification"""
+
+    # 20%: Geolocate
     self.update_job_status(
-        self.request.id,
-        'processing',
-        started_at=datetime.utcnow().isoformat(),
-        progress_percent=5
+        self.request.id, 'processing',
+        phase='geolocation', progress_percent=20
+    )
+    location_result = geolocate_image(image_id)
+
+    # Check warning states
+    if location_result.get('warning'):
+        self.update_job_status(
+            self.request.id, 'completed_with_warning',
+            warning_type=location_result['warning'],
+            progress_percent=100
+        )
+        return {'status': 'warning', 'type': location_result['warning']}
+
+    # 30%: YOLO segmentation
+    self.update_job_status(
+        self.request.id, 'processing',
+        phase='segmentation', progress_percent=30
+    )
+    masks = run_yolo_segmentation(image_id)
+
+    # 35%: Classify masks
+    self.update_job_status(
+        self.request.id, 'processing',
+        phase='classification', progress_percent=35
+    )
+    classified_masks = classify_masks(masks)
+
+    # 40%: Build chord and spawn children
+    self.update_job_status(
+        self.request.id, 'processing',
+        phase='spawning_children', progress_percent=40
     )
 
-    try:
-        # Step 1: Download from S3
-        image_data = download_from_s3(s3_key_original)
-        self.update_job_status(self.request.id, 'processing', progress_percent=15)
+    # Spawn child tasks (SAHI + Direct)
+    # (see Phase 3)
+```
 
-        # Step 2: ML segmentation
-        segmentation_result = run_segmentation(image_data)
-        self.update_job_status(self.request.id, 'processing', progress_percent=40)
+**Phase 3: Child Tasks (Parallel Detection)**
 
-        # Step 3: Detection
-        detection_result = run_detection(segmentation_result)
-        self.update_job_status(self.request.id, 'processing', progress_percent=70)
+See: `flows/procesamiento_ml_upload_s3_principal/05_sahi_detection_child_detailed.mmd`
 
-        # Step 4: Location matching
-        location_result = match_storage_location(detection_result)
-        self.update_job_status(self.request.id, 'processing', progress_percent=85)
+```python
+@celery_app.task(name='detect_sahi', base=CallbackTask, bind=True)
+def detect_sahi(self, segment_data: Dict):
+    """SAHI detection for segments (40-70%)"""
 
-        # Step 5: Save results
-        session_id = save_processing_session(location_result)
-        self.update_job_status(self.request.id, 'processing', progress_percent=95)
+    for i, slice_data in enumerate(segment_data['slices']):
+        progress = 40 + int((i / len(segment_data['slices'])) * 30)
+        self.update_job_status(
+            self.request.id, 'processing',
+            phase='sahi_detection',
+            current_slice=i+1,
+            total_slices=len(segment_data['slices']),
+            progress_percent=progress
+        )
 
-        # Complete
-        return {
-            'session_id': session_id,
-            'total_detected': detection_result['total_detected'],
-            'storage_location_id': location_result.get('storage_location_id')
-        }
+        # Run YOLO detection on slice
+        # (see detailed flow)
 
-    except Exception as e:
-        logger.error(f'Processing failed for {image_id}: {e}')
-        raise  # Will trigger on_failure callback
+@celery_app.task(name='detect_direct', base=CallbackTask, bind=True)
+def detect_direct(self, boxes_plugs_data: Dict):
+    """Direct detection for boxes/plugs (70-90%)"""
+
+    self.update_job_status(
+        self.request.id, 'processing',
+        phase='direct_detection',
+        progress_percent=70
+    )
+
+    # Run direct YOLO detection
+    # (see detailed flow)
+
+    self.update_job_status(
+        self.request.id, 'processing',
+        phase='direct_detection_complete',
+        progress_percent=90
+    )
+```
+
+**Phase 4: Callback Task (Aggregation)**
+
+See: `flows/procesamiento_ml_upload_s3_principal/07_callback_aggregation_detailed.mmd`
+
+```python
+@celery_app.task(name='aggregate_results', base=CallbackTask, bind=True)
+def aggregate_results(self, child_results: List[Dict]):
+    """Callback - aggregate all child results"""
+
+    # 90%: Aggregate totals
+    self.update_job_status(
+        self.request.id, 'processing',
+        phase='aggregating', progress_percent=90
+    )
+    totals = aggregate_detections_estimations(child_results)
+
+    # 93%: Generate visualization
+    self.update_job_status(
+        self.request.id, 'processing',
+        phase='visualization', progress_percent=93
+    )
+    viz_s3_key = generate_and_upload_viz(totals)
+
+    # 96%: Create stock batches
+    self.update_job_status(
+        self.request.id, 'processing',
+        phase='stock_batches', progress_percent=96
+    )
+    batches = create_stock_batches(totals)
+
+    # 100%: Complete
+    return {
+        'session_id': totals['session_id'],
+        'total_detected': totals['detected'],
+        'total_estimated': totals['estimated'],
+        'batches': batches,
+        'viz_url': viz_s3_key
+    }
 ```
 
 **Status update frequency:**
-- **Manual updates**: At key milestones (5%, 15%, 40%, 70%, 85%, 95%)
-- **Final update**: Automatic via `on_success` or `on_failure` callback
+- **S3 Upload**: Per-image updates (20 images × 5ms = 100ms overhead)
+- **ML Parent**: 4 milestone updates (geolocate, segment, classify, spawn)
+- **Child Tasks**: Per-slice updates (SAHI) or single update (Direct)
+- **Callback**: 3 milestone updates (aggregate, viz, batches)
 - **Redis write time**: ~5ms per update
+
+**Warning states** (not failures):
+- `completed_with_warning`: Photo processed but needs manual action
+  - `needs_location`: No GPS coordinates
+  - `needs_config`: No storage location configuration
+  - `needs_calibration`: Density estimation unavailable
 
 ### 6. Job List Persistence (lines 760-840)
 
