@@ -7,27 +7,29 @@
 
 ## Purpose
 
-This diagram documents the **error recovery and reprocessing mechanism** that allows users to fix errors in failed photos and reprocess them from S3 without re-uploading. This enables graceful degradation and user-driven error resolution.
+This diagram documents the **warning state resolution and reprocessing mechanism** that allows users to fix photos in warning states and reprocess them from S3 without re-uploading. This enables graceful degradation and user-driven resolution.
+
+**IMPORTANT:** Warning states (`completed_with_warning`) are NOT failures. Photos are processed successfully but need manual action to complete stock batch creation.
 
 ## Scope
 
 **Input:**
-- Failed photo with error details
+- Photo with warning state (`needs_location`, `needs_config`, `needs_calibration`)
 - User corrections (manual location, configuration, calibration)
 - Image ID and S3 key
 
 **Output:**
 - New Celery job created from S3 original
 - Updated processing session with fixes applied
-- Success or new error state
+- Success or new warning state
 
 **Performance Target:**
-- Error modal load: < 100ms
+- Warning modal load: < 100ms
 - Reprocess trigger: < 200ms
 - New job creation: < 500ms
-- Total reprocessing time: 5-10 minutes (same as initial processing)
+- Total reprocessing time: 2-3 minutes (same as initial processing)
 
-## Error Types
+## Warning States (Not Errors)
 
 ### 1. needs_location
 
@@ -75,27 +77,28 @@ This diagram documents the **error recovery and reprocessing mechanism** that al
 
 ## Key Components
 
-### 1. Error Badge Click (Gallery View) (lines 120-200)
+### 1. Warning Badge Click (Gallery View) (lines 120-200)
 
 **User interaction:**
 ```tsx
 function PhotoCard({ photo }: { photo: Photo }) {
-    if (photo.status === 'failed') {
+    // Check for warning states (completed_with_warning)
+    if (photo.status === 'completed_with_warning') {
         return (
-            <div className="photo-card error">
+            <div className="photo-card warning">
                 <img src={photo.thumbnail_url} />
 
-                {/* Error badge */}
+                {/* Warning badge */}
                 <div
-                    className="error-badge"
+                    className="warning-badge"
                     onClick={(e) => {
                         e.stopPropagation()  // Don't trigger photo detail view
-                        openErrorModal(photo)
+                        openWarningModal(photo)
                     }}
                 >
-                    <span className="error-icon">⚠</span>
-                    <span className="error-label">
-                        {parseErrorType(photo.error_details)}
+                    <span className="warning-icon">⚠</span>
+                    <span className="warning-label">
+                        {parseWarningType(photo.warning_type)}
                     </span>
                     <button className="btn-fix">Fix</button>
                 </div>
@@ -106,48 +109,49 @@ function PhotoCard({ photo }: { photo: Photo }) {
     return <div className="photo-card">...</div>
 }
 
-function parseErrorType(errorDetails: string): string {
-    if (errorDetails.includes('needs_location')) {
+function parseWarningType(warningType: string): string {
+    if (warningType === 'needs_location') {
         return 'Missing Location'
-    } else if (errorDetails.includes('needs_config')) {
+    } else if (warningType === 'needs_config') {
         return 'Not Configured'
-    } else if (errorDetails.includes('needs_calibration')) {
+    } else if (warningType === 'needs_calibration') {
         return 'Needs Calibration'
     } else {
-        return 'Processing Error'
+        return 'Action Needed'
     }
 }
 ```
 
-### 2. Error Modal Component (lines 240-400)
+### 2. Warning Modal Component (lines 240-400)
 
 **Modal structure:**
 ```tsx
-interface ErrorModalProps {
+interface WarningModalProps {
     photo: Photo
     onClose: () => void
     onReprocess: () => void
 }
 
-function ErrorModal({ photo, onClose, onReprocess }: ErrorModalProps) {
-    const errorType = parseErrorType(photo.error_details)
+function WarningModal({ photo, onClose, onReprocess }: WarningModalProps) {
+    const warningType = photo.warning_type
     const [fixing, setFixing] = useState(false)
     const [fixData, setFixData] = useState<any>(null)
 
     return (
         <Modal isOpen onClose={onClose} size="large">
-            <div className="error-modal">
-                <h2>Photo Processing Error</h2>
+            <div className="warning-modal">
+                <h2>Action Required</h2>
+                <p className="warning-subtitle">Photo processed successfully but needs manual configuration</p>
 
                 {/* Photo preview */}
-                <div className="error-photo-preview">
-                    <img src={photo.thumbnail_url} alt="Error photo" />
+                <div className="warning-photo-preview">
+                    <img src={photo.thumbnail_url} alt="Warning photo" />
                 </div>
 
-                {/* Error details */}
-                <div className="error-details">
-                    <div className="error-type">
-                        <span className="error-icon">⚠</span>
+                {/* Warning details */}
+                <div className="warning-details">
+                    <div className="warning-type">
+                        <span className="warning-icon">⚠</span>
                         <strong>{errorType}</strong>
                     </div>
                     <div className="error-message">
