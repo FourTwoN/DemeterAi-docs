@@ -1,0 +1,123 @@
+---
+title: Map Warehouse Views System - Comprehensive Overview
+---
+graph TB
+    %% Level 1: Map Overview - Geographic View
+    subgraph Level1["🗺️ LEVEL 1: Map Overview - Geographic View"]
+        User["👤 User<br/>Opens App"]
+        BulkLoad["📦 API: /map/bulk-load<br/>Single Request<br/>Loads All Data"]
+        MapView["🗺️ Map Overview<br/>- PostGIS Polygons<br/>- All Warehouses<br/>- Summary Metrics"]
+
+        WHPolygon["📍 Warehouse Polygons<br/>- Color by type<br/>- Naves count<br/>- Claros count<br/>- Errors count"]
+
+        User -->|"App Init"| BulkLoad
+        BulkLoad -->|"Returns:<br/>warehouses + areas + locations"| MapView
+        MapView --> WHPolygon
+    end
+
+    %% Level 2: Warehouse Internal Structure
+    subgraph Level2["🏢 LEVEL 2: Warehouse Internal Structure"]
+        ClickWH["🖱️ Click Warehouse<br/>Polygon"]
+        InternalView["🏢 Internal View<br/>- Storage Areas (Canteros)<br/>- Storage Locations Grid<br/>- Preview Cards"]
+
+        FilterCantero["🔍 Filter by Cantero<br/>N | S | E | W | C"]
+        PreviewCards["📋 Preview Cards<br/>- Quantity (↑↓)<br/>- Maceta type<br/>- Current value<br/>- Última foto<br/>- Potential value"]
+
+        WHPolygon -->|"Navigate"| ClickWH
+        ClickWH -->|"No API call<br/>(data cached)"| InternalView
+        InternalView --> FilterCantero
+        InternalView --> PreviewCards
+    end
+
+    %% Level 3: Storage Location Detail
+    subgraph Level3["📸 LEVEL 3: Storage Location Detail"]
+        ClickCard["🖱️ Click Preview Card"]
+        DetailAPI["🔄 API: /storage-locations/{id}/detail<br/>Fetch on Demand<br/>~300ms"]
+        DetailView["📸 Detail View<br/>- Processed Image<br/>- Detections<br/>- Financial Data"]
+
+        ProcessedImg["🖼️ Processed Image<br/>- ML detections<br/>- Bounding boxes<br/>- Category colors"]
+        Detections["🔢 Detection Results<br/>- Cactus: 50<br/>- Suculenta: 40<br/>- Injerto: 30<br/>- Empty: 5"]
+        Financial["💰 Financial Info<br/>- Price/unit<br/>- Total cost<br/>- Potential value<br/>- ROI %"]
+        MacetaDist["🪴 Maceta Distribution<br/>- 8cm: 30<br/>- 10cm: 70<br/>- 12cm: 20"]
+        Quality["⭐ Quality Metrics<br/>- Overall score<br/>- Health score<br/>- Growth rate"]
+
+        PreviewCards -->|"Click"| ClickCard
+        ClickCard -->|"API call"| DetailAPI
+        DetailAPI --> DetailView
+        DetailView --> ProcessedImg
+        DetailView --> Detections
+        DetailView --> Financial
+        DetailView --> MacetaDist
+        DetailView --> Quality
+    end
+
+    %% Level 4: Historical Timeline
+    subgraph Level4["📊 LEVEL 4: Historical Timeline"]
+        ClickHistory["🖱️ Click 'View History'"]
+        HistoryAPI["🔄 API: /storage-locations/{id}/history<br/>Fetch on Demand<br/>~500ms"]
+        TimelineView["📊 Timeline View<br/>- Photo Periods<br/>- Movement Tracking<br/>- Traceability"]
+
+        Periods["📅 Period Details<br/>Per 3-month period:<br/>- Fecha<br/>- Cantidad inicial<br/>- Muertes<br/>- Transplantes<br/>- Plantados<br/>- Cantidad vendida<br/>- Cantidad final"]
+        Chart["📈 Visualization<br/>- Line chart (quantity)<br/>- Movement breakdown<br/>- Growth trends"]
+
+        DetailView -->|"Click History"| ClickHistory
+        ClickHistory -->|"API call"| HistoryAPI
+        HistoryAPI --> TimelineView
+        TimelineView --> Periods
+        TimelineView --> Chart
+    end
+
+    %% Database & Cache Layer
+    subgraph Database["💾 Database Layer"]
+        MVWarehouse["📊 Materialized View<br/>mv_warehouse_summary<br/>Refresh: 5 min"]
+        MVPreview["📊 Materialized View<br/>mv_storage_location_preview<br/>Refresh: 10 min"]
+        MVHistory["📊 Materialized View<br/>mv_storage_location_history<br/>Refresh: Daily"]
+
+        PostGIS["🗺️ PostGIS<br/>- Warehouse polygons<br/>- Storage area polygons<br/>- GPS matching"]
+
+        Tables["📋 Core Tables<br/>- warehouses<br/>- storage_areas<br/>- storage_locations<br/>- photo_processing_sessions<br/>- stock_batches<br/>- stock_movements"]
+    end
+
+    subgraph Cache["⚡ Redis Cache Layer"]
+        CacheBulk["cache:map:bulk-load<br/>TTL: 10 min"]
+        CacheDetail["cache:location:{id}:detail<br/>TTL: 1 hour"]
+        CacheHistory["cache:location:{id}:history<br/>TTL: 1 day"]
+    end
+
+    %% Data Flow
+    BulkLoad -.->|"Query"| MVWarehouse
+    BulkLoad -.->|"Query"| MVPreview
+    BulkLoad -.->|"Cache"| CacheBulk
+
+    DetailAPI -.->|"Query"| Tables
+    DetailAPI -.->|"Query"| PostGIS
+    DetailAPI -.->|"Cache"| CacheDetail
+
+    HistoryAPI -.->|"Query"| MVHistory
+    HistoryAPI -.->|"Cache"| CacheHistory
+
+    MVWarehouse -.->|"Source"| Tables
+    MVPreview -.->|"Source"| Tables
+    MVHistory -.->|"Source"| Tables
+
+    %% Performance Notes
+    subgraph Performance["⚡ Performance Strategy"]
+        Strategy1["🚀 Bulk Load (Level 1-2)<br/>- Single API call<br/>- All data at once<br/>- Client-side cache<br/>- Fast navigation"]
+        Strategy2["🎯 On-Demand (Level 3)<br/>- Fetch when clicked<br/>- Detail data only<br/>- Redis cache<br/>- ~300ms response"]
+        Strategy3["📊 On-Demand (Level 4)<br/>- Fetch when needed<br/>- Paginated history<br/>- Daily refresh<br/>- ~500ms response"]
+    end
+
+    %% Styling
+    classDef userClass fill:#4CAF50,stroke:#2E7D32,color:#fff
+    classDef apiClass fill:#2196F3,stroke:#1565C0,color:#fff
+    classDef viewClass fill:#FF9800,stroke:#E65100,color:#fff
+    classDef dbClass fill:#9C27B0,stroke:#6A1B9A,color:#fff
+    classDef cacheClass fill:#F44336,stroke:#C62828,color:#fff
+    classDef perfClass fill:#00BCD4,stroke:#00838F,color:#fff
+
+    class User,ClickWH,ClickCard,ClickHistory userClass
+    class BulkLoad,DetailAPI,HistoryAPI apiClass
+    class MapView,InternalView,DetailView,TimelineView viewClass
+    class MVWarehouse,MVPreview,MVHistory,PostGIS,Tables dbClass
+    class CacheBulk,CacheDetail,CacheHistory cacheClass
+    class Strategy1,Strategy2,Strategy3 perfClass

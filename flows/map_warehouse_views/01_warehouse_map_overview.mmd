@@ -1,0 +1,124 @@
+---
+title: Warehouse Map Overview - PostGIS Polygon Rendering
+---
+graph TB
+    %% User Action
+    User["👤 User<br/>Opens App"] -->|"App Init"| BulkLoad
+
+    %% API Layer
+    subgraph API["🔄 API Layer"]
+        BulkLoad["📦 GET /map/bulk-load<br/>Single Request<br/>~500-800ms"]
+        CheckCache{"🔍 Redis Cache?<br/>TTL: 10 min"}
+        FetchDB["📊 Query Database<br/>Materialized View"]
+
+        BulkLoad --> CheckCache
+        CheckCache -->|"Cache Hit"| ReturnCached["✅ Return Cached Data<br/>~50ms"]
+        CheckCache -->|"Cache Miss"| FetchDB
+        FetchDB --> StoreCache["💾 Store in Redis<br/>TTL: 10 min"]
+        StoreCache --> ReturnData["📤 Return Data<br/>warehouses + areas + locations"]
+    end
+
+    %% Database Layer
+    subgraph Database["💾 Database Layer"]
+        MVSummary["📊 mv_warehouse_summary<br/>Pre-aggregated Metrics<br/>Refresh: 5 min"]
+        WHTable["📋 warehouses<br/>PostGIS Polygons<br/>GEOMETRY(POLYGON, 4326)"]
+        SATable["📋 storage_areas"]
+        SLTable["📋 storage_locations"]
+        PPSTable["📋 photo_processing_sessions"]
+
+        MVSummary -.->|"Joins"| WHTable
+        MVSummary -.->|"Aggregates"| SATable
+        MVSummary -.->|"Aggregates"| SLTable
+        MVSummary -.->|"Aggregates"| PPSTable
+
+        FetchDB --> MVSummary
+    end
+
+    %% PostGIS Processing
+    subgraph PostGIS["🗺️ PostGIS Processing"]
+        ExtractGeoJSON["🔧 ST_AsGeoJSON()<br/>Convert GEOMETRY to GeoJSON"]
+        CalcCentroid["📍 ST_Centroid()<br/>Calculate Center Point"]
+        CalcArea["📏 ST_Area()<br/>Calculate m² (geography)"]
+
+        MVSummary --> ExtractGeoJSON
+        WHTable --> CalcCentroid
+        WHTable --> CalcArea
+    end
+
+    %% Frontend Layer
+    ReturnData --> FrontendState
+    ReturnCached --> FrontendState
+
+    subgraph Frontend["⚛️ Frontend (React + Leaflet)"]
+        FrontendState["🗄️ Global State<br/>Store bulk data<br/>warehouses + areas + locations"]
+        MapComponent["🗺️ MapContainer<br/>Leaflet Map"]
+        RenderPolygons["🖼️ Render Polygons<br/>Color by type"]
+
+        FrontendState --> MapComponent
+        MapComponent --> RenderPolygons
+    end
+
+    %% Polygon Rendering
+    subgraph PolygonLayer["📐 Polygon Rendering"]
+        ParseGeoJSON["🔄 Parse GeoJSON<br/>Convert to Leaflet coords<br/>[lon,lat] → [lat,lon]"]
+        ApplyColor["🎨 Apply Color<br/>- Greenhouse: Green<br/>- Shadehouse: Blue<br/>- Open Field: Amber<br/>- Tunnel: Purple"]
+        AddInteractions["🖱️ Add Interactions<br/>- Hover: Highlight<br/>- Click: Navigate"]
+
+        RenderPolygons --> ParseGeoJSON
+        ParseGeoJSON --> ApplyColor
+        ApplyColor --> AddInteractions
+    end
+
+    %% Tooltip & Popup
+    subgraph Interactions["💬 User Interactions"]
+        Hover["🖱️ Hover Polygon<br/>Show Tooltip"]
+        TooltipShow["💬 Tooltip:<br/>- Warehouse Name<br/>- Code"]
+        Click["🖱️ Click Polygon<br/>Open Popup"]
+        PopupShow["💬 Popup:<br/>- Type, Area m²<br/>- Naves, Claros<br/>- Total Plants<br/>- Errors Count<br/>- Last Photo Date"]
+        ClickView["🔘 Click 'View Internal'<br/>Navigate to Level 2"]
+
+        AddInteractions --> Hover
+        AddInteractions --> Click
+        Hover --> TooltipShow
+        Click --> PopupShow
+        PopupShow --> ClickView
+    end
+
+    %% Navigation
+    ClickView -->|"Navigate<br/>(no API call)"| NextLevel["🏢 Level 2:<br/>Warehouse Internal<br/>Structure View"]
+
+    %% Materialized View Refresh
+    subgraph Refresh["🔄 Background Refresh"]
+        CronJob["⏰ pg_cron Job<br/>Every 5 minutes"]
+        RefreshMV["🔄 REFRESH MATERIALIZED VIEW<br/>CONCURRENTLY<br/>mv_warehouse_summary"]
+        InvalidateCache["🗑️ Invalidate Redis Cache<br/>Force fresh data on next request"]
+
+        CronJob --> RefreshMV
+        RefreshMV --> InvalidateCache
+    end
+
+    RefreshMV -.->|"Updates"| MVSummary
+
+    %% Performance Metrics
+    subgraph Performance["⚡ Performance Metrics"]
+        ResponseTime["⏱️ Response Time<br/>Cache Hit: ~50ms<br/>Cache Miss: ~500-800ms"]
+        PayloadSize["📦 Payload Size<br/>Uncompressed: ~2MB<br/>GZIP: ~500KB"]
+        CacheHitRate["📊 Cache Hit Rate<br/>95%+ during 10-min window"]
+    end
+
+    %% Styling
+    classDef userClass fill:#4CAF50,stroke:#2E7D32,color:#fff
+    classDef apiClass fill:#2196F3,stroke:#1565C0,color:#fff
+    classDef dbClass fill:#9C27B0,stroke:#6A1B9A,color:#fff
+    classDef gisClass fill:#FF9800,stroke:#E65100,color:#fff
+    classDef frontendClass fill:#00BCD4,stroke:#00838F,color:#fff
+    classDef interactionClass fill:#F44336,stroke:#C62828,color:#fff
+    classDef perfClass fill:#8BC34A,stroke:#558B2F,color:#fff
+
+    class User userClass
+    class BulkLoad,CheckCache,ReturnCached,ReturnData apiClass
+    class MVSummary,WHTable,SATable,SLTable,PPSTable,FetchDB,StoreCache dbClass
+    class ExtractGeoJSON,CalcCentroid,CalcArea gisClass
+    class FrontendState,MapComponent,RenderPolygons,ParseGeoJSON,ApplyColor,AddInteractions frontendClass
+    class Hover,TooltipShow,Click,PopupShow,ClickView interactionClass
+    class ResponseTime,PayloadSize,CacheHitRate perfClass
