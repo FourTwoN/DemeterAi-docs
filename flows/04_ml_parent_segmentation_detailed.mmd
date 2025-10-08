@@ -1,0 +1,249 @@
+---
+config:
+  theme: dark
+  themeVariables:
+    primaryColor: '#E8F5E9'
+    primaryTextColor: '#1B5E20'
+    primaryBorderColor: '#4CAF50'
+    lineColor: '#388E3C'
+    secondaryColor: '#E3F2FD'
+    tertiaryColor: '#FFF3E0'
+  layout: elk
+---
+flowchart TB
+    %% ML PARENT - SEGMENTATION & ORCHESTRATION - DETAILED
+    %% Purpose: GPU task orchestrating the entire ML pipeline
+    %% Pattern: Singleton model, Chord pattern for parallel children
+
+    START@{ shape: stadium, label: "🎬 ML Parent Task Start
+@app.task(bind=True, max_retries=1)
+Pool: solo (1 worker per GPU)
+Args: image_id, user_id
+⏱️ Total: 2-3 minutes" }
+
+    LOAD_MODEL@{ shape: subproc, label: "🔧 Load Model Singleton
+worker_id = os.getpid() % num_gpus
+model_key = f'yolo_v11_seg_{worker_id}'
+
+if model_key not in model_cache:
+  model = YOLO('yolo11m-seg.pt')
+  model.to(f'cuda:{worker_id}')
+  model.fuse()  # Optimize
+  model_cache[model_key] = model
+
+model = model_cache[model_key]
+⏱️ First: ~2s, Cached: ~1ms
+GPU Memory: ~1.5GB" }
+
+    CHECK_TEMP@{ shape: diamond, label: "Temp File Exists?
+/tmp/uploads/{image_id}.jpg" }
+
+    FALLBACK_S3@{ shape: rect, label: "🔄 FALLBACK: Query S3 Status
+SELECT status FROM s3_images
+WHERE image_id = image_id
+⏱️ ~10ms" }
+
+    CHECK_S3_STATUS@{ shape: diamond, label: "S3 Status = 'ready'?" }
+
+    DOWNLOAD_S3@{ shape: rect, label: "☁️ Download from S3
+s3.download_file(
+  bucket, s3_key,
+  f'/tmp/uploads/{image_id}.jpg'
+)
+⏱️ ~300-500ms" }
+
+    CRITICAL_ERROR@{ shape: rect, label: "🚨 CRITICAL: Image Unavailable
+raise TemporaryFileNotFoundError
+⏱️ Task FAILURE" }
+
+    EXTRACT_GPS@{ shape: rect, label: "🔍 Extract GPS from EXIF
+from PIL import Image
+img = Image.open(file_path)
+exif = img.getexif()
+gps = exif.get_ifd(34853)
+lat, lon = convert_gps(gps)
+⏱️ ~20ms" }
+
+    CHECK_GPS@{ shape: diamond, label: "Has GPS?" }
+
+    GEOLOCATE@{ shape: cyl, label: "📍 PostGIS Geolocation
+SELECT sl.id, sl.code
+FROM storage_locations sl
+WHERE ST_Contains(
+  sl.geojson_coordinates,
+  ST_MakePoint(lon, lat)
+)
+AND sl.active = true
+LIMIT 1
+⏱️ ~15ms (SP-GiST index)" }
+
+    CHECK_LOCATION@{ shape: diamond, label: "Location Found?" }
+
+    GET_CONFIG@{ shape: cyl, label: "📊 Get Location Config
+SELECT slc.product_id,
+  slc.packaging_catalog_id,
+  slc.expected_product_state_id,
+  p.common_name,
+  pc.diameter_cm
+FROM storage_location_config slc
+JOIN products p ON slc.product_id = p.id
+JOIN packaging_catalog pc
+  ON slc.packaging_catalog_id = pc.id
+WHERE slc.storage_location_id = location_id
+LIMIT 1
+⏱️ ~20ms" }
+
+    CHECK_CONFIG@{ shape: diamond, label: "Config Exists?" }
+
+    GET_DENSITY@{ shape: cyl, label: "📊 Get Density Parameters
+SELECT avg_area_per_plant_cm2,
+  plants_per_m2,
+  overlap_adjustment_factor
+FROM density_parameters
+WHERE product_id = product_id
+AND packaging_catalog_id = packaging_id
+⏱️ ~15ms" }
+
+    CHECK_DENSITY@{ shape: diamond, label: "Density Exists?" }
+
+    CREATE_WARNING@{ shape: cyl, label: "⚠️ INSERT Warning Session
+INSERT INTO photo_processing_sessions
+(session_id, storage_location_id,
+ original_image_id, status, error_message)
+VALUES (gen_random_uuid(), NULL,
+ image_id, 'needs_location|needs_config|needs_calibration',
+ 'Specific error message')
+RETURNING id
+⏱️ ~40ms" }
+
+    END_WARNING@{ shape: stadium, label: "⚠️ Return Warning
+User must take manual action
+⏱️ Task SUCCESS (with warning)" }
+
+    CREATE_SESSION@{ shape: cyl, label: "📊 INSERT Session
+INSERT INTO photo_processing_sessions
+(session_id, storage_location_id,
+ original_image_id, status)
+VALUES (gen_random_uuid(), location_id,
+ image_id, 'pending')
+RETURNING id AS session_id_pk
+⏱️ ~40ms" }
+
+    UPDATE_PROCESSING@{ shape: cyl, label: "📊 UPDATE status = 'processing'
+WHERE id = session_id_pk
+⏱️ ~30ms" }
+
+    SEGMENT@{ shape: subproc, label: "🔪 YOLO v11 Segmentation
+results = model.predict(
+  image,
+  conf=0.30,
+  iou=0.50,
+  imgsz=1024,
+  device=f'cuda:{worker_id}',
+  half=True  # FP16
+)
+⏱️ ~500ms
+GPU Util: 60-80%" }
+
+    PROCESS_MASKS@{ shape: rect, label: "📐 Process Masks
+For each detection:
+  mask = result.masks[0].data
+  # Morphological smoothing
+  kernel = cv2.getStructuringElement((5,5))
+  mask = cv2.morphologyEx(mask, MORPH_CLOSE, kernel)
+  mask = cv2.GaussianBlur(mask, (5,5), 0)
+  # Fill holes
+  contours = cv2.findContours(mask, ...)
+  cv2.drawContours(mask, contours, -1, 255, FILLED)
+⏱️ ~200ms per detection" }
+
+    CLASSIFY@{ shape: rect, label: "🏷️ Classify Masks
+class_map = {
+  0: 'segment',
+  1: 'cajon',
+  2: 'almacigo',
+  3: 'plug'
+}
+⏱️ ~10ms" }
+
+    CHECK_DETECTED@{ shape: diamond, label: "Detections Found?" }
+
+    UPDATE_EMPTY@{ shape: cyl, label: "📊 UPDATE Session Empty
+SET status = 'completed',
+  total_detected = 0,
+  total_estimated = 0
+⏱️ ~30ms" }
+
+    END_EMPTY@{ shape: stadium, label: "✅ Empty Result
+User can review photo
+⏱️ Task SUCCESS" }
+
+    BUILD_CHORD@{ shape: rect, label: "🎼 Build Celery Chord
+from celery import chord, group
+
+child_tasks = []
+# Add SAHI tasks for segments
+# Add Direct tasks for boxes/plugs
+⏱️ ~10ms" }
+
+    SPAWN_CHILDREN@{ shape: rect, label: "⚡ Spawn Child Tasks
+chord(
+  group(*child_tasks),
+  aggregate_results.s(session_id_pk)
+).apply_async(queue='gpu_queue')
+⏱️ ~20ms" }
+
+    WAIT@{ shape: rect, label: "⏳ Parent Waits
+GPU worker released
+Children execute in parallel" }
+
+    END@{ shape: stadium, label: "✅ Parent Complete
+Callback triggers when children done" }
+
+    %% Connections
+    START --> LOAD_MODEL
+    LOAD_MODEL --> CHECK_TEMP
+    CHECK_TEMP -- No --> FALLBACK_S3
+    FALLBACK_S3 --> CHECK_S3_STATUS
+    CHECK_S3_STATUS -- No --> CRITICAL_ERROR
+    CHECK_S3_STATUS -- Yes --> DOWNLOAD_S3
+    DOWNLOAD_S3 --> EXTRACT_GPS
+    CHECK_TEMP -- Yes --> EXTRACT_GPS
+    EXTRACT_GPS --> CHECK_GPS
+    CHECK_GPS -- No --> CREATE_WARNING
+    CREATE_WARNING --> END_WARNING
+    CHECK_GPS -- Yes --> GEOLOCATE
+    GEOLOCATE --> CHECK_LOCATION
+    CHECK_LOCATION -- No --> CREATE_WARNING
+    CHECK_LOCATION -- Yes --> GET_CONFIG
+    GET_CONFIG --> CHECK_CONFIG
+    CHECK_CONFIG -- No --> CREATE_WARNING
+    CHECK_CONFIG -- Yes --> GET_DENSITY
+    GET_DENSITY --> CHECK_DENSITY
+    CHECK_DENSITY -- No --> CREATE_WARNING
+    CHECK_DENSITY -- Yes --> CREATE_SESSION
+    CREATE_SESSION --> UPDATE_PROCESSING
+    UPDATE_PROCESSING --> SEGMENT
+    SEGMENT --> PROCESS_MASKS
+    PROCESS_MASKS --> CLASSIFY
+    CLASSIFY --> CHECK_DETECTED
+    CHECK_DETECTED -- No --> UPDATE_EMPTY
+    UPDATE_EMPTY --> END_EMPTY
+    CHECK_DETECTED -- Yes --> BUILD_CHORD
+    BUILD_CHORD --> SPAWN_CHILDREN
+    SPAWN_CHILDREN --> WAIT
+    WAIT --> END
+
+    %% Styling
+    classDef errorStyle fill:#f44336,color:#fff,stroke:#b71c1c,stroke-width:2px
+    classDef successStyle fill:#4CAF50,color:#fff,stroke:#2E7D32,stroke-width:2px
+    classDef warningStyle fill:#FFF9C4,stroke:#F9A825,stroke-width:2px
+    classDef criticalStyle fill:#FFF3E0,stroke:#F57C00,stroke-width:3px
+
+    CRITICAL_ERROR:::errorStyle
+    CREATE_WARNING:::warningStyle
+    END_WARNING:::warningStyle
+    END:::successStyle
+    END_EMPTY:::successStyle
+    LOAD_MODEL:::criticalStyle
+    SEGMENT:::criticalStyle
