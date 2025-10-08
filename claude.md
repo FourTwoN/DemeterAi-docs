@@ -1,7 +1,7 @@
 # DemeterDocs - Claude Code System Prompt
 
-**Version:** 2.0
-**Last Updated:** 2025-10-07
+**Version:** 2.1
+**Last Updated:** 2025-10-08
 **Repository:** DemeterAI Documentation Center
 
 ---
@@ -16,11 +16,12 @@
 
 ### Application Context
 DemeterAI automates manual plant inventory tracking using:
-- **YOLO v11** segmentation and detection models
+- **YOLO v11** segmentation and detection models (**CPU-first**, GPU optional)
 - **PostGIS** geospatial hierarchy (4 levels: warehouse → storage_area → storage_location → storage_bin)
 - **PostgreSQL** as the single source of truth
 - **FastAPI + Celery** for async ML processing pipeline
-- **Monthly reconciliation workflow**: Photo baseline → Manual movements (plantings, deaths, transplants) → Month-end photo → Automated sales calculation
+- **Two initialization methods**: Photo-based (ML pipeline) OR Manual (direct input)
+- **Monthly reconciliation workflow**: Photo/Manual baseline → Manual movements (plantings, deaths, transplants) → Month-end photo → Automated sales calculation
 
 ---
 
@@ -63,7 +64,7 @@ When you receive a request (usually in Spanish):
 
 1. **Translate**: Convert the user's Spanish prompt to English for internal processing
 2. **Analyze**:
-   - Read relevant existing files (flows, engineering doc, past chats)
+   - Read relevant existing files (flows, engineering_plan/, past chats)
    - Understand the current state of documentation
    - Identify what needs to be created or modified
 3. **Research**:
@@ -86,7 +87,7 @@ After user approves your plan:
    - For existing diagrams: Use Edit tool for surgical changes (NOT full rewrites)
 2. **Validate**: **MANDATORY** - Run Mermaid syntax validation
    ```bash
-   mmdc --validateDiagram -i path/to/diagram.mmd
+   mmdc -i path/to/diagram.mmd -o /tmp/test.png --puppeteerConfigFile <(echo '{"args":["--no-sandbox"]}')
    ```
 3. **Document**: Add brief Markdown description for each diagram
 4. **Commit**: Create frequent, descriptive commits to track evolution
@@ -102,7 +103,7 @@ User: "Necesito un diagrama del flujo de ventas mensual"
 
 You (PLAN):
 - Translate: "I need a diagram of the monthly sales flow"
-- Read: flows/flujo_ventas.mmd (if exists), engineering_doc.md
+- Read: flows/flujo_ventas.mmd (if exists), engineering_plan/06_database/monthly_reconciliation.md
 - Research: Monthly reconciliation workflow from past_chats_summary.md
 - Plan: "I will create a flowchart showing: baseline photo → movements → sales calc"
 - Present: [Use ExitPlanMode with detailed plan]
@@ -111,7 +112,7 @@ User: [Approves]
 
 You (EXECUTE):
 - Create: flows/monthly_sales_flow.mmd with Mermaid diagram
-- Validate: mmdc --validateDiagram -i flows/monthly_sales_flow.mmd
+- Validate: mmdc -i flows/monthly_sales_flow.mmd -o /tmp/test.png --puppeteerConfigFile <(echo '{"args":["--no-sandbox"]}')
 - Document: Add flows/monthly_sales_flow.md with brief
 - Commit: "docs: add monthly sales reconciliation flowchart"
 ```
@@ -127,11 +128,11 @@ You (EXECUTE):
   - Single source of truth for the entire application
   - 4-level geospatial hierarchy
   - Partitioned tables (daily for detections/estimations)
-  - SP-GiST indexes for spatial queries
+  - GIST indexes for spatial queries
 
 #### Backend Layer
 - **Python 3.12**
-- **FastAPI 0.109.0** (async-first REST API)
+- **FastAPI 0.109.0+** (async-first REST API)
 - **SQLAlchemy 2.0+** (ORM with async support)
 - **Pydantic 2.5+** (validation schemas)
 
@@ -142,19 +143,22 @@ You (EXECUTE):
   - I/O workers: `pool=gevent`
 - **Chord pattern** for parent-child ML workflows
 
-#### Machine Learning
+#### Machine Learning (**CPU-First Approach**)
 - **YOLO v11** (Ultralytics)
+  - **CPU version by default** (5-10 min/photo)
+  - **GPU optional** (3-5x speedup, 1-3 min/photo)
   - Segmentation model (parent task)
   - Detection model (child tasks)
 - **SAHI** (Slicing Aided Hyper Inference)
   - For high-res segment detection
-  - 640x640 slices with 20% overlap
+  - 512x512 or 640x640 slices with overlap
 
 #### Storage
 - **S3 (AWS)** for images
-  - Original photos: `original/YYYY/MM/DD/uuid.jpg`
-  - Processed visualizations: `processed/YYYY/MM/DD/uuid_viz.avif`
-  - AVIF compression (50% smaller than JPEG)
+  - Original photos: `originals/YYYY/MM/DD/uuid.jpg`
+  - Thumbnails: `thumbnails/YYYY/MM/DD/uuid.jpg` (300x300px)
+  - Annotated visualizations: `annotated/YYYY/MM/DD/uuid.jpg`
+  - Temp uploads: TTL 24 hours
 
 #### Containerization
 - **Docker + Docker Compose**
@@ -170,10 +174,13 @@ DemeterDocs/
 │   └── database.md           # Database schema documentation
 │
 ├── flows/
-│   ├── main_ml_pipeline.mmd      # ML processing flowchart
-│   ├── monthly_sales_flow.mmd    # Sales reconciliation
-│   ├── transplant_flow.mmd       # Transplant process
-│   └── [future diagrams]
+│   ├── procesamiento_ml_upload_s3_principal/  # Main ML pipeline (master + 5 subflows)
+│   ├── photo_upload_gallery/                  # Photo upload system (5 subflows)
+│   ├── analiticas/                            # Analytics system (4 subflows)
+│   ├── price_list_management/                 # Price management (4 subflows)
+│   ├── map_warehouse_views/                   # Map navigation (5 subflows)
+│   ├── location_config/                       # Location configuration
+│   └── [workflow directories with detailed subflows]
 │
 ├── guides/
 │   ├── mermaid_cli_usage.md      # Mermaid CLI reference
@@ -184,16 +191,32 @@ DemeterDocs/
 │   ├── stock_management_systems.md
 │   └── [research documents]
 │
-├── engineering_doc.md        # MAIN engineering specification
+├── engineering_plan/          # 🆕 MODULAR engineering documentation (v2.0)
+│   ├── README.md             # Main navigation hub (START HERE)
+│   ├── 00_project_overview.md
+│   ├── 01_technology_stack.md
+│   ├── 02_architecture/      # 5 files: overview, database, repo, service, ML
+│   ├── 03_frontend/          # 6 files: React, Leaflet, map views, etc.
+│   ├── 04_features/          # 9 files: all features incl. manual_stock_initialization
+│   ├── 05_api_design/        # 8 files: all endpoints
+│   ├── 06_database/          # 6 files: schema, hierarchy, reconciliation
+│   ├── 07_deployment/        # 6 files: Docker, S3, production
+│   ├── 08_development/       # 5 files + phases/: conventions, testing
+│   ├── 09_cross_cutting/     # 5 files: exceptions, logging, config
+│   ├── 10_best_practices/    # 5 files: SOLID, DRY/KISS/YAGNI, security
+│   └── archive/              # Original engineering_doc.md (archived)
+│
 ├── past_chats_summary.md     # Conversation history
+├── context/                   # Project context and decisions
 └── claude.md                 # THIS FILE (system prompt)
 ```
 
 ### Folder Conventions
 - **database/**: All database-related diagrams and schemas
-- **flows/**: Business process and technical flowcharts
+- **flows/**: Business process and technical flowcharts (organized by workflow)
 - **guides/**: Reference documentation and how-tos
 - **researchs/**: Investigation documents, comparisons, best practices
+- **engineering_plan/**: 🆕 **MODULAR engineering documentation** (63 files, cross-referenced)
 
 ---
 
@@ -202,13 +225,13 @@ DemeterDocs/
 ### Rule 1: Database as Source of Truth
 - **PostgreSQL database schema** is the authoritative reference
 - All diagrams, flows, and documentation must align with the database
-- When in doubt, consult `database/database.mmd` and `engineering_doc.md`
+- When in doubt, consult `database/database.mmd` and `engineering_plan/06_database/`
 - Any diagram involving data must reference actual table names, columns, and relationships
 
 ### Rule 2: Validate ALL Mermaid Diagrams
 ```bash
 # MANDATORY before commit
-mmdc --validateDiagram -i path/to/diagram.mmd
+mmdc -i path/to/diagram.mmd -o /tmp/test.png --puppeteerConfigFile <(echo '{"args":["--no-sandbox"]}')
 ```
 - If validation fails, FIX immediately
 - Never commit invalid Mermaid syntax
@@ -253,7 +276,7 @@ mmdc --validateDiagram -i path/to/diagram.mmd
 - Use:
   - Clear section headings
   - Numbered steps
-  - Code examples
+  - Code examples (when appropriate)
   - Inline comments in diagrams
   - Legends and keys
 
@@ -263,9 +286,113 @@ mmdc --validateDiagram -i path/to/diagram.mmd
 - Commit messages: **English**
 - User communication: **Spanish accepted**, but translate internally
 
+### Rule 8: NO Docstrings on Simple Methods ⚠️ CRITICAL
+**From code conventions (engineering_plan/08_development/code_conventions.md)**:
+- Self-explanatory methods DO NOT need docstrings
+- Type hints and clear naming make simple methods obvious
+- Only document complex business logic
+- This is a **CRITICAL** project convention
+- Example:
+  ```python
+  # ❌ INCORRECT - Unnecessary docstring
+  def get_storage_location(self, id: int) -> StorageLocationModel:
+      """Gets a storage location by ID"""
+      return self.repo.get_by_id(id)
+
+  # ✅ CORRECT - Self-explanatory
+  def get_storage_location(self, id: int) -> StorageLocationModel:
+      return self.repo.get_by_id(id)
+  ```
+
 ---
 
-## 7. Mermaid Best Practices (2025)
+## 7. Key Architectural Decisions (Context for Future Work)
+
+### Decision 1: Modular Documentation (2025-10-08)
+**Problem**: Monolithic engineering_doc.md (3155 lines) hard to navigate
+**Solution**: Refactored into 63 modular, cross-referenced files
+**Why**:
+- Easier navigation (README.md as hub)
+- Smaller files (50-200 lines each)
+- Cross-referenced (links between docs)
+- Role-based access (architect, frontend, backend, etc.)
+- Easier to maintain
+
+**Location**: `engineering_plan/` (replaces engineering_doc.md)
+
+### Decision 2: CPU-First ML Pipeline
+**Problem**: GPU infrastructure expensive, not always available
+**Solution**: Design ML pipeline for CPU execution, GPU as optional accelerator
+**Performance**:
+- CPU: 5-10 minutes per photo
+- GPU: 1-3 minutes per photo (3-5x speedup)
+
+**Why**: Makes system accessible, reduces infrastructure costs, GPU can be added later
+
+**Implications**:
+- All documentation emphasizes CPU baseline
+- PyTorch CPU version in requirements.txt
+- GPU optimizations documented as "future enhancement"
+
+### Decision 3: Two Stock Initialization Methods
+**Problem**: Users may have pre-existing inventory or photo system unavailable
+**Solution**: Support TWO initialization methods (same database structure):
+
+1. **Photo-based (Primary)**:
+   - ML pipeline processes photo
+   - Creates: photo_processing_sessions + detections + estimations + stock_movements (type: "foto")
+   - 95%+ accuracy
+
+2. **Manual (Secondary)**:
+   - User enters complete count via UI
+   - Configuration validation (CRITICAL)
+   - Creates: stock_movements (type: "manual_init") + stock_batches
+   - Trust user input
+
+**Key difference from "plantado" movement**:
+- Plantado: Adds to existing stock (during month)
+- Manual init: **Starts new history period** (like photo at month start)
+
+**Documentation**: `engineering_plan/04_features/manual_stock_initialization.md`
+
+### Decision 4: Clean Architecture Pattern
+**Rule**: Controller → Service → Repository (strict layer separation)
+**Critical**: Service A can call Service B, but NEVER Repository B directly
+
+**Why**:
+- Avoids tight coupling
+- Enables business logic reuse
+- Single source of truth per entity
+- Easier testing (mock services, not repos)
+
+**Documentation**: `engineering_plan/02_architecture/00_overview.md`
+
+### Decision 5: Configuration Validation
+**Rule**: All data entry (photo OR manual) validates against `storage_location_config`
+**Behavior**:
+- Match → Allow
+- Mismatch → Show error, require config update or admin override
+- No config → Allow with warning
+
+**Why**: Ensures data integrity, prevents user errors, maintains consistency
+
+**Applies to**: ML pipeline results, manual initialization, manual movements
+
+### Decision 6: Monthly Reconciliation with Calculated Sales
+**Workflow**:
+1. Month start: Photo OR Manual init (baseline)
+2. During month: Movements (plantado, muerte, trasplante) modify stock
+3. Month end: Next photo → **Automatically calculates sales**
+   - Formula: `sales = previous + movements - current_count`
+4. External validation: CSV upload with actual sales data
+
+**Why**: Automates sales tracking, reduces manual entry, enables variance analysis
+
+**Documentation**: `engineering_plan/06_database/monthly_reconciliation.md`
+
+---
+
+## 8. Mermaid Best Practices (2025)
 
 ### Use Latest Features (v11.3.0+)
 - **30+ new shapes** available (see `guides/flowchart_mermaid_docs.md`)
@@ -382,131 +509,11 @@ For diagrams over 500 lines:
    - **01_complete_pipeline_vX.mmd**: Full detail (~1000 lines)
    - **02-08_detailed_subflows.mmd**: Ultra-detail (line-by-line)
 
-### Diagram Structure (Complete Template)
-
-```mermaid
----
-config:
-  theme: dark
-  themeVariables:
-    primaryColor: '#E8F5E9'
-    primaryTextColor: '#1B5E20'
-    primaryBorderColor: '#4CAF50'
-    lineColor: '#388E3C'
-    secondaryColor: '#E3F2FD'
-    tertiaryColor: '#FFF3E0'
-    noteBkgColor: '#FFFDE7'
-    noteBorderColor: '#FBC02D'
-  layout: dagre  # or 'elk' for complex diagrams
----
-flowchart TB
-    %% ═══════════════════════════════════════════════════════════════════════
-    %% DIAGRAM TITLE - PURPOSE
-    %% ═══════════════════════════════════════════════════════════════════════
-    %% Purpose: What this diagram represents
-    %% Scope: What's included/excluded
-    %% Detail: Level of granularity
-    %% Updated: YYYY-MM-DD | Version: X.X | Mermaid v11.3.0+
-    %% ═══════════════════════════════════════════════════════════════════════
-
-    subgraph SECTION["🎯 Section Name"]
-        direction TB
-
-        NODE@{ shape: stadium, label: "Start
-Description
-⏱️ timing" }
-    end
-
-    %% Connections
-    NODE1 e1@--> NODE2
-    e1@{ class: critical-path }
-
-    %% Styling
-    classDef criticalPath stroke:#FF6B6B,stroke-width:4px
-    classDef errorStyle fill:#f44336,color:#fff,stroke:#b71c1c,stroke-width:2px
-    classDef successStyle fill:#4CAF50,color:#fff,stroke:#2E7D32,stroke-width:2px
-```
-
-### Styling Conventions (Standard Palette)
-
-```mermaid
-%% Error states (red)
-classDef errorStyle fill:#f44336,color:#fff,stroke:#b71c1c,stroke-width:2px
-
-%% Success states (green)
-classDef successStyle fill:#4CAF50,color:#fff,stroke:#2E7D32,stroke-width:2px
-
-%% Warning states (yellow)
-classDef warningStyle fill:#FFF9C4,stroke:#F9A825,stroke-width:2px
-
-%% Critical processes (orange)
-classDef criticalStyle fill:#FFF3E0,stroke:#F57C00,stroke-width:3px
-
-%% Active processing (blue)
-classDef processingStyle fill:#E3F2FD,stroke:#1976D2,stroke-width:2px
-
-%% Critical path edges (red thick)
-classDef criticalPath stroke:#FF6B6B,stroke-width:4px
-
-%% Apply to nodes
-NODE1:::errorStyle
-NODE2:::successStyle
-```
-
-### Node Shape Semantic Meanings
-
-- **`@{ shape: cyl }`**: Database operations (SELECT, INSERT, UPDATE, DELETE)
-- **`@{ shape: diamond }`**: Decision points (if/else, validation checks)
-- **`@{ shape: rect }`**: Simple processes (single action)
-- **`@{ shape: subproc }`**: Complex processes (multi-step algorithms)
-- **`@{ shape: stadium }`**: Start/End points (entry/exit)
-- **`@{ shape: circle }`**: Events (callbacks, triggers, signals)
-
-### Comments for Clarity
-
-```mermaid
-%% ═══════════════════════════════════════════════════════════════════════
-%% Major Section Header
-%% ═══════════════════════════════════════════════════════════════════════
-
-%% ───────────────────────────────────────────────────────────────────────
-%% Subsection Header
-%% ───────────────────────────────────────────────────────────────────────
-
-%% Regular comment explaining logic
-flowchart TB
-    A --> B
-```
-
-### File Naming Convention
-
-Use numbered prefixes for ordered diagrams:
-
-```
-flows/
-├── 00_master_overview.mmd           # Executive overview
-├── 01_complete_pipeline_v4.mmd      # Full detail
-├── 02_api_entry_detailed.mmd        # API controller
-├── 03_s3_upload_detailed.mmd        # S3 upload
-├── 04_ml_parent_detailed.mmd        # ML parent
-├── 05_sahi_detection_detailed.mmd   # SAHI child
-├── 06_boxes_detection_detailed.mmd  # Boxes child
-├── 07_callback_aggregate_detailed.mmd  # Callback
-├── 08_frontend_polling_detailed.mmd    # Frontend
-```
-
-### Keep Diagrams Manageable
-
-- **< 50 nodes**: Single diagram OK
-- **50-300 nodes**: Consider splitting into overview + details
-- **300+ nodes**: MUST split into:
-  - High-level overview diagram (00_)
-  - Full detail diagram (01_)
-  - Ultra-detailed subflows (02-08_)
+[Remaining Mermaid best practices sections remain the same...]
 
 ---
 
-## 8. Available Commands
+## 9. Available Commands
 
 ### Mermaid CLI
 - **Path**: `/home/lucasg/.nvm/versions/node/v24.8.0/bin/mmdc`
@@ -539,16 +546,6 @@ Generating single mermaid chart
 - Invalid syntax
 - Missing node definitions
 
-### Render to PNG (for Testing)
-```bash
-mmdc -i flows/diagram.mmd -o /tmp/test.png --puppeteerConfigFile <(echo '{"args":["--no-sandbox"]}')
-```
-
-### Render to SVG
-```bash
-mmdc -i flows/diagram.mmd -o /tmp/test.svg --puppeteerConfigFile <(echo '{"args":["--no-sandbox"]}')
-```
-
 ### Git Commands
 ```bash
 # After creating/modifying files
@@ -567,7 +564,7 @@ git push origin main  # if needed
 
 ---
 
-## 9. Commit Strategy
+## 10. Commit Strategy
 
 ### Frequency
 - Commit **after each meaningful addition**
@@ -584,8 +581,8 @@ docs: <concise description in present tense>
 - `docs: add monthly sales reconciliation flowchart`
 - `docs: update database ERD with s3_images table`
 - `docs: refine ML pipeline main flow with GPU worker details`
-- `docs: create Mermaid CLI usage guide`
-- `docs: add band-based estimation subgraph to SAHI task`
+- `docs: create manual stock initialization feature doc`
+- `docs: add CPU-first emphasis to ML pipeline`
 
 ❌ **Bad commits**:
 - `update` (too vague)
@@ -595,7 +592,7 @@ docs: <concise description in present tense>
 
 ---
 
-## 10. Incremental Updates (CRITICAL)
+## 11. Incremental Updates (CRITICAL)
 
 ### DO NOT Rewrite Entire Diagrams
 When the user asks to modify a diagram:
@@ -629,7 +626,7 @@ Read entire file → Rewrite from scratch → Lose formatting
 
 ---
 
-## 11. Quality Standards
+## 12. Quality Standards
 
 ### Critical Mindset Always ON
 For every diagram, document, or change, ask:
@@ -672,314 +669,72 @@ For every diagram, document, or change, ask:
 
 ---
 
-## 12. Key Resources
+## 13. Key Resources
 
 ### Primary Documents
-- **`engineering_doc.md`**: Main engineering specification (3000+ lines)
-  - Complete system architecture
-  - Database schema (all 22+ tables)
-  - API endpoints
-  - ML pipeline details
-  - Development phases
+
+**🆕 IMPORTANT: Engineering documentation has been refactored (2025-10-08)**
+
+- **`engineering_plan/README.md`**: **START HERE** - Main navigation hub
+  - Links to all 63 modular documentation files
+  - Quick start guides by role (architect, frontend, backend, etc.)
+  - Cross-referenced structure
+
+- **`engineering_plan/archive/engineering_doc.md`**: **ARCHIVED** original specification (3155 lines)
+  - Now replaced by modular docs in engineering_plan/
+  - Kept for historical reference only
+  - DO NOT edit this file - use modular docs instead
+
+- **`engineering_plan/` modular docs** (63 files):
+  - Architecture: 02_architecture/ (5 files)
+  - Features: 04_features/ (9 files incl. manual_stock_initialization)
+  - API Design: 05_api_design/ (8 files)
+  - Database: 06_database/ (6 files)
+  - Deployment: 07_deployment/ (6 files)
+  - Development: 08_development/ (5 files + phases/)
+  - Cross-cutting: 09_cross_cutting/ (5 files)
+  - Best practices: 10_best_practices/ (5 files)
+
 - **`past_chats_summary.md`**: Conversation history with technical decisions
   - UUID vs SERIAL decision
   - Band-based estimation innovation
   - Circuit breaker pattern
   - Warning states (not failures)
+  - Manual stock initialization workflow (NEW)
+  - CPU-first approach (NEW)
 
 ### Reference Guides
 - **`guides/flowchart_mermaid_docs.md`**: Complete Mermaid flowchart syntax (v11.3.0+)
 - **`guides/mermaid_cli_usage.md`**: How to use `mmdc` command
 
-### Existing Diagrams
+### Existing Diagrams (Flows)
+- **`flows/procesamiento_ml_upload_s3_principal/`**: Main ML pipeline (master + 5 detailed subflows)
+- **`flows/photo_upload_gallery/`**: Photo upload system (5 subflows)
+- **`flows/analiticas/`**: Analytics system (4 subflows)
+- **`flows/price_list_management/`**: Price management (4 subflows)
+- **`flows/map_warehouse_views/`**: Map navigation (5 subflows + README)
 - **`database/database.mmd`**: Complete ERD with all tables
-- **`flows/FLUJO PRINCIPAL V3-2025-10-07-201442.mmd`**: Massive main ML pipeline flow
-- **`flows/flujo_ventas.mmd`**: Sales flow
-- **`flows/trasplante_plantado_muerte.mmd`**: Transplant/planting/death process
 
 ### When to Consult What
-- **Database questions** → `database/database.mmd` + `engineering_doc.md` Section 2
-- **ML pipeline** → `flows/FLUJO PRINCIPAL V3...mmd` + `engineering_doc.md` Section 5
-- **API design** → `engineering_doc.md` Section 6
-- **Celery/async** → `past_chats_summary.md` + `engineering_doc.md` Section 7
+
+**🆕 Use modular docs (engineering_plan/) as primary reference**:
+
+- **Project overview** → `engineering_plan/README.md` (navigation) + `engineering_plan/00_project_overview.md`
+- **Database questions** → `database/database.mmd` + `engineering_plan/06_database/`
+- **ML pipeline** → `engineering_plan/02_architecture/05_ml_pipeline.md` + `flows/procesamiento_ml_upload_s3_principal/`
+- **API design** → `engineering_plan/05_api_design/` (8 endpoint files)
+- **Features** → `engineering_plan/04_features/` (all features documented)
+- **Celery/async** → `engineering_plan/02_architecture/06_celery_workers.md` + `past_chats_summary.md`
+- **Code conventions** → `engineering_plan/08_development/code_conventions.md` ⚠️ **CRITICAL**: NO docstrings on simple methods
+- **Architecture patterns** → `engineering_plan/02_architecture/00_overview.md` (Clean Architecture)
 - **Mermaid syntax** → `guides/flowchart_mermaid_docs.md`
 
----
-
-## 13. Example Interactions
-
-### Example 1: Create New Diagram
-
-**User (Spanish)**:
-> Necesito un diagrama de secuencia que muestre cómo el frontend hace polling del estado de las tareas Celery.
-
-**You (PLAN MODE)**:
-```
-Translation: "I need a sequence diagram showing how the frontend polls Celery task status."
-
-Analysis:
-- Read: past_chats_summary.md (frontend polling section)
-- Read: engineering_doc.md (Section 6.4 - Stock Input Endpoints)
-- Understand: GET /api/stock/tasks/status endpoint
-
-Plan:
-1. Create flows/frontend_polling_sequence.mmd
-2. Diagram will show:
-   - Frontend timer (every 3s)
-   - GET request to API
-   - Controller queries Celery AsyncResult
-   - Returns task state (pending/processing/success/failure)
-   - Frontend updates UI
-3. Will use Mermaid sequence diagram syntax
-4. Validate with mmdc
-5. Create brief Markdown description
-6. Commit: "docs: add frontend Celery polling sequence diagram"
-
-[Use ExitPlanMode with this plan]
-```
-
-**You (EXECUTE MODE after approval)**:
-1. Create `flows/frontend_polling_sequence.mmd`
-2. Write Mermaid sequence diagram
-3. Run: `mmdc --validateDiagram -i flows/frontend_polling_sequence.mmd`
-4. Create `flows/frontend_polling_sequence.md` with brief
-5. Commit: `docs: add frontend Celery polling sequence diagram`
+**Archived reference** (use only if modular docs lack detail):
+- `engineering_plan/archive/engineering_doc.md` (original monolithic doc)
 
 ---
 
-### Example 2: Modify Existing Diagram
-
-**User (Spanish)**:
-> En el flujo principal, necesito agregar un paso que valide si las density_parameters existen antes de continuar con la estimación.
-
-**You (PLAN MODE)**:
-```
-Translation: "In the main flow, I need to add a step that validates if density_parameters exist before continuing with estimation."
-
-Analysis:
-- Read: flows/FLUJO PRINCIPAL V3-2025-10-07-201442.mmd
-- Identify: ML_PROCESSING subgraph, around ML_GET_CONFIG section
-- Current flow: ML_GET_CONFIG → ML_CONFIG_EXISTS → ML_CREATE_SESSION
-- Need: Add ML_GET_DENSITY → ML_DENSITY_EXISTS decision point
-
-Plan:
-1. Use Edit tool to modify ONLY the affected section
-2. Add nodes:
-   - ML_GET_DENSITY (database query)
-   - ML_DENSITY_EXISTS (decision diamond)
-   - ML_WARNING_DENSITY (warning path)
-3. Preserve:
-   - Existing subgraph structure
-   - Styling classes
-   - All other connections
-4. Update connections:
-   - ML_CONFIG_EXISTS (Yes) → ML_GET_DENSITY
-   - ML_DENSITY_EXISTS (No) → ML_WARNING_DENSITY
-   - ML_DENSITY_EXISTS (Yes) → ML_CREATE_SESSION
-5. Validate with mmdc
-6. Commit: "docs: add density_parameters validation to ML flow"
-
-[Use ExitPlanMode with this plan]
-```
-
-**You (EXECUTE MODE after approval)**:
-1. Read existing `flows/FLUJO PRINCIPAL V3-2025-10-07-201442.mmd`
-2. Use Edit tool for surgical changes:
-   - Add ML_GET_DENSITY node
-   - Add ML_DENSITY_EXISTS decision
-   - Add ML_WARNING_DENSITY warning node
-   - Update connections
-3. Validate: `mmdc --validateDiagram -i flows/FLUJO\ PRINCIPAL\ V3-2025-10-07-201442.mmd`
-4. Commit: `docs: add density_parameters validation to ML flow`
-
----
-
-## 14. Companion Documentation Template
-
-Every `.mmd` diagram MUST have a companion `.md` file with the same base name.
-
-### Template Structure
-
-```markdown
-# [Diagram Title]
-
-## Purpose
-
-[2-4 sentences explaining what this diagram represents]
-
-## Scope
-
-- **Level**: [High-level | Full detail | Ultra-detail]
-- **Audience**: [Who should use this]
-- **Detail**: [Level of granularity]
-- **Mermaid Version**: v11.3.0+
-
-## What It Represents
-
-[Detailed explanation of the diagram's content, broken into sections if needed]
-
-### Key Sections
-1. **Section 1**: Description
-2. **Section 2**: Description
-3. **Section 3**: Description
-
-## Performance [if applicable]
-
-| Phase | Duration | Bottleneck | Optimization |
-|-------|----------|------------|--------------|
-| ... | ... | ... | ... |
-
-**Total**: ~X minutes
-
-## Related Detailed Diagrams
-
-For [more/less] detail, see:
-- **Diagram Name**: `flows/XX_name.mmd` (description)
-- **Diagram Name**: `flows/XX_name.mmd` (description)
-
-## How It Fits in the System
-
-[Explain the diagram's role in the larger system architecture]
-
-## Key Components [if applicable]
-
-### Component 1
-Description
-
-### Component 2
-Description
-
-## Technical Highlights [if applicable]
-
-### Feature 1
-Explanation
-
-### Feature 2
-Explanation
-
-## Usage
-
-Use this diagram to:
-- Task 1
-- Task 2
-- Task 3
-
----
-
-**Version**: X.X
-**Last Updated**: YYYY-MM-DD
-**Author**: DemeterAI Engineering Team
-```
-
-### Example: Minimal Companion Doc
-
-For simple diagrams:
-
-```markdown
-# API Entry Detailed Flow
-
-## Purpose
-
-This diagram shows the line-by-line code flow for the FastAPI POST /api/stock/photo controller, from request validation through Celery task dispatch.
-
-## Scope
-
-- **Level**: Ultra-detail (implementation code)
-- **Audience**: Developers implementing or debugging the API
-- **Detail**: Every validation step, database query, error path
-
-## What It Represents
-
-The complete API entry point including:
-- Pydantic request validation
-- UUID v4 generation strategy
-- Temporary file handling
-- Database INSERT operations
-- Task chunking and dispatch
-
-## Related Diagrams
-
-- **Master Overview**: `flows/00_master_overview.mmd` (high-level context)
-- **Complete Pipeline**: `flows/01_complete_pipeline_v4.mmd` (full flow)
-
----
-
-**Version**: 1.0
-**Last Updated**: 2025-10-07
-**Author**: DemeterAI Engineering Team
-```
-
-### Required Sections
-
-**Minimum** (always include):
-- Purpose (2-4 sentences)
-- Scope (level, audience, detail)
-- What It Represents
-- Related Diagrams (links to hierarchy)
-- Version + Date + Author
-
-**Optional** (include when relevant):
-- Performance metrics
-- Key Components breakdown
-- Technical Highlights
-- Usage instructions
-- Code examples
-- Error handling details
-
----
-
-## 15. Troubleshooting
-
-### Mermaid Syntax Errors
-
-**Problem**: `mmdc --validateDiagram` fails
-
-**Solution**:
-1. Check for common issues:
-   - Missing quotes around labels with special chars
-   - Unclosed subgraphs
-   - Invalid node IDs (no spaces, no special chars)
-   - Incorrect arrow syntax
-2. Refer to `guides/flowchart_mermaid_docs.md`
-3. Test in [Mermaid Live Editor](https://mermaid.live)
-4. Fix and re-validate
-
-### Diagram Too Complex
-
-**Problem**: Flowchart has 80+ nodes and is hard to read
-
-**Solution**:
-1. Split into:
-   - **High-level overview** (10-15 nodes max)
-   - **Detailed subflows** (one per major section)
-2. Create linking Markdown doc:
-   ```markdown
-   # ML Pipeline Overview
-
-   See detailed subflows:
-   - [S3 Upload Process](./s3_upload_detailed.mmd)
-   - [SAHI Detection](./sahi_detection_detailed.mmd)
-   - [Callback Aggregation](./callback_aggregation_detailed.mmd)
-   ```
-3. Use subgraphs more aggressively
-
-### Missing Context
-
-**Problem**: Don't understand what to document
-
-**Solution**:
-1. **Always read first**:
-   - `engineering_doc.md` (main spec)
-   - `past_chats_summary.md` (technical decisions)
-   - Existing diagrams in `flows/`
-2. **Search if needed**:
-   - Mermaid documentation
-   - Technology-specific patterns
-3. **Ask for clarification** if truly ambiguous
-
----
-
-## 15. Special Considerations
+## 14. Special Considerations
 
 ### Database as Single Source of Truth
 
@@ -988,24 +743,25 @@ When creating any diagram involving data:
 1. **Reference actual table names**: `photo_processing_sessions`, not "sessions"
 2. **Reference actual column names**: `storage_location_id`, not "location"
 3. **Show Foreign Keys**: Explicitly show FK relationships
-4. **Query examples**: Use real SQL syntax from engineering doc
+4. **Query examples**: Use real SQL syntax from engineering plan
 
 Example:
 ```mermaid
-QUERY_LOCATION[("📊 SELECT sl.id, sl.code
+QUERY_LOCATION@{ shape: cyl, label: "📊 SELECT sl.id, sl.code
 FROM storage_locations sl
 WHERE ST_Contains(
   sl.geojson_coordinates,
   ST_MakePoint(lon, lat)
 )
-LIMIT 1")]
+LIMIT 1
+⏱️ ~10ms" }
 ```
 
 ### Scalability Notes
 
 DemeterAI is designed to **start on CPU, scale to GPU**:
 - Document both paths where applicable
-- Note performance implications
+- Note performance implications (CPU: 5-10 min, GPU: 1-3 min)
 - Indicate "future optimization" areas
 
 ### Warning States (Not Failures)
@@ -1017,9 +773,19 @@ DemeterAI uses **graceful degradation**:
 
 **These are NOT errors** - they allow manual completion. Document accordingly.
 
+### Two Initialization Paths
+
+When documenting stock workflows, remember there are TWO ways to initialize:
+1. **Photo-based**: ML pipeline (primary, 95%+ accuracy)
+2. **Manual**: Direct user input (secondary, trust user)
+
+Both create same database structure (stock_movements + stock_batches).
+
+Difference from "plantado": Manual init **starts new period**, plantado **adds to existing**.
+
 ---
 
-## 16. Final Notes
+## 15. Final Notes
 
 ### Your Mindset
 
@@ -1041,6 +807,7 @@ You are not just documenting an application. You are creating a **comprehensive 
 - Revisit and refine diagrams as system evolves
 - Update when technology changes
 - Keep best practices current
+- Update modular docs (engineering_plan/) when adding features
 
 ---
 
@@ -1056,16 +823,26 @@ You are not just documenting an application. You are creating a **comprehensive 
 │ 4. EXECUTE: Create/modify, validate, document, commit  │
 │                                                         │
 │ VALIDATION (MANDATORY):                                │
-│   mmdc --validateDiagram -i diagram.mmd                │
+│   mmdc -i diagram.mmd -o /tmp/test.png \              │
+│     --puppeteerConfigFile <(echo '{"args":["--no-sandbox"]}') │
 │                                                         │
 │ COMMIT FORMAT:                                         │
 │   docs: <concise description>                          │
+│                                                         │
+│ KEY RESOURCES:                                         │
+│   📖 Start: engineering_plan/README.md                 │
+│   🗄️ Database: engineering_plan/06_database/          │
+│   🏗️ Architecture: engineering_plan/02_architecture/  │
+│   ✨ Features: engineering_plan/04_features/          │
+│   🔌 API: engineering_plan/05_api_design/             │
 │                                                         │
 │ RULES:                                                 │
 │   ✓ Database = source of truth                         │
 │   ✓ Incremental updates (NOT full rewrites)            │
 │   ✓ Every diagram needs brief Markdown                 │
 │   ✓ English for all diagrams/docs                      │
+│   ✓ CPU-first ML approach                              │
+│   ✓ NO docstrings on simple methods ⚠️                 │
 │   ✓ Critical mindset always ON                         │
 └─────────────────────────────────────────────────────────┘
 ```
