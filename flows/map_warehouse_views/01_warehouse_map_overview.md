@@ -22,7 +22,7 @@ The warehouse map overview is the **entry point** of the map navigation system:
 
 1. **User opens app** → Bulk load all warehouse data
 2. **Map renders** all warehouses as colored PostGIS polygons
-3. **Summary metrics** displayed per warehouse (errors, claros, naves count)
+3. **Summary metrics** displayed per warehouse (claros, naves count)
 4. **User clicks polygon** → Navigate to warehouse internal view
 5. **Data cached** for instant navigation between views
 
@@ -36,7 +36,6 @@ The warehouse map overview is the **entry point** of the map navigation system:
 
 ### Summary Metrics
 Each warehouse polygon displays:
-- **Errors count**: Total processing errors/warnings
 - **Claros count**: Total storage_locations in warehouse
 - **Naves count**: Total storage_areas in warehouse
 - **Total plants**: Aggregate from latest photo sessions
@@ -94,10 +93,6 @@ SELECT
     w.active,
     COUNT(DISTINCT sa.id) AS naves_count,
     COUNT(DISTINCT sl.id) AS claros_count,
-    COUNT(DISTINCT CASE
-        WHEN pps.status = 'failed' OR pps.error_message IS NOT NULL
-        THEN pps.id
-    END) AS errors_count,
     SUM(COALESCE(pps.total_detected, 0)) AS total_plants,
     MAX(pps.created_at) AS last_photo_date
 FROM warehouses w
@@ -143,7 +138,6 @@ SELECT
     ws.active,
     ws.naves_count,
     ws.claros_count,
-    ws.errors_count,
     ws.total_plants,
     ws.last_photo_date
 FROM mv_warehouse_summary ws
@@ -178,7 +172,6 @@ ORDER BY ws.warehouse_name;
   "active": true,
   "naves_count": 5,
   "claros_count": 120,
-  "errors_count": 3,
   "total_plants": 14500,
   "last_photo_date": "2025-10-08T10:30:00Z"
 }
@@ -198,7 +191,6 @@ SELECT
     ws.area_m2,
     ws.naves_count,
     ws.claros_count,
-    ws.errors_count,
     ws.total_plants,
     ws.last_photo_date
 FROM mv_warehouse_summary ws
@@ -284,7 +276,6 @@ Authorization: Bearer <token>
       "metrics": {
         "naves_count": 5,
         "claros_count": 120,
-        "errors_count": 3,
         "total_plants": 14500,
         "last_photo_date": "2025-10-08T10:30:00Z"
       }
@@ -338,7 +329,6 @@ async def bulk_load_map_data(db: Session = Depends(get_db)):
             ws.area_m2,
             ws.naves_count,
             ws.claros_count,
-            ws.errors_count,
             ws.total_plants,
             ws.last_photo_date
         FROM mv_warehouse_summary ws
@@ -358,7 +348,6 @@ async def bulk_load_map_data(db: Session = Depends(get_db)):
             "metrics": {
                 "naves_count": row.naves_count,
                 "claros_count": row.claros_count,
-                "errors_count": row.errors_count,
                 "total_plants": row.total_plants,
                 "last_photo_date": row.last_photo_date.isoformat() if row.last_photo_date else None
             }
@@ -444,7 +433,6 @@ import 'leaflet/dist/leaflet.css';
 interface WarehouseMetrics {
   naves_count: number;
   claros_count: number;
-  errors_count: number;
   total_plants: number;
   last_photo_date: string | null;
 }
@@ -679,13 +667,6 @@ export const MapOverview: React.FC = () => {
                       <span className="text-gray-600">Total Plants:</span>
                       <br />
                       <strong>{warehouse.metrics.total_plants?.toLocaleString() || 0}</strong>
-                    </div>
-                    <div>
-                      <span className="text-gray-600">Errors:</span>
-                      <br />
-                      <strong className={warehouse.metrics.errors_count > 0 ? 'text-red-600' : ''}>
-                        {warehouse.metrics.errors_count}
-                      </strong>
                     </div>
                   </div>
                   {warehouse.metrics.last_photo_date && (

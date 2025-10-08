@@ -22,12 +22,12 @@ graph TB
     subgraph ImageDetails["🖼️ Image Section Details"]
         Thumbnail["📸 Thumbnail Image<br/>S3 presigned URL<br/>loading='lazy'"]
         CodeBadge["🏷️ Code Badge<br/>Top-left<br/>Primary color"]
-        StatusBadge["✅ Status Badge<br/>Top-right<br/>Green/Yellow/Red"]
+%%        StatusBadge["✅ Status Badge<br/>Top-right<br/>Green/Yellow/Red"]
         CanteroBadge["📍 Cantero Badge<br/>Bottom-left<br/>Position name"]
 
         ImageSection --> Thumbnail
         ImageSection --> CodeBadge
-        ImageSection --> StatusBadge
+%%        ImageSection --> StatusBadge
         ImageSection --> CanteroBadge
     end
 
@@ -86,23 +86,23 @@ graph TB
 
     QuantityMetric -.-> TrendLogic
 
-    %% Status Badge Logic
-    subgraph StatusLogic["✅ Status Badge Logic"]
-        CheckError{"error_message<br/>exists?"}
-        CheckStatus{"status ==<br/>'completed'?"}
+%%    %% Status Badge Logic
+%%    subgraph StatusLogic["✅ Status Badge Logic"]
+%%        CheckError{"error_message<br/>exists?"}
+%%        CheckStatus{"status ==<br/>'completed'?"}
+%%
+%%        ErrorBadge["🔴 Error Badge<br/>Red with icon"]
+%%        SuccessBadge["🟢 Success Badge<br/>Green 'OK'"]
+%%        ProcessingBadge["🟡 Processing Badge<br/>Yellow 'Processing'"]
+%%        PendingBadge["⚪ Pending Badge<br/>Gray 'Pending'"]
+%%
+%%        CheckError -->|"Yes"| ErrorBadge
+%%        CheckError -->|"No"| CheckStatus
+%%        CheckStatus -->|"Yes"| SuccessBadge
+%%        CheckStatus -->|"No"| ProcessingBadge
+%%    end
 
-        ErrorBadge["🔴 Error Badge<br/>Red with icon"]
-        SuccessBadge["🟢 Success Badge<br/>Green 'OK'"]
-        ProcessingBadge["🟡 Processing Badge<br/>Yellow 'Processing'"]
-        PendingBadge["⚪ Pending Badge<br/>Gray 'Pending'"]
-
-        CheckError -->|"Yes"| ErrorBadge
-        CheckError -->|"No"| CheckStatus
-        CheckStatus -->|"Yes"| SuccessBadge
-        CheckStatus -->|"No"| ProcessingBadge
-    end
-
-    StatusBadge -.-> StatusLogic
+%%    StatusBadge -.-> StatusLogic
 
     %% Quality Score Logic
     subgraph QualityLogic["⭐ Quality Score Color"]

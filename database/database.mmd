@@ -225,8 +225,7 @@ erDiagram
 		timestamp updated_at  ""  
 	}
 	s3_images {
-		int id PK ""  
-		uuid image_id UK ""  
+		uuid image_id PK ""
 		varchar s3_bucket  ""  
 		varchar s3_key_original UK ""  
 		varchar s3_key_thumbnail  ""  
