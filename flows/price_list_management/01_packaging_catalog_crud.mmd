@@ -1,0 +1,486 @@
+---
+config:
+  theme: dark
+  themeVariables:
+    primaryColor: '#E3F2FD'
+    primaryTextColor: '#0D47A1'
+    primaryBorderColor: '#2196F3'
+    lineColor: '#1976D2'
+    secondaryColor: '#F3E5F5'
+    tertiaryColor: '#FFF3E0'
+    noteBkgColor: '#FFFDE7'
+    noteBorderColor: '#FBC02D'
+  layout: elk
+---
+flowchart TB
+    %% ═══════════════════════════════════════════════════════════════════════
+    %% DEMETERDOCS - PACKAGING CATALOG CRUD OPERATIONS
+    %% ═══════════════════════════════════════════════════════════════════════
+    %% Purpose: Detailed implementation of packaging catalog management
+    %% Scope: Complete CRUD flow with validation and constraints
+    %% Detail: Database operations, API endpoints, business rules
+    %% Updated: 2025-10-08 | Version: 1.0 | Mermaid v11.3.0+
+    %% ═══════════════════════════════════════════════════════════════════════
+
+    %% ═══════════════════════════════════════════════════════════════════════
+    %% ENTRY POINT
+    %% ═══════════════════════════════════════════════════════════════════════
+
+    START@{ shape: stadium, label: "📦 Admin: Manage
+    Packaging Catalog
+    Role: admin only" }
+
+    SELECT_OP@{ shape: diamond, label: "CRUD Operation?" }
+
+    %% ═══════════════════════════════════════════════════════════════════════
+    %% CREATE PATH
+    %% ═══════════════════════════════════════════════════════════════════════
+
+    subgraph CREATE_FLOW["➕ CREATE NEW PACKAGING"]
+        direction TB
+
+        CREATE_FORM@{ shape: rect, label: "📝 Fill Form
+        • Type: Maceta/Bandeja/Plug
+        • Material: Plastic/Ceramic
+        • Color: Black/White/Terra
+        • Diameter (cm)
+        • Height (cm)
+        • Volume (L) - optional
+        • SKU - optional" }
+
+        CREATE_VALIDATE@{ shape: rect, label: "✅ Validate Input
+        • Dimensions > 0
+        • Type/Material/Color exist
+        • SKU format valid
+        • No duplicate combination" }
+
+        CREATE_GEN_SKU@{ shape: rect, label: "🏷️ Generate SKU
+        Pattern:
+        {TYPE}-R{SIZE}-{COLOR}
+
+        Example:
+        MAC-R7-BLK
+        MAC-R10-WHT" }
+
+        CREATE_CALC_VOL@{ shape: rect, label: "🧮 Calculate Volume
+        V = π × r² × h × 0.75
+        Convert cm³ to liters
+
+        If not provided by user" }
+
+        CREATE_CHECK_DUP@{ shape: cyl, label: "Check Duplicates
+        SELECT FROM
+        packaging_catalog
+        WHERE sku = $1
+        OR (type+mat+col+dim)
+
+        ⏱️ 30ms" }
+
+        CREATE_DUPLICATE@{ shape: diamond, label: "Duplicate?" }
+
+        CREATE_ERROR@{ shape: rect, label: "❌ Error Response
+        409 Conflict:
+        SKU already exists
+        OR
+        Combination exists" }
+
+        CREATE_INSERT@{ shape: cyl, label: "💾 Insert Record
+        INSERT INTO
+        packaging_catalog
+        VALUES (...)
+        RETURNING id, sku
+
+        ⏱️ 40ms" }
+
+        CREATE_AUDIT@{ shape: rect, label: "📋 Audit Log
+        Log:
+        • User ID
+        • Action: create_packaging
+        • Entity ID
+        • Timestamp
+        • Details" }
+
+        CREATE_SUCCESS@{ shape: rect, label: "✅ Success Response
+        201 Created
+        Return:
+        • Packaging object
+        • Generated SKU
+        • Calculated volume" }
+    end
+
+    %% ═══════════════════════════════════════════════════════════════════════
+    %% READ PATH
+    %% ═══════════════════════════════════════════════════════════════════════
+
+    subgraph READ_FLOW["📋 READ / LIST PACKAGING"]
+        direction TB
+
+        READ_FILTERS@{ shape: rect, label: "🔍 Apply Filters
+        Optional:
+        • Type ID
+        • Color ID
+        • Min/Max diameter
+        • Search by SKU/name
+        • Page, Page size" }
+
+        READ_QUERY@{ shape: cyl, label: "📊 Query Database
+        SELECT pc.*,
+        pt.name as type,
+        pm.name as material,
+        pcol.name as color
+        FROM packaging_catalog pc
+        JOIN packaging_types pt
+        JOIN packaging_materials pm
+        JOIN packaging_colors pcol
+        WHERE (filters)
+        ORDER BY type, diameter
+        LIMIT $n OFFSET $m
+
+        ⏱️ 100-150ms" }
+
+        READ_COUNT@{ shape: cyl, label: "🔢 Count Total
+        SELECT COUNT(*)
+        FROM packaging_catalog
+        WHERE (filters)
+
+        For pagination
+
+        ⏱️ 20ms" }
+
+        READ_FORMAT@{ shape: rect, label: "📦 Format Response
+        Items: [...]
+        Total: N
+        Page: X
+        Pages: Y
+        Page_size: Z" }
+
+        READ_CACHE@{ shape: rect, label: "💾 Cache Response
+        Redis key:
+        pkg_list:{filters}:{page}
+
+        TTL: 5 minutes
+
+        Invalidate on changes" }
+
+        READ_RESPONSE@{ shape: rect, label: "✅ Return List
+        200 OK
+        Paginated results
+        With metadata" }
+    end
+
+    %% ═══════════════════════════════════════════════════════════════════════
+    %% UPDATE PATH
+    %% ═══════════════════════════════════════════════════════════════════════
+
+    subgraph UPDATE_FLOW["✏️ UPDATE PACKAGING"]
+        direction TB
+
+        UPDATE_SELECT@{ shape: rect, label: "🎯 Select Packaging
+        By ID or SKU
+        Load current values" }
+
+        UPDATE_CHECK_EXISTS@{ shape: cyl, label: "Check Exists
+        SELECT * FROM
+        packaging_catalog
+        WHERE id = $1
+
+        ⏱️ 20ms" }
+
+        UPDATE_EXISTS@{ shape: diamond, label: "Exists?" }
+
+        UPDATE_NOT_FOUND@{ shape: rect, label: "❌ Not Found
+        404 Not Found:
+        Packaging does not exist" }
+
+        UPDATE_FORM@{ shape: rect, label: "📝 Update Form
+        Show current values
+        Allow editing:
+        • Type, Material, Color
+        • Name
+        • Dimensions
+        • Volume
+        Note: SKU immutable" }
+
+        UPDATE_VALIDATE@{ shape: rect, label: "✅ Validate Changes
+        • Dimensions > 0
+        • References exist
+        • No duplicate combination" }
+
+        UPDATE_IMPACT@{ shape: cyl, label: "🔍 Check Impact
+        SELECT COUNT(*)
+        FROM price_list
+        WHERE packaging_id = $1
+
+        ⏱️ 20ms" }
+
+        UPDATE_WARN@{ shape: diamond, label: "Has References?" }
+
+        UPDATE_WARNING@{ shape: rect, label: "⚠️ Show Warning
+        This packaging is used in
+        X price list entries.
+        Changes will affect them.
+
+        Continue?" }
+
+        UPDATE_CONFIRM@{ shape: diamond, label: "Confirmed?" }
+
+        UPDATE_CANCEL@{ shape: rect, label: "🚫 Cancel Update
+        No changes made" }
+
+        UPDATE_EXECUTE@{ shape: cyl, label: "💾 Update Record
+        UPDATE packaging_catalog
+        SET
+          type = $1,
+          material = $2,
+          color = $3,
+          name = $4,
+          dimensions = $5,
+          updated_at = NOW()
+        WHERE id = $6
+        RETURNING *
+
+        ⏱️ 50ms" }
+
+        UPDATE_AUDIT@{ shape: rect, label: "📋 Audit Log
+        Log changes:
+        • Old values
+        • New values
+        • User ID
+        • Timestamp" }
+
+        UPDATE_CACHE_CLEAR@{ shape: rect, label: "🗑️ Clear Cache
+        Invalidate:
+        • Packaging lists
+        • Price list cache
+        • Related queries" }
+
+        UPDATE_SUCCESS@{ shape: rect, label: "✅ Success Response
+        200 OK
+        Return:
+        • Updated packaging
+        • Impact count
+        • Warning message" }
+    end
+
+    %% ═══════════════════════════════════════════════════════════════════════
+    %% DELETE PATH
+    %% ═══════════════════════════════════════════════════════════════════════
+
+    subgraph DELETE_FLOW["🗑️ DELETE PACKAGING"]
+        direction TB
+
+        DELETE_SELECT@{ shape: rect, label: "🎯 Select Packaging
+        By ID or SKU
+        Request deletion" }
+
+        DELETE_CHECK_EXISTS@{ shape: cyl, label: "Check Exists
+        SELECT * FROM
+        packaging_catalog
+        WHERE id = $1
+
+        ⏱️ 20ms" }
+
+        DELETE_EXISTS@{ shape: diamond, label: "Exists?" }
+
+        DELETE_NOT_FOUND@{ shape: rect, label: "❌ Not Found
+        404 Not Found:
+        Packaging does not exist" }
+
+        DELETE_CHECK_REFS@{ shape: cyl, label: "🔍 Check References
+        SELECT COUNT(*)
+        FROM price_list
+        WHERE packaging_id = $1
+
+        SELECT COUNT(*)
+        FROM storage_location_config
+        WHERE packaging_id = $1
+
+        ⏱️ 40ms" }
+
+        DELETE_HAS_REFS@{ shape: diamond, label: "Has References?" }
+
+        DELETE_BLOCKED@{ shape: rect, label: "🚫 Cannot Delete
+        409 Conflict:
+        Referenced by:
+        • X price list entries
+        • Y storage configs
+
+        Remove references first
+        OR soft delete" }
+
+        DELETE_CONFIRM@{ shape: rect, label: "⚠️ Confirm Deletion
+        This will permanently
+        delete packaging:
+        {SKU} {name}
+
+        This action cannot
+        be undone.
+
+        Confirm?" }
+
+        DELETE_CONFIRMED@{ shape: diamond, label: "Confirmed?" }
+
+        DELETE_CANCEL@{ shape: rect, label: "🚫 Cancel Delete
+        No changes made" }
+
+        DELETE_EXECUTE@{ shape: cyl, label: "💥 Delete Record
+        DELETE FROM
+        packaging_catalog
+        WHERE id = $1
+        RETURNING id
+
+        ⏱️ 30ms" }
+
+        DELETE_AUDIT@{ shape: rect, label: "📋 Audit Log
+        Log deletion:
+        • User ID
+        • Deleted SKU
+        • Deleted name
+        • Timestamp" }
+
+        DELETE_CACHE_CLEAR@{ shape: rect, label: "🗑️ Clear Cache
+        Invalidate all
+        packaging-related
+        cache entries" }
+
+        DELETE_SUCCESS@{ shape: rect, label: "✅ Success Response
+        200 OK
+        Message:
+        Packaging deleted
+        successfully" }
+    end
+
+    %% ═══════════════════════════════════════════════════════════════════════
+    %% END STATE
+    %% ═══════════════════════════════════════════════════════════════════════
+
+    END_STATE@{ shape: stadium, label: "🏁 Operation Complete
+    Return to catalog view" }
+
+    %% ═══════════════════════════════════════════════════════════════════════
+    %% CONNECTIONS - MAIN FLOW
+    %% ═══════════════════════════════════════════════════════════════════════
+
+    START --> SELECT_OP
+
+    SELECT_OP -->|Create| CREATE_FORM
+    SELECT_OP -->|Read/List| READ_FILTERS
+    SELECT_OP -->|Update| UPDATE_SELECT
+    SELECT_OP -->|Delete| DELETE_SELECT
+
+    %% ═══════════════════════════════════════════════════════════════════════
+    %% CONNECTIONS - CREATE FLOW
+    %% ═══════════════════════════════════════════════════════════════════════
+
+    CREATE_FORM --> CREATE_VALIDATE
+    CREATE_VALIDATE --> CREATE_GEN_SKU
+    CREATE_GEN_SKU --> CREATE_CALC_VOL
+    CREATE_CALC_VOL --> CREATE_CHECK_DUP
+
+    CREATE_CHECK_DUP --> CREATE_DUPLICATE
+
+    CREATE_DUPLICATE -->|Yes| CREATE_ERROR
+    CREATE_DUPLICATE -->|No| CREATE_INSERT
+
+    CREATE_ERROR --> CREATE_FORM
+
+    CREATE_INSERT --> CREATE_AUDIT
+    CREATE_AUDIT --> CREATE_SUCCESS
+    CREATE_SUCCESS --> END_STATE
+
+    %% ═══════════════════════════════════════════════════════════════════════
+    %% CONNECTIONS - READ FLOW
+    %% ═══════════════════════════════════════════════════════════════════════
+
+    READ_FILTERS --> READ_QUERY
+    READ_QUERY --> READ_COUNT
+    READ_COUNT --> READ_FORMAT
+    READ_FORMAT --> READ_CACHE
+    READ_CACHE --> READ_RESPONSE
+    READ_RESPONSE --> END_STATE
+
+    %% ═══════════════════════════════════════════════════════════════════════
+    %% CONNECTIONS - UPDATE FLOW
+    %% ═══════════════════════════════════════════════════════════════════════
+
+    UPDATE_SELECT --> UPDATE_CHECK_EXISTS
+    UPDATE_CHECK_EXISTS --> UPDATE_EXISTS
+
+    UPDATE_EXISTS -->|No| UPDATE_NOT_FOUND
+    UPDATE_EXISTS -->|Yes| UPDATE_FORM
+
+    UPDATE_NOT_FOUND --> END_STATE
+
+    UPDATE_FORM --> UPDATE_VALIDATE
+    UPDATE_VALIDATE --> UPDATE_IMPACT
+    UPDATE_IMPACT --> UPDATE_WARN
+
+    UPDATE_WARN -->|No| UPDATE_EXECUTE
+    UPDATE_WARN -->|Yes| UPDATE_WARNING
+
+    UPDATE_WARNING --> UPDATE_CONFIRM
+
+    UPDATE_CONFIRM -->|No| UPDATE_CANCEL
+    UPDATE_CONFIRM -->|Yes| UPDATE_EXECUTE
+
+    UPDATE_CANCEL --> END_STATE
+
+    UPDATE_EXECUTE --> UPDATE_AUDIT
+    UPDATE_AUDIT --> UPDATE_CACHE_CLEAR
+    UPDATE_CACHE_CLEAR --> UPDATE_SUCCESS
+    UPDATE_SUCCESS --> END_STATE
+
+    %% ═══════════════════════════════════════════════════════════════════════
+    %% CONNECTIONS - DELETE FLOW
+    %% ═══════════════════════════════════════════════════════════════════════
+
+    DELETE_SELECT --> DELETE_CHECK_EXISTS
+    DELETE_CHECK_EXISTS --> DELETE_EXISTS
+
+    DELETE_EXISTS -->|No| DELETE_NOT_FOUND
+    DELETE_EXISTS -->|Yes| DELETE_CHECK_REFS
+
+    DELETE_NOT_FOUND --> END_STATE
+
+    DELETE_CHECK_REFS --> DELETE_HAS_REFS
+
+    DELETE_HAS_REFS -->|Yes| DELETE_BLOCKED
+    DELETE_HAS_REFS -->|No| DELETE_CONFIRM
+
+    DELETE_BLOCKED --> END_STATE
+
+    DELETE_CONFIRM --> DELETE_CONFIRMED
+
+    DELETE_CONFIRMED -->|No| DELETE_CANCEL
+    DELETE_CONFIRMED -->|Yes| DELETE_EXECUTE
+
+    DELETE_CANCEL --> END_STATE
+
+    DELETE_EXECUTE --> DELETE_AUDIT
+    DELETE_AUDIT --> DELETE_CACHE_CLEAR
+    DELETE_CACHE_CLEAR --> DELETE_SUCCESS
+    DELETE_SUCCESS --> END_STATE
+
+    %% ═══════════════════════════════════════════════════════════════════════
+    %% STYLING
+    %% ═══════════════════════════════════════════════════════════════════════
+
+    classDef createStyle fill:#E8F5E9,stroke:#2E7D32,stroke-width:2px
+    classDef readStyle fill:#E3F2FD,stroke:#1565C0,stroke-width:2px
+    classDef updateStyle fill:#FFF3E0,stroke:#EF6C00,stroke-width:2px
+    classDef deleteStyle fill:#FFEBEE,stroke:#C62828,stroke-width:2px
+    classDef errorStyle fill:#FFCDD2,stroke:#B71C1C,stroke-width:3px
+    classDef successStyle fill:#C8E6C9,stroke:#388E3C,stroke-width:2px
+
+    class CREATE_FORM,CREATE_VALIDATE,CREATE_GEN_SKU,CREATE_CALC_VOL,CREATE_CHECK_DUP,CREATE_INSERT,CREATE_AUDIT createStyle
+    class CREATE_SUCCESS successStyle
+    class CREATE_ERROR,UPDATE_NOT_FOUND,DELETE_NOT_FOUND,DELETE_BLOCKED errorStyle
+
+    class READ_FILTERS,READ_QUERY,READ_COUNT,READ_FORMAT,READ_CACHE,READ_RESPONSE readStyle
+
+    class UPDATE_SELECT,UPDATE_CHECK_EXISTS,UPDATE_FORM,UPDATE_VALIDATE,UPDATE_IMPACT,UPDATE_WARNING,UPDATE_EXECUTE,UPDATE_AUDIT,UPDATE_CACHE_CLEAR updateStyle
+    class UPDATE_SUCCESS successStyle
+    class UPDATE_CANCEL,DELETE_CANCEL errorStyle
+
+    class DELETE_SELECT,DELETE_CHECK_EXISTS,DELETE_CHECK_REFS,DELETE_CONFIRM,DELETE_EXECUTE,DELETE_AUDIT,DELETE_CACHE_CLEAR deleteStyle
+    class DELETE_SUCCESS successStyle

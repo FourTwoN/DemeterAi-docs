@@ -1,0 +1,471 @@
+---
+config:
+  theme: dark
+  themeVariables:
+    primaryColor: '#E3F2FD'
+    primaryTextColor: '#0D47A1'
+    primaryBorderColor: '#2196F3'
+    lineColor: '#1976D2'
+    secondaryColor: '#F3E5F5'
+    tertiaryColor: '#FFF3E0'
+    noteBkgColor: '#FFFDE7'
+    noteBorderColor: '#FBC02D'
+  layout: elk
+---
+flowchart TB
+    %% ═══════════════════════════════════════════════════════════════════════
+    %% DEMETERDOCS - PRODUCT CATALOG CRUD OPERATIONS
+    %% ═══════════════════════════════════════════════════════════════════════
+    %% Purpose: Detailed implementation of product catalog hierarchy management
+    %% Scope: Complete CRUD for Categories → Families → Products
+    %% Detail: Database operations, validation, hierarchical relationships
+    %% Updated: 2025-10-08 | Version: 1.0 | Mermaid v11.3.0+
+    %% ═══════════════════════════════════════════════════════════════════════
+
+    %% ═══════════════════════════════════════════════════════════════════════
+    %% ENTRY POINT
+    %% ═══════════════════════════════════════════════════════════════════════
+
+    START@{ shape: stadium, label: "🌵 Admin: Manage
+    Product Catalog
+    Role: admin only" }
+
+    SELECT_LEVEL@{ shape: diamond, label: "Catalog Level?" }
+
+    %% ═══════════════════════════════════════════════════════════════════════
+    %% CATEGORY MANAGEMENT
+    %% ═══════════════════════════════════════════════════════════════════════
+
+    subgraph CATEGORY_FLOW["📁 CATEGORY MANAGEMENT (Level 1)"]
+        direction TB
+
+        CAT_ACTION@{ shape: diamond, label: "CRUD Operation?" }
+
+        CAT_CREATE@{ shape: rect, label: "➕ Create Category
+        Input:
+        • Code (4 chars, uppercase)
+        • Name
+        • Description
+        • Display order
+
+        Examples:
+        CACT - Cactus
+        SUCC - Suculenta
+        INJT - Injerto" }
+
+        CAT_VALIDATE@{ shape: rect, label: "✅ Validate
+        • Code: uppercase, max 4
+        • Code unique
+        • Name required" }
+
+        CAT_SAVE@{ shape: cyl, label: "💾 Insert Category
+        INSERT INTO
+        product_categories
+        VALUES (...)
+        RETURNING id
+
+        ⏱️ 30ms" }
+
+        CAT_LIST@{ shape: cyl, label: "📋 List Categories
+        SELECT
+        pc.*,
+        COUNT(pf.id) as families,
+        COUNT(p.id) as products
+        FROM product_categories
+        GROUP BY pc.id
+
+        ⏱️ 50ms" }
+
+        CAT_UPDATE@{ shape: rect, label: "✏️ Update Category
+        Modify:
+        • Name
+        • Description
+        • Display order
+        Note: Code immutable" }
+
+        CAT_DELETE_CHECK@{ shape: cyl, label: "🔍 Check References
+        SELECT COUNT(*)
+        FROM product_families
+        WHERE category_id = $1
+
+        ⏱️ 20ms" }
+
+        CAT_HAS_FAMILIES@{ shape: diamond, label: "Has Families?" }
+
+        CAT_DELETE_BLOCKED@{ shape: rect, label: "🚫 Cannot Delete
+        409 Conflict:
+        Category has X families
+        Delete families first" }
+
+        CAT_DELETE@{ shape: cyl, label: "💥 Delete Category
+        DELETE FROM
+        product_categories
+        WHERE id = $1
+
+        ⏱️ 30ms" }
+    end
+
+    %% ═══════════════════════════════════════════════════════════════════════
+    %% FAMILY MANAGEMENT
+    %% ═══════════════════════════════════════════════════════════════════════
+
+    subgraph FAMILY_FLOW["📂 FAMILY MANAGEMENT (Level 2)"]
+        direction TB
+
+        FAM_ACTION@{ shape: diamond, label: "CRUD Operation?" }
+
+        FAM_SELECT_CAT@{ shape: rect, label: "🎯 Select Category
+        Choose parent category:
+        • Cactus
+        • Suculenta
+        • Injerto" }
+
+        FAM_CREATE@{ shape: rect, label: "➕ Create Family
+        Input:
+        • Category (parent)
+        • Name
+        • Scientific name
+        • Description
+
+        Example:
+        Cactus → Esféricos
+        Cactus → Columnares" }
+
+        FAM_VALIDATE@{ shape: rect, label: "✅ Validate
+        • Category exists
+        • Name unique in category
+        • Required fields present" }
+
+        FAM_CHECK_DUP@{ shape: cyl, label: "Check Duplicate
+        SELECT * FROM
+        product_families
+        WHERE category_id = $1
+        AND name = $2
+
+        ⏱️ 30ms" }
+
+        FAM_DUPLICATE@{ shape: diamond, label: "Duplicate?" }
+
+        FAM_ERROR@{ shape: rect, label: "❌ Error
+        409 Conflict:
+        Family name already
+        exists in this category" }
+
+        FAM_SAVE@{ shape: cyl, label: "💾 Insert Family
+        INSERT INTO
+        product_families
+        VALUES (...)
+        RETURNING id
+
+        ⏱️ 30ms" }
+
+        FAM_LIST@{ shape: cyl, label: "📋 List Families
+        SELECT
+        pf.*,
+        pc.name as category,
+        COUNT(p.id) as products
+        FROM product_families pf
+        JOIN product_categories pc
+        LEFT JOIN products p
+        WHERE category_id = $1
+        GROUP BY pf.id
+
+        ⏱️ 80ms" }
+
+        FAM_UPDATE@{ shape: rect, label: "✏️ Update Family
+        Modify:
+        • Name
+        • Scientific name
+        • Description
+        Note: Cannot change category" }
+
+        FAM_DELETE_CHECK@{ shape: cyl, label: "🔍 Check Products
+        SELECT COUNT(*)
+        FROM products
+        WHERE family_id = $1
+
+        ⏱️ 20ms" }
+
+        FAM_HAS_PRODUCTS@{ shape: diamond, label: "Has Products?" }
+
+        FAM_DELETE_BLOCKED@{ shape: rect, label: "🚫 Cannot Delete
+        409 Conflict:
+        Family has X products
+        Delete products first" }
+
+        FAM_DELETE@{ shape: cyl, label: "💥 Delete Family
+        DELETE FROM
+        product_families
+        WHERE id = $1
+
+        ⏱️ 30ms" }
+    end
+
+    %% ═══════════════════════════════════════════════════════════════════════
+    %% PRODUCT MANAGEMENT
+    %% ═══════════════════════════════════════════════════════════════════════
+
+    subgraph PRODUCT_FLOW["🌱 PRODUCT MANAGEMENT (Level 3)"]
+        direction TB
+
+        PROD_ACTION@{ shape: diamond, label: "CRUD Operation?" }
+
+        PROD_SELECT_FAM@{ shape: rect, label: "🎯 Select Family
+        Navigate hierarchy:
+        Category → Family
+
+        Example:
+        Cactus → Esféricos" }
+
+        PROD_CREATE@{ shape: rect, label: "➕ Create Product
+        Input:
+        • Family (parent)
+        • SKU (unique)
+        • Common name
+        • Scientific name
+        • Description
+        • Temperature range
+        • Sunlight requirement
+        • Watering frequency" }
+
+        PROD_VALIDATE@{ shape: rect, label: "✅ Validate
+        • Family exists
+        • SKU unique
+        • Temperature range valid
+        • Enums valid
+        • Required fields" }
+
+        PROD_CHECK_SKU@{ shape: cyl, label: "Check SKU
+        SELECT * FROM products
+        WHERE sku = $1
+
+        ⏱️ 20ms" }
+
+        PROD_SKU_EXISTS@{ shape: diamond, label: "SKU Exists?" }
+
+        PROD_SKU_ERROR@{ shape: rect, label: "❌ Error
+        409 Conflict:
+        SKU already exists
+
+        SKU must be globally
+        unique" }
+
+        PROD_VALIDATE_TEMP@{ shape: rect, label: "🌡️ Validate Temps
+        Check:
+        min_temp <= max_temp
+
+        If both provided" }
+
+        PROD_VALIDATE_ENUMS@{ shape: rect, label: "🔍 Validate Enums
+        Sunlight:
+        full_sun | partial_shade | shade
+
+        Watering:
+        high | medium | low" }
+
+        PROD_SAVE@{ shape: cyl, label: "💾 Insert Product
+        INSERT INTO products
+        VALUES (...)
+        RETURNING id
+
+        ⏱️ 40ms" }
+
+        PROD_LIST@{ shape: cyl, label: "📋 List Products
+        SELECT
+        p.*,
+        pf.name as family,
+        pc.name as category
+        FROM products p
+        JOIN product_families pf
+        JOIN product_categories pc
+        WHERE (filters)
+        ORDER BY category, family, name
+        LIMIT 50 OFFSET $n
+
+        ⏱️ 150ms" }
+
+        PROD_UPDATE@{ shape: rect, label: "✏️ Update Product
+        Modify:
+        • Names
+        • Description
+        • Care requirements
+        Note: SKU, family immutable" }
+
+        PROD_DELETE_CHECK@{ shape: cyl, label: "🔍 Check Usage
+        SELECT COUNT(*)
+        FROM storage_location_config
+        WHERE product_id = $1
+
+        Check if used in configs
+
+        ⏱️ 30ms" }
+
+        PROD_IN_USE@{ shape: diamond, label: "In Use?" }
+
+        PROD_DELETE_BLOCKED@{ shape: rect, label: "🚫 Cannot Delete
+        409 Conflict:
+        Product used in:
+        • X storage configs
+
+        Remove references first" }
+
+        PROD_DELETE@{ shape: cyl, label: "💥 Delete Product
+        DELETE FROM products
+        WHERE id = $1
+
+        ⏱️ 30ms" }
+    end
+
+    %% ═══════════════════════════════════════════════════════════════════════
+    %% SHARED COMPONENTS
+    %% ═══════════════════════════════════════════════════════════════════════
+
+    AUDIT@{ shape: rect, label: "📋 Audit Log
+    Record:
+    • User ID
+    • Action
+    • Entity type & ID
+    • Changes
+    • Timestamp" }
+
+    CACHE_CLEAR@{ shape: rect, label: "🗑️ Invalidate Cache
+    Clear:
+    • Catalog hierarchy
+    • Category lists
+    • Family lists
+    • Product lists" }
+
+    SUCCESS@{ shape: rect, label: "✅ Success Response
+    Return created/updated
+    entity with full
+    hierarchy info" }
+
+    END_STATE@{ shape: stadium, label: "🏁 Operation Complete
+    Return to catalog view" }
+
+    %% ═══════════════════════════════════════════════════════════════════════
+    %% CONNECTIONS - MAIN FLOW
+    %% ═══════════════════════════════════════════════════════════════════════
+
+    START --> SELECT_LEVEL
+
+    SELECT_LEVEL -->|Categories| CAT_ACTION
+    SELECT_LEVEL -->|Families| FAM_SELECT_CAT
+    SELECT_LEVEL -->|Products| PROD_SELECT_FAM
+
+    %% ═══════════════════════════════════════════════════════════════════════
+    %% CONNECTIONS - CATEGORY FLOW
+    %% ═══════════════════════════════════════════════════════════════════════
+
+    CAT_ACTION -->|Create| CAT_CREATE
+    CAT_ACTION -->|List| CAT_LIST
+    CAT_ACTION -->|Update| CAT_UPDATE
+    CAT_ACTION -->|Delete| CAT_DELETE_CHECK
+
+    CAT_CREATE --> CAT_VALIDATE
+    CAT_VALIDATE --> CAT_SAVE
+    CAT_SAVE --> AUDIT
+
+    CAT_LIST --> SUCCESS
+
+    CAT_UPDATE --> CAT_VALIDATE
+
+    CAT_DELETE_CHECK --> CAT_HAS_FAMILIES
+    CAT_HAS_FAMILIES -->|Yes| CAT_DELETE_BLOCKED
+    CAT_HAS_FAMILIES -->|No| CAT_DELETE
+    CAT_DELETE_BLOCKED --> END_STATE
+    CAT_DELETE --> AUDIT
+
+    %% ═══════════════════════════════════════════════════════════════════════
+    %% CONNECTIONS - FAMILY FLOW
+    %% ═══════════════════════════════════════════════════════════════════════
+
+    FAM_SELECT_CAT --> FAM_ACTION
+
+    FAM_ACTION -->|Create| FAM_CREATE
+    FAM_ACTION -->|List| FAM_LIST
+    FAM_ACTION -->|Update| FAM_UPDATE
+    FAM_ACTION -->|Delete| FAM_DELETE_CHECK
+
+    FAM_CREATE --> FAM_VALIDATE
+    FAM_VALIDATE --> FAM_CHECK_DUP
+    FAM_CHECK_DUP --> FAM_DUPLICATE
+
+    FAM_DUPLICATE -->|Yes| FAM_ERROR
+    FAM_DUPLICATE -->|No| FAM_SAVE
+
+    FAM_ERROR --> FAM_CREATE
+    FAM_SAVE --> AUDIT
+
+    FAM_LIST --> SUCCESS
+
+    FAM_UPDATE --> FAM_VALIDATE
+
+    FAM_DELETE_CHECK --> FAM_HAS_PRODUCTS
+    FAM_HAS_PRODUCTS -->|Yes| FAM_DELETE_BLOCKED
+    FAM_HAS_PRODUCTS -->|No| FAM_DELETE
+    FAM_DELETE_BLOCKED --> END_STATE
+    FAM_DELETE --> AUDIT
+
+    %% ═══════════════════════════════════════════════════════════════════════
+    %% CONNECTIONS - PRODUCT FLOW
+    %% ═══════════════════════════════════════════════════════════════════════
+
+    PROD_SELECT_FAM --> PROD_ACTION
+
+    PROD_ACTION -->|Create| PROD_CREATE
+    PROD_ACTION -->|List| PROD_LIST
+    PROD_ACTION -->|Update| PROD_UPDATE
+    PROD_ACTION -->|Delete| PROD_DELETE_CHECK
+
+    PROD_CREATE --> PROD_VALIDATE
+    PROD_VALIDATE --> PROD_CHECK_SKU
+    PROD_CHECK_SKU --> PROD_SKU_EXISTS
+
+    PROD_SKU_EXISTS -->|Yes| PROD_SKU_ERROR
+    PROD_SKU_EXISTS -->|No| PROD_VALIDATE_TEMP
+
+    PROD_SKU_ERROR --> PROD_CREATE
+
+    PROD_VALIDATE_TEMP --> PROD_VALIDATE_ENUMS
+    PROD_VALIDATE_ENUMS --> PROD_SAVE
+    PROD_SAVE --> AUDIT
+
+    PROD_LIST --> SUCCESS
+
+    PROD_UPDATE --> PROD_VALIDATE
+
+    PROD_DELETE_CHECK --> PROD_IN_USE
+    PROD_IN_USE -->|Yes| PROD_DELETE_BLOCKED
+    PROD_IN_USE -->|No| PROD_DELETE
+    PROD_DELETE_BLOCKED --> END_STATE
+    PROD_DELETE --> AUDIT
+
+    %% ═══════════════════════════════════════════════════════════════════════
+    %% CONNECTIONS - SHARED COMPONENTS
+    %% ═══════════════════════════════════════════════════════════════════════
+
+    AUDIT --> CACHE_CLEAR
+    CACHE_CLEAR --> SUCCESS
+    SUCCESS --> END_STATE
+
+    %% ═══════════════════════════════════════════════════════════════════════
+    %% STYLING
+    %% ═══════════════════════════════════════════════════════════════════════
+
+    classDef categoryStyle fill:#E3F2FD,stroke:#1565C0,stroke-width:2px
+    classDef familyStyle fill:#F3E5F5,stroke:#7B1FA2,stroke-width:2px
+    classDef productStyle fill:#E8F5E9,stroke:#2E7D32,stroke-width:2px
+    classDef errorStyle fill:#FFCDD2,stroke:#B71C1C,stroke-width:3px
+    classDef successStyle fill:#C8E6C9,stroke:#388E3C,stroke-width:2px
+    classDef sharedStyle fill:#FFF3E0,stroke:#EF6C00,stroke-width:2px
+
+    class CAT_ACTION,CAT_CREATE,CAT_VALIDATE,CAT_SAVE,CAT_LIST,CAT_UPDATE,CAT_DELETE_CHECK,CAT_DELETE categoryStyle
+    class CAT_DELETE_BLOCKED,FAM_ERROR,FAM_DELETE_BLOCKED,PROD_SKU_ERROR,PROD_DELETE_BLOCKED errorStyle
+
+    class FAM_SELECT_CAT,FAM_ACTION,FAM_CREATE,FAM_VALIDATE,FAM_CHECK_DUP,FAM_SAVE,FAM_LIST,FAM_UPDATE,FAM_DELETE_CHECK,FAM_DELETE familyStyle
+
+    class PROD_SELECT_FAM,PROD_ACTION,PROD_CREATE,PROD_VALIDATE,PROD_CHECK_SKU,PROD_VALIDATE_TEMP,PROD_VALIDATE_ENUMS,PROD_SAVE,PROD_LIST,PROD_UPDATE,PROD_DELETE_CHECK,PROD_DELETE productStyle
+
+    class AUDIT,CACHE_CLEAR sharedStyle
+    class SUCCESS successStyle

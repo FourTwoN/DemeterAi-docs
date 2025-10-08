@@ -1,0 +1,329 @@
+---
+config:
+  theme: dark
+  themeVariables:
+    primaryColor: '#E3F2FD'
+    primaryTextColor: '#0D47A1'
+    primaryBorderColor: '#2196F3'
+    lineColor: '#1976D2'
+    secondaryColor: '#F3E5F5'
+    tertiaryColor: '#FFF3E0'
+    noteBkgColor: '#FFFDE7'
+    noteBorderColor: '#FBC02D'
+  layout: elk
+---
+flowchart TB
+    %% ═══════════════════════════════════════════════════════════════════════
+    %% DEMETERDOCS - PRICE LIST MANAGEMENT SYSTEM OVERVIEW
+    %% ═══════════════════════════════════════════════════════════════════════
+    %% Purpose: Executive-level view of price list management system
+    %% Scope: Complete flow from catalog setup to bulk operations
+    %% Detail: High-level only - See subflows for implementation
+    %% Updated: 2025-10-08 | Version: 1.0 | Mermaid v11.3.0+
+    %% ═══════════════════════════════════════════════════════════════════════
+
+    %% ═══════════════════════════════════════════════════════════════════════
+    %% LAYER 1: ADMIN ENTRY POINT
+    %% ═══════════════════════════════════════════════════════════════════════
+
+    START@{ shape: stadium, label: "🛍️ Admin Accesses
+    Price List Management
+    Role: admin only" }
+
+    %% ═══════════════════════════════════════════════════════════════════════
+    %% LAYER 2: MANAGEMENT TYPE SELECTION
+    %% ═══════════════════════════════════════════════════════════════════════
+
+    SELECT_TYPE@{ shape: diamond, label: "Select Management Area?" }
+
+    %% ═══════════════════════════════════════════════════════════════════════
+    %% PATH 1: PACKAGING CATALOG MANAGEMENT
+    %% ═══════════════════════════════════════════════════════════════════════
+    %% Detail: See 01_packaging_catalog_crud.mmd
+
+    subgraph PACKAGING_PATH["📦 PACKAGING CATALOG MANAGEMENT"]
+        direction TB
+
+        PKG_ACTION@{ shape: diamond, label: "CRUD Operation?" }
+
+        PKG_CREATE@{ shape: rect, label: "➕ Create Packaging
+        • Type: Maceta/Bandeja/Plug
+        • Material: Plastic/Ceramic
+        • Color: Black/White/Terra
+        • Dimensions: Ø, Height
+        • Volume: Liters
+        • Auto-generate SKU" }
+
+        PKG_READ@{ shape: rect, label: "📋 List/View Packaging
+        Filters:
+        • By Type
+        • By Size
+        • By Color
+        Pagination: 50/page" }
+
+        PKG_UPDATE@{ shape: rect, label: "✏️ Update Packaging
+        Modify:
+        • Dimensions
+        • Color
+        • Material
+        ⚠️ Affects current price list" }
+
+        PKG_DELETE@{ shape: rect, label: "🗑️ Delete Packaging
+        Validations:
+        • Not in active price_list
+        • Soft delete if has history
+        • Cascade checks" }
+
+        PKG_VALIDATE@{ shape: cyl, label: "Validate & Save
+        DB: packaging_catalog
+        Check: Unique SKU
+        Check: Valid dimensions
+        ⏱️ < 100ms" }
+    end
+
+    %% ═══════════════════════════════════════════════════════════════════════
+    %% PATH 2: PRODUCT CATALOG MANAGEMENT
+    %% ═══════════════════════════════════════════════════════════════════════
+    %% Detail: See 02_product_catalog_crud.mmd
+
+    subgraph PRODUCT_PATH["🌵 PRODUCT CATALOG MANAGEMENT"]
+        direction TB
+
+        PROD_LEVEL@{ shape: diamond, label: "Catalog Level?" }
+
+        PROD_CAT@{ shape: rect, label: "📁 Manage Categories
+        • Cactus
+        • Suculenta
+        • Injerto
+        CRUD: Create/Update/Delete" }
+
+        PROD_FAM@{ shape: rect, label: "📂 Manage Families
+        Belongs to: Category
+        • Scientific name
+        • Common name
+        Hierarchical structure" }
+
+        PROD_ITEM@{ shape: rect, label: "🌱 Manage Products
+        Belongs to: Family
+        • SKU (unique)
+        • Common name
+        • Scientific name
+        • Description" }
+
+        PROD_VALIDATE@{ shape: cyl, label: "Validate & Save
+        DB Tables:
+        • product_categories
+        • product_families
+        • products
+        Check: Referential integrity" }
+    end
+
+    %% ═══════════════════════════════════════════════════════════════════════
+    %% PATH 3: PRICE LIST MANAGEMENT
+    %% ═══════════════════════════════════════════════════════════════════════
+    %% Detail: See 03_price_list_management.mmd
+
+    subgraph PRICE_PATH["💰 PRICE LIST MANAGEMENT"]
+        direction TB
+
+        PRICE_SELECT@{ shape: rect, label: "🔗 Select Combination
+        Product Category +
+        Packaging Catalog
+
+        Example:
+        Cactus + R7 Black" }
+
+        PRICE_FORM@{ shape: rect, label: "📝 Price Entry Form
+        • Wholesale Unit Price ($)
+        • Retail Unit Price ($)
+        • SKU (auto or manual)
+        • Units per Storage Box
+        • Observations
+        • Availability status" }
+
+        PRICE_CALC@{ shape: rect, label: "🧮 Auto Calculations
+        wholesale_total_per_box =
+        wholesale_unit_price ×
+        units_per_box
+
+        Validate: retail >= wholesale" }
+
+        PRICE_SAVE@{ shape: cyl, label: "Save to Database
+        DB: price_list
+
+        Constraint:
+        UNIQUE(packaging_id,
+               category_id)
+
+        ⏱️ < 100ms" }
+    end
+
+    %% ═══════════════════════════════════════════════════════════════════════
+    %% PATH 4: BULK OPERATIONS
+    %% ═══════════════════════════════════════════════════════════════════════
+    %% Detail: See 04_bulk_edit_operations.mmd
+
+    subgraph BULK_PATH["⚡ BULK EDIT OPERATIONS"]
+        direction TB
+
+        BULK_TYPE@{ shape: diamond, label: "Bulk Operation Type?" }
+
+        BULK_PRICE@{ shape: rect, label: "💵 Bulk Price Update
+        Operation:
+        • Increase by X%
+        • Decrease by X%
+
+        Filters:
+        • By category
+        • By packaging type
+        • By price range" }
+
+        BULK_AVAIL@{ shape: rect, label: "📊 Bulk Availability
+        Change status:
+        • Available
+        • Out of Stock
+        • Discontinued
+
+        Apply to filtered items" }
+
+        BULK_DISCOUNT@{ shape: rect, label: "🏷️ Bulk Discount
+        Set discount_factor:
+        • Percentage (0-100%)
+
+        Apply to category/type" }
+
+        BULK_PREVIEW@{ shape: rect, label: "👁️ Preview Changes
+        Show affected items:
+        • Count
+        • Before/After values
+        • Total impact
+
+        Require confirmation" }
+
+        BULK_EXECUTE@{ shape: cyl, label: "Execute Batch Update
+        Single transaction:
+        UPDATE price_list
+        SET ... WHERE ...
+
+        Audit log all changes
+        ⏱️ < 500ms (100 items)" }
+
+        BULK_NOTIFY@{ shape: rect, label: "📢 Notify & Log
+        • Audit trail
+        • User notification
+        • Change summary
+        • Timestamp" }
+    end
+
+    %% ═══════════════════════════════════════════════════════════════════════
+    %% LAYER 3: RESULTS & VIEWS
+    %% ═══════════════════════════════════════════════════════════════════════
+
+    DISPLAY@{ shape: rect, label: "🖥️ Display Results
+    • Updated catalog view
+    • Success messages
+    • Change summary
+    • Refresh lists" }
+
+    EXPORT_OPTION@{ shape: diamond, label: "Export Data?" }
+
+    EXPORT@{ shape: rect, label: "📤 Export Price List
+    Formats:
+    • Excel (.xlsx)
+    • CSV
+    • PDF (formatted)
+
+    Include all metadata" }
+
+    DOWNLOAD@{ shape: stadium, label: "⬇️ Download File
+    price_list_YYYYMMDD.xlsx" }
+
+    %% ═══════════════════════════════════════════════════════════════════════
+    %% CONNECTIONS - MAIN FLOW
+    %% ═══════════════════════════════════════════════════════════════════════
+
+    START --> SELECT_TYPE
+
+    SELECT_TYPE -->|Packaging Catalog| PKG_ACTION
+    SELECT_TYPE -->|Product Catalog| PROD_LEVEL
+    SELECT_TYPE -->|Price List| PRICE_SELECT
+    SELECT_TYPE -->|Bulk Operations| BULK_TYPE
+
+    %% ═══════════════════════════════════════════════════════════════════════
+    %% CONNECTIONS - PACKAGING PATH
+    %% ═══════════════════════════════════════════════════════════════════════
+
+    PKG_ACTION -->|Create| PKG_CREATE
+    PKG_ACTION -->|Read/List| PKG_READ
+    PKG_ACTION -->|Update| PKG_UPDATE
+    PKG_ACTION -->|Delete| PKG_DELETE
+
+    PKG_CREATE --> PKG_VALIDATE
+    PKG_UPDATE --> PKG_VALIDATE
+    PKG_DELETE --> PKG_VALIDATE
+    PKG_VALIDATE --> DISPLAY
+
+    %% ═══════════════════════════════════════════════════════════════════════
+    %% CONNECTIONS - PRODUCT PATH
+    %% ═══════════════════════════════════════════════════════════════════════
+
+    PROD_LEVEL -->|Categories| PROD_CAT
+    PROD_LEVEL -->|Families| PROD_FAM
+    PROD_LEVEL -->|Products| PROD_ITEM
+
+    PROD_CAT --> PROD_VALIDATE
+    PROD_FAM --> PROD_VALIDATE
+    PROD_ITEM --> PROD_VALIDATE
+    PROD_VALIDATE --> DISPLAY
+
+    %% ═══════════════════════════════════════════════════════════════════════
+    %% CONNECTIONS - PRICE PATH
+    %% ═══════════════════════════════════════════════════════════════════════
+
+    PRICE_SELECT --> PRICE_FORM
+    PRICE_FORM --> PRICE_CALC
+    PRICE_CALC --> PRICE_SAVE
+    PRICE_SAVE --> DISPLAY
+
+    %% ═══════════════════════════════════════════════════════════════════════
+    %% CONNECTIONS - BULK PATH
+    %% ═══════════════════════════════════════════════════════════════════════
+
+    BULK_TYPE -->|Update Prices| BULK_PRICE
+    BULK_TYPE -->|Change Availability| BULK_AVAIL
+    BULK_TYPE -->|Apply Discounts| BULK_DISCOUNT
+
+    BULK_PRICE --> BULK_PREVIEW
+    BULK_AVAIL --> BULK_PREVIEW
+    BULK_DISCOUNT --> BULK_PREVIEW
+
+    BULK_PREVIEW --> BULK_EXECUTE
+    BULK_EXECUTE --> BULK_NOTIFY
+    BULK_NOTIFY --> DISPLAY
+
+    %% ═══════════════════════════════════════════════════════════════════════
+    %% CONNECTIONS - EXPORT
+    %% ═══════════════════════════════════════════════════════════════════════
+
+    DISPLAY --> EXPORT_OPTION
+
+    EXPORT_OPTION -->|No| DISPLAY
+    EXPORT_OPTION -->|Yes| EXPORT
+
+    EXPORT --> DOWNLOAD
+
+    %% ═══════════════════════════════════════════════════════════════════════
+    %% STYLING
+    %% ═══════════════════════════════════════════════════════════════════════
+
+    classDef packagingStyle fill:#E3F2FD,stroke:#1976D2,stroke-width:2px
+    classDef productStyle fill:#F3E5F5,stroke:#7B1FA2,stroke-width:2px
+    classDef priceStyle fill:#FFF3E0,stroke:#F57C00,stroke-width:2px
+    classDef bulkStyle fill:#FFEBEE,stroke:#C62828,stroke-width:2px
+    classDef exportStyle fill:#E8F5E9,stroke:#388E3C,stroke-width:2px
+
+    class PKG_ACTION,PKG_CREATE,PKG_READ,PKG_UPDATE,PKG_DELETE,PKG_VALIDATE packagingStyle
+    class PROD_LEVEL,PROD_CAT,PROD_FAM,PROD_ITEM,PROD_VALIDATE productStyle
+    class PRICE_SELECT,PRICE_FORM,PRICE_CALC,PRICE_SAVE priceStyle
+    class BULK_TYPE,BULK_PRICE,BULK_AVAIL,BULK_DISCOUNT,BULK_PREVIEW,BULK_EXECUTE,BULK_NOTIFY bulkStyle
+    class EXPORT,DOWNLOAD exportStyle

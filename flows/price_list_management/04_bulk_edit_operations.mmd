@@ -1,0 +1,480 @@
+---
+config:
+  theme: dark
+  themeVariables:
+    primaryColor: '#E3F2FD'
+    primaryTextColor: '#0D47A1'
+    primaryBorderColor: '#2196F3'
+    lineColor: '#1976D2'
+    secondaryColor: '#F3E5F5'
+    tertiaryColor: '#FFF3E0'
+    noteBkgColor: '#FFFDE7'
+    noteBorderColor: '#FBC02D'
+  layout: elk
+---
+flowchart TB
+    %% ═══════════════════════════════════════════════════════════════════════
+    %% DEMETERDOCS - BULK EDIT OPERATIONS
+    %% ═══════════════════════════════════════════════════════════════════════
+    %% Purpose: Detailed implementation of bulk price list operations
+    %% Scope: Batch updates with preview, confirmation, and validation
+    %% Detail: Performance optimization, rate limiting, audit logging
+    %% Updated: 2025-10-08 | Version: 1.0 | Mermaid v11.3.0+
+    %% ═══════════════════════════════════════════════════════════════════════
+
+    %% ═══════════════════════════════════════════════════════════════════════
+    %% ENTRY POINT
+    %% ═══════════════════════════════════════════════════════════════════════
+
+    START@{ shape: stadium, label: "⚡ Admin: Bulk Operations
+    Price List Management
+    Role: admin only" }
+
+    SELECT_OP@{ shape: diamond, label: "Bulk Operation Type?" }
+
+    %% ═══════════════════════════════════════════════════════════════════════
+    %% PRICE UPDATE FLOW
+    %% ═══════════════════════════════════════════════════════════════════════
+
+    subgraph PRICE_FLOW["💵 BULK PRICE UPDATE"]
+        direction TB
+
+        PRICE_INPUT@{ shape: rect, label: "📊 Configure Operation
+        Percentage Change:
+        • Increase: +X%
+        • Decrease: -X%
+
+        Example: +10% increase
+        $5.00 → $5.50" }
+
+        PRICE_FILTERS@{ shape: rect, label: "🔍 Apply Filters
+        Optional filters:
+        • Category (Cactus/Suculenta)
+        • Packaging type (R7/R10)
+        • Availability status
+        • Price range (min/max)
+
+        Combine filters with AND" }
+
+        PRICE_VALIDATE@{ shape: rect, label: "✅ Validate Input
+        • Percentage ≠ 0
+        • |Percentage| ≤ 100%
+        • At least one filter OR
+          explicit 'all items' flag" }
+
+        PRICE_VALID@{ shape: diamond, label: "Valid?" }
+
+        PRICE_ERROR@{ shape: rect, label: "❌ Validation Error
+        Show specific error:
+        • Invalid percentage
+        • No filters selected
+        • Conflicting filters" }
+
+        PRICE_PREVIEW_QUERY@{ shape: cyl, label: "📋 Preview Query
+        SELECT
+          id, SKU,
+          current_price,
+          new_price,
+          packaging, category
+        FROM price_list
+        WHERE (filters)
+
+        Calculate new prices
+        without updating
+
+        ⏱️ 150-300ms" }
+
+        PRICE_CHECK_COUNT@{ shape: diamond, label: "Item Count?" }
+
+        PRICE_TOO_MANY@{ shape: rect, label: "⚠️ Too Many Items
+        {count} items affected
+
+        Maximum: 1000 items
+
+        Please use more
+        specific filters" }
+
+        PRICE_NONE@{ shape: rect, label: "⚠️ No Items
+        No items match
+        the specified filters
+
+        Adjust filters and
+        try again" }
+
+        PRICE_SHOW_PREVIEW@{ shape: rect, label: "👁️ Show Preview
+        Display table:
+        SKU | Packaging | Category
+        Current | New | Change
+
+        Summary:
+        • Total items: N
+        • Avg change: $X.XX
+        • Min/Max change
+
+        [Cancel] [Confirm]" }
+
+        PRICE_CONFIRMED@{ shape: diamond, label: "Confirmed?" }
+
+        PRICE_CANCEL@{ shape: rect, label: "🚫 Cancelled
+        No changes made" }
+
+        PRICE_RATE_CHECK@{ shape: rect, label: "🔒 Rate Limit Check
+        Redis key:
+        bulk_ops:{user_id}
+
+        Check: < 10 ops/hour
+
+        If exceeded: 403 error" }
+
+        PRICE_RATE_OK@{ shape: diamond, label: "Rate OK?" }
+
+        PRICE_RATE_ERROR@{ shape: rect, label: "🚫 Rate Limit Exceeded
+        403 Forbidden:
+        Maximum 10 bulk ops
+        per hour reached
+
+        Try again later" }
+
+        PRICE_EXECUTE@{ shape: cyl, label: "💾 Execute Update
+        BEGIN TRANSACTION
+
+        UPDATE price_list
+        SET
+          wholesale_price = FLOOR(
+            wholesale_price * factor
+          ),
+          retail_price = FLOOR(
+            retail_price * factor
+          ),
+          total_per_box = FLOOR(
+            wholesale_price * factor
+          ) * units,
+          updated_at = NOW()
+        WHERE id IN (filtered_ids)
+
+        COMMIT
+
+        ⏱️ 200-500ms (100 items)" }
+
+        PRICE_AUDIT@{ shape: rect, label: "📋 Audit Log
+        Record:
+        • User ID
+        • Operation type
+        • Percentage change
+        • Filters applied
+        • Items affected
+        • Execution time
+        • Timestamp" }
+
+        PRICE_INCREMENT@{ shape: rect, label: "🔢 Increment Counter
+        Redis INCR
+        bulk_ops:{user_id}
+
+        EXPIRE 3600 (1 hour)" }
+
+        PRICE_CACHE@{ shape: rect, label: "🗑️ Invalidate Cache
+        Clear all price list
+        related caches:
+        • List queries
+        • Individual entries
+        • Aggregations" }
+
+        PRICE_SUCCESS@{ shape: rect, label: "✅ Success
+        200 OK
+
+        Message:
+        Successfully updated
+        {count} items
+
+        Show summary of changes" }
+    end
+
+    %% ═══════════════════════════════════════════════════════════════════════
+    %% AVAILABILITY UPDATE FLOW
+    %% ═══════════════════════════════════════════════════════════════════════
+
+    subgraph AVAIL_FLOW["📊 BULK AVAILABILITY UPDATE"]
+        direction TB
+
+        AVAIL_SELECT@{ shape: rect, label: "🎯 Select New Status
+        Choose availability:
+        ( ) Available
+        ( ) Out of Stock
+        ( ) Discontinued
+
+        Current status filter:
+        [ ] Only update 'available'" }
+
+        AVAIL_FILTERS@{ shape: rect, label: "🔍 Apply Filters
+        Optional:
+        • Category
+        • Packaging type
+        • Current availability
+
+        Example:
+        All Cactus currently
+        'available' → 'out_of_stock'" }
+
+        AVAIL_VALIDATE@{ shape: rect, label: "✅ Validate
+        • Status is valid enum
+        • At least one filter" }
+
+        AVAIL_PREVIEW@{ shape: cyl, label: "📋 Count Affected
+        SELECT COUNT(*)
+        FROM price_list
+        WHERE (filters)
+
+        ⏱️ 50ms" }
+
+        AVAIL_CHECK_COUNT@{ shape: diamond, label: "Count OK?" }
+
+        AVAIL_TOO_MANY@{ shape: rect, label: "⚠️ Too Many
+        {count} items
+
+        Max: 1000
+
+        Use more filters" }
+
+        AVAIL_CONFIRM@{ shape: rect, label: "⚠️ Confirm Change
+        Change availability for
+        {count} items from
+        '{current}' to '{new}'
+
+        This affects catalog
+        visibility immediately
+
+        Confirm?" }
+
+        AVAIL_CONFIRMED@{ shape: diamond, label: "Confirmed?" }
+
+        AVAIL_CANCEL@{ shape: rect, label: "🚫 Cancelled" }
+
+        AVAIL_EXECUTE@{ shape: cyl, label: "💾 Execute Update
+        BEGIN TRANSACTION
+
+        UPDATE price_list
+        SET
+          availability = $new,
+          updated_at = NOW()
+        WHERE (filters)
+
+        COMMIT
+
+        ⏱️ 150-300ms" }
+
+        AVAIL_AUDIT@{ shape: rect, label: "📋 Audit Log
+        Record availability
+        change details" }
+
+        AVAIL_CACHE@{ shape: rect, label: "🗑️ Clear Cache" }
+
+        AVAIL_SUCCESS@{ shape: rect, label: "✅ Success
+        Updated {count} items
+        to '{new_status}'" }
+    end
+
+    %% ═══════════════════════════════════════════════════════════════════════
+    %% DISCOUNT UPDATE FLOW
+    %% ═══════════════════════════════════════════════════════════════════════
+
+    subgraph DISCOUNT_FLOW["🏷️ BULK DISCOUNT UPDATE"]
+        direction TB
+
+        DISC_INPUT@{ shape: rect, label: "💯 Set Discount Factor
+        Enter percentage: [0-100]
+
+        Examples:
+        0% = No discount
+        10% = 10% off
+        25% = 25% off
+
+        Applied to filtered items" }
+
+        DISC_FILTERS@{ shape: rect, label: "🔍 Apply Filters
+        Optional:
+        • Category
+        • Packaging type
+
+        Example:
+        All Suculentas get 15%" }
+
+        DISC_VALIDATE@{ shape: rect, label: "✅ Validate
+        • 0 ≤ discount ≤ 100
+        • At least one filter" }
+
+        DISC_VALID@{ shape: diamond, label: "Valid?" }
+
+        DISC_ERROR@{ shape: rect, label: "❌ Error
+        Invalid discount factor
+        Must be 0-100" }
+
+        DISC_PREVIEW@{ shape: cyl, label: "📋 Count Affected
+        SELECT COUNT(*)
+        FROM price_list
+        WHERE (filters)
+
+        ⏱️ 50ms" }
+
+        DISC_CONFIRM@{ shape: rect, label: "⚠️ Confirm
+        Apply {discount}% discount
+        to {count} items
+
+        Confirm?" }
+
+        DISC_CONFIRMED@{ shape: diamond, label: "Confirmed?" }
+
+        DISC_CANCEL@{ shape: rect, label: "🚫 Cancelled" }
+
+        DISC_EXECUTE@{ shape: cyl, label: "💾 Execute Update
+        BEGIN TRANSACTION
+
+        UPDATE price_list
+        SET
+          discount_factor = $disc,
+          updated_at = NOW()
+        WHERE (filters)
+
+        COMMIT
+
+        ⏱️ 150-250ms" }
+
+        DISC_AUDIT@{ shape: rect, label: "📋 Audit Log" }
+
+        DISC_CACHE@{ shape: rect, label: "🗑️ Clear Cache" }
+
+        DISC_SUCCESS@{ shape: rect, label: "✅ Success
+        Applied {discount}%
+        to {count} items" }
+    end
+
+    %% ═══════════════════════════════════════════════════════════════════════
+    %% END STATE
+    %% ═══════════════════════════════════════════════════════════════════════
+
+    END_STATE@{ shape: stadium, label: "🏁 Operation Complete
+    Return to price list view" }
+
+    %% ═══════════════════════════════════════════════════════════════════════
+    %% CONNECTIONS - MAIN FLOW
+    %% ═══════════════════════════════════════════════════════════════════════
+
+    START --> SELECT_OP
+
+    SELECT_OP -->|Update Prices| PRICE_INPUT
+    SELECT_OP -->|Change Availability| AVAIL_SELECT
+    SELECT_OP -->|Apply Discounts| DISC_INPUT
+
+    %% ═══════════════════════════════════════════════════════════════════════
+    %% CONNECTIONS - PRICE FLOW
+    %% ═══════════════════════════════════════════════════════════════════════
+
+    PRICE_INPUT --> PRICE_FILTERS
+    PRICE_FILTERS --> PRICE_VALIDATE
+    PRICE_VALIDATE --> PRICE_VALID
+
+    PRICE_VALID -->|No| PRICE_ERROR
+    PRICE_VALID -->|Yes| PRICE_PREVIEW_QUERY
+
+    PRICE_ERROR --> PRICE_INPUT
+
+    PRICE_PREVIEW_QUERY --> PRICE_CHECK_COUNT
+
+    PRICE_CHECK_COUNT -->|0 items| PRICE_NONE
+    PRICE_CHECK_COUNT -->|> 1000 items| PRICE_TOO_MANY
+    PRICE_CHECK_COUNT -->|1-1000 items| PRICE_SHOW_PREVIEW
+
+    PRICE_NONE --> PRICE_FILTERS
+    PRICE_TOO_MANY --> PRICE_FILTERS
+
+    PRICE_SHOW_PREVIEW --> PRICE_CONFIRMED
+
+    PRICE_CONFIRMED -->|No| PRICE_CANCEL
+    PRICE_CONFIRMED -->|Yes| PRICE_RATE_CHECK
+
+    PRICE_CANCEL --> END_STATE
+
+    PRICE_RATE_CHECK --> PRICE_RATE_OK
+
+    PRICE_RATE_OK -->|No| PRICE_RATE_ERROR
+    PRICE_RATE_OK -->|Yes| PRICE_EXECUTE
+
+    PRICE_RATE_ERROR --> END_STATE
+
+    PRICE_EXECUTE --> PRICE_AUDIT
+    PRICE_AUDIT --> PRICE_INCREMENT
+    PRICE_INCREMENT --> PRICE_CACHE
+    PRICE_CACHE --> PRICE_SUCCESS
+    PRICE_SUCCESS --> END_STATE
+
+    %% ═══════════════════════════════════════════════════════════════════════
+    %% CONNECTIONS - AVAILABILITY FLOW
+    %% ═══════════════════════════════════════════════════════════════════════
+
+    AVAIL_SELECT --> AVAIL_FILTERS
+    AVAIL_FILTERS --> AVAIL_VALIDATE
+    AVAIL_VALIDATE --> AVAIL_PREVIEW
+
+    AVAIL_PREVIEW --> AVAIL_CHECK_COUNT
+
+    AVAIL_CHECK_COUNT -->|0 or > 1000| AVAIL_TOO_MANY
+    AVAIL_CHECK_COUNT -->|1-1000| AVAIL_CONFIRM
+
+    AVAIL_TOO_MANY --> AVAIL_FILTERS
+
+    AVAIL_CONFIRM --> AVAIL_CONFIRMED
+
+    AVAIL_CONFIRMED -->|No| AVAIL_CANCEL
+    AVAIL_CONFIRMED -->|Yes| AVAIL_EXECUTE
+
+    AVAIL_CANCEL --> END_STATE
+
+    AVAIL_EXECUTE --> AVAIL_AUDIT
+    AVAIL_AUDIT --> AVAIL_CACHE
+    AVAIL_CACHE --> AVAIL_SUCCESS
+    AVAIL_SUCCESS --> END_STATE
+
+    %% ═══════════════════════════════════════════════════════════════════════
+    %% CONNECTIONS - DISCOUNT FLOW
+    %% ═══════════════════════════════════════════════════════════════════════
+
+    DISC_INPUT --> DISC_FILTERS
+    DISC_FILTERS --> DISC_VALIDATE
+    DISC_VALIDATE --> DISC_VALID
+
+    DISC_VALID -->|No| DISC_ERROR
+    DISC_VALID -->|Yes| DISC_PREVIEW
+
+    DISC_ERROR --> DISC_INPUT
+
+    DISC_PREVIEW --> DISC_CONFIRM
+    DISC_CONFIRM --> DISC_CONFIRMED
+
+    DISC_CONFIRMED -->|No| DISC_CANCEL
+    DISC_CONFIRMED -->|Yes| DISC_EXECUTE
+
+    DISC_CANCEL --> END_STATE
+
+    DISC_EXECUTE --> DISC_AUDIT
+    DISC_AUDIT --> DISC_CACHE
+    DISC_CACHE --> DISC_SUCCESS
+    DISC_SUCCESS --> END_STATE
+
+    %% ═══════════════════════════════════════════════════════════════════════
+    %% STYLING
+    %% ═══════════════════════════════════════════════════════════════════════
+
+    classDef priceStyle fill:#E3F2FD,stroke:#1565C0,stroke-width:2px
+    classDef availStyle fill:#F3E5F5,stroke:#7B1FA2,stroke-width:2px
+    classDef discStyle fill:#FFF3E0,stroke:#EF6C00,stroke-width:2px
+    classDef errorStyle fill:#FFCDD2,stroke:#B71C1C,stroke-width:3px
+    classDef successStyle fill:#C8E6C9,stroke:#388E3C,stroke-width:2px
+    classDef warningStyle fill:#FFF9C4,stroke:#F57F17,stroke-width:2px
+
+    class PRICE_INPUT,PRICE_FILTERS,PRICE_VALIDATE,PRICE_PREVIEW_QUERY,PRICE_SHOW_PREVIEW,PRICE_RATE_CHECK,PRICE_EXECUTE,PRICE_AUDIT,PRICE_INCREMENT,PRICE_CACHE priceStyle
+    class PRICE_SUCCESS,AVAIL_SUCCESS,DISC_SUCCESS successStyle
+    class PRICE_ERROR,PRICE_RATE_ERROR,PRICE_CANCEL,AVAIL_CANCEL,DISC_CANCEL,DISC_ERROR errorStyle
+    class PRICE_TOO_MANY,PRICE_NONE,AVAIL_TOO_MANY warningStyle
+
+    class AVAIL_SELECT,AVAIL_FILTERS,AVAIL_VALIDATE,AVAIL_PREVIEW,AVAIL_CONFIRM,AVAIL_EXECUTE,AVAIL_AUDIT,AVAIL_CACHE availStyle
+
+    class DISC_INPUT,DISC_FILTERS,DISC_VALIDATE,DISC_PREVIEW,DISC_CONFIRM,DISC_EXECUTE,DISC_AUDIT,DISC_CACHE discStyle
