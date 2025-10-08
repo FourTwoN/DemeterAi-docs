@@ -1,0 +1,606 @@
+# Photo Upload & Gallery System - Comprehensive Overview
+
+**Version:** 1.0.0
+**Date:** 2025-10-08
+**System:** DemeterAI Photo Management
+
+## Purpose
+
+This diagram provides an **executive-level view** of the complete photo upload and gallery management system, enabling users to upload cultivation photos, monitor processing, view results in a gallery, and handle errors gracefully.
+
+## Scope
+
+- **Level**: High-level architectural overview
+- **Audience**: Product managers, developers, UX designers, stakeholders
+- **Detail**: End-to-end user journey from upload to gallery display
+- **Mermaid Version**: v11.3.0+ (using modern syntax)
+
+## What It Represents
+
+The diagram illustrates two primary user workflows:
+
+### 1. Upload Workflow (Left Side)
+**User goal:** Upload photos and track processing status
+
+1. **Upload View**: User selects and uploads 1-100 photos via multipart/form-data
+2. **Backend Processing**:
+   - Saves files to temporary storage (/tmp/uploads/)
+   - Generates unique UUIDs for each photo
+   - Creates Celery jobs for asynchronous ML processing
+   - Returns 202 Accepted with job IDs
+3. **Job Monitoring**:
+   - Frontend polls every 2 seconds for job status
+   - Displays progress bar (simulated based on typical processing time)
+   - Shows list of all jobs with status (pending/processing/completed/failed)
+   - Job list visible for 24-48 hours
+4. **Processing Pipeline**: Each photo goes through ML detection (5-10 minutes per photo)
+
+### 2. Gallery Workflow (Right Side)
+**User goal:** Browse uploaded photos and view details
+
+1. **Gallery View**:
+   - Displays all uploaded photos across all sessions
+   - Uses S3 thumbnail URLs for fast loading
+   - Filters: Date range, warehouse, status (all/success/errors)
+   - Pagination for large datasets
+2. **Photo Detail**:
+   - Click photo to open storage_location detail view
+   - Shows detection results, historical timeline
+   - Displays trazabilidad (traceability) information
+3. **Error Handling**:
+   - Photos with warnings/errors highlighted in gallery
+   - User can click to view error details
+   - Option to fix errors and reprocess from S3
+
+## Key Components
+
+### Upload View Features
+- **Multi-file upload**: Drag-and-drop or file selector (up to 100 photos)
+- **Instant feedback**: Upload progress, file validation
+- **Job list**: All jobs for current session with real-time status
+- **Progress estimation**: Fake progress bar based on average processing time
+- **Persistence**: Job list remains visible for 24-48 hours
+
+### Gallery View Features
+- **Thumbnail grid**: Fast loading using S3 presigned URLs
+- **Advanced filters**:
+  - Date range picker (last 7 days, 30 days, custom)
+  - Warehouse selector (multi-select)
+  - Status filter (all, success, errors only)
+- **Infinite scroll**: Lazy loading for performance
+- **Batch operations**: Delete multiple photos
+- **Status indicators**: Visual badges for success/warning/error states
+
+### Error Recovery Flow
+- **Error types**:
+  - `needs_location`: GPS missing or outside cultivation area
+  - `needs_config`: Storage location not configured
+  - `needs_calibration`: Density parameters missing
+- **Recovery actions**:
+  - Click error badge → Open modal with error details
+  - Fix underlying issue (add location, configure storage, calibrate)
+  - Click "Reprocess" → Triggers new Celery job using S3 original
+  - No need to re-upload photo (saves time and bandwidth)
+
+## Database Schema
+
+### s3_images Table
+Stores metadata for all uploaded images.
+
+```sql
+CREATE TABLE s3_images (
+    id SERIAL PRIMARY KEY,
+    image_id UUID UNIQUE NOT NULL,
+    s3_bucket VARCHAR(255) NOT NULL,
+    s3_key_original VARCHAR(512) UNIQUE NOT NULL,
+    s3_key_thumbnail VARCHAR(512),
+    content_type VARCHAR(100),
+    file_size_bytes BIGINT,
+    width_px INTEGER,
+    height_px INTEGER,
+    exif_metadata JSONB,
+    gps_coordinates JSONB,  -- {lat, lon, altitude, accuracy}
+    upload_source VARCHAR(50),  -- 'web', 'mobile', 'api'
+    uploaded_by_user_id INTEGER REFERENCES users(id),
+    status VARCHAR(50) DEFAULT 'uploaded',  -- uploaded|processing|ready|failed
+    error_details TEXT,
+    processing_status_updated_at TIMESTAMP,
+    created_at TIMESTAMP DEFAULT NOW(),
+    updated_at TIMESTAMP DEFAULT NOW()
+);
+
+CREATE INDEX idx_s3_images_status ON s3_images(status);
+CREATE INDEX idx_s3_images_uploaded_by ON s3_images(uploaded_by_user_id);
+CREATE INDEX idx_s3_images_created_at ON s3_images(created_at DESC);
+CREATE INDEX idx_s3_images_s3_key ON s3_images(s3_key_original);
+```
+
+**Key fields:**
+- `image_id`: UUID for external references (never expose internal `id`)
+- `s3_key_original`: Full-resolution image path in S3
+- `s3_key_thumbnail`: 300x300px thumbnail for gallery view
+- `exif_metadata`: Camera settings, timestamp, device info
+- `gps_coordinates`: Used for location matching
+- `status`: Tracks processing lifecycle
+- `error_details`: Stores error messages for UI display
+
+### photo_processing_sessions Table
+Links uploaded photos to ML processing results.
+
+```sql
+CREATE TABLE photo_processing_sessions (
+    id SERIAL PRIMARY KEY,
+    session_id UUID UNIQUE NOT NULL,
+    storage_location_id INTEGER REFERENCES storage_locations(id),  -- nullable
+    original_image_id INTEGER REFERENCES s3_images(id) NOT NULL,
+    processed_image_id INTEGER REFERENCES s3_images(id),  -- annotated image
+    total_detected INTEGER,
+    total_estimated INTEGER,
+    total_empty_containers INTEGER,
+    avg_confidence NUMERIC(5,4),
+    category_counts JSONB,  -- {"plant": 120, "empty": 5}
+    status VARCHAR(50) DEFAULT 'pending',  -- pending|processing|completed|failed
+    error_message TEXT,
+    validated BOOLEAN DEFAULT false,
+    validated_by_user_id INTEGER REFERENCES users(id),
+    validation_date TIMESTAMP,
+    manual_adjustments JSONB,  -- User corrections
+    created_at TIMESTAMP DEFAULT NOW(),
+    updated_at TIMESTAMP DEFAULT NOW()
+);
+
+CREATE INDEX idx_sessions_status ON photo_processing_sessions(status);
+CREATE INDEX idx_sessions_storage_location ON photo_processing_sessions(storage_location_id);
+CREATE INDEX idx_sessions_original_image ON photo_processing_sessions(original_image_id);
+CREATE INDEX idx_sessions_created_at ON photo_processing_sessions(created_at DESC);
+```
+
+**Key fields:**
+- `session_id`: UUID for frontend polling
+- `storage_location_id`: Nullable (filled after GPS matching or manual assignment)
+- `original_image_id`: Links to s3_images
+- `processed_image_id`: Annotated image with bounding boxes
+- `validated`: User has reviewed and approved results
+- `manual_adjustments`: Stores user corrections (add/remove detections)
+
+## API Endpoints
+
+### Upload Endpoints
+
+#### POST /api/v1/photos/upload
+Upload multiple photos and create processing jobs.
+
+**Request:**
+```http
+POST /api/v1/photos/upload HTTP/1.1
+Content-Type: multipart/form-data; boundary=----WebKitFormBoundary
+Authorization: Bearer <token>
+
+------WebKitFormBoundary
+Content-Disposition: form-data; name="files"; filename="photo1.jpg"
+Content-Type: image/jpeg
+
+<binary data>
+------WebKitFormBoundary
+Content-Disposition: form-data; name="files"; filename="photo2.jpg"
+Content-Type: image/jpeg
+
+<binary data>
+------WebKitFormBoundary--
+```
+
+**Response:**
+```json
+{
+  "status": "accepted",
+  "upload_session_id": "uuid-...",
+  "jobs": [
+    {
+      "job_id": "celery-task-id-1",
+      "image_id": "uuid-1",
+      "filename": "photo1.jpg",
+      "status": "pending"
+    },
+    {
+      "job_id": "celery-task-id-2",
+      "image_id": "uuid-2",
+      "filename": "photo2.jpg",
+      "status": "pending"
+    }
+  ],
+  "total_files": 2,
+  "estimated_completion_time_minutes": 20,
+  "poll_url": "/api/v1/photos/jobs/status?upload_session_id=uuid-..."
+}
+```
+
+**Status Code:** 202 Accepted
+
+**Performance:**
+- Upload: 10-30s for 100 photos (depends on network)
+- Response time: < 500ms after upload completes
+
+### Job Monitoring Endpoints
+
+#### GET /api/v1/photos/jobs/status
+Poll for job status updates.
+
+**Request:**
+```http
+GET /api/v1/photos/jobs/status?upload_session_id=uuid-... HTTP/1.1
+Authorization: Bearer <token>
+```
+
+**Response:**
+```json
+{
+  "upload_session_id": "uuid-...",
+  "jobs": [
+    {
+      "job_id": "celery-task-id-1",
+      "image_id": "uuid-1",
+      "filename": "photo1.jpg",
+      "status": "completed",
+      "progress_percent": 100,
+      "processing_time_seconds": 320,
+      "result": {
+        "session_id": "processing-session-uuid-1",
+        "total_detected": 120,
+        "storage_location_id": 42
+      }
+    },
+    {
+      "job_id": "celery-task-id-2",
+      "image_id": "uuid-2",
+      "filename": "photo2.jpg",
+      "status": "processing",
+      "progress_percent": 65,
+      "estimated_remaining_seconds": 180
+    }
+  ],
+  "summary": {
+    "total_jobs": 2,
+    "completed": 1,
+    "processing": 1,
+    "pending": 0,
+    "failed": 0,
+    "overall_progress_percent": 82.5
+  }
+}
+```
+
+**Status Code:** 200 OK
+
+**Performance:**
+- Response time: < 50ms (Redis cache)
+- Poll interval: Every 2 seconds
+- Cache TTL: 1 second
+
+### Gallery Endpoints
+
+#### GET /api/v1/photos/gallery
+Retrieve gallery view with filters.
+
+**Request:**
+```http
+GET /api/v1/photos/gallery?page=1&per_page=50&status=all&warehouse_id=3&date_from=2025-10-01 HTTP/1.1
+Authorization: Bearer <token>
+```
+
+**Response:**
+```json
+{
+  "photos": [
+    {
+      "image_id": "uuid-1",
+      "thumbnail_url": "https://s3.../thumbnails/uuid-1.jpg",
+      "original_url": "https://s3.../originals/uuid-1.jpg",
+      "status": "ready",
+      "uploaded_at": "2025-10-08T10:30:00Z",
+      "processing_session": {
+        "session_id": "session-uuid-1",
+        "total_detected": 120,
+        "storage_location_id": 42,
+        "storage_location_name": "Warehouse A - Rack 3 - Shelf 2"
+      },
+      "warehouse_name": "Warehouse A"
+    },
+    {
+      "image_id": "uuid-2",
+      "thumbnail_url": "https://s3.../thumbnails/uuid-2.jpg",
+      "original_url": "https://s3.../originals/uuid-2.jpg",
+      "status": "failed",
+      "error_details": "needs_location: GPS coordinates not found",
+      "uploaded_at": "2025-10-08T10:31:00Z"
+    }
+  ],
+  "pagination": {
+    "page": 1,
+    "per_page": 50,
+    "total_pages": 5,
+    "total_items": 237
+  }
+}
+```
+
+**Performance:**
+- Response time: < 200ms
+- Thumbnail URLs: Presigned S3 URLs (valid for 1 hour)
+- Database query: Optimized with indexes
+
+#### GET /api/v1/photos/{image_id}
+Get detailed information for a single photo.
+
+**Response:**
+```json
+{
+  "image_id": "uuid-1",
+  "original_url": "https://s3.../originals/uuid-1.jpg",
+  "thumbnail_url": "https://s3.../thumbnails/uuid-1.jpg",
+  "annotated_url": "https://s3.../annotated/uuid-1.jpg",
+  "metadata": {
+    "file_size_bytes": 2485760,
+    "width_px": 4032,
+    "height_px": 3024,
+    "content_type": "image/jpeg",
+    "exif": {
+      "camera_make": "Apple",
+      "camera_model": "iPhone 13 Pro",
+      "datetime_original": "2025-10-08T10:30:15Z",
+      "gps_latitude": -34.603722,
+      "gps_longitude": -58.381592
+    }
+  },
+  "processing_session": {
+    "session_id": "session-uuid-1",
+    "status": "completed",
+    "storage_location_id": 42,
+    "storage_location_name": "Warehouse A - Rack 3 - Shelf 2",
+    "total_detected": 120,
+    "total_estimated": 125,
+    "avg_confidence": 0.92,
+    "category_counts": {
+      "plant": 120,
+      "empty": 5
+    },
+    "validated": true,
+    "validated_by": "john.doe@demeter.com",
+    "validation_date": "2025-10-08T11:00:00Z"
+  },
+  "storage_location_history": [
+    {
+      "timestamp": "2025-10-08T10:30:00Z",
+      "event": "photo_processed",
+      "total_plants": 120,
+      "session_id": "session-uuid-1"
+    },
+    {
+      "timestamp": "2025-10-05T14:20:00Z",
+      "event": "photo_processed",
+      "total_plants": 115,
+      "session_id": "session-uuid-old"
+    }
+  ]
+}
+```
+
+### Error Recovery Endpoints
+
+#### POST /api/v1/photos/{image_id}/reprocess
+Reprocess a failed photo from S3.
+
+**Request:**
+```http
+POST /api/v1/photos/uuid-2/reprocess HTTP/1.1
+Authorization: Bearer <token>
+Content-Type: application/json
+
+{
+  "reason": "User fixed missing storage location configuration",
+  "storage_location_id": 42  // Optional: manual override
+}
+```
+
+**Response:**
+```json
+{
+  "status": "accepted",
+  "image_id": "uuid-2",
+  "new_job_id": "celery-task-id-reprocess-1",
+  "message": "Photo reprocessing started from S3 original",
+  "poll_url": "/api/v1/photos/jobs/celery-task-id-reprocess-1/status"
+}
+```
+
+**Status Code:** 202 Accepted
+
+## Celery Tasks
+
+### Task: process_uploaded_photo
+Main task for processing a single uploaded photo.
+
+**Queue:** `ml_processing` (GPU workers)
+**Pool:** `solo` (one task per worker, GPU-bound)
+**Estimated time:** 5-10 minutes per photo
+**Max retries:** 3
+**Retry backoff:** Exponential (60s, 300s, 900s)
+
+**Task signature:**
+```python
+@celery_app.task(
+    name='process_uploaded_photo',
+    queue='ml_processing',
+    bind=True,
+    max_retries=3,
+    default_retry_delay=60
+)
+def process_uploaded_photo(
+    self,
+    image_id: str,
+    s3_key_original: str,
+    upload_session_id: str
+) -> dict:
+    """
+    Process uploaded photo: ML detection, storage location matching,
+    result aggregation
+
+    Args:
+        image_id: UUID of s3_images record
+        s3_key_original: S3 key for original image
+        upload_session_id: Grouping ID for batch uploads
+
+    Returns:
+        {
+            "session_id": "processing-session-uuid",
+            "total_detected": 120,
+            "status": "completed",
+            "storage_location_id": 42
+        }
+    """
+```
+
+**Error handling:**
+- **Retry on transient errors**: S3 timeout, DB connection lost
+- **Fail gracefully on permanent errors**: Invalid image format, corrupt file
+- **Warning states**: Missing location, missing config (save partial results)
+
+### Task: generate_thumbnail
+Generate thumbnail for gallery view.
+
+**Queue:** `image_processing` (I/O-bound)
+**Pool:** `gevent` (concurrent)
+**Estimated time:** 1-2 seconds per photo
+**Max retries:** 2
+
+**Task signature:**
+```python
+@celery_app.task(name='generate_thumbnail', queue='image_processing')
+def generate_thumbnail(
+    image_id: str,
+    s3_key_original: str,
+    thumbnail_size: tuple = (300, 300)
+) -> str:
+    """
+    Generate and upload thumbnail to S3
+
+    Returns:
+        s3_key_thumbnail: S3 key for thumbnail
+    """
+```
+
+## S3 Storage Structure
+
+### Bucket Organization
+```
+demeter-photos/
+├── originals/
+│   ├── 2025/10/08/
+│   │   ├── uuid-1.jpg
+│   │   ├── uuid-2.jpg
+│   │   └── uuid-3.jpg
+├── thumbnails/
+│   ├── 2025/10/08/
+│   │   ├── uuid-1.jpg  (300x300px)
+│   │   ├── uuid-2.jpg
+│   │   └── uuid-3.jpg
+├── annotated/
+│   ├── 2025/10/08/
+│   │   ├── uuid-1.jpg  (with bounding boxes)
+│   │   ├── uuid-2.jpg
+│   │   └── uuid-3.jpg
+└── temp_uploads/  (TTL: 24 hours)
+    └── session-uuid/
+        ├── photo1.jpg
+        └── photo2.jpg
+```
+
+### S3 Object Metadata
+```json
+{
+  "image_id": "uuid-1",
+  "uploaded_by": "user-42",
+  "upload_timestamp": "2025-10-08T10:30:00Z",
+  "content_type": "image/jpeg",
+  "original_filename": "photo1.jpg"
+}
+```
+
+### Lifecycle Policies
+- **temp_uploads/**: Delete after 24 hours
+- **originals/**: Retain indefinitely (critical data)
+- **thumbnails/**: Retain for 90 days (regenerate on demand if deleted)
+- **annotated/**: Retain for 30 days (can be regenerated)
+
+## Performance Considerations
+
+### Upload View
+- **Multipart upload**: Concurrent file uploads (up to 6 parallel)
+- **Client-side validation**: Check file type/size before upload
+- **Progress tracking**: Real-time upload progress per file
+- **Chunked upload**: For files > 10MB (future optimization)
+
+### Job Monitoring
+- **Redis cache**: Job status cached for 1 second (reduce DB queries)
+- **Polling interval**: 2 seconds (balance between freshness and load)
+- **Job expiration**: Job list visible for 24-48 hours, then archived
+- **Fake progress bar**: Estimated progress based on average processing time
+
+### Gallery View
+- **Thumbnail optimization**: 300x300px JPEG (quality 80%)
+- **Lazy loading**: Load thumbnails as user scrolls
+- **Presigned URLs**: Generate S3 URLs with 1-hour expiration
+- **Query optimization**: Index on (uploaded_by, created_at, status)
+- **Pagination**: 50 items per page (configurable)
+
+### Error Recovery
+- **Reprocess from S3**: No need to re-upload (saves bandwidth)
+- **Idempotent operations**: Safe to retry reprocessing
+- **Graceful degradation**: Show partial results even with errors
+
+## User Experience Flow
+
+### Happy Path: Upload → Monitor → View Gallery
+
+1. **User uploads 50 photos** (10 seconds)
+2. **System creates 50 Celery jobs** (500ms)
+3. **Frontend starts polling** (every 2 seconds)
+4. **User sees progress bar** (fake, based on average time)
+5. **Jobs complete one by one** (5-10 min each, parallel processing)
+6. **User navigates to gallery** (see all photos with thumbnails)
+7. **User clicks photo** (opens storage_location detail view)
+8. **User sees detections and history** (full trazabilidad)
+
+### Error Path: Upload → Error → Fix → Reprocess
+
+1. **User uploads photo without GPS** (10 seconds)
+2. **ML processing detects plants but can't match location** (5 minutes)
+3. **Photo marked as "needs_location"** (warning state)
+4. **User sees error badge in gallery** (yellow warning icon)
+5. **User clicks photo → sees error details** (GPS missing)
+6. **User manually assigns storage location** (dropdown selector)
+7. **User clicks "Reprocess"** (triggers new Celery job from S3)
+8. **Photo reprocesses with manual location** (5 minutes)
+9. **Photo now shows in gallery as "ready"** (green success icon)
+
+## Related Diagrams
+
+- **01_photo_upload_initiation.mmd**: Detailed upload flow
+- **02_job_monitoring_progress.mmd**: Polling mechanism and progress calculation
+- **03_photo_gallery_view.mmd**: Gallery UI and filtering
+- **04_error_recovery_reprocessing.mmd**: Error handling and reprocessing
+- **05_photo_detail_display.mmd**: Storage location detail view
+
+## Version History
+
+| Version | Date | Changes |
+|---------|------|---------|
+| 1.0.0 | 2025-10-08 | Initial comprehensive overview |
+
+---
+
+**Notes:**
+- Upload view and gallery view are separate pages (different routes)
+- Job list persists for 24-48 hours (allows user to check back later)
+- Gallery shows all photos across all sessions (not just current upload)
+- Thumbnails are critical for performance (300x300px loads 100x faster than full image)
+- Error recovery is non-destructive (original always preserved in S3)

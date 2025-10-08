@@ -1,0 +1,225 @@
+---
+title: Error Recovery & Reprocessing - Detailed Flow
+---
+flowchart TB
+    %% Start
+    Start@{ shape: stadium, label: "User Sees Error Badge<br/>in Gallery" }
+
+    %% Click error
+    ClickError@{ shape: rect, label: "User Clicks Fix Button<br/>Stop photo detail propagation" }
+
+    OpenModal@{ shape: rect, label: "Open Error Modal<br/>Load error details" }
+
+    FetchPhoto@{ shape: subproc, label: "GET /api/v1/photos/{image_id}<br/>Fetch full photo details<br/>⏱️ 50ms" }
+
+    ParseError@{ shape: rect, label: "Parse Error Type<br/>• needs_location<br/>• needs_config<br/>• needs_calibration<br/>• other" }
+
+    %% Error type routing
+    ErrorType@{ shape: diamond, label: "Error<br/>type?" }
+
+    %% needs_location flow
+    ShowLocationForm@{ shape: rect, label: "Show Location Form<br/>Manual selection UI" }
+
+    LoadWarehouses@{ shape: subproc, label: "GET /api/v1/warehouses<br/>⏱️ 50ms" }
+
+    SelectWarehouse@{ shape: rect, label: "User Selects Warehouse<br/>Dropdown selection" }
+
+    LoadLocations@{ shape: subproc, label: "GET /api/v1/storage-locations<br/>?warehouse_id={id}<br/>⏱️ 100ms" }
+
+    SelectLocation@{ shape: rect, label: "User Selects Location<br/>Dropdown selection" }
+
+    LocationSelected@{ shape: rect, label: "Location Selected<br/>Enable Reprocess button" }
+
+    %% needs_config flow
+    ShowConfigMessage@{ shape: rect, label: "Show Config Required Message<br/>Steps to configure location" }
+
+    NavigateConfig@{ shape: diamond, label: "User wants<br/>to config?" }
+
+    OpenConfigTab@{ shape: rect, label: "Open Location Manager<br/>New browser tab" }
+
+    AdminConfigures@{ shape: rect, label: "Admin Configures Location<br/>• Product type<br/>• Packaging type<br/>• Density parameters<br/>(external flow)" }
+
+    ReturnToModal@{ shape: rect, label: "User Returns to Modal<br/>Ready to reprocess" }
+
+    %% needs_calibration flow
+    ShowCalibrationMessage@{ shape: rect, label: "Show Calibration Required<br/>Steps to calibrate product" }
+
+    NavigateCalibration@{ shape: diamond, label: "User wants<br/>to calibrate?" }
+
+    OpenCalibrationTab@{ shape: rect, label: "Open Calibration Wizard<br/>New browser tab" }
+
+    AdminCalibrates@{ shape: rect, label: "Admin Runs Calibration<br/>• Upload reference photos<br/>• Set known counts<br/>• Build model<br/>(external flow)" }
+
+    ReturnToModal2@{ shape: rect, label: "User Returns to Modal<br/>Ready to reprocess" }
+
+    %% Reprocess trigger
+    ClickReprocess@{ shape: rect, label: "User Clicks Reprocess<br/>Confirm action" }
+
+    PrepareRequest@{ shape: rect, label: "Prepare Reprocess Request<br/>• reason<br/>• manual overrides<br/>• image_id" }
+
+    ReprocessAPI@{ shape: subproc, label: "POST /api/v1/photos/{id}/reprocess<br/>⏱️ 200ms" }
+
+    %% Backend reprocessing
+    CheckAuth@{ shape: diamond, label: "Auth<br/>valid?" }
+
+    Return401@{ shape: trap, label: "401 Unauthorized" }
+
+    GetImageRecord@{ shape: cyl, label: "SELECT s3_images<br/>WHERE image_id<br/>AND user_id" }
+
+    CheckExists@{ shape: diamond, label: "Image<br/>exists?" }
+
+    Return404@{ shape: trap, label: "404 Not Found" }
+
+    CheckS3@{ shape: diamond, label: "S3 original<br/>exists?" }
+
+    Return400@{ shape: trap, label: "400 Bad Request<br/>Original not found" }
+
+    GenerateSessionID@{ shape: rect, label: "Generate Upload Session ID<br/>For job monitoring<br/>UUID v4" }
+
+    CreateCeleryJob@{ shape: subproc, label: "Create Celery Job<br/>Task: process_uploaded_photo<br/>Queue: ml_processing<br/>Priority: 7 (high)<br/>⏱️ 50ms" }
+
+    PassOverrides@{ shape: rect, label: "Pass Manual Overrides<br/>• manual_storage_location_id<br/>• reprocessing flag<br/>• reason" }
+
+    UpdateImageStatus@{ shape: cyl, label: "UPDATE s3_images<br/>SET status='processing'<br/>Clear error_details" }
+
+    StoreJobRedis@{ shape: cyl, label: "Store Job in Redis<br/>upload_session:{id}<br/>TTL: 24 hours" }
+
+    Return202@{ shape: rect, label: "Return 202 Accepted<br/>{job_id, upload_session_id}" }
+
+    %% Frontend navigation
+    CloseModal@{ shape: rect, label: "Close Error Modal<br/>Show success message" }
+
+    NavigateJobMonitor@{ shape: stadium, label: "Navigate to Job Monitor<br/>Start polling<br/>(diagram 02)" }
+
+    %% Background processing
+    WorkerPicksJob@{ shape: subproc, label: "GPU Worker Picks Job<br/>From ml_processing queue" }
+
+    DownloadS3@{ shape: subproc, label: "Download from S3<br/>s3_key_original<br/>⏱️ 1-2s" }
+
+    RunMLPipeline@{ shape: subproc, label: "Run ML Pipeline<br/>• Segmentation<br/>• Detection<br/>⏱️ 4-8 min" }
+
+    CheckManualLocation@{ shape: diamond, label: "Manual<br/>location?" }
+
+    UseManualLocation@{ shape: rect, label: "Use Manual Location<br/>Skip GPS matching" }
+
+    GPSMatching@{ shape: subproc, label: "GPS-based Matching<br/>Find storage location" }
+
+    CheckLocationConfig@{ shape: diamond, label: "Location<br/>configured?" }
+
+    FailNeedsConfig@{ shape: trap, label: "Fail: needs_config<br/>Location not configured" }
+
+    CheckCalibration@{ shape: diamond, label: "Calibration<br/>exists?" }
+
+    FailNeedsCalibration@{ shape: trap, label: "Fail: needs_calibration<br/>Product needs calibration" }
+
+    SaveProcessingSession@{ shape: cyl, label: "INSERT processing_session<br/>Save results" }
+
+    UpdateSuccess@{ shape: cyl, label: "UPDATE s3_images<br/>SET status='ready'" }
+
+    NotifyCompletion@{ shape: rect, label: "Notify Redis<br/>Job completed" }
+
+    %% ====================
+    %% CONNECTIONS
+    %% ====================
+
+    %% Initial flow
+    Start --> ClickError
+    ClickError --> OpenModal
+    OpenModal --> FetchPhoto
+    FetchPhoto --> ParseError
+    ParseError --> ErrorType
+
+    %% needs_location branch
+    ErrorType -->|needs_location| ShowLocationForm
+    ShowLocationForm --> LoadWarehouses
+    LoadWarehouses --> SelectWarehouse
+    SelectWarehouse --> LoadLocations
+    LoadLocations --> SelectLocation
+    SelectLocation --> LocationSelected
+    LocationSelected --> ClickReprocess
+
+    %% needs_config branch
+    ErrorType -->|needs_config| ShowConfigMessage
+    ShowConfigMessage --> NavigateConfig
+    NavigateConfig -->|Yes| OpenConfigTab
+    NavigateConfig -->|No| ClickReprocess
+    OpenConfigTab --> AdminConfigures
+    AdminConfigures --> ReturnToModal
+    ReturnToModal --> ClickReprocess
+
+    %% needs_calibration branch
+    ErrorType -->|needs_calibration| ShowCalibrationMessage
+    ShowCalibrationMessage --> NavigateCalibration
+    NavigateCalibration -->|Yes| OpenCalibrationTab
+    NavigateCalibration -->|No| ClickReprocess
+    OpenCalibrationTab --> AdminCalibrates
+    AdminCalibrates --> ReturnToModal2
+    ReturnToModal2 --> ClickReprocess
+
+    %% Reprocess flow
+    ClickReprocess --> PrepareRequest
+    PrepareRequest --> ReprocessAPI
+
+    %% Backend processing
+    ReprocessAPI --> CheckAuth
+    CheckAuth -->|No| Return401
+    CheckAuth -->|Yes| GetImageRecord
+
+    GetImageRecord --> CheckExists
+    CheckExists -->|No| Return404
+    CheckExists -->|Yes| CheckS3
+
+    CheckS3 -->|No| Return400
+    CheckS3 -->|Yes| GenerateSessionID
+
+    GenerateSessionID --> CreateCeleryJob
+    CreateCeleryJob --> PassOverrides
+    PassOverrides --> UpdateImageStatus
+    UpdateImageStatus --> StoreJobRedis
+    StoreJobRedis --> Return202
+
+    %% Frontend navigation
+    Return202 --> CloseModal
+    CloseModal --> NavigateJobMonitor
+
+    %% Background worker processing
+    CreateCeleryJob -.->|Async| WorkerPicksJob
+    WorkerPicksJob --> DownloadS3
+    DownloadS3 --> RunMLPipeline
+
+    RunMLPipeline --> CheckManualLocation
+    CheckManualLocation -->|Yes| UseManualLocation
+    CheckManualLocation -->|No| GPSMatching
+
+    UseManualLocation --> CheckLocationConfig
+    GPSMatching --> CheckLocationConfig
+
+    CheckLocationConfig -->|No| FailNeedsConfig
+    CheckLocationConfig -->|Yes| CheckCalibration
+
+    CheckCalibration -->|No| FailNeedsCalibration
+    CheckCalibration -->|Yes| SaveProcessingSession
+
+    SaveProcessingSession --> UpdateSuccess
+    UpdateSuccess --> NotifyCompletion
+
+    %% Error flows
+    FailNeedsConfig --> NotifyCompletion
+    FailNeedsCalibration --> NotifyCompletion
+
+    %% ====================
+    %% STYLING
+    %% ====================
+
+    classDef startEnd fill:#e1f5e1,stroke:#4caf50,stroke-width:3px
+    classDef process fill:#e3f2fd,stroke:#2196f3,stroke-width:2px
+    classDef database fill:#fff3e0,stroke:#ff9800,stroke-width:2px
+    classDef decision fill:#fff9c4,stroke:#fbc02d,stroke-width:2px
+    classDef error fill:#ffebee,stroke:#f44336,stroke-width:2px
+    classDef async fill:#f3e5f5,stroke:#9c27b0,stroke-width:2px
+
+    class Start,NavigateJobMonitor startEnd
+    class FetchPhoto,LoadWarehouses,LoadLocations,ReprocessAPI,CreateCeleryJob,WorkerPicksJob,DownloadS3,RunMLPipeline,GPSMatching process
+    class GetImageRecord,UpdateImageStatus,StoreJobRedis,SaveProcessingSession,UpdateSuccess database
+    class ErrorType,NavigateConfig,NavigateCalibration,CheckAuth,CheckExists,CheckS3,CheckManualLocation,CheckLocationConfig,CheckCalibration decision
+    class Return401,Return404,Return400,FailNeedsConfig,FailNeedsCalibration error

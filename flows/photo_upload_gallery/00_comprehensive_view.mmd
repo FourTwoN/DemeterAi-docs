@@ -1,0 +1,181 @@
+---
+title: Photo Upload & Gallery System - Comprehensive Overview
+---
+flowchart TB
+    %% Start nodes
+    Start1@{ shape: stadium, label: "User navigates to Upload View" }
+    Start2@{ shape: stadium, label: "User navigates to Gallery View" }
+
+    %% ====================
+    %% UPLOAD WORKFLOW (LEFT SIDE)
+    %% ====================
+
+    %% File selection
+    SelectFiles@{ shape: hex, label: "Select Photos<br/>(1-100 files)" }
+    ValidateFiles@{ shape: rect, label: "Client-side Validation<br/>• File type (jpg, png)<br/>• File size < 20MB<br/>• Total < 100 files" }
+    ValidationFailed@{ shape: rect, label: "Show Error<br/>Invalid files" }
+
+    %% Upload process
+    UploadFiles@{ shape: subproc, label: "Upload Multipart<br/>POST /api/v1/photos/upload<br/>⏱️ 10-30s for 100 photos" }
+
+    %% Backend processing
+    SaveTemp@{ shape: cyl, label: "Save to /tmp/uploads/<br/>Generate UUIDs<br/>⏱️ 100-500ms" }
+    ExtractEXIF@{ shape: rect, label: "Extract EXIF Metadata<br/>• GPS coordinates<br/>• Timestamp<br/>• Camera info" }
+    UploadS3@{ shape: subproc, label: "Upload to S3<br/>s3://demeter-photos/originals/<br/>⏱️ 2-5s per photo" }
+    GenerateThumbnail@{ shape: subproc, label: "Generate Thumbnail<br/>300x300px<br/>⏱️ 1-2s per photo" }
+    CreateJobs@{ shape: subproc, label: "Create Celery Jobs<br/>process_uploaded_photo<br/>⏱️ 50ms per job" }
+    SaveDB@{ shape: cyl, label: "INSERT s3_images<br/>status='uploaded'" }
+
+    %% Response
+    Return202@{ shape: rect, label: "Return 202 Accepted<br/>{<br/>  upload_session_id,<br/>  jobs: [{job_id, image_id}],<br/>  poll_url<br/>}" }
+
+    %% Job monitoring
+    ShowJobList@{ shape: rect, label: "Display Job List<br/>• Job ID<br/>• Filename<br/>• Status<br/>• Progress bar" }
+    StartPolling@{ shape: circle, label: "Start Polling" }
+    PollStatus@{ shape: subproc, label: "Poll Job Status<br/>GET /api/v1/photos/jobs/status<br/>Every 2 seconds<br/>⏱️ < 50ms (Redis cache)" }
+
+    CheckJobStatus@{ shape: diamond, label: "All jobs<br/>complete?" }
+    UpdateProgressUI@{ shape: rect, label: "Update Progress UI<br/>• Fake progress bar<br/>• Job status badges<br/>• ETA countdown" }
+
+    %% Job processing (backend)
+    MLProcessing@{ shape: subproc, label: "ML Processing<br/>• Segmentation<br/>• Detection<br/>• Location matching<br/>⏱️ 5-10 min per photo" }
+    JobComplete@{ shape: rect, label: "Job Completed<br/>Status updated in Redis" }
+    JobFailed@{ shape: rect, label: "Job Failed<br/>Error details saved" }
+
+    ShowCompletion@{ shape: stadium, label: "Show Completion Message<br/>Navigate to Gallery" }
+
+    %% ====================
+    %% GALLERY WORKFLOW (RIGHT SIDE)
+    %% ====================
+
+    %% Gallery view
+    LoadGallery@{ shape: subproc, label: "Load Gallery View<br/>GET /api/v1/photos/gallery<br/>⏱️ < 200ms" }
+
+    %% Filters
+    ApplyFilters@{ shape: rect, label: "Apply Filters<br/>• Date range<br/>• Warehouse<br/>• Status (all/success/errors)" }
+
+    %% Database query
+    QueryDB@{ shape: cyl, label: "Query s3_images<br/>JOIN photo_processing_sessions<br/>ORDER BY created_at DESC<br/>LIMIT 50 OFFSET 0" }
+
+    %% Generate presigned URLs
+    GenerateURLs@{ shape: rect, label: "Generate Presigned URLs<br/>Thumbnail URLs (TTL: 1h)<br/>⏱️ 10ms per URL" }
+
+    %% Display gallery
+    DisplayGallery@{ shape: rect, label: "Display Thumbnail Grid<br/>• Lazy loading<br/>• Status badges<br/>• Pagination" }
+
+    %% User interactions
+    UserAction@{ shape: diamond, label: "User Action?" }
+
+    %% Click photo
+    ClickPhoto@{ shape: rect, label: "Click Photo" }
+    LoadDetail@{ shape: subproc, label: "Load Photo Detail<br/>GET /api/v1/photos/{image_id}<br/>⏱️ < 100ms" }
+    ShowDetail@{ shape: rect, label: "Show Detail View<br/>• Original image<br/>• Detections<br/>• History<br/>• Trazabilidad" }
+
+    %% Click error badge
+    ClickError@{ shape: rect, label: "Click Error Badge" }
+    ShowErrorModal@{ shape: rect, label: "Show Error Modal<br/>• Error type<br/>• Error details<br/>• Fix instructions" }
+
+    FixError@{ shape: diamond, label: "User fixes<br/>error?" }
+
+    ManualFix@{ shape: rect, label: "Manual Fix<br/>• Add storage location<br/>• Configure parameters<br/>• Add calibration" }
+
+    Reprocess@{ shape: subproc, label: "Reprocess Photo<br/>POST /api/v1/photos/{id}/reprocess<br/>⏱️ < 200ms" }
+
+    TriggerReprocessJob@{ shape: subproc, label: "Create Celery Job<br/>From S3 original<br/>(No re-upload needed)" }
+
+    %% Delete photo
+    DeletePhoto@{ shape: rect, label: "Delete Photo(s)" }
+    ConfirmDelete@{ shape: diamond, label: "Confirm?" }
+    DeleteFromDB@{ shape: cyl, label: "Soft Delete<br/>UPDATE s3_images<br/>SET deleted_at = NOW()" }
+
+    RefreshGallery@{ shape: rect, label: "Refresh Gallery" }
+
+    %% ====================
+    %% CONNECTIONS
+    %% ====================
+
+    %% Upload workflow
+    Start1 --> SelectFiles
+    SelectFiles --> ValidateFiles
+    ValidateFiles -->|Valid| UploadFiles
+    ValidateFiles -->|Invalid| ValidationFailed
+    ValidationFailed --> SelectFiles
+
+    UploadFiles --> SaveTemp
+    SaveTemp --> ExtractEXIF
+    ExtractEXIF --> UploadS3
+    UploadS3 --> GenerateThumbnail
+    GenerateThumbnail --> SaveDB
+    SaveDB --> CreateJobs
+    CreateJobs --> Return202
+
+    Return202 --> ShowJobList
+    ShowJobList --> StartPolling
+    StartPolling --> PollStatus
+
+    PollStatus --> CheckJobStatus
+    CheckJobStatus -->|No| UpdateProgressUI
+    UpdateProgressUI --> PollStatus
+    CheckJobStatus -->|Yes| ShowCompletion
+
+    %% Background job processing
+    CreateJobs -.->|Celery Queue| MLProcessing
+    MLProcessing -->|Success| JobComplete
+    MLProcessing -->|Error| JobFailed
+    JobComplete --> CheckJobStatus
+    JobFailed --> CheckJobStatus
+
+    %% Gallery workflow
+    Start2 --> LoadGallery
+    ShowCompletion --> LoadGallery
+
+    LoadGallery --> ApplyFilters
+    ApplyFilters --> QueryDB
+    QueryDB --> GenerateURLs
+    GenerateURLs --> DisplayGallery
+
+    DisplayGallery --> UserAction
+
+    %% User actions
+    UserAction -->|Click Photo| ClickPhoto
+    UserAction -->|Click Error| ClickError
+    UserAction -->|Delete| DeletePhoto
+    UserAction -->|Filter| ApplyFilters
+
+    ClickPhoto --> LoadDetail
+    LoadDetail --> ShowDetail
+    ShowDetail --> DisplayGallery
+
+    ClickError --> ShowErrorModal
+    ShowErrorModal --> FixError
+    FixError -->|Yes| ManualFix
+    FixError -->|No| DisplayGallery
+    ManualFix --> Reprocess
+    Reprocess --> TriggerReprocessJob
+    TriggerReprocessJob -.->|Celery Queue| MLProcessing
+    TriggerReprocessJob --> ShowJobList
+
+    DeletePhoto --> ConfirmDelete
+    ConfirmDelete -->|Yes| DeleteFromDB
+    ConfirmDelete -->|No| DisplayGallery
+    DeleteFromDB --> RefreshGallery
+    RefreshGallery --> LoadGallery
+
+    %% ====================
+    %% STYLING
+    %% ====================
+
+    classDef startEnd fill:#e1f5e1,stroke:#4caf50,stroke-width:3px
+    classDef process fill:#e3f2fd,stroke:#2196f3,stroke-width:2px
+    classDef database fill:#fff3e0,stroke:#ff9800,stroke-width:2px
+    classDef decision fill:#fff9c4,stroke:#fbc02d,stroke-width:2px
+    classDef error fill:#ffebee,stroke:#f44336,stroke-width:2px
+    classDef async fill:#f3e5f5,stroke:#9c27b0,stroke-width:2px
+    classDef cache fill:#e0f2f1,stroke:#009688,stroke-width:2px
+
+    class Start1,Start2,ShowCompletion startEnd
+    class UploadFiles,MLProcessing,CreateJobs,PollStatus,LoadGallery,LoadDetail,Reprocess,TriggerReprocessJob,GenerateThumbnail,UploadS3 process
+    class SaveTemp,SaveDB,QueryDB,DeleteFromDB database
+    class ValidateFiles,CheckJobStatus,UserAction,FixError,ConfirmDelete decision
+    class ValidationFailed,JobFailed,ShowErrorModal error
+    class StartPolling async

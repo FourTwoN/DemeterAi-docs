@@ -1,0 +1,188 @@
+---
+title: Job Monitoring & Progress Tracking - Detailed Flow
+---
+flowchart TB
+    %% Start
+    Start@{ shape: stadium, label: "User Receives Upload Response<br/>(from diagram 01)" }
+
+    %% Frontend initialization
+    ExtractSessionID@{ shape: rect, label: "Extract upload_session_id<br/>from API response" }
+
+    InitPolling@{ shape: rect, label: "Initialize Polling State<br/>• interval: 2000ms<br/>• maxPolls: 2160<br/>• isPolling: true" }
+
+    RenderJobList@{ shape: rect, label: "Render Job List UI<br/>• Progress summary<br/>• Job table<br/>• Status badges" }
+
+    %% Polling loop
+    StartPoll@{ shape: circle, label: "Start<br/>Polling<br/>Loop" }
+
+    WaitInterval@{ shape: rect, label: "Wait 2 Seconds<br/>⏱️ 2000ms" }
+
+    FetchStatus@{ shape: subproc, label: "GET /api/v1/photos/jobs/status<br/>?upload_session_id={id}<br/>⏱️ < 50ms" }
+
+    %% Backend processing
+    CheckAuth@{ shape: diamond, label: "Auth<br/>valid?" }
+
+    Return401@{ shape: trap, label: "401 Unauthorized<br/>Save session, redirect" }
+
+    CheckCache@{ shape: diamond, label: "Redis<br/>cache hit?" }
+
+    GetFromCache@{ shape: cyl, label: "GET upload_session:{id}<br/>from Redis<br/>⏱️ 2ms" }
+
+    GetFromDB@{ shape: cyl, label: "Query Database<br/>Fallback lookup<br/>⏱️ 100-200ms" }
+
+    CheckOwnership@{ shape: diamond, label: "User owns<br/>session?" }
+
+    Return403@{ shape: trap, label: "403 Forbidden" }
+
+    FetchJobStatuses@{ shape: subproc, label: "For Each Job<br/>GET job_status:{job_id}<br/>from Redis<br/>⏱️ 2ms per job" }
+
+    CalculateSummary@{ shape: rect, label: "Calculate Summary<br/>• Count by status<br/>• Overall progress %<br/>• ETA estimate" }
+
+    BuildResponse@{ shape: rect, label: "Build JSON Response<br/>• jobs array<br/>• summary object<br/>⏱️ 10ms" }
+
+    Return200@{ shape: rect, label: "Return 200 OK<br/>{jobs, summary}" }
+
+    %% Frontend processing
+    ParseResponse@{ shape: rect, label: "Parse JSON Response<br/>Extract jobs & summary" }
+
+    UpdateState@{ shape: rect, label: "Update React State<br/>setJobs(data.jobs)<br/>setSummary(data.summary)" }
+
+    %% UI updates
+    UpdateProgressBar@{ shape: rect, label: "Update Progress Bar<br/>overall_progress_percent" }
+
+    UpdateJobRows@{ shape: rect, label: "Update Job Rows<br/>For each job:<br/>• Status badge<br/>• Fake progress bar<br/>• ETA countdown" }
+
+    CalculateFakeProgress@{ shape: rect, label: "Calculate Fake Progress<br/>elapsed / avg_time * 100<br/>Cap at 95%" }
+
+    %% Completion check
+    CheckComplete@{ shape: diamond, label: "All jobs<br/>complete?" }
+
+    StopPolling@{ shape: rect, label: "Stop Polling<br/>clearInterval()" }
+
+    CheckFailures@{ shape: diamond, label: "Any<br/>failures?" }
+
+    ShowSuccess@{ shape: stadium, label: "Show Success Notification<br/>Navigate to Gallery" }
+
+    ShowPartialSuccess@{ shape: rect, label: "Show Warning Notification<br/>Completed with errors" }
+
+    %% Continue polling
+    IncrementCounter@{ shape: rect, label: "Increment Poll Counter<br/>pollCount++" }
+
+    CheckMaxPolls@{ shape: diamond, label: "Reached<br/>max polls?" }
+
+    ShowTimeout@{ shape: trap, label: "Show Timeout Message<br/>Still processing..." }
+
+    %% Background: Celery worker updates
+    WorkerProcessing@{ shape: subproc, label: "Celery Worker<br/>Processing Photo<br/>(diagram 01)" }
+
+    WorkerUpdateStatus@{ shape: cyl, label: "Update Redis<br/>job_status:{job_id}<br/>• status<br/>• progress_percent<br/>• timestamps<br/>⏱️ 5ms" }
+
+    WorkerComplete@{ shape: rect, label: "on_success() Callback<br/>Update status='completed'<br/>Store result" }
+
+    WorkerFailed@{ shape: rect, label: "on_failure() Callback<br/>Update status='failed'<br/>Store error" }
+
+    %% Error handling
+    NetworkError@{ shape: trap, label: "Network Error<br/>Connection timeout" }
+
+    RetryBackoff@{ shape: rect, label: "Exponential Backoff<br/>Wait 2^n seconds<br/>Max 5 retries" }
+
+    ShowNetworkError@{ shape: trap, label: "Show Persistent Error<br/>Check connection" }
+
+    SessionExpired@{ shape: trap, label: "404 Not Found<br/>Session expired" }
+
+    ShowExpiredMessage@{ shape: rect, label: "Session Expired<br/>Return to Upload" }
+
+    %% ====================
+    %% CONNECTIONS
+    %% ====================
+
+    %% Frontend initialization
+    Start --> ExtractSessionID
+    ExtractSessionID --> InitPolling
+    InitPolling --> RenderJobList
+    RenderJobList --> StartPoll
+
+    %% Polling loop
+    StartPoll --> WaitInterval
+    WaitInterval --> FetchStatus
+
+    %% Backend processing
+    FetchStatus --> CheckAuth
+    CheckAuth -->|No| Return401
+    CheckAuth -->|Yes| CheckCache
+
+    CheckCache -->|Hit| GetFromCache
+    CheckCache -->|Miss| GetFromDB
+    GetFromDB --> GetFromCache
+
+    GetFromCache --> CheckOwnership
+    CheckOwnership -->|No| Return403
+    CheckOwnership -->|Yes| FetchJobStatuses
+
+    FetchJobStatuses --> CalculateSummary
+    CalculateSummary --> BuildResponse
+    BuildResponse --> Return200
+
+    %% Frontend processing
+    Return200 --> ParseResponse
+    ParseResponse --> UpdateState
+    UpdateState --> UpdateProgressBar
+    UpdateProgressBar --> UpdateJobRows
+
+    UpdateJobRows --> CalculateFakeProgress
+    CalculateFakeProgress --> CheckComplete
+
+    %% Completion logic
+    CheckComplete -->|Yes| StopPolling
+    CheckComplete -->|No| IncrementCounter
+
+    StopPolling --> CheckFailures
+    CheckFailures -->|No failures| ShowSuccess
+    CheckFailures -->|Some failed| ShowPartialSuccess
+
+    %% Continue polling
+    IncrementCounter --> CheckMaxPolls
+    CheckMaxPolls -->|No| WaitInterval
+    CheckMaxPolls -->|Yes| ShowTimeout
+
+    %% Background worker updates
+    WorkerProcessing -.->|Status updates| WorkerUpdateStatus
+    WorkerProcessing -.->|Success| WorkerComplete
+    WorkerProcessing -.->|Error| WorkerFailed
+
+    WorkerUpdateStatus -.-> FetchJobStatuses
+    WorkerComplete -.-> FetchJobStatuses
+    WorkerFailed -.-> FetchJobStatuses
+
+    %% Error handling
+    FetchStatus -.->|Network error| NetworkError
+    NetworkError --> RetryBackoff
+    RetryBackoff -.->|Retry| FetchStatus
+    RetryBackoff -.->|Max retries| ShowNetworkError
+
+    FetchStatus -.->|404| SessionExpired
+    SessionExpired --> ShowExpiredMessage
+
+    Return401 --> ShowExpiredMessage
+    Return403 --> ShowExpiredMessage
+
+    %% ====================
+    %% STYLING
+    %% ====================
+
+    classDef startEnd fill:#e1f5e1,stroke:#4caf50,stroke-width:3px
+    classDef process fill:#e3f2fd,stroke:#2196f3,stroke-width:2px
+    classDef database fill:#fff3e0,stroke:#ff9800,stroke-width:2px
+    classDef decision fill:#fff9c4,stroke:#fbc02d,stroke-width:2px
+    classDef error fill:#ffebee,stroke:#f44336,stroke-width:2px
+    classDef async fill:#f3e5f5,stroke:#9c27b0,stroke-width:2px
+    classDef cache fill:#e0f2f1,stroke:#009688,stroke-width:2px
+    classDef loop fill:#e8eaf6,stroke:#3f51b5,stroke-width:2px
+
+    class Start,ShowSuccess startEnd
+    class FetchStatus,WorkerProcessing,FetchJobStatuses process
+    class GetFromCache,GetFromDB,WorkerUpdateStatus database
+    class CheckAuth,CheckCache,CheckOwnership,CheckComplete,CheckFailures,CheckMaxPolls decision
+    class Return401,Return403,NetworkError,ShowNetworkError,SessionExpired,ShowTimeout error
+    class StartPoll,WorkerComplete,WorkerFailed async
+    class WaitInterval loop

@@ -1,0 +1,240 @@
+---
+title: Photo Detail Display - Detailed Flow
+---
+flowchart TB
+    %% Start
+    Start@{ shape: stadium, label: "User Clicks Photo<br/>in Gallery" }
+
+    %% Navigation
+    Navigate@{ shape: rect, label: "Navigate to Detail View<br/>/photos/{image_id}" }
+
+    InitPage@{ shape: rect, label: "Initialize Detail Page<br/>• activeTab: 'details'<br/>• showAnnotations: true<br/>• zoom: 1" }
+
+    FetchDetail@{ shape: subproc, label: "GET /api/v1/photos/{image_id}<br/>⏱️ 300ms" }
+
+    %% Backend processing
+    CheckAuth@{ shape: diamond, label: "Auth<br/>valid?" }
+
+    Return401@{ shape: trap, label: "401 Unauthorized" }
+
+    QueryDatabase@{ shape: cyl, label: "Query Database<br/>SELECT s3_images<br/>JOIN processing_sessions<br/>JOIN storage_locations<br/>JOIN users<br/>⏱️ 80ms" }
+
+    CheckExists@{ shape: diamond, label: "Photo<br/>exists?" }
+
+    Return404@{ shape: trap, label: "404 Not Found" }
+
+    CheckOwnership@{ shape: diamond, label: "User<br/>owns photo?" }
+
+    Return403@{ shape: trap, label: "403 Forbidden" }
+
+    GenerateURLs@{ shape: rect, label: "Generate S3 Presigned URLs<br/>• Original<br/>• Thumbnail<br/>• Annotated (if exists)<br/>TTL: 1 hour<br/>⏱️ 6ms" }
+
+    CheckLocation@{ shape: diamond, label: "Has storage<br/>location?" }
+
+    QueryHistory@{ shape: cyl, label: "Query Location History<br/>Last 20 sessions<br/>ORDER BY created_at DESC<br/>⏱️ 50ms" }
+
+    BuildResponse@{ shape: rect, label: "Build JSON Response<br/>• Photo metadata<br/>• Processing session<br/>• History<br/>• URLs<br/>⏱️ 20ms" }
+
+    Return200@{ shape: rect, label: "Return 200 OK<br/>Complete photo details" }
+
+    %% Frontend rendering
+    ParseResponse@{ shape: rect, label: "Parse Response<br/>Extract photo data" }
+
+    UpdateState@{ shape: rect, label: "Update React State<br/>setPhoto(data)" }
+
+    RenderLayout@{ shape: rect, label: "Render Page Layout<br/>• Header<br/>• Image viewer<br/>• Sidebar" }
+
+    %% Image viewer
+    LoadOriginal@{ shape: subproc, label: "Load Original Image<br/>Full resolution<br/>⏱️ 1-3s" }
+
+    ShowImagePlaceholder@{ shape: rect, label: "Show Image Placeholder<br/>While loading" }
+
+    ImageLoaded@{ shape: rect, label: "Image Loaded<br/>Display full image" }
+
+    CheckAnnotated@{ shape: diamond, label: "Annotated<br/>available?" }
+
+    LoadAnnotated@{ shape: subproc, label: "Load Annotated Image<br/>(with bounding boxes)" }
+
+    %% Sidebar sections
+    RenderSummary@{ shape: rect, label: "Render Detection Summary<br/>• Total detected<br/>• Confidence<br/>• Categories" }
+
+    RenderTabs@{ shape: rect, label: "Render Tab Bar<br/>• Details<br/>• History<br/>• Traceability" }
+
+    RenderActiveTab@{ shape: rect, label: "Render Active Tab Content<br/>Based on selection" }
+
+    %% User interactions
+    UserAction@{ shape: diamond, label: "User Action?" }
+
+    %% Toggle annotations
+    ToggleAnnotations@{ shape: rect, label: "Toggle Annotations<br/>Switch image URL" }
+
+    ReloadImage@{ shape: rect, label: "Reload Image<br/>Original ↔ Annotated" }
+
+    %% Zoom controls
+    AdjustZoom@{ shape: rect, label: "Adjust Zoom<br/>Scale: 0.5x - 3x" }
+
+    UpdateTransform@{ shape: rect, label: "Update CSS Transform<br/>scale() and translate()" }
+
+    %% Tab change
+    ChangeTab@{ shape: rect, label: "Change Tab<br/>details/history/traceability" }
+
+    RenderNewTab@{ shape: rect, label: "Render New Tab Content" }
+
+    %% History tab
+    RenderHistory@{ shape: rect, label: "Render History Timeline<br/>All photos for location" }
+
+    CheckHistoryLength@{ shape: diamond, label: "History >= 3<br/>items?" }
+
+    RenderTrend@{ shape: rect, label: "Render Trend Chart<br/>Plant count over time" }
+
+    %% Download
+    ClickDownload@{ shape: rect, label: "Click Download<br/>Select format" }
+
+    DownloadOriginal@{ shape: subproc, label: "Download Original Image<br/>From S3 URL" }
+
+    DownloadAnnotated@{ shape: subproc, label: "Download Annotated Image<br/>From S3 URL" }
+
+    DownloadJSON@{ shape: rect, label: "Download JSON<br/>Raw photo data" }
+
+    DownloadCSV@{ shape: rect, label: "Download CSV<br/>Detection data" }
+
+    %% Navigate to location
+    ClickLocation@{ shape: rect, label: "Click Storage Location Link" }
+
+    NavigateLocation@{ shape: stadium, label: "Navigate to<br/>Storage Location Detail" }
+
+    %% Validation
+    ClickValidate@{ shape: rect, label: "Click Validate Results" }
+
+    OpenValidationModal@{ shape: rect, label: "Open Validation Modal<br/>Review detections" }
+
+    ConfirmValidation@{ shape: diamond, label: "Confirm?" }
+
+    SaveValidation@{ shape: subproc, label: "POST /api/v1/sessions/{id}/validate<br/>⏱️ 100ms" }
+
+    UpdateSession@{ shape: cyl, label: "UPDATE processing_session<br/>SET validated = true<br/>SET validated_by<br/>SET validation_date" }
+
+    RefreshDetail@{ shape: rect, label: "Refresh Detail View<br/>Show validated badge" }
+
+    %% Back to gallery
+    ClickBack@{ shape: rect, label: "Click Back Button" }
+
+    ReturnGallery@{ shape: stadium, label: "Return to Gallery<br/>(diagram 03)" }
+
+    %% ====================
+    %% CONNECTIONS
+    %% ====================
+
+    %% Initial flow
+    Start --> Navigate
+    Navigate --> InitPage
+    InitPage --> FetchDetail
+
+    %% Backend processing
+    FetchDetail --> CheckAuth
+    CheckAuth -->|No| Return401
+    CheckAuth -->|Yes| QueryDatabase
+
+    QueryDatabase --> CheckExists
+    CheckExists -->|No| Return404
+    CheckExists -->|Yes| CheckOwnership
+
+    CheckOwnership -->|No| Return403
+    CheckOwnership -->|Yes| GenerateURLs
+
+    GenerateURLs --> CheckLocation
+    CheckLocation -->|Yes| QueryHistory
+    CheckLocation -->|No| BuildResponse
+
+    QueryHistory --> BuildResponse
+    BuildResponse --> Return200
+
+    %% Frontend rendering
+    Return200 --> ParseResponse
+    ParseResponse --> UpdateState
+    UpdateState --> RenderLayout
+
+    RenderLayout --> ShowImagePlaceholder
+    ShowImagePlaceholder --> LoadOriginal
+    LoadOriginal --> ImageLoaded
+
+    ImageLoaded --> CheckAnnotated
+    CheckAnnotated -->|Yes| LoadAnnotated
+    CheckAnnotated -->|No| RenderSummary
+
+    LoadAnnotated --> RenderSummary
+    RenderSummary --> RenderTabs
+    RenderTabs --> RenderActiveTab
+    RenderActiveTab --> UserAction
+
+    %% User actions
+    UserAction -->|Toggle annotations| ToggleAnnotations
+    UserAction -->|Zoom| AdjustZoom
+    UserAction -->|Change tab| ChangeTab
+    UserAction -->|Download| ClickDownload
+    UserAction -->|View location| ClickLocation
+    UserAction -->|Validate| ClickValidate
+    UserAction -->|Back| ClickBack
+
+    %% Toggle annotations
+    ToggleAnnotations --> ReloadImage
+    ReloadImage --> UserAction
+
+    %% Zoom
+    AdjustZoom --> UpdateTransform
+    UpdateTransform --> UserAction
+
+    %% Tab change
+    ChangeTab --> RenderNewTab
+    RenderNewTab --> UserAction
+
+    %% History tab specific
+    RenderNewTab -.->|If history tab| RenderHistory
+    RenderHistory --> CheckHistoryLength
+    CheckHistoryLength -->|Yes| RenderTrend
+    CheckHistoryLength -->|No| UserAction
+    RenderTrend --> UserAction
+
+    %% Download flows
+    ClickDownload -->|Original| DownloadOriginal
+    ClickDownload -->|Annotated| DownloadAnnotated
+    ClickDownload -->|JSON| DownloadJSON
+    ClickDownload -->|CSV| DownloadCSV
+
+    DownloadOriginal --> UserAction
+    DownloadAnnotated --> UserAction
+    DownloadJSON --> UserAction
+    DownloadCSV --> UserAction
+
+    %% Navigate to location
+    ClickLocation --> NavigateLocation
+
+    %% Validation flow
+    ClickValidate --> OpenValidationModal
+    OpenValidationModal --> ConfirmValidation
+    ConfirmValidation -->|No| UserAction
+    ConfirmValidation -->|Yes| SaveValidation
+
+    SaveValidation --> UpdateSession
+    UpdateSession --> RefreshDetail
+    RefreshDetail --> UserAction
+
+    %% Back to gallery
+    ClickBack --> ReturnGallery
+
+    %% ====================
+    %% STYLING
+    %% ====================
+
+    classDef startEnd fill:#e1f5e1,stroke:#4caf50,stroke-width:3px
+    classDef process fill:#e3f2fd,stroke:#2196f3,stroke-width:2px
+    classDef database fill:#fff3e0,stroke:#ff9800,stroke-width:2px
+    classDef decision fill:#fff9c4,stroke:#fbc02d,stroke-width:2px
+    classDef error fill:#ffebee,stroke:#f44336,stroke-width:2px
+    classDef async fill:#f3e5f5,stroke:#9c27b0,stroke-width:2px
+
+    class Start,NavigateLocation,ReturnGallery startEnd
+    class FetchDetail,LoadOriginal,LoadAnnotated,DownloadOriginal,DownloadAnnotated,SaveValidation process
+    class QueryDatabase,QueryHistory,UpdateSession database
+    class CheckAuth,CheckExists,CheckOwnership,CheckLocation,CheckAnnotated,UserAction,CheckHistoryLength,ConfirmValidation decision
+    class Return401,Return404,Return403 error
