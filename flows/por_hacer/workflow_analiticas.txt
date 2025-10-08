@@ -1,0 +1,82 @@
+Yo también tengo acá el lucid.
+Vamos, acá está el lucid, lo comparto.
+Dale.
+Bueno, uno de los workflows que nos falta hacer es el de las analíticas.
+Este workflow es uno de los más complejos que nos falta.
+Porque es como la herramienta que tiene el frontend para hacer análisis de todos los datos que hay en la base de datos.
+Exacto.
+Acá es importante destacar que hay dos tipos de análisis que podemos hacer.
+Es un análisis geográfico, que tampoco va a ser de súper interés,
+pero en una de esas es porque el cliente no le dio el provecho ahora, pero más adelante tal vez sí.
+Que el análisis geográfico tiene como objetivo encontrar o determinar insights que no son fácilmente vistas con una simple mirada.
+Esto es, por ejemplo, si nosotros hacemos un select y vemos las muertes por claro y por cantero,
+y vemos que en un cantero hay más muertes en líneas generales,
+bueno, eso puede significar ya que, nada, estamos usando un fertilizante distinto.
+Entonces la idea es poder hacer un análisis en ese sentido y que el gráfico lo permita.
+Y por otro lado, también tendríamos análisis del punto de vista, no solo del estado, sino también de las ventas.
+O sea, hay que hacer una gran distinción entre lo que es el desarrollo de vida de un claro,
+que es desde la última foto, y considerando transplantes, muertes y plantado,
+y eso sería como la evolución en términos de stock,
+y otra parte es cómo se asocia este stock con lo que ha vendido el cliente.
+Nosotros no vamos a poder estimarlo hasta que tengamos las siguientes fotos según el workflow,
+pero el cliente bien podría subirnos a nosotros una especie de archivo CSV o algo por el estilo,
+donde indica en detalle qué vendió, o sea, con exactitud, qué vendió, pero no de dónde.
+Y nosotros podemos hacer un select de toda la base de datos, considerando qué es lo que hay
+después de transplantes, muertes y plantados, no necesariamente ubicados geográficamente,
+y podemos hacer esa diferencia y le podríamos indicar cuánto es lo que se tiene en este momento
+en base a ese dato.
+Exacto, o sea, nosotros deberíamos ser capaces de ofrecerle al cliente una herramienta
+que sea fácil y que no tenga que acceder a la base de datos.
+Como bien dijimos, si quiere ver las ventas comparadas con su stock
+y ponerle que el stock lo sacó hace tres meses, el cliente podría seleccionar ese stock
+de tres meses y restarle las ventas, que lo haríamos de forma simplificada.
+Directamente el cliente nos dice cuánto vendió y nosotros le mostramos de forma clara cuánto
+sería el stock que tendría en el momento.
+Puede que falle o puede que no sea el real, sí, porque deberían volver a sacar una foto
+si quisiera tener una certeza mayor, pero para un estimado con restando las ventas está bien.
+Y además debería ser capaz de recibir como cualquier tipo de query, entre comillas.
+O sea, debería ser que tenga muchos filtros, muchas formas de búsqueda.
+Tampoco tenemos varios lugares para buscar.
+O sea, tenemos storage location, storage, tenemos warehouse.
+¿Qué más?
+Yo pensaba, Lucas, que en esta parte estaría bueno que implementemos esa idea que tuviste de la IA.
+O sea, ya me gustaría que hagamos eso.
+Ok, o sea, van a ver como varios workflows.
+Fíjate, no tenemos tantas cosas para filtros, también tenemos storage area.
+Tenemos los storage bins.
+Y después tenemos product, family, packaging catalog.
+Pero no tenemos tantas cosas por las que filtrar.
+Entonces el usuario podría seleccionar sobre todas estas.
+Nosotros bien podríamos dejar algunas analíticas ya puestas.
+O bien se nos había ocurrido incluir una sección de gráficos o analíticas a través de inteligencia artificial.
+¿A qué me refiero con esto?
+Nosotros podríamos tener una llamada, una inteligencia artificial a través de la API de OpenAI, compatible.
+Que tenga acceso a la base de datos de forma de lectura y pueda ejecutar los queries necesarios y armar los gráficos correspondientes.
+Entonces podría hacerlo a través de SVG.
+Podría hacerlo a través de mandarle los datos por CSV al frontend.
+Podría hacerlo con Mermaid, digamos.
+Habría varias formas.
+Tendríamos que tener un sistema de prompt para poder guiar a la inteligencia a que responda con lo que el cliente está pidiendo.
+Porque hoy en día las interfaces gráficas por ahí no son tan potentes como poder acceder directamente a la base de datos.
+Pero como no queremos que el cliente tenga total libertad en acceso, podríamos tener una inteligencia que ejecute los queries y le devuelva de forma clara un análisis más preciso.
+Porque por ahí con los filtros siempre se nos puede escapar algo.
+Claro, por eso.
+La idea en general entonces es tener un conjunto de queries o filtros básicos, que son los típicos de una base de datos.
+Y para cualquier otro avanzado donde requiere un poquitito más de desarrollo, se lo delegamos a una inteligencia artificial que se haría vía prompting.
+Nosotros tendremos que educar al usuario de bien cómo promptearle, cómo preguntarle, para que la respuesta sea satisfactoria y hacer un montón de testing.
+Pero el flujo sigue siendo el mismo.
+Le damos acceso a la base de datos, la lee, usa algún tipo de MSP, lo que sea, para que pueda saber la estructura de los datos, los constraints, qué puede hacer y qué no.
+Arma un buen query, le da un resultado y esos resultados puede armar un gráfico o puede hacer lo que quiera con código Python.
+Exacto. Entonces tendríamos en esta parte de analíticas, tendríamos como distintos caminos.
+Tendríamos el camino manual de usar filtros y como que seleccionar lo que uno quiere ver.
+Tendríamos el camino de compararlo con las ventas, que el cliente nos suba uno o más archivos,
+porque cada mes ellos sacan las ventas y por ahí hace tres meses que no hacen un cálculo de stock con la foto.
+Entonces nos podría subir los tres archivos y nosotros hacer un select de todo lo que tenemos del stock que nosotros calculamos,
+menos las ventas, que son generalmente por maceta, o sea, por packaging y por product.
+Y no tanto por ubicación y mostrarle al cliente ese reporte.
+Siempre se tiene que poder descargar en Excel todos estos flujos o en CSV, debería ser posible.
+Después tenemos otro flujo que parte de lo mismo, que es el de avanzado con inteligencia artificial.
+Donde tendríamos como un chat y una sección donde se van generando esos gráficos y que se le muestren al cliente.
+Y tendríamos que tener un sistema de prompts, el acceso a la base de datos y darle todas las herramientas a la inteligencia
+para que el cliente pueda poner un query como dame un estimado de las ventas entre la nave 1 y 2.
+Que por ahí con los filtros se le complica armar eso y la inteligencia podría sacar, hacer un query, correr código Python y generarle los gráficos correspondientes.

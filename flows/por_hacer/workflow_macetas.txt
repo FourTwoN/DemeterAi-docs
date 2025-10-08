@@ -1,0 +1,27 @@
+En la vista de administrador tenemos el workflow para catálogo de macetas. Este generalmente no se va a usar tanto, sino solo se va a usar para cambiar, por ejemplo, el precio de una maceta para ir haciendo actualizaciones.
+Pero las macetas que hay en la base de datos son fijas. Hay, por decir así, 20 tipos distintos de macetas o 30. Entonces, en esta vista lo que el admin debería ver es todas las macetas que hay guardadas en la base de datos, su precio y si quiere cuántas stock tiene de esa maceta particular.
+Acá las podría desactivar, agregarle algún descuento a una maceta en particular, cambiarles el precio, cambiarle el nombre, el código. Esto es la parte donde el administrador maneja sus packagings.
+Exacto. Acá lo importante es también destacar que como el estoqueo del cultivo se divide desde la última foto, desde la última actualización, que es como decir el inicio del historial temporal de un claro determinado.
+Puede pasar que yo tenía al mes de septiembre, saqué una foto, hubieron cambios en ese claro y, digamos, después yo vendí y saqué otra foto. Eso inició un proceso de historial nuevo.
+Bueno, si yo cambio el precio de las macetas que habían ahí, para estos dos periodos de tiempo, solo debería afectar al último, ya que el otro es considerado historial.
+Y a mí solo me interesa saber cuánto salía la maceta en ese momento, para yo también tener una evolución del catálogo de la maceta.
+Para nosotros es muy importante las fechas. Es decir, si después nosotros queremos hacer, como las plantas crecen cada tres años,
+si nosotros quisiéramos mantener un historial a lo largo del tiempo y después hacer gráficas, comparaciones y todo,
+deberíamos siempre aplicar configuraciones o cambios en la base de datos al último stock activo que tenemos nosotros.
+Y siempre ir tomando como las fotos, como si fuera un historial nuevo. O sea que pasaría cada foto a ser un nuevo punto de partida para cualquier cambio siguiente.
+Entonces, así podríamos mantener, porque, por ejemplo, podríamos ver como todo el movimiento que hubo en el cultivo,
+de dónde se vendió más y por ahí en su momento se habían venido tal tipo de maceta y uno cambia la configuración
+y ese historial se perdería si no se aplicase al último stock.
+Correcto.
+Y sumando a lo que dijimos anteriormente que era un catálogo de macetas donde podrían manejar las macetas, lo queremos refactorizar un poco para que en vez de ser específico a la maceta, nosotros hagamos como si fuera la lista de precio de nuestro cliente.
+¿Qué tiene esta lista de precios? Una descripción que es la relación con Product Categories, es decir, si es cactus, suculenta o injerto. Tiene la maceta, que es una relación con Packaging Catalog.
+Después tiene un precio unitario, un SKU, la cantidad de unidades por cajón, el total de ese de que multiplicando la cantidad de unidades por el precio unitario, el total del precio del cajón, alguna observación y la disponibilidad.
+Entonces queremos cambiar esta vista para que sea fácilmente editable por el administrador.
+O sea, poder, por ejemplo, si quiere aumentar un 10% todos los precios. Bueno, que pueda fácilmente agarrar y sin importar qué maceta o qué Product Category pueda aumentar un 5% todo.
+O si quiere desactivar una en particular, también lo puede hacer. O si quiere agregar una nueva. Es como que el administrador debería tener una visión de su lista de precios.
+Exacto. Lo importante de esta vista y de esta parte es que va a estar compuesta por tres tipos de tareas. Una sería el hecho de poder listar, crear, actualizar o lo que sea los tipos de maceta.
+Lo mismo para los tipos de plantas. Sería como crear una planta nueva o crear una maceta nueva o todas las operaciones de CRUD asociadas a eso.
+Raro que se tenga que actualizar porque uno no actualiza una taxonomía o no actualiza una maceta ya existente. Agrega, borra una.
+O bien también sería la tercer pata, es el catálogo de precio. Que es la combinación de estas dos cosas que va a tener todos los atributos previamente mencionados.
+Donde se podrían hacer todas esas operaciones de cambiar el precio unitariamente por tipo.
+O bien hacer un bulk edit tanto para los precios de minorista como mayorista. Cambiar observaciones, disponibilidad, el SKU y demás.

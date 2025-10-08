@@ -1,0 +1,41 @@
+Perfecto, una parte muy importante del código es que cada storage location tiene asociado a sí mismo un storage location config que esta información o metadata digamos que el usuario provee de cuál sería realmente lo que debería estar plantado ahí.
+Esto es tanto indicando especies de plantas, tamaños, puede llegar a ser, también pueden combinarse los tamaños, pueden ser distintos tipos, entre por ejemplo pequeños medianos, medianos grandes, solo medianos, solo grandes, solo pequeños.
+Después tipo de maceta, digamos R7 y después el color de la maceta.
+Estas combinaciones hacen la configuración de un claro. Nosotros te vamos a mostrar cuál es la tabla storage location config para que tengas bien en cuenta cuáles son los atributos que puede llegar a tener.
+La idea es hacer que este workflow nos indique con claridad cómo un usuario podría desde el frontend cambiar la configuración actual de un claro para poder actualizar todo lo que hay en él.
+¿Qué puede pasar? Hay dos opciones, o bien el usuario decide cambiar todas las macetas de un claro existente, que esto sería no que está creando una configuración nueva, sino que a la existente la está cambiando.
+¿Por qué? Porque siguen siendo las mismas plantas, nada más que cambió algo de estas.
+O bien puede crear una configuración desde cero. ¿Cuál es la diferencia?
+Si nosotros llegamos a considerar un input a través de update, es decir, una actualización de una configuración existente, eso significa que esa configuración debe impactar automáticamente el stock actual.
+Es como que se actualiza el stock actual.
+Ahora, si yo creo una configuración nueva, esta configuración nueva solo va a ser impactada o solo va a impactar aquellas plantas nuevas por claro, ya que lo que quiere el cliente simplemente es crear una configuración nueva, pero también quiere tener un histórico.
+¿Por qué? ¿Qué puede pasar? En el día uno yo tenía una configuración uno, ¿sí? Con determinados atributos.
+Y resulta que al mes siguiente yo vendí todo y ahora quiero crear una nueva configuración, ¿sí?
+Porque voy a tener otro tipo de planta, con otra maceta, lo que sea.
+Entonces ahí se crea una nueva configuración y todo lo nuevo que vaya en ese mismo claro, pero con la configuración nueva se considera como un bache distinto, por lo tanto va a tener ese claro, una configuración distinta en ese lapso de tiempo.
+Pero si nosotros chequeamos el historial, el sistema podría ser capaz de decirme cuál era la configuración anterior o qué plantas, con qué características antes habían plantadas acá.
+La idea es poder tener ese historial. Entonces el flujo del usuario sería en un claro determinado, en un momento de tiempo determinado, hay una configuración para un claro.
+Esta configuración puede o bien actualizarse porque decide cambiar de lugar las cosas o lo que sea, o bien puede vender todo o hacer una reestructuración completa y crear una configuración nueva.
+Entonces hay que hacer de este flujo dos subflujos, pero hay que considerar todas estas indicaciones.
+Exacto, esta es la vista que tendría el administrador del cultivo, donde debería ser capaz de, el frontend va a mostrar todas las coordenadas de las naves, los canteros norte y sur y todos los claros con sus configuraciones.
+O sea, con los tipos de plantas, o sea, los packaging y los productos, podría bien ponerle el tamaño.
+Entonces podría seleccionar uno o varios claros de un cantero para una nave en particular y aplicarles una configuración.
+Después tenemos otra vista dentro de lo de administrador, que es manejar todo lo que son las macetas.
+Corta, corta, corta, corta, corta. Es otro golf, ¿verdad?
+Corta.
+Corta, corta, corta, corta, corta, corta, corta.
+Corta, corta.
+Corta.
+Corta, corta, corta.
+Corta, corta, corta.
+Corta, corta, corta.
+Corta, corta, corta.
+Corta, corta, corta, corta.
+Corta, corta, corta.
+Corta, corta, corta.
+Corta, corta.
+Corta, corta, corta.
+Corta.
+Corta, corta.
+Corta, corta, corta.
+cortar, corta, corta, corta, corta.
