@@ -1,0 +1,629 @@
+---
+title: "07 - Callback Aggregation (Celery Chord)"
+author: "DemeterAI Documentation Team"
+date: "2025-10-08"
+version: "1.0.0"
+mermaid_version: "v11.3.0+"
+description: "Ultra-detailed subflow: Celery Chord callback aggregates results from parallel child tasks into session summary"
+parent_diagram: "01_complete_pipeline_v4.mmd"
+related_diagrams: ["04_ml_parent_segmentation_detailed.mmd", "05_sahi_detection_child_detailed.mmd", "06_boxes_plugs_detection_detailed.mmd"]
+---
+
+flowchart TD
+    %% =================================================================
+    %% DIAGRAM 07: CALLBACK AGGREGATION (CELERY CHORD)
+    %% =================================================================
+    %%
+    %% PURPOSE:
+    %% Celery Chord callback that receives results from ALL parallel
+    %% child tasks (SAHI detection, infrastructure detection) and
+    %% aggregates them into a session-level summary.
+    %%
+    %% CELERY CHORD PATTERN:
+    %% chord(
+    %%     group(*child_tasks),  # Parallel execution (diagrams 05, 06)
+    %%     aggregate_callback.s(session_id)  # This diagram (07)
+    %% ).apply_async()
+    %%
+    %% SCOPE: Single callback task executed AFTER all children complete
+    %% INPUT: List of child task results + session_id_pk
+    %% OUTPUT: Session summary with statistics, ready for frontend polling
+    %%
+    %% CRITICAL: This task BLOCKS until ALL children finish!
+    %% Performance depends on slowest child task.
+    %%
+    %% PERFORMANCE TARGET: ~100-500ms (fast aggregation)
+    %% =================================================================
+
+    START@{ shape: stadium, label: "🚀 Chord Callback Task
+    Celery Worker: cpu_pool
+    Queue: callback_queue
+    Concurrency: gevent (lightweight)
+    ⏱️ Target: 100-500ms" }
+
+    %% =================================================================
+    %% SECTION 1: TASK INITIALIZATION & RESULT COLLECTION
+    %% =================================================================
+
+    START --> TASK_INIT
+
+    TASK_INIT@{ shape: subproc, label: "📦 Task Initialization
+    Function: aggregate_detection_results(child_results, session_id_pk)
+
+    Celery Chord Signature:
+    @app.task(bind=True, name='demeter.aggregate_results')
+    def aggregate_detection_results(self, child_results, session_id_pk):
+        '''
+        Callback executed AFTER all children complete.
+        Receives list of results from child tasks.
+        '''
+
+    Input Parameters:
+    - child_results: List[dict] - Results from all child tasks
+    - session_id_pk: UUID - Session identifier
+
+    Example child_results:
+    [
+        {  # From SAHI detection child 1
+            'image_id': UUID('...'),
+            'status': 'success',
+            'estimated_count': 204,
+            'detected_count': 164,
+            'confidence': 'HIGH',
+            'processing_time': 18.5
+        },
+        {  # From SAHI detection child 2
+            'image_id': UUID('...'),
+            'status': 'success',
+            'estimated_count': 187,
+            ...
+        },
+        {  # From infrastructure detection child
+            'image_id': UUID('...'),
+            'status': 'success',
+            'total_count': 3,
+            ...
+        }
+    ]
+
+    ⏱️ ~1ms initialization" }
+
+    TASK_INIT --> VALIDATE_RESULTS
+
+    VALIDATE_RESULTS@{ shape: diamond, label: "All children
+    succeeded?" }
+
+    VALIDATE_RESULTS -->|Yes| SEPARATE_BY_TYPE
+    VALIDATE_RESULTS -->|No| HANDLE_PARTIAL_FAILURE
+
+    %% =================================================================
+    %% SECTION 2: PARTIAL FAILURE HANDLING
+    %% =================================================================
+
+    HANDLE_PARTIAL_FAILURE@{ shape: subproc, label: "⚠️ Handle Partial Failures
+
+    Python Code:
+    failures = [r for r in child_results if r['status'] != 'success']
+    successes = [r for r in child_results if r['status'] == 'success']
+
+    failure_summary = {
+        'total_images': len(child_results),
+        'successful': len(successes),
+        'failed': len(failures),
+        'failure_details': [
+            {
+                'image_id': f['image_id'],
+                'error': f.get('error', 'Unknown error'),
+                'traceback': f.get('traceback', None)
+            }
+            for f in failures
+        ]
+    }
+
+    Possible Failure Reasons:
+    1. S3 download timeout (network issue)
+    2. GPU OOM (image too large)
+    3. Model inference error (corrupted image)
+    4. Database connection lost
+    5. Child task timeout (exceeded 120s)
+
+    Decision: Continue with partial results
+    (Don't fail entire session due to 1 bad image)
+
+    ⏱️ ~5-10ms (list filtering)" }
+
+    HANDLE_PARTIAL_FAILURE --> LOG_FAILURES
+
+    LOG_FAILURES@{ shape: cyl, label: "🗄️ INSERT Failure Logs
+
+    Query:
+    INSERT INTO task_failures
+        (session_id, image_id, task_type, error_message,
+         traceback, created_at)
+    VALUES
+        (:session_id, :image_id, :task_type, :error_message,
+         :traceback, NOW())
+
+    Purpose:
+    - Debugging failed tasks
+    - Alerting if failure rate > 10%
+    - Retry failed images later
+
+    ⏱️ ~10-20ms (batch INSERT)" }
+
+    LOG_FAILURES --> SEPARATE_BY_TYPE
+
+    %% =================================================================
+    %% SECTION 3: SEPARATE RESULTS BY TYPE
+    %% =================================================================
+
+    SEPARATE_BY_TYPE@{ shape: subproc, label: "🔀 Separate Results by Task Type
+
+    Python Code:
+    plant_results = []
+    infrastructure_results = []
+
+    for result in successes:
+        # Detect type by presence of specific keys
+        if 'estimated_count' in result:
+            plant_results.append(result)
+        elif 'total_count' in result and 'by_class' in result:
+            infrastructure_results.append(result)
+
+    Alternative (explicit type field):
+    if result['task_type'] == 'plant_detection':
+        plant_results.append(result)
+    elif result['task_type'] == 'infrastructure_detection':
+        infrastructure_results.append(result)
+
+    Typical Counts:
+    - plant_results: 10-50 images
+    - infrastructure_results: 5-20 images (optional)
+
+    ⏱️ ~2-5ms (simple iteration)" }
+
+    SEPARATE_BY_TYPE --> AGG_PLANT_STATS
+
+    %% =================================================================
+    %% SECTION 4: AGGREGATE PLANT DETECTION STATISTICS
+    %% =================================================================
+
+    AGG_PLANT_STATS@{ shape: subproc, label: "🌱 Aggregate Plant Statistics
+
+    Python Code:
+    total_estimated = sum(r['estimated_count'] for r in plant_results)
+    total_detected = sum(r['detected_count'] for r in plant_results)
+
+    avg_confidence = np.mean([
+        1.0 if r['confidence'] == 'HIGH' else
+        0.7 if r['confidence'] == 'MEDIUM' else
+        0.4
+        for r in plant_results
+    ])
+
+    # Calculate session-level confidence
+    high_conf_count = sum(1 for r in plant_results if r['confidence'] == 'HIGH')
+    if high_conf_count / len(plant_results) > 0.8:
+        session_confidence = 'HIGH'
+    elif high_conf_count / len(plant_results) > 0.5:
+        session_confidence = 'MEDIUM'
+    else:
+        session_confidence = 'LOW'
+
+    # Calculate processing statistics
+    avg_processing_time = np.mean([r['processing_time'] for r in plant_results])
+    total_processing_time = sum(r['processing_time'] for r in plant_results)
+
+    Example Result:
+    {
+        'total_estimated': 9834,  # Sum across all images
+        'total_detected': 7821,
+        'avg_per_image': 196,
+        'session_confidence': 'HIGH',
+        'images_processed': 50,
+        'avg_processing_time_s': 19.3,
+        'total_gpu_time_s': 965  # Total GPU hours billed
+    }
+
+    ⏱️ ~10-20ms (NumPy operations)" }
+
+    AGG_PLANT_STATS --> AGG_INFRA_STATS
+
+    %% =================================================================
+    %% SECTION 5: AGGREGATE INFRASTRUCTURE STATISTICS
+    %% =================================================================
+
+    AGG_INFRA_STATS@{ shape: subproc, label: "🔌 Aggregate Infrastructure Statistics
+
+    Python Code:
+    from collections import defaultdict
+
+    # Aggregate by class across all images
+    total_by_class = defaultdict(int)
+    locations_by_class = defaultdict(list)
+
+    for result in infrastructure_results:
+        for class_name, data in result['by_class'].items():
+            total_by_class[class_name] += data['count']
+
+            # Collect all GPS locations
+            for loc in data['locations']:
+                locations_by_class[class_name].append({
+                    'image_id': result['image_id'],
+                    'gps': loc['gps'],
+                    'confidence': loc['confidence']
+                })
+
+    # Calculate overall infrastructure statistics
+    total_infrastructure = sum(total_by_class.values())
+
+    Example Result:
+    {
+        'total_infrastructure': 27,
+        'by_class': {
+            'electrical_box': {
+                'count': 15,
+                'locations': [
+                    {'image_id': UUID('...'), 'gps': (-34.56, -58.12), 'confidence': 0.85},
+                    ...
+                ]
+            },
+            'industrial_plug': {
+                'count': 8,
+                'locations': [...]
+            },
+            'electric_meter': {
+                'count': 4,
+                'locations': [...]
+            }
+        },
+        'images_with_infrastructure': 12,  # Out of 20 processed
+        'avg_per_image': 1.35
+    }
+
+    ⏱️ ~15-30ms (dictionary aggregation)" }
+
+    AGG_INFRA_STATS --> CALCULATE_FIELD_METRICS
+
+    %% =================================================================
+    %% SECTION 6: CALCULATE FIELD-LEVEL METRICS
+    %% =================================================================
+
+    CALCULATE_FIELD_METRICS@{ shape: subproc, label: "📊 Calculate Field-Level Metrics
+
+    Python Code:
+    # Load session metadata (field area, GPS bounds)
+    session = db.query(
+        SELECT field_id, total_area_m2, gps_bounds
+        FROM sessions
+        WHERE id = session_id_pk
+    ).one()
+
+    field_area_ha = session.total_area_m2 / 10000  # m² → hectares
+
+    # Calculate plant density (plants per hectare)
+    plant_density = total_estimated / field_area_ha
+
+    # Calculate coverage statistics
+    images_expected = session.images_expected
+    images_processed = len(plant_results)
+    coverage_percent = (images_processed / images_expected) * 100
+
+    # Estimate remaining plants (if partial coverage)
+    if coverage_percent < 100:
+        estimated_total = total_estimated / (coverage_percent / 100)
+    else:
+        estimated_total = total_estimated
+
+    Field Metrics Result:
+    {
+        'field_area_ha': 12.5,
+        'plant_density_per_ha': 787,  # Industry benchmark: 500-1000
+        'total_plants_estimated': 9834,
+        'coverage_percent': 92.3,
+        'estimated_total_if_full_coverage': 10656,
+        'images_processed': 50,
+        'images_expected': 54
+    }
+
+    INDUSTRY CONTEXT:
+    - Low density: < 500 plants/ha (sparse planting)
+    - Normal density: 500-1000 plants/ha
+    - High density: > 1000 plants/ha (intensive farming)
+
+    ⏱️ ~5-10ms (simple math + 1 query)" }
+
+    CALCULATE_FIELD_METRICS --> CALCULATE_QUALITY_SCORE
+
+    CALCULATE_QUALITY_SCORE@{ shape: subproc, label: "⭐ Calculate Quality Score
+
+    Python Code:
+    quality_factors = []
+
+    # Factor 1: Confidence distribution (40% weight)
+    confidence_score = (
+        high_conf_count * 1.0 +
+        medium_conf_count * 0.7 +
+        low_conf_count * 0.4
+    ) / len(plant_results)
+    quality_factors.append(('confidence', confidence_score, 0.4))
+
+    # Factor 2: Coverage completeness (30% weight)
+    coverage_score = min(coverage_percent / 100, 1.0)
+    quality_factors.append(('coverage', coverage_score, 0.3))
+
+    # Factor 3: Processing consistency (20% weight)
+    # Low variance in processing times = consistent image quality
+    processing_time_cv = np.std(processing_times) / np.mean(processing_times)
+    consistency_score = max(0, 1.0 - processing_time_cv)
+    quality_factors.append(('consistency', consistency_score, 0.2))
+
+    # Factor 4: Failure rate (10% weight)
+    failure_score = 1.0 - (len(failures) / len(child_results))
+    quality_factors.append(('failures', failure_score, 0.1))
+
+    # Weighted average
+    overall_quality = sum(score * weight for _, score, weight in quality_factors)
+
+    Quality Bands:
+    - overall_quality >= 0.85: 'EXCELLENT' ⭐⭐⭐⭐⭐
+    - overall_quality >= 0.70: 'GOOD' ⭐⭐⭐⭐
+    - overall_quality >= 0.50: 'FAIR' ⭐⭐⭐
+    - overall_quality < 0.50: 'POOR' ⭐⭐
+
+    Example:
+    {
+        'overall_quality': 0.87,
+        'quality_band': 'EXCELLENT',
+        'factors': {
+            'confidence': 0.92,
+            'coverage': 0.92,
+            'consistency': 0.78,
+            'failures': 1.0
+        }
+    }
+
+    ⏱️ ~5ms (NumPy statistics)" }
+
+    CALCULATE_QUALITY_SCORE --> GENERATE_SUMMARY
+
+    %% =================================================================
+    %% SECTION 7: GENERATE SESSION SUMMARY
+    %% =================================================================
+
+    GENERATE_SUMMARY@{ shape: subproc, label: "📝 Generate Session Summary
+
+    Python Code:
+    session_summary = {
+        # Session metadata
+        'session_id': str(session_id_pk),
+        'field_id': str(session.field_id),
+        'completed_at': datetime.utcnow().isoformat(),
+
+        # Plant detection results
+        'plant_detection': {
+            'total_estimated': total_estimated,
+            'total_detected': total_detected,
+            'avg_per_image': avg_per_image,
+            'confidence': session_confidence,
+            'images_processed': len(plant_results)
+        },
+
+        # Infrastructure results
+        'infrastructure_detection': {
+            'total_count': total_infrastructure,
+            'by_class': total_by_class,
+            'images_processed': len(infrastructure_results)
+        },
+
+        # Field metrics
+        'field_metrics': {
+            'area_ha': field_area_ha,
+            'plant_density_per_ha': plant_density,
+            'coverage_percent': coverage_percent,
+            'estimated_total_if_full': estimated_total
+        },
+
+        # Quality assessment
+        'quality': {
+            'overall_score': overall_quality,
+            'quality_band': quality_band,
+            'factors': quality_factors
+        },
+
+        # Performance metrics
+        'performance': {
+            'total_processing_time_s': total_processing_time,
+            'avg_processing_time_s': avg_processing_time,
+            'images_failed': len(failures),
+            'failure_rate': len(failures) / len(child_results)
+        },
+
+        # Status
+        'status': 'completed',
+        'warnings': warnings_list if warnings_list else None
+    }
+
+    ⏱️ ~2ms (dictionary construction)" }
+
+    GENERATE_SUMMARY --> SAVE_SUMMARY_DB
+
+    %% =================================================================
+    %% SECTION 8: PERSIST TO DATABASE
+    %% =================================================================
+
+    SAVE_SUMMARY_DB@{ shape: cyl, label: "🗄️ INSERT Session Summary
+
+    Query:
+    INSERT INTO session_summaries
+        (session_id, field_id, completed_at,
+         total_plants_estimated, total_plants_detected,
+         plant_density_per_ha, coverage_percent,
+         total_infrastructure, infrastructure_by_class,
+         quality_score, quality_band,
+         total_processing_time_s, images_processed, images_failed,
+         summary_json)
+    VALUES
+        (:session_id, :field_id, :completed_at,
+         :total_plants_estimated, :total_plants_detected,
+         :plant_density_per_ha, :coverage_percent,
+         :total_infrastructure, :infrastructure_by_class,
+         :quality_score, :quality_band,
+         :total_processing_time_s, :images_processed, :images_failed,
+         :summary_json)
+
+    Note: summary_json contains full session_summary dict as JSONB
+
+    ⏱️ ~5-10ms (single INSERT)" }
+
+    SAVE_SUMMARY_DB --> UPDATE_SESSION_STATUS
+
+    UPDATE_SESSION_STATUS@{ shape: cyl, label: "🗄️ UPDATE Session Status
+
+    Query:
+    UPDATE sessions
+    SET
+        status = 'completed',
+        completed_at = NOW(),
+        total_plants_estimated = :total_estimated,
+        quality_score = :quality_score,
+        processing_time_s = :total_processing_time
+    WHERE id = :session_id_pk
+
+    This triggers frontend polling to STOP
+    (session no longer 'processing')
+
+    ⏱️ ~3ms (indexed UPDATE)" }
+
+    UPDATE_SESSION_STATUS --> CHECK_WEBHOOK
+
+    %% =================================================================
+    %% SECTION 9: WEBHOOK NOTIFICATION (Optional)
+    %% =================================================================
+
+    CHECK_WEBHOOK@{ shape: diamond, label: "Webhook
+    configured?" }
+
+    CHECK_WEBHOOK -->|Yes| SEND_WEBHOOK
+    CHECK_WEBHOOK -->|No| CACHE_RESULT
+
+    SEND_WEBHOOK@{ shape: subproc, label: "🔔 Send Webhook Notification
+
+    Python Code:
+    webhook_url = session.webhook_url
+
+    payload = {
+        'event': 'session.completed',
+        'session_id': str(session_id_pk),
+        'completed_at': datetime.utcnow().isoformat(),
+        'summary': session_summary
+    }
+
+    # Async HTTP POST (don't block callback)
+    async with httpx.AsyncClient() as client:
+        try:
+            response = await client.post(
+                webhook_url,
+                json=payload,
+                timeout=5.0,
+                headers={'Content-Type': 'application/json'}
+            )
+            response.raise_for_status()
+        except httpx.HTTPError as e:
+            # Log webhook failure but don't fail callback
+            logger.warning(f'Webhook failed: {e}')
+
+    Use Case:
+    - Notify external system (e.g., farm management software)
+    - Trigger downstream processes (e.g., generate PDF report)
+    - Send email/SMS notification to farmer
+
+    ⏱️ ~50-200ms (async HTTP request)
+    ⚡ Non-blocking (runs in background)" }
+
+    SEND_WEBHOOK --> CACHE_RESULT
+
+    %% =================================================================
+    %% SECTION 10: CACHE RESULT FOR FRONTEND
+    %% =================================================================
+
+    CACHE_RESULT@{ shape: subproc, label: "💾 Cache Result in Redis
+
+    Python Code:
+    cache_key = f'session_summary:{session_id_pk}'
+
+    redis_client.setex(
+        cache_key,
+        ttl=3600,  # 1 hour TTL
+        value=json.dumps(session_summary)
+    )
+
+    WHY CACHE:
+    - Frontend polls every 2s during processing
+    - After completion, frontend fetches full summary
+    - Redis cache avoids repeated DB queries
+    - 1-hour TTL (user downloads report, then expires)
+
+    Performance Impact:
+    - Without cache: 50ms DB query per poll
+    - With cache: 1ms Redis GET per poll
+    - 50x speedup for frontend responsiveness
+
+    ⏱️ ~2-5ms (Redis SET)" }
+
+    CACHE_RESULT --> RETURN_RESULT
+
+    %% =================================================================
+    %% SECTION 11: RETURN TO CELERY
+    %% =================================================================
+
+    RETURN_RESULT@{ shape: subproc, label: "📤 Return Summary to Celery
+
+    Python Code:
+    return {
+        'status': 'success',
+        'session_id': str(session_id_pk),
+        'summary': session_summary,
+        'callback_duration_ms': (time.time() - start_time) * 1000
+    }
+
+    This return value is stored in Celery backend:
+    - Result backend: Redis
+    - TTL: 24 hours
+    - Queryable via: AsyncResult(task_id).result
+
+    ⏱️ ~1ms (return statement)" }
+
+    RETURN_RESULT --> END
+
+    END@{ shape: stadium, label: "✅ Callback Complete
+
+    Total Time: 100-500ms
+    Breakdown:
+    - Result validation: 5ms
+    - Aggregation: 50ms
+    - Field metrics: 10ms
+    - Quality score: 5ms
+    - DB persist: 15ms
+    - Redis cache: 5ms
+    - Webhook (optional): 100ms
+
+    Success Criteria:
+    ✓ All results aggregated
+    ✓ Session summary saved
+    ✓ Frontend notified (cache)
+    ✓ Webhook sent (if configured)" }
+
+    %% =================================================================
+    %% STYLING
+    %% =================================================================
+
+    classDef criticalNode fill:#ff6b6b,stroke:#c92a2a,stroke-width:3px,color:#fff
+    classDef dbNode fill:#4dabf7,stroke:#1971c2,stroke-width:2px,color:#fff
+    classDef cacheNode fill:#ffd43b,stroke:#fab005,stroke-width:2px,color:#000
+    classDef webhookNode fill:#51cf66,stroke:#2f9e44,stroke-width:2px,color:#000
+
+    class AGG_PLANT_STATS,CALCULATE_QUALITY_SCORE criticalNode
+    class SAVE_SUMMARY_DB,UPDATE_SESSION_STATUS,LOG_FAILURES dbNode
+    class CACHE_RESULT cacheNode
+    class SEND_WEBHOOK webhookNode
