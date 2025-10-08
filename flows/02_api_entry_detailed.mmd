@@ -1,0 +1,416 @@
+---
+config:
+  theme: dark
+  themeVariables:
+    primaryColor: '#E8F5E9'
+    primaryTextColor: '#1B5E20'
+    primaryBorderColor: '#4CAF50'
+    lineColor: '#388E3C'
+    secondaryColor: '#E3F2FD'
+    tertiaryColor: '#FFF3E0'
+  layout: dagre
+---
+flowchart TB
+    %% ═══════════════════════════════════════════════════════════════════════
+    %% API ENTRY DETAILED - LINE-BY-LINE CODE FLOW
+    %% ═══════════════════════════════════════════════════════════════════════
+    %% Purpose: Ultra-detailed FastAPI controller implementation
+    %% Scope: POST /api/stock/photo - Complete code flow
+    %% Detail: Line-by-line with Pydantic schemas, error handling, logging
+    %% Version: 1.0 | Updated: 2025-10-07 | Mermaid v11.3.0+
+    %% ═══════════════════════════════════════════════════════════════════════
+
+    START@{ shape: stadium, label: "📸 POST /api/stock/photo
+Endpoint: /api/stock/photo
+Method: POST
+Content-Type: multipart/form-data
+⏱️ Entry point" }
+
+    EXTRACT_FILES@{ shape: rect, label: "📦 Extract Files from Request
+files = await request.form()
+photos = files.getlist('photos')
+metadata = files.get('metadata', None)
+⏱️ ~10ms" }
+
+    CHECK_FILES@{ shape: diamond, label: "Files Exist?
+len(photos) > 0" }
+
+    ERROR_NO_FILES@{ shape: rect, label: "❌ Raise HTTPException
+status_code=400
+detail='No photos provided'
+⏱️ ~5ms" }
+
+    VALIDATE_COUNT@{ shape: diamond, label: "Photo Count Valid?
+1 <= len(photos) <= 100" }
+
+    ERROR_TOO_MANY@{ shape: rect, label: "❌ Raise HTTPException
+status_code=400
+detail='Max 100 photos per request'
+⏱️ ~5ms" }
+
+    INIT_ARRAYS@{ shape: rect, label: "📋 Initialize Arrays
+image_ids: List[UUID] = []
+s3_tasks: List = []
+ml_tasks: List = []
+errors: List[dict] = []
+⏱️ ~1ms" }
+
+    LOOP_START@{ shape: rect, label: "🔄 For Loop Start
+for idx, photo in enumerate(photos):
+⚡ Sequential processing" }
+
+    VALIDATE_FILE@{ shape: subproc, label: "✅ Validate Single File
+# Check content type
+if photo.content_type not in [
+  'image/jpeg',
+  'image/png',
+  'image/jpg'
+]:
+  raise ValidationError
+
+# Check file size
+if photo.size > 50 * 1024 * 1024:  # 50MB
+  raise ValidationError
+
+# Check file extension
+ext = photo.filename.split('.')[-1].lower()
+if ext not in ['jpg', 'jpeg', 'png']:
+  raise ValidationError
+
+⏱️ ~5ms per file" }
+
+    FILE_VALID@{ shape: diamond, label: "File Valid?" }
+
+    COLLECT_ERROR@{ shape: rect, label: "📝 Collect Validation Error
+errors.append({
+  'index': idx,
+  'filename': photo.filename,
+  'error': error_message
+})
+Continue to next file
+⏱️ ~2ms" }
+
+    GENERATE_UUID@{ shape: subproc, label: "🔑 Generate UUID v4
+import uuid
+image_id = uuid.uuid4()
+
+⚠️ CRITICAL DESIGN DECISION:
+UUID generated in APPLICATION
+NOT database SERIAL/IDENTITY
+Allows:
+- Idempotency
+- Distributed systems
+- S3 key predictability
+- No DB round-trip for ID
+
+⏱️ ~0.1ms" }
+
+    PREPARE_METADATA@{ shape: rect, label: "📋 Prepare Optional Metadata
+metadata_dict = None
+if metadata and idx < len(metadata):
+  try:
+    metadata_dict = json.loads(metadata[idx])
+  except JSONDecodeError:
+    logger.warning(f'Invalid metadata for {image_id}')
+⏱️ ~2ms" }
+
+    CREATE_TEMP_DIR@{ shape: rect, label: "📁 Ensure Temp Directory
+temp_dir = Path('/tmp/uploads')
+temp_dir.mkdir(parents=True, exist_ok=True)
+⏱️ ~1ms (cached after first)" }
+
+    SAVE_TEMP_FILE@{ shape: subproc, label: "💾 Save Temporary File
+temp_path = temp_dir / f'{image_id}.jpg'
+
+# Read file content
+content = await photo.read()
+
+# Write to temp file
+async with aiofiles.open(temp_path, 'wb') as f:
+  await f.write(content)
+
+# Verify write
+if not temp_path.exists():
+  raise IOError('Failed to write temp file')
+
+⏱️ ~10-20ms per file
+Disk I/O intensive" }
+
+    SAVE_METADATA_JSON@{ shape: rect, label: "💾 Save Metadata JSON (if exists)
+if metadata_dict:
+  metadata_path = Path('/tmp/metadata') / f'{image_id}.json'
+  metadata_path.parent.mkdir(exist_ok=True)
+  async with aiofiles.open(metadata_path, 'w') as f:
+    await f.write(json.dumps(metadata_dict))
+⏱️ ~5ms" }
+
+    GENERATE_S3_KEYS@{ shape: subproc, label: "🔗 Generate S3 Keys
+from datetime import datetime
+
+now = datetime.utcnow()
+year = now.strftime('%Y')
+month = now.strftime('%m')
+day = now.strftime('%d')
+
+s3_key_original = f'original/{year}/{month}/{day}/{image_id}.jpg'
+s3_key_processed = f'processed/{year}/{month}/{day}/{image_id}_viz.avif'
+
+⏱️ ~1ms" }
+
+    GET_DB_SESSION@{ shape: rect, label: "🔌 Get Database Session
+async with get_async_session() as session:
+  # AsyncSession from dependency injection
+⏱️ ~5ms (connection pool)" }
+
+    CREATE_DB_RECORD@{ shape: subproc, label: "📊 Create SQLAlchemy Object
+from models import S3Image
+
+s3_image = S3Image(
+  image_id=image_id,  # UUID PK
+  s3_bucket='demeterai-photos',
+  s3_key_original=s3_key_original,
+  s3_key_thumbnail=None,  # Will be set by S3 task
+  content_type=photo.content_type,
+  file_size_bytes=photo.size,
+  width_px=None,  # Will be set by S3 task
+  height_px=None,
+  exif_metadata=None,
+  gps_coordinates=None,
+  upload_source='web',
+  uploaded_by_user_id=current_user.id,
+  status='uploaded',  # Initial status
+  error_details=None,
+  processing_status_updated_at=None,
+  created_at=datetime.utcnow(),
+  updated_at=datetime.utcnow()
+)
+
+⏱️ ~2ms object creation" }
+
+    INSERT_DB@{ shape: cyl, label: "📊 INSERT INTO s3_images
+session.add(s3_image)
+await session.flush()
+
+⚠️ Note: No RETURNING clause needed
+UUID already known
+
+⏱️ ~20-30ms per INSERT
+Database round-trip" }
+
+    HANDLE_DB_ERROR@{ shape: diamond, label: "DB Insert Success?" }
+
+    LOG_DB_ERROR@{ shape: rect, label: "📝 Log Database Error
+logger.error(
+  f'DB insert failed for {image_id}',
+  exc_info=True
+)
+errors.append({
+  'index': idx,
+  'image_id': str(image_id),
+  'error': 'Database insertion failed'
+})
+⏱️ ~5ms" }
+
+    ROLLBACK@{ shape: rect, label: "🔄 Rollback Transaction
+await session.rollback()
+⏱️ ~10ms" }
+
+    COLLECT_ID@{ shape: rect, label: "📦 Collect Image ID
+image_ids.append(image_id)
+⏱️ ~1ms" }
+
+    LOOP_CHECK@{ shape: diamond, label: "More Photos?
+idx < len(photos) - 1" }
+
+    COMMIT_BATCH@{ shape: cyl, label: "✅ Commit All Inserts
+await session.commit()
+
+⚠️ Batch commit after loop
+More efficient than per-row commits
+
+⏱️ ~50ms for batch" }
+
+    CHECK_ERRORS@{ shape: diamond, label: "Any Validation Errors?
+len(errors) > 0" }
+
+    RETURN_PARTIAL_ERROR@{ shape: rect, label: "⚠️ Return 207 Multi-Status
+return JSONResponse(
+  status_code=207,
+  content={
+    'success': image_ids,
+    'errors': errors,
+    'total_photos': len(photos),
+    'successful': len(image_ids),
+    'failed': len(errors)
+  }
+)
+⏱️ ~5ms" }
+
+    CREATE_CHUNKS@{ shape: subproc, label: "📦 Create Task Chunks
+# S3 upload chunks (20 images per task)
+from itertools import islice
+
+def chunked(iterable, size):
+  it = iter(iterable)
+  while chunk := list(islice(it, size)):
+    yield chunk
+
+s3_chunks = list(chunked(image_ids, 20))
+
+# ML tasks (1 image per task)
+ml_image_ids = image_ids.copy()
+
+⏱️ ~5ms" }
+
+    DISPATCH_S3_TASKS@{ shape: subproc, label: "🚀 Dispatch S3 Upload Tasks
+from celery import group
+from tasks.s3 import upload_s3_batch
+
+s3_task_group = group(
+  upload_s3_batch.chunks(
+    chunk,
+    chunk_size=20
+  ).set(queue='io_queue')
+  for chunk in s3_chunks
+)
+
+s3_result = s3_task_group.apply_async()
+s3_task_ids = [
+  str(task.id) for task in s3_result.results
+]
+
+⚡ Parallel execution on I/O workers
+⏱️ ~10ms dispatch" }
+
+    DISPATCH_ML_TASKS@{ shape: subproc, label: "🚀 Dispatch ML Processing Tasks
+from tasks.ml import process_photo_ml
+
+ml_task_group = group(
+  process_photo_ml.s(
+    image_id=str(image_id),
+    user_id=current_user.id
+  ).set(queue='gpu_queue')
+  for image_id in ml_image_ids
+)
+
+ml_result = ml_task_group.apply_async()
+ml_task_ids = [
+  str(task.id) for task in ml_result.results
+]
+
+⚡ Parallel execution on GPU workers
+⏱️ ~10ms dispatch" }
+
+    COLLECT_TASK_IDS@{ shape: rect, label: "📋 Collect All Task IDs
+all_task_ids = s3_task_ids + ml_task_ids
+⏱️ ~1ms" }
+
+    CALC_ESTIMATE@{ shape: rect, label: "⏱️ Calculate Time Estimate
+# Heuristic based on photo count
+estimated_seconds = (
+  len(image_ids) * 180  # ~3 min per photo
+  + 60  # Buffer
+)
+⏱️ ~1ms" }
+
+    BUILD_RESPONSE@{ shape: subproc, label: "📦 Build Success Response
+response = {
+  'status': 'accepted',
+  'task_ids': all_task_ids,
+  'image_ids': [str(id) for id in image_ids],
+  'total_photos': len(image_ids),
+  'estimated_time_seconds': estimated_seconds,
+  's3_tasks': len(s3_task_ids),
+  'ml_tasks': len(ml_task_ids),
+  'polling_endpoint': '/api/stock/tasks/status',
+  'message': 'Photos uploaded successfully. Processing started.'
+}
+⏱️ ~2ms" }
+
+    LOG_SUCCESS@{ shape: rect, label: "📝 Log Success
+logger.info(
+  f'API: Uploaded {len(image_ids)} photos',
+  extra={
+    'user_id': current_user.id,
+    'photo_count': len(image_ids),
+    'task_count': len(all_task_ids)
+  }
+)
+⏱️ ~5ms" }
+
+    RETURN_202@{ shape: stadium, label: "✅ Return 202 Accepted
+return JSONResponse(
+  status_code=202,
+  content=response
+)
+
+⏱️ Total API: 200-300ms
+Client can now poll /api/stock/tasks/status" }
+
+    END@{ shape: circle, label: "🎉 API Complete" }
+
+    %% ═══════════════════════════════════════════════════════════════════════
+    %% CONNECTIONS
+    %% ═══════════════════════════════════════════════════════════════════════
+
+    START --> EXTRACT_FILES
+    EXTRACT_FILES --> CHECK_FILES
+    CHECK_FILES -- "❌ No files" --> ERROR_NO_FILES
+    CHECK_FILES -- "✅ Has files" --> VALIDATE_COUNT
+    VALIDATE_COUNT -- "❌ > 100" --> ERROR_TOO_MANY
+    VALIDATE_COUNT -- "✅ Valid" --> INIT_ARRAYS
+    INIT_ARRAYS --> LOOP_START
+    LOOP_START --> VALIDATE_FILE
+    VALIDATE_FILE --> FILE_VALID
+    FILE_VALID -- "❌ Invalid" --> COLLECT_ERROR
+    COLLECT_ERROR --> LOOP_CHECK
+    FILE_VALID -- "✅ Valid" --> GENERATE_UUID
+    GENERATE_UUID --> PREPARE_METADATA
+    PREPARE_METADATA --> CREATE_TEMP_DIR
+    CREATE_TEMP_DIR --> SAVE_TEMP_FILE
+    SAVE_TEMP_FILE --> SAVE_METADATA_JSON
+    SAVE_METADATA_JSON --> GENERATE_S3_KEYS
+    GENERATE_S3_KEYS --> GET_DB_SESSION
+    GET_DB_SESSION --> CREATE_DB_RECORD
+    CREATE_DB_RECORD --> INSERT_DB
+    INSERT_DB --> HANDLE_DB_ERROR
+    HANDLE_DB_ERROR -- "❌ Error" --> LOG_DB_ERROR
+    LOG_DB_ERROR --> ROLLBACK
+    ROLLBACK --> COLLECT_ERROR
+    HANDLE_DB_ERROR -- "✅ Success" --> COLLECT_ID
+    COLLECT_ID --> LOOP_CHECK
+    LOOP_CHECK -- "✅ More photos" --> LOOP_START
+    LOOP_CHECK -- "❌ Loop done" --> COMMIT_BATCH
+    COMMIT_BATCH --> CHECK_ERRORS
+    CHECK_ERRORS -- "⚠️ Has errors" --> RETURN_PARTIAL_ERROR
+    CHECK_ERRORS -- "✅ All OK" --> CREATE_CHUNKS
+    CREATE_CHUNKS --> DISPATCH_S3_TASKS
+    DISPATCH_S3_TASKS --> DISPATCH_ML_TASKS
+    DISPATCH_ML_TASKS --> COLLECT_TASK_IDS
+    COLLECT_TASK_IDS --> CALC_ESTIMATE
+    CALC_ESTIMATE --> BUILD_RESPONSE
+    BUILD_RESPONSE --> LOG_SUCCESS
+    LOG_SUCCESS --> RETURN_202
+    RETURN_202 --> END
+
+    %% ═══════════════════════════════════════════════════════════════════════
+    %% STYLING
+    %% ═══════════════════════════════════════════════════════════════════════
+
+    classDef errorStyle fill:#f44336,color:#fff,stroke:#b71c1c,stroke-width:2px
+    classDef successStyle fill:#4CAF50,color:#fff,stroke:#2E7D32,stroke-width:2px
+    classDef warningStyle fill:#FFF9C4,stroke:#F9A825,stroke-width:2px
+    classDef processStyle fill:#E3F2FD,stroke:#1976D2,stroke-width:2px
+    classDef criticalStyle fill:#FFF3E0,stroke:#F57C00,stroke-width:3px
+
+    ERROR_NO_FILES:::errorStyle
+    ERROR_TOO_MANY:::errorStyle
+    LOG_DB_ERROR:::errorStyle
+    ROLLBACK:::errorStyle
+    RETURN_PARTIAL_ERROR:::warningStyle
+    RETURN_202:::successStyle
+    END:::successStyle
+    GENERATE_UUID:::criticalStyle
+    INSERT_DB:::processStyle
+    DISPATCH_S3_TASKS:::processStyle
+    DISPATCH_ML_TASKS:::processStyle
