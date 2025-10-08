@@ -453,109 +453,58 @@ def extract_gps_data(gps_info: Dict) -> Dict[str, float]:
 
 **Performance:** ~50-100ms per image
 
-### 6. S3 Upload (lines 540-640)
+### 6. S3 Upload (DEFERRED - Celery Tasks)
+
+**IMPORTANT:** S3 upload does NOT happen during the FastAPI endpoint. Files are saved to `/tmp/` and uploaded to S3 asynchronously via Celery tasks.
 
 **Upload strategy:**
-- Use boto3 with async wrapper (aioboto3)
-- Upload original full-resolution image
-- Generate presigned URL for frontend access
-- Store S3 key in database
+- Files saved to `/tmp/uploads/` during endpoint execution
+- S3 upload delegated to Celery tasks (`upload_s3_batch`)
+- Tasks process images in chunks of ~20 per batch
+- Circuit breaker pattern prevents S3 API exhaustion
 
-**Implementation:**
+**Why defer to Celery?**
+1. **Fast API response**: Return 202 Accepted in < 500ms
+2. **Resilience**: Circuit breaker handles AWS outages gracefully
+3. **Retry logic**: Automatic exponential backoff on failures
+4. **Progress tracking**: Users can poll job status
+
+**Celery Task (Simplified):**
 ```python
-import aioboto3
-from botocore.exceptions import ClientError
-from datetime import datetime
-from typing import Dict
-
-async def upload_to_s3(
-    local_path: str,
-    image_id: str,
-    content_type: str,
-    metadata: Dict[str, Any]
-) -> Dict[str, str]:
+@app.task(bind=True, max_retries=3)
+def upload_s3_batch(self, chunk: List[str]):
     """
-    Upload image to S3
+    Upload batch of images to S3 with circuit breaker
 
-    Returns:
-        {
-            "s3_bucket": "demeter-photos",
-            "s3_key_original": "originals/2025/10/08/uuid-1.jpg",
-            "s3_url": "https://s3.amazonaws.com/demeter-photos/..."
-        }
+    Args:
+        chunk: List of image_id UUIDs (typically 20 images)
+
+    See: flows/procesamiento_ml_upload_s3_principal/03_s3_upload_circuit_breaker_detailed.mmd
     """
 
-    # Generate S3 key with date-based folder structure
-    upload_date = datetime.utcnow()
-    s3_key = f'originals/{upload_date.year}/{upload_date.month:02d}/{upload_date.day:02d}/{image_id}.jpg'
+    circuit = CircuitBreaker(
+        failure_threshold=10,
+        recovery_timeout=60,
+        expected_exception=S3Error
+    )
 
-    session = aioboto3.Session()
+    for image_id_str in chunk:
+        # Read from /tmp/uploads/
+        temp_path = f'/tmp/uploads/{image_id_str}.jpg'
 
-    async with session.client('s3') as s3_client:
-        try:
-            # Upload file
-            await s3_client.upload_file(
-                Filename=local_path,
-                Bucket='demeter-photos',
-                Key=s3_key,
-                ExtraArgs={
-                    'ContentType': content_type,
-                    'Metadata': {
-                        'image_id': image_id,
-                        'uploaded_by': str(metadata.get('user_id', '')),
-                        'upload_timestamp': upload_date.isoformat(),
-                        'original_filename': metadata.get('filename', '')
-                    },
-                    # Set cache control
-                    'CacheControl': 'max-age=31536000',  # 1 year
-                    # Enable server-side encryption
-                    'ServerSideEncryption': 'AES256'
-                }
-            )
+        # Extract EXIF, upload to S3, generate thumbnail
+        # (see detailed flow in 03_s3_upload_circuit_breaker_detailed.mmd)
 
-            logger.info(f'Uploaded {image_id} to S3: {s3_key}')
-
-            return {
-                's3_bucket': 'demeter-photos',
-                's3_key_original': s3_key,
-                's3_url': f'https://s3.amazonaws.com/demeter-photos/{s3_key}'
-            }
-
-        except ClientError as e:
-            logger.error(f'S3 upload failed for {image_id}: {e}')
-            raise HTTPException(500, f'S3 upload failed: {str(e)}')
+    return summary
 ```
 
-**Performance:** 2-5 seconds per image (network-dependent)
+**Performance:**
+- Endpoint response: < 500ms (no S3 upload)
+- S3 upload per chunk (20 images): 4-10 seconds
+- Total for 100 images: 20-50 seconds (5 chunks × 4-10s)
 
-**Parallelization:**
-```python
-# Upload all images in parallel (up to 10 concurrent uploads)
-import asyncio
-from itertools import islice
-
-async def upload_batch_to_s3(files: List[Dict], max_concurrent: int = 10):
-    """Upload multiple files to S3 in parallel"""
-
-    tasks = []
-    for file_data in files:
-        task = upload_to_s3(
-            local_path=file_data['temp_path'],
-            image_id=file_data['image_id'],
-            content_type=file_data['content_type'],
-            metadata=file_data
-        )
-        tasks.append(task)
-
-    # Execute in batches of max_concurrent
-    results = []
-    for i in range(0, len(tasks), max_concurrent):
-        batch = tasks[i:i+max_concurrent]
-        batch_results = await asyncio.gather(*batch, return_exceptions=True)
-        results.extend(batch_results)
-
-    return results
-```
+**For complete S3 upload implementation, see:**
+- `flows/procesamiento_ml_upload_s3_principal/03_s3_upload_circuit_breaker_detailed.mmd`
 
 ### 7. Thumbnail Generation (lines 680-740)
 
@@ -690,49 +639,74 @@ async def create_image_record(
     return image.id
 ```
 
-### 9. Celery Job Creation (lines 900-980)
+### 9. Celery Job Creation (CHUNKED - Batches of 20)
 
-**Create processing job for each uploaded photo:**
+**Create chunked Celery jobs for S3 upload:**
 ```python
+from celery import group, chunks
 from celery_app import celery_app
+import math
 
-async def create_processing_jobs(
+async def create_s3_upload_jobs(
     uploaded_files: List[Dict],
     upload_session_id: str,
     db: AsyncSession
-) -> List[Dict]:
+) -> Dict[str, Any]:
     """
-    Create Celery jobs for ML processing
+    Create chunked Celery jobs for S3 upload (batches of 20 images)
 
     Returns:
-        List of job metadata
+        Job metadata with chunk information
     """
 
-    jobs = []
+    # Extract image IDs
+    image_ids = [file_data['image_id'] for file_data in uploaded_files]
 
-    for file_data in uploaded_files:
-        # Dispatch Celery task
-        task = celery_app.send_task(
-            'process_uploaded_photo',
-            kwargs={
-                'image_id': file_data['image_id'],
-                's3_key_original': file_data['s3_key_original'],
-                'upload_session_id': upload_session_id,
-                'db_record_id': file_data['db_record_id']
-            },
-            queue='ml_processing',
-            priority=5  # Normal priority (0-9, higher = more important)
+    # Define chunk size (must match Celery task implementation)
+    chunk_size = 20
+
+    # Calculate number of chunks
+    num_chunks = math.ceil(len(image_ids) / chunk_size)
+
+    # Create chunked tasks
+    # Celery's chunks() splits list into batches and creates separate tasks
+    job = celery_app.send_task(
+        'upload_s3_batch',
+        kwargs={},
+        queue='io_workers'  # I/O-bound queue (gevent pool)
+    )
+
+    # Use Celery chunks primitive to split into batches
+    from celery import chord
+
+    # Split image_ids into chunks of 20
+    image_chunks = [
+        image_ids[i:i+chunk_size]
+        for i in range(0, len(image_ids), chunk_size)
+    ]
+
+    # Create group of tasks (one per chunk)
+    upload_tasks = group(
+        celery_app.send_task(
+            'upload_s3_batch',
+            args=[chunk],
+            queue='io_workers'
         )
+        for chunk in image_chunks
+    )
 
-        jobs.append({
-            'job_id': task.id,
-            'image_id': file_data['image_id'],
-            'filename': file_data['filename'],
-            'status': 'pending',
-            'created_at': datetime.utcnow().isoformat()
-        })
+    # Execute group
+    result = upload_tasks.apply_async()
 
-        logger.info(f'Created Celery job {task.id} for image {file_data["image_id"]}')
+    logger.info(
+        f'Created {num_chunks} chunked S3 upload jobs for session {upload_session_id}',
+        extra={
+            'upload_session_id': upload_session_id,
+            'total_images': len(image_ids),
+            'num_chunks': num_chunks,
+            'chunk_size': chunk_size
+        }
+    )
 
     # Store job metadata in Redis for polling
     import redis.asyncio as redis
@@ -743,21 +717,36 @@ async def create_processing_jobs(
         86400,  # 24 hours TTL
         json.dumps({
             'upload_session_id': upload_session_id,
-            'total_jobs': len(jobs),
-            'jobs': jobs,
+            'total_images': len(image_ids),
+            'total_chunks': num_chunks,
+            'chunk_size': chunk_size,
+            'group_id': result.id,
             'created_at': datetime.utcnow().isoformat()
         })
     )
 
-    return jobs
+    return {
+        'upload_session_id': upload_session_id,
+        'total_images': len(image_ids),
+        'total_chunks': num_chunks,
+        'chunk_size': chunk_size,
+        'group_id': result.id
+    }
 ```
 
-### 10. HTTP 202 Response (lines 1020-1080)
+**Key differences from individual jobs:**
+- **100 images = 5 jobs** (not 100 jobs)
+- Each job processes 20 images sequentially
+- Uses Celery `group()` to execute chunks in parallel
+- Frontend polls group status (not individual task status)
+
+### 10. HTTP 202 Response (Chunked Jobs)
 
 **Return response to frontend:**
 ```python
 from fastapi import Response
 from fastapi.responses import JSONResponse
+import math
 
 # Complete endpoint implementation
 @router.post('/photos/upload')
@@ -768,26 +757,32 @@ async def upload_photos(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db)
 ) -> JSONResponse:
-    """Upload photos and create processing jobs"""
+    """Upload photos and create chunked processing jobs"""
 
     upload_session_id = str(uuid.uuid4())
 
-    # ... (steps 4-9: save temp, extract EXIF, upload S3, create DB records, create jobs)
+    # ... (steps 4-8: save temp, create DB records)
 
-    jobs = await create_processing_jobs(uploaded_files, upload_session_id, db)
+    # Create chunked S3 upload jobs
+    job_info = await create_s3_upload_jobs(uploaded_files, upload_session_id, db)
 
     # Calculate estimated completion time
-    avg_processing_time_minutes = 7  # 5-10 min avg
-    estimated_completion_minutes = len(jobs) * avg_processing_time_minutes / 4  # 4 GPU workers
+    # S3 upload: 4-10s per chunk (20 images)
+    # Chunks run in parallel on multiple workers
+    avg_chunk_time_seconds = 7
+    num_workers = 4  # I/O workers in pool
+    estimated_seconds = math.ceil(job_info['total_chunks'] / num_workers) * avg_chunk_time_seconds
 
     response_data = {
         'status': 'accepted',
         'upload_session_id': upload_session_id,
-        'jobs': jobs,
-        'total_files': len(files),
-        'estimated_completion_time_minutes': int(estimated_completion_minutes),
+        'total_images': len(files),
+        'total_chunks': job_info['total_chunks'],
+        'chunk_size': job_info['chunk_size'],
+        'group_id': job_info['group_id'],
+        'estimated_completion_seconds': estimated_seconds,
         'poll_url': f'/api/v1/photos/jobs/status?upload_session_id={upload_session_id}',
-        'message': f'Upload successful. Processing {len(jobs)} photos...'
+        'message': f'Upload successful. Processing {len(files)} photos in {job_info["total_chunks"]} chunks...'
     }
 
     # Return 202 Accepted (not 200 OK)
@@ -800,33 +795,26 @@ async def upload_photos(
     )
 ```
 
-**Response example:**
+**Response example (100 images):**
 ```json
 {
   "status": "accepted",
   "upload_session_id": "550e8400-e29b-41d4-a716-446655440000",
-  "jobs": [
-    {
-      "job_id": "celery-task-uuid-1",
-      "image_id": "image-uuid-1",
-      "filename": "greenhouse_a_rack3.jpg",
-      "status": "pending",
-      "created_at": "2025-10-08T10:30:00Z"
-    },
-    {
-      "job_id": "celery-task-uuid-2",
-      "image_id": "image-uuid-2",
-      "filename": "greenhouse_a_rack4.jpg",
-      "status": "pending",
-      "created_at": "2025-10-08T10:30:01Z"
-    }
-  ],
-  "total_files": 2,
-  "estimated_completion_time_minutes": 3,
+  "total_images": 100,
+  "total_chunks": 5,
+  "chunk_size": 20,
+  "group_id": "celery-group-uuid-abc123",
+  "estimated_completion_seconds": 14,
   "poll_url": "/api/v1/photos/jobs/status?upload_session_id=550e8400-e29b-41d4-a716-446655440000",
-  "message": "Upload successful. Processing 2 photos..."
+  "message": "Upload successful. Processing 100 photos in 5 chunks..."
 }
 ```
+
+**Key differences:**
+- Response shows **chunks** (5), not individual jobs (100)
+- `group_id` for polling entire batch
+- Estimated time in **seconds** (not minutes) since S3 upload is fast
+- Example: 100 images = 5 chunks × 7s / 4 workers = ~14 seconds
 
 ## Performance Breakdown
 
@@ -838,28 +826,31 @@ async def upload_photos(
 | **Client validation** | < 100ms | Check file types, sizes |
 | **Upload to server** | 15-30s | Multipart upload, network-dependent |
 | **Save to /tmp/** | 2-5s | Write files to disk (50 × 50ms) |
-| **Extract EXIF** | 4-5s | Parallel extraction (50 × 80ms / 10 workers) |
-| **Upload to S3** | 15-20s | Parallel upload (50 × 3s / 10 concurrent) |
-| **Generate thumbnails** | 8-10s | Parallel generation (50 × 1.5s / 10 workers) |
 | **Create DB records** | 1-2s | Bulk insert (50 records) |
-| **Create Celery jobs** | 500ms | Dispatch 50 tasks |
+| **Create Celery jobs** | 200ms | Dispatch 3 chunked tasks (50/20 = 3 chunks) |
 | **Build response** | 50ms | JSON serialization |
-| **Total backend** | ~30-45s | From upload complete to 202 response |
+| **Total backend** | ~3-8s | From upload complete to 202 response |
+
+**DEFERRED (Async in Celery):**
+- **Extract EXIF**: 4-5s (happens in `upload_s3_batch` task)
+- **Upload to S3**: 15-20s (happens in `upload_s3_batch` task)
+- **Generate thumbnails**: 8-10s (happens in `upload_s3_batch` task)
 
 **User perceives:**
 - Upload progress: 15-30s (visible progress bar)
-- Backend processing: ~30s (spinner or progress message)
-- **Total: ~45-60s** from click to "processing started" message
+- Backend processing: ~5s (fast response)
+- **Total: ~20-35s** from click to "processing started" message
+- S3 upload happens in background (user polls job status)
 
 **Bottlenecks:**
 1. **Network upload**: Largest factor (user's internet speed)
-2. **S3 upload**: Second largest (AWS network speed)
-3. **Thumbnail generation**: CPU-bound, parallelized
+2. **Disk I/O**: Writing to /tmp/ (mitigated by SSD)
 
 **Optimizations:**
-- Thumbnail generation moved to separate Celery task (non-blocking)
-- EXIF extraction parallelized (10 workers)
-- S3 uploads parallelized (10 concurrent)
+- S3 upload moved to Celery tasks (non-blocking API response)
+- EXIF extraction happens in Celery (not during upload)
+- Thumbnail generation happens in Celery (not during upload)
+- Chunked tasks (3 chunks of 20 images) run in parallel on multiple workers
 - Database inserts batched
 
 ## Error Handling
