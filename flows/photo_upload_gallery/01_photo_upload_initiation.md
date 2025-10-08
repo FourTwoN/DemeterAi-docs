@@ -668,17 +668,6 @@ async def create_s3_upload_jobs(
     # Calculate number of chunks
     num_chunks = math.ceil(len(image_ids) / chunk_size)
 
-    # Create chunked tasks
-    # Celery's chunks() splits list into batches and creates separate tasks
-    job = celery_app.send_task(
-        'upload_s3_batch',
-        kwargs={},
-        queue='io_workers'  # I/O-bound queue (gevent pool)
-    )
-
-    # Use Celery chunks primitive to split into batches
-    from celery import chord
-
     # Split image_ids into chunks of 20
     image_chunks = [
         image_ids[i:i+chunk_size]
@@ -686,11 +675,12 @@ async def create_s3_upload_jobs(
     ]
 
     # Create group of tasks (one per chunk)
+    # Each chunk is processed by one 'upload_s3_batch' task
     upload_tasks = group(
         celery_app.send_task(
             'upload_s3_batch',
             args=[chunk],
-            queue='io_workers'
+            queue='io_workers'  # I/O-bound queue (gevent pool)
         )
         for chunk in image_chunks
     )
