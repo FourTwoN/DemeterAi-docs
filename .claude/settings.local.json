@@ -5,7 +5,8 @@
       "WebSearch",
       "Bash(git add:*)",
       "Bash(git commit:*)",
-      "Bash(mmdc:*)"
+      "Bash(mmdc:*)",
+      "mcp__notion__notion-search"
     ],
     "deny": [],
     "ask": []

@@ -23,7 +23,7 @@ This directory contains **high-level summaries** of all major business workflows
 |----------|---------|-------------------|
 | **Photo Initialization** | ML-powered stock counting from photos | [procesamiento_ml_upload_s3_principal/](../../flows/procesamiento_ml_upload_s3_principal/README.md) |
 | **Manual Initialization** | Direct stock count entry (no photo/ML) | [manual_stock_initialization/](../../flows/manual_stock_initialization/README.md) |
-| **Stock Movements** | Plantado, muerte, transplante tracking | *(See manual_initialization.md)* |
+| **Stock Movements** | Plantado, muerte, transplante, ventas tracking | [stock_movements/](../../flows/stock_movements/) |
 | **Monthly Reconciliation** | Month-end photo → automatic sales calculation | *(See photo_initialization.md)* |
 | **Photo Gallery** | Upload tracking, job monitoring, error recovery | [photo_upload_gallery/](../../flows/photo_upload_gallery/README.md) |
 | **Map Views** | Geographic navigation, warehouse → location drill-down | [map_warehouse_views/](../../flows/map_warehouse_views/README.md) |

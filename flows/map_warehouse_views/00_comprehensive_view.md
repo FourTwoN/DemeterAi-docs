@@ -301,7 +301,7 @@ CREATE INDEX idx_sessions_status ON photo_processing_sessions(status);
 ```sql
 CREATE TABLE stock_batches (
     id SERIAL PRIMARY KEY,
-    current_storage_bin_id INTEGER REFERENCES storage_locations(id),  -- current location
+    current_storage_bin_id INTEGER REFERENCES storage_bins(id),  -- current container (plug, tray, box, segment)
     product_id INTEGER NOT NULL REFERENCES products(id),
     product_state_id INTEGER REFERENCES product_states(id),
     packaging_catalog_id INTEGER REFERENCES packaging_catalog(id),  -- maceta type
@@ -312,7 +312,7 @@ CREATE TABLE stock_batches (
     updated_at TIMESTAMP DEFAULT NOW()
 );
 
-CREATE INDEX idx_stock_batches_location ON stock_batches(current_storage_bin_id);
+CREATE INDEX idx_stock_batches_bin ON stock_batches(current_storage_bin_id);
 CREATE INDEX idx_stock_batches_product ON stock_batches(product_id);
 CREATE INDEX idx_stock_batches_quality ON stock_batches(quality_score DESC);
 ```
@@ -322,7 +322,7 @@ CREATE INDEX idx_stock_batches_quality ON stock_batches(quality_score DESC);
 CREATE TABLE stock_movements (
     id SERIAL PRIMARY KEY,
     batch_id INTEGER NOT NULL REFERENCES stock_batches(id),
-    movement_type VARCHAR(50) NOT NULL,  -- plantar|sembrar|transplante|muerte|ventas|foto|ajuste
+    movement_type VARCHAR(50) NOT NULL,  -- plantar|sembrar|transplante|muerte|ventas|foto|ajuste|manual_init
     quantity INTEGER NOT NULL,
     from_location_id INTEGER REFERENCES storage_locations(id),
     to_location_id INTEGER REFERENCES storage_locations(id),
@@ -331,7 +331,7 @@ CREATE TABLE stock_movements (
     created_by_user_id INTEGER REFERENCES users(id),
     created_at TIMESTAMP DEFAULT NOW(),
 
-    CONSTRAINT chk_movement_type CHECK (movement_type IN ('plantar', 'sembrar', 'transplante', 'muerte', 'ventas', 'foto', 'ajuste'))
+    CONSTRAINT chk_movement_type CHECK (movement_type IN ('plantar', 'sembrar', 'transplante', 'muerte', 'ventas', 'foto', 'ajuste', 'manual_init'))
 );
 
 CREATE INDEX idx_stock_movements_batch ON stock_movements(batch_id);

@@ -58,10 +58,10 @@
 
 ## Backend Framework & API
 
-### FastAPI 0.118.0
+### FastAPI 0.118.2
 
-**Version:** 0.118.0 (released September 2025)
-**Updated from:** 0.109.0 → 0.118.0
+**Version:** 0.118.2 (released September 2025)
+**Updated from:** 0.109.0 → 0.118.2
 
 **Why FastAPI:**
 - ✅ **Async-first:** Built on Starlette, fully async/await compatible
@@ -197,9 +197,9 @@ CUDA_VISIBLE_DEVICES=0 celery -A app worker \
 ```
 
 **Worker Types:**
-1. **GPU Workers** (`pool=solo`): ML inference (segmentation, detection)
-2. **CPU Workers** (`pool=prefork`): Aggregation, batch creation
-3. **I/O Workers** (`pool=gevent`): S3 uploads, database writes
+1. **GPU workers** (pool=solo): ML inference (segmentation, detection)
+2. **CPU workers** (pool=prefork): Aggregation, batch creation
+3. **I/O workers** (pool=gevent): S3 uploads, database writes
 
 ### Redis 7+
 
@@ -482,7 +482,7 @@ CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0"]
 
 ```txt
 # Web Framework
-fastapi==0.118.0
+fastapi==0.118.2
 uvicorn[standard]==0.34.0
 pydantic==2.10.0
 pydantic-settings==2.6.0
@@ -548,7 +548,7 @@ pyyaml==6.0.1
 
 | Dependency | Old Version | New Version | Notes |
 |-----------|-------------|-------------|-------|
-| **FastAPI** | 0.109.0 | **0.118.0** | Latest async improvements |
+| **FastAPI** | 0.109.0 | **0.118.2** | Latest async improvements |
 | **SQLAlchemy** | 2.0.25 | **2.0.43** | Async no longer beta |
 | **Pydantic** | 2.5.3 | **2.10.0** | Performance improvements |
 | **Celery** | 5.3.6 | **5.4.0** | Stability fixes |

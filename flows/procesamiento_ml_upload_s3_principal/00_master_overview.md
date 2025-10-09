@@ -18,9 +18,9 @@ The diagram illustrates the complete journey of a plant cultivation photo throug
 1. **Client Layer**: User uploads photos via web or mobile client
 2. **API Layer**: FastAPI receives request, validates, generates UUIDs, saves temp files, and dispatches async tasks
 3. **Celery Workers**: Three types of parallel workers:
-   - **S3 Upload Workers** (pool=gevent): Extract EXIF, upload to S3, generate thumbnails
-   - **ML GPU Workers** (pool=solo): Perform YOLO segmentation, spawn child detection tasks
-   - **Callback Workers** (pool=prefork): Aggregate results, create visualizations, generate stock batches
+   - **I/O workers** (pool=gevent): S3 uploads, extract EXIF, generate thumbnails
+   - **GPU workers** (pool=solo): YOLO segmentation and detection, spawn child tasks
+   - **CPU workers** (pool=prefork): Aggregate results, create visualizations, generate stock batches
 4. **Storage Layer**: PostgreSQL + PostGIS database, AWS S3 buckets, Redis for task coordination
 5. **Frontend Polling**: Client polls for task status and displays results
 

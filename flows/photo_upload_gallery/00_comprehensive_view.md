@@ -425,7 +425,7 @@ Content-Type: application/json
 ### Phase 1: S3 Upload (Chunked)
 
 **Task:** `upload_s3_batch`
-**Queue:** `io_workers` (gevent pool, I/O-bound)
+**Queue:** I/O workers (pool=gevent)
 **Input:** List of 20 image_id UUIDs
 **Time:** 4-10 seconds per chunk
 **Details:** See `03_s3_upload_circuit_breaker_detailed.mmd`
@@ -435,7 +435,7 @@ Uploads photos to S3 with circuit breaker, extracts EXIF, generates thumbnails.
 ### Phase 2: ML Parent Task
 
 **Task:** `process_photo_ml`
-**Queue:** `gpu_workers` (solo pool, GPU-bound)
+**Queue:** GPU workers (pool=solo)
 **Input:** Single image_id UUID
 **Time:** 30-60 seconds per photo
 **Details:** See `04_ml_parent_segmentation_detailed.mmd`
@@ -450,19 +450,19 @@ Geolocates photo, runs YOLO segmentation, classifies masks, spawns child tasks.
 ### Phase 3: Child Tasks (Parallel)
 
 **Task:** `detect_sahi` (SAHI detection for segments)
-**Queue:** `gpu_workers` (solo pool)
+**Queue:** GPU workers (pool=solo)
 **Time:** 1-2 minutes
 **Details:** See `05_sahi_detection_child_detailed.mmd`
 
 **Task:** `detect_direct` (Direct detection for boxes/plugs)
-**Queue:** `gpu_workers` (solo pool)
+**Queue:** GPU workers (pool=solo)
 **Time:** 30-60 seconds
 **Details:** See `06_boxes_plugs_detection_detailed.mmd`
 
 ### Phase 4: Callback Aggregation
 
 **Task:** `aggregate_results`
-**Queue:** `cpu_workers` (prefork pool)
+**Queue:** CPU workers (pool=prefork)
 **Input:** Results from all child tasks
 **Time:** 10-20 seconds
 **Details:** See `07_callback_aggregation_detailed.mmd`

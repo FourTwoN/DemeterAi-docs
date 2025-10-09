@@ -109,7 +109,7 @@ Validation: CSV from client with actual sales data
 | Layer | Technology | Version | Why |
 |-------|-----------|---------|-----|
 | **Language** | Python | 3.12 | Latest stable, async support |
-| **Web Framework** | FastAPI | 0.118.0 | Async-first, auto OpenAPI docs |
+| **Web Framework** | FastAPI | 0.118.2 | Async-first, auto OpenAPI docs |
 | **ORM** | SQLAlchemy | 2.0.43 | Async support, type-safe |
 | **Database** | PostgreSQL + PostGIS | 15 + 3.3 | Geospatial queries, ACID |
 | **Task Queue** | Celery + Redis | 5.3 + 7 | Chord patterns, DLQ |

@@ -324,12 +324,30 @@ git commit -m "docs: your descriptive message"
 
 ### Primary Documents
 
-- **`engineering_plan/engineering_doc.md`**: Complete engineering specification (3155 lines)
-  - Database architecture
-  - Service layer design
-  - ML pipeline details
-  - API endpoints
-  - Development phases
+- **`engineering_plan/README.md`**: Entry point to modular engineering documentation
+  - Quick links to all major sections
+  - Technology highlights and system overview
+  - Navigation guide for developers
+
+- **`engineering_plan/01_project_overview.md`**: Business context and objectives
+  - Executive summary and success metrics
+  - Monthly reconciliation pattern
+  - Key stakeholders and use cases
+
+- **`engineering_plan/03_architecture_overview.md`**: System architecture and design patterns
+  - Clean architecture principles
+  - Service layer communication rules
+  - Data flow diagrams
+
+- **`engineering_plan/database/README.md`**: Database design and optimization
+  - Complete schema documentation
+  - Indexing strategy and partitioning
+  - Performance tuning guidelines
+
+- **`engineering_plan/workflows/README.md`**: Business workflow documentation
+  - Photo vs Manual initialization
+  - Monthly reconciliation
+  - Stock movement tracking
 
 - **`context/past_chats_summary.md`**: Conversation history with technical decisions
   - UUID vs SERIAL decision
@@ -354,11 +372,13 @@ git commit -m "docs: your descriptive message"
 
 ### When to Consult What
 
-- **Project overview** → `engineering_plan/engineering_doc.md` (sections 1-2)
-- **Database questions** → `database/database.mmd` + `engineering_plan/engineering_doc.md` (section 2)
-- **ML pipeline** → `engineering_plan/engineering_doc.md` (section 5) + `flows/procesamiento_ml_upload_s3_principal/`
-- **API design** → `engineering_plan/engineering_doc.md` (section 6)
-- **Architecture patterns** → `engineering_plan/engineering_doc.md` (sections 3-4)
+- **Project overview** → `engineering_plan/01_project_overview.md`
+- **Database questions** → `database/database.mmd` + `engineering_plan/database/README.md`
+- **ML pipeline** → `engineering_plan/workflows/README.md` + `flows/procesamiento_ml_upload_s3_principal/`
+- **API design** → `engineering_plan/api/README.md`
+- **Architecture patterns** → `engineering_plan/03_architecture_overview.md`
+- **Technology stack** → `engineering_plan/02_technology_stack.md`
+- **Workflows** → `engineering_plan/workflows/README.md`
 - **Mermaid syntax** → `guides/flowchart_mermaid_docs.md`
 
 ---
