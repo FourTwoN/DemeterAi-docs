@@ -2,11 +2,11 @@
   "permissions": {
     "allow": [
       "Bash(tree:*)",
+      "Bash(mv:*)",
       "WebSearch",
       "Bash(git add:*)",
       "Bash(git commit:*)",
-      "Bash(mmdc:*)",
-      "mcp__notion__notion-search"
+      "Bash(mmdc:*)"
     ],
     "deny": [],
     "ask": []
