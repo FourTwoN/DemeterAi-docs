@@ -421,4 +421,3 @@ mv /home/lucasg/proyectos/DemeterDocs/backlog/03_kanban/00_backlog/DB006-locatio
 **Next Task**: DB002 (Storage Areas - Level 2 of hierarchy)
 
 ---
-
