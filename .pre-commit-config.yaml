@@ -1,0 +1,122 @@
+# Pre-commit hooks for DemeterAI v2.0
+# Documentation: https://pre-commit.com/
+# Installation: pre-commit install
+# Run manually: pre-commit run --all-files
+
+repos:
+  # Ruff - Fast Python linter and formatter (replaces Black, isort, flake8)
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.7.4
+    hooks:
+      - id: ruff
+        name: ruff-lint
+        args: [--fix]
+        description: "Run Ruff linter with auto-fix"
+      - id: ruff-format
+        name: ruff-format
+        description: "Run Ruff formatter (replaces Black)"
+
+  # Mypy - Static type checking
+  - repo: https://github.com/pre-commit/mirrors-mypy
+    rev: v1.13.0
+    hooks:
+      - id: mypy
+        name: mypy-type-check
+        additional_dependencies:
+          - types-requests
+          - types-redis
+          - types-PyYAML
+          - sqlalchemy[mypy]
+          - pydantic
+        args:
+          - --ignore-missing-imports
+          - --no-strict-optional
+        description: "Run mypy type checker"
+
+  # Secret detection - Prevent credential commits
+  - repo: https://github.com/Yelp/detect-secrets
+    rev: v1.4.0
+    hooks:
+      - id: detect-secrets
+        name: detect-secrets
+        args:
+          - --baseline
+          - .secrets.baseline
+          - --exclude-files
+          - '\.git/.*'
+          - --exclude-files
+          - 'venv/.*'
+          - --exclude-files
+          - '\.pytest_cache/.*'
+        description: "Detect secrets (API keys, passwords, tokens)"
+
+  # Pre-commit hooks - Basic file checks
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v5.0.0
+    hooks:
+      - id: trailing-whitespace
+        name: trim-trailing-whitespace
+        description: "Remove trailing whitespace"
+      - id: end-of-file-fixer
+        name: fix-end-of-file
+        description: "Ensure files end with newline"
+      - id: check-yaml
+        name: check-yaml-syntax
+        description: "Validate YAML files"
+        exclude: '.gitlab-ci.yml'
+      - id: check-json
+        name: check-json-syntax
+        description: "Validate JSON files"
+      - id: check-toml
+        name: check-toml-syntax
+        description: "Validate TOML files (pyproject.toml)"
+      - id: check-added-large-files
+        name: check-large-files
+        args: [--maxkb=5000]
+        description: "Block files > 5MB (prevent ML models commit)"
+      - id: check-case-conflict
+        name: check-case-conflict
+        description: "Check for case conflicts in filenames"
+      - id: check-merge-conflict
+        name: check-merge-conflict
+        description: "Check for merge conflict markers"
+      - id: mixed-line-ending
+        name: fix-line-endings
+        args: [--fix=lf]
+        description: "Fix mixed line endings (use LF)"
+
+  # Python-specific checks
+  - repo: https://github.com/pre-commit/pygrep-hooks
+    rev: v1.10.0
+    hooks:
+      - id: python-check-blanket-noqa
+        name: check-blanket-noqa
+        description: "Prevent blanket # noqa comments"
+      - id: python-check-blanket-type-ignore
+        name: check-blanket-type-ignore
+        description: "Prevent blanket # type: ignore comments"
+      - id: python-no-eval
+        name: check-no-eval
+        description: "Block eval() usage (security risk)"
+      - id: python-no-log-warn
+        name: check-no-log-warn
+        description: "Use logger.warning() instead of logger.warn()"
+
+# Performance optimization - run fast hooks first
+default_stages: [pre-commit]
+
+# Global excludes
+exclude: |
+  (?x)^(
+      venv/.*|
+      \.venv/.*|
+      \.git/.*|
+      \.pytest_cache/.*|
+      __pycache__/.*|
+      \.mypy_cache/.*|
+      \.ruff_cache/.*|
+      node_modules/.*|
+      build/.*|
+      dist/.*|
+      backlog/04_templates/.*
+  )$

@@ -9,6 +9,54 @@ outputs/
 output/
 logs/
 
+# SECURITY CRITICAL - Secrets and Credentials
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.crt
+*.p12
+*.pfx
+credentials.json
+secrets.json
+config.json
+service-account*.json
+aws-credentials
+.aws/
+gcloud-credentials.json
+
+# DemeterAI Specific - ML Models (Large files)
+*.pt
+*.pth
+*.onnx
+*.h5
+*.hdf5
+*.pb
+*.tflite
+*.mlmodel
+*.caffemodel
+models/
+weights/
+checkpoints/
+
+# DemeterAI Specific - Processed Data
+uploads/
+processed_images/
+temp_uploads/
+ml_cache/
+inference_results/
+
+# Database files
+*.db
+*.sqlite
+*.sqlite3
+postgres_data/
+pgdata/
+
+# Pre-commit
+.secrets.baseline
+
 ### Audio ###
 *.aif
 *.iff
