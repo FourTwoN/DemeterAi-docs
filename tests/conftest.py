@@ -127,20 +127,88 @@ async def client(db_session):
 
 @pytest.fixture
 def sample_warehouse():
-    """Factory fixture for warehouse test data.
+    """Factory fixture for warehouse test data with PostGIS geometry.
+
+    Returns a dictionary that can be used to create a Warehouse instance.
+    Includes realistic GPS coordinates (Santiago, Chile region).
 
     Usage:
+        from app.models.warehouse import Warehouse
+        from geoalchemy2.shape import from_shape
+
         def test_warehouse_creation(sample_warehouse):
             warehouse = Warehouse(**sample_warehouse)
             assert warehouse.code == "WH-TEST"
     """
+    from geoalchemy2.shape import from_shape
+    from shapely.geometry import Polygon
+
+    # 100m x 50m rectangular polygon (realistic greenhouse size)
+    coords = [
+        (-70.648300, -33.448900),  # SW corner
+        (-70.647300, -33.448900),  # SE corner
+        (-70.647300, -33.449400),  # NE corner
+        (-70.648300, -33.449400),  # NW corner
+        (-70.648300, -33.448900),  # Close polygon
+    ]
+
     return {
         "code": "WH-TEST",
         "name": "Test Warehouse",
-        "description": "Warehouse for testing purposes",
-        "type": "greenhouse",
+        "warehouse_type": "greenhouse",
+        "geojson_coordinates": from_shape(Polygon(coords), srid=4326),
         "active": True,
     }
+
+
+@pytest.fixture
+def warehouse_factory(db_session):
+    """Factory fixture for creating multiple warehouse instances.
+
+    Creates warehouses with realistic PostGIS geometry and auto-incremented codes.
+
+    Usage:
+        @pytest.mark.asyncio
+        async def test_multiple_warehouses(warehouse_factory):
+            w1 = await warehouse_factory(code="WH-01")
+            w2 = await warehouse_factory(code="WH-02", warehouse_type="shadehouse")
+            assert w1.warehouse_id != w2.warehouse_id
+    """
+    from geoalchemy2.shape import from_shape
+    from shapely.geometry import Polygon
+
+    from app.models.warehouse import Warehouse
+
+    async def _create_warehouse(**kwargs):
+        """Create and persist a warehouse with sensible defaults."""
+        # Default geometry: 100m x 50m polygon
+        default_coords = [
+            (-70.648300, -33.448900),
+            (-70.647300, -33.448900),
+            (-70.647300, -33.449400),
+            (-70.648300, -33.449400),
+            (-70.648300, -33.448900),
+        ]
+
+        defaults = {
+            "code": f"WH-{id(kwargs)}",  # Unique code
+            "name": "Test Warehouse",
+            "warehouse_type": "greenhouse",
+            "geojson_coordinates": from_shape(Polygon(default_coords), srid=4326),
+            "active": True,
+        }
+
+        # Merge user-provided kwargs
+        defaults.update(kwargs)
+
+        warehouse = Warehouse(**defaults)
+        db_session.add(warehouse)
+        await db_session.commit()
+        await db_session.refresh(warehouse)
+
+        return warehouse
+
+    return _create_warehouse
 
 
 @pytest.fixture
@@ -208,11 +276,38 @@ def mock_settings(monkeypatch):
 # =============================================================================
 
 
+def pytest_addoption(parser):
+    """Add custom command-line options for pytest.
+
+    Usage:
+        # Run with PostgreSQL test database
+        pytest --db-url="postgresql+asyncpg://user:pass@localhost/test_db"
+
+        # Run with SQLite (default, PostGIS tests will be skipped)
+        pytest --db-url="sqlite+aiosqlite:///:memory:"
+    """
+    parser.addoption(
+        "--db-url",
+        action="store",
+        default="sqlite+aiosqlite:///:memory:",
+        help="Database URL for testing (default: SQLite in-memory)",
+    )
+
+
 def pytest_configure(config):
     """Configure pytest with custom markers and settings."""
     # Markers are already defined in pyproject.toml
-    # This function can be used for additional runtime configuration
-    pass
+    # Store db_url in config for access in tests
+    config.db_url = config.getoption("--db-url")
+
+    # Add note about PostGIS tests
+    if "sqlite" in config.db_url:
+        print("\n" + "=" * 70)
+        print("NOTE: Using SQLite in-memory database")
+        print("PostGIS integration tests will be SKIPPED")
+        print("To run PostGIS tests, use:")
+        print("  pytest --db-url='postgresql+asyncpg://user:pass@localhost/test_db'")
+        print("=" * 70 + "\n")
 
 
 def pytest_collection_modifyitems(config, items):
