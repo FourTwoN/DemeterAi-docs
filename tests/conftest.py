@@ -549,6 +549,151 @@ async def sample_storage_locations(db_session, storage_area_factory):
     return area, location1, location2, location3
 
 
+@pytest.fixture
+def sample_storage_bin():
+    """Factory fixture for storage bin test data.
+
+    Returns a dictionary that can be used to create a StorageBin instance.
+    No PostGIS geometry required (bins inherit location from parent).
+
+    Usage:
+        from app.models.storage_bin import StorageBin
+
+        def test_storage_bin_creation(sample_storage_bin):
+            bin_obj = StorageBin(**sample_storage_bin)
+            assert bin_obj.code == "WH-AREA-LOC001-SEG001"
+    """
+    return {
+        "code": "WH-AREA-LOC001-SEG001",
+        "label": "Segmento 1",
+        "storage_location_id": 1,  # Must be set to valid location ID in tests
+        "status": "active",
+        "position_metadata": {
+            "bbox": {"x": 100, "y": 200, "width": 300, "height": 150},
+            "confidence": 0.92,
+            "container_type": "segmento",
+        },
+    }
+
+
+@pytest.fixture
+def storage_bin_factory(db_session, storage_location_factory):
+    """Factory fixture for creating multiple storage bin instances.
+
+    Creates storage bins with realistic JSONB metadata.
+    Auto-creates storage location (and area + warehouse) if not provided.
+
+    Usage:
+        @pytest.mark.asyncio
+        async def test_multiple_bins(storage_bin_factory):
+            bin1 = await storage_bin_factory(code="WH-AREA-LOC1-SEG001")
+            bin2 = await storage_bin_factory(code="WH-AREA-LOC1-SEG002")
+            assert bin1.bin_id != bin2.bin_id
+    """
+    from app.models.storage_bin import StorageBin, StorageBinStatusEnum
+
+    async def _create_storage_bin(storage_location=None, **kwargs):
+        """Create and persist a storage bin with sensible defaults."""
+        # Create storage location (and area + warehouse) if not provided
+        if storage_location is None:
+            storage_location = await storage_location_factory()
+
+        # Default metadata from ML segmentation
+        default_metadata = {
+            "bbox": {"x": 100, "y": 200, "width": 300, "height": 150},
+            "confidence": 0.85,
+            "container_type": "segmento",
+            "ml_model_version": "yolov11-seg-v2.3",
+        }
+
+        defaults = {
+            "code": f"WH-AREA-LOC-BIN-{id(kwargs)}",  # Unique code
+            "label": "Test Bin",
+            "storage_location_id": storage_location.location_id,
+            "status": StorageBinStatusEnum.active,
+            "position_metadata": default_metadata,
+        }
+
+        # Merge user-provided kwargs
+        defaults.update(kwargs)
+
+        bin_obj = StorageBin(**defaults)
+        db_session.add(bin_obj)
+        await db_session.commit()
+        await db_session.refresh(bin_obj)
+
+        return bin_obj
+
+    return _create_storage_bin
+
+
+@pytest.fixture
+async def sample_storage_bins(db_session, storage_location_factory):
+    """Create storage location + 3 storage bins for testing hierarchical queries.
+
+    Returns:
+        tuple: (storage_location, bin1, bin2, bin3)
+
+    Usage:
+        @pytest.mark.asyncio
+        async def test_multiple_bins(sample_storage_bins):
+            location, bin1, bin2, bin3 = sample_storage_bins
+            assert bin1.storage_location_id == location.location_id
+            assert len(location.storage_bins) == 3
+    """
+    from app.models.storage_bin import StorageBin, StorageBinStatusEnum
+
+    # Create storage location
+    location = await storage_location_factory(code="WH-SAMPLE-LOC")
+
+    # Create Bin 1 (high confidence segmento)
+    bin1 = StorageBin(
+        code="WH-SAMPLE-LOC-SEG001",
+        label="Segmento 1",
+        storage_location_id=location.location_id,
+        status=StorageBinStatusEnum.active,
+        position_metadata={
+            "bbox": {"x": 100, "y": 200, "width": 300, "height": 150},
+            "confidence": 0.95,
+            "container_type": "segmento",
+        },
+    )
+
+    # Create Bin 2 (medium confidence segmento)
+    bin2 = StorageBin(
+        code="WH-SAMPLE-LOC-SEG002",
+        label="Segmento 2",
+        storage_location_id=location.location_id,
+        status=StorageBinStatusEnum.active,
+        position_metadata={
+            "bbox": {"x": 400, "y": 200, "width": 300, "height": 150},
+            "confidence": 0.82,
+            "container_type": "segmento",
+        },
+    )
+
+    # Create Bin 3 (cajon)
+    bin3 = StorageBin(
+        code="WH-SAMPLE-LOC-CAJ01",
+        label="Cajon 1",
+        storage_location_id=location.location_id,
+        status=StorageBinStatusEnum.active,
+        position_metadata={
+            "bbox": {"x": 700, "y": 200, "width": 400, "height": 200},
+            "confidence": 0.88,
+            "container_type": "cajon",
+        },
+    )
+
+    db_session.add_all([bin1, bin2, bin3])
+    await db_session.commit()
+    await db_session.refresh(bin1)
+    await db_session.refresh(bin2)
+    await db_session.refresh(bin3)
+
+    return location, bin1, bin2, bin3
+
+
 # =============================================================================
 # Configuration Fixtures
 # =============================================================================

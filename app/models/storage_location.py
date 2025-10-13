@@ -71,8 +71,7 @@ from app.db.base import Base
 # Forward declarations for type hints (avoids circular imports)
 if TYPE_CHECKING:
     from app.models.storage_area import StorageArea
-    # NOTE: Uncomment after DB004 (StorageBin) is complete
-    # from app.models.storage_bin import StorageBin
+    from app.models.storage_bin import StorageBin
     # NOTE: Uncomment after DB012 (PhotoProcessingSession) is complete
     # from app.models.photo_processing_session import PhotoProcessingSession
 
@@ -268,15 +267,14 @@ class StorageLocation(Base):
     #     doc="Latest photo processing session for this location (nullable)"
     # )
 
-    # One-to-many: StorageLocation → StorageBin (will be created in DB004)
-    # NOTE: Uncomment after DB004 (StorageBin) is complete
-    # storage_bins: Mapped[list["StorageBin"]] = relationship(
-    #     "StorageBin",
-    #     back_populates="storage_location",
-    #     cascade="all, delete-orphan",
-    #     lazy="selectin",
-    #     doc="List of storage bins within this location"
-    # )
+    # One-to-many: StorageLocation → StorageBin (DB004 complete)
+    storage_bins: Mapped[list["StorageBin"]] = relationship(
+        "StorageBin",
+        back_populates="storage_location",
+        cascade="all, delete-orphan",
+        lazy="selectin",
+        doc="List of storage bins within this location",
+    )
 
     # One-to-many: StorageLocation → PhotoProcessingSession (all photos for this location)
     # NOTE: Uncomment after DB012 (PhotoProcessingSession) is complete
