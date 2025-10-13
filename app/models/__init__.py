@@ -8,19 +8,24 @@ Location Hierarchy:
 
 Available Models:
     - Warehouse: Root level geospatial container (greenhouses, shadehouses, etc.)
-    - (More models will be added in Sprint 01 cards DB002-DB035)
+    - StorageArea: Level 2 logical zones within warehouses (North, South, etc.)
+    - (More models will be added in Sprint 01 cards DB003-DB035)
 
 Usage:
     ```python
-    from app.models import Warehouse
+    from app.models import Warehouse, StorageArea
 
     warehouse = Warehouse(code="GH-001", name="Main Greenhouse", ...)
+    area = StorageArea(warehouse_id=1, code="GH-001-NORTH", name="North Wing", ...)
     ```
 """
 
+from app.models.storage_area import PositionEnum, StorageArea
 from app.models.warehouse import Warehouse, WarehouseTypeEnum
 
 __all__ = [
     "Warehouse",
     "WarehouseTypeEnum",
+    "StorageArea",
+    "PositionEnum",
 ]

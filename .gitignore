@@ -36,9 +36,9 @@ gcloud-credentials.json
 *.tflite
 *.mlmodel
 *.caffemodel
-models/
-weights/
-checkpoints/
+/models/
+/weights/
+/checkpoints/
 
 # DemeterAI Specific - Processed Data
 uploads/

@@ -14,11 +14,18 @@ from logging.config import fileConfig
 
 from sqlalchemy import engine_from_config, pool
 
-from alembic import context
+from alembic import context  # type: ignore[attr-defined]
 from app.core.config import settings
 
 # Import Base and all models for autogenerate
 from app.db.base import Base
+from app.models.storage_area import StorageArea  # noqa: F401
+
+# Import all models to register them with Base.metadata
+# This is required for Alembic autogenerate to detect model changes
+from app.models.warehouse import Warehouse  # noqa: F401
+
+# Future model imports go here (DB003, DB004, etc.)
 
 # This is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
