@@ -56,7 +56,7 @@ def add_correlation_id(logger: Any, method_name: str, event_dict: EventDict) -> 
     return event_dict
 
 
-def setup_logging(log_level: str = "INFO") -> structlog.BoundLogger:
+def setup_logging(log_level: str = "INFO") -> Any:
     """Configure structured logging for the application.
 
     Sets up structlog with JSON output format, correlation ID support,
@@ -111,7 +111,7 @@ def setup_logging(log_level: str = "INFO") -> structlog.BoundLogger:
     return structlog.get_logger()
 
 
-def get_logger(name: str) -> structlog.BoundLogger:
+def get_logger(name: str) -> Any:
     """Get a logger instance for the specified module.
 
     Args:

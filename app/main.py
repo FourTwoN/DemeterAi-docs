@@ -1,6 +1,7 @@
 """FastAPI application entry point for DemeterAI v2.0."""
 
 from datetime import UTC, datetime
+from typing import Any
 from uuid import uuid4
 
 from fastapi import FastAPI, Request
@@ -32,7 +33,7 @@ class CorrelationIdMiddleware(BaseHTTPMiddleware):
     API request → Celery task → Database operation → Logs
     """
 
-    async def dispatch(self, request: Request, call_next):
+    async def dispatch(self, request: Request, call_next: Any) -> Any:
         """Process request with correlation ID injection."""
         # Get correlation ID from header or generate new one
         correlation_id = request.headers.get("X-Correlation-ID", str(uuid4()))
@@ -95,7 +96,7 @@ async def app_exception_handler(request: Request, exc: AppBaseException) -> JSON
     """
     correlation_id = get_correlation_id()
 
-    response_data = {
+    response_data: dict[str, Any] = {
         "error": exc.user_message,
         "code": exc.__class__.__name__,
         "correlation_id": correlation_id,
@@ -140,7 +141,7 @@ async def generic_exception_handler(request: Request, exc: Exception) -> JSONRes
         exc_info=True,
     )
 
-    response_data = {
+    response_data: dict[str, Any] = {
         "error": "An internal server error occurred. Our team has been notified.",
         "code": "InternalServerError",
         "correlation_id": correlation_id,
@@ -158,7 +159,7 @@ async def generic_exception_handler(request: Request, exc: Exception) -> JSONRes
 
 
 @app.get("/health")
-async def health():
+async def health() -> dict[str, str]:
     """Health check endpoint.
 
     Returns:

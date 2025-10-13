@@ -25,12 +25,16 @@ repos:
         additional_dependencies:
           - types-requests
           - types-redis
-          - types-PyYAML
+          - types-python-dateutil
           - sqlalchemy[mypy]
           - pydantic
-        args:
-          - --ignore-missing-imports
-          - --no-strict-optional
+          - pydantic-settings
+          - fastapi
+          - structlog
+          - pytest
+          - pytest-asyncio
+          - httpx
+        args: []  # Use pyproject.toml configuration
         description: "Run mypy type checker"
 
   # Secret detection - Prevent credential commits

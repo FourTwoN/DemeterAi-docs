@@ -255,7 +255,7 @@ class ForbiddenException(AppBaseException):
             action: Attempted action (e.g., "create", "delete", "update")
             user_id: User ID attempting the action (optional)
         """
-        extra_dict = {"resource": resource, "action": action}
+        extra_dict: dict[str, Any] = {"resource": resource, "action": action}
         if user_id is not None:
             extra_dict["user_id"] = user_id
 

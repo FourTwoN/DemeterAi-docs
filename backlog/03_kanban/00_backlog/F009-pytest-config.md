@@ -296,3 +296,77 @@ pytest -v
 **Card Created**: 2025-10-09
 **Last Updated**: 2025-10-09
 **Card Owner**: TBD (assign during sprint planning)
+
+---
+
+## Team Leader Completion Report (2025-10-13)
+
+### Status: ✅ COMPLETED
+
+### Acceptance Criteria Verification
+
+- [x] **AC1**: pyproject.toml contains pytest configuration with asyncio_mode="auto", cov-fail-under=80, and all required settings
+- [x] **AC2**: tests/conftest.py created with db_session fixture (function-scoped, auto-rollback)
+- [x] **AC3**: FastAPI client fixture created with dependency override for get_db_session
+- [x] **AC4**: All test commands work (pytest, pytest -v, pytest --cov=app, pytest -m unit/integration)
+- [x] **AC5**: Test isolation verified - each test gets fresh database, can run in any order
+- [x] **AC6**: Coverage report generated (HTML + term-missing) - 98.28% coverage achieved
+
+### Implementation Summary
+
+**Files Modified:**
+- `/home/lucasg/proyectos/DemeterDocs/pyproject.toml` - Added complete pytest configuration with markers, coverage settings
+
+**Files Created:**
+- `/home/lucasg/proyectos/DemeterDocs/tests/conftest.py` - Shared fixtures (db_session, client, sample data factories)
+- `/home/lucasg/proyectos/DemeterDocs/tests/integration/__init__.py` - Integration tests package
+- `/home/lucasg/proyectos/DemeterDocs/tests/integration/test_api_health.py` - Health endpoint integration tests (3 tests)
+- `/home/lucasg/proyectos/DemeterDocs/tests/unit/__init__.py` - Unit tests package
+- `/home/lucasg/proyectos/DemeterDocs/tests/unit/test_sample.py` - Sample unit tests (4 tests)
+
+### Test Results
+
+```
+======================== 75 passed, 3 warnings in 0.21s ========================
+Coverage: 98.28% (target: ≥80%)
+```
+
+**Test Commands Verified:**
+- `pytest` - ✅ 75 tests passed
+- `pytest -v` - ✅ Verbose output works
+- `pytest --cov=app` - ✅ Coverage: 98.28%
+- `pytest -m unit` - ✅ 4 tests passed (52% coverage)
+- `pytest -m integration` - ✅ 3 tests passed (61% coverage)
+- `pytest -m "not slow"` - ✅ 74 passed, 1 deselected
+- `pytest --cov-report=html` - ✅ htmlcov/ directory generated
+
+### Key Implementation Details
+
+1. **Test Database**: Using SQLite in-memory (aiosqlite) instead of PostgreSQL for tests (no Docker required until F012)
+2. **Fixtures**: Function-scoped db_session ensures complete isolation between tests
+3. **Markers**: Automatic marker assignment based on test location (tests/unit/ → @pytest.mark.unit)
+4. **Coverage**: Enforced at ≥80% with --cov-fail-under=80 flag
+5. **Async Support**: pytest-asyncio with asyncio_mode="auto" for all async tests
+
+### Dependencies Added
+
+- `aiosqlite==0.20.0` - For in-memory test database
+- `httpx==0.27.0` - For FastAPI test client (already in dev deps)
+
+### Next Steps
+
+1. All future test cards should use fixtures from conftest.py
+2. Integration tests with real PostgreSQL will be added after F012 (Docker)
+3. Tests automatically get markers based on directory structure
+4. Coverage threshold will be enforced in CI/CD pipeline
+
+### Quality Gates Passed
+
+- ✅ All 75 tests passing
+- ✅ Coverage: 98.28% (exceeds 80% requirement)
+- ✅ Test isolation verified
+- ✅ Markers working correctly
+- ✅ HTML coverage report generated
+- ✅ No blocking issues
+
+**Card F009 is complete and ready to move to done.**
