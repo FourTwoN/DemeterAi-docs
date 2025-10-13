@@ -47,18 +47,19 @@ Example:
 
 import enum
 import re
-from typing import TYPE_CHECKING
 
 from geoalchemy2 import Geometry
 from sqlalchemy import Boolean, CheckConstraint, Column, DateTime, Enum, Integer, Numeric, String
-from sqlalchemy.orm import Mapped, mapped_column, relationship, validates
+from sqlalchemy.orm import Mapped, mapped_column, validates
 from sqlalchemy.sql import func
 
 from app.db.base import Base
 
 # Forward declaration for type hints (avoids circular imports)
-if TYPE_CHECKING:
-    from app.models.storage_area import StorageArea
+# NOTE: Commented out until DB002 (StorageArea) is complete
+# from typing import TYPE_CHECKING
+# if TYPE_CHECKING:
+#     from app.models.storage_area import StorageArea
 
 
 class WarehouseTypeEnum(str, enum.Enum):
@@ -200,13 +201,16 @@ class Warehouse(Base):
     )
 
     # Relationships
-    storage_areas: Mapped[list["StorageArea"]] = relationship(
-        "StorageArea",
-        back_populates="warehouse",
-        cascade="all, delete-orphan",
-        lazy="selectin",  # Changed from selectinload to selectin (valid literal)
-        doc="List of storage areas within this warehouse",
-    )
+    # NOTE: Temporarily commented out until DB002 (StorageArea model) is complete
+    # This prevents SQLAlchemy configuration errors during testing
+    # TODO: Re-enable after completing DB002 - StorageArea Model
+    # storage_areas: Mapped[list["StorageArea"]] = relationship(
+    #     "StorageArea",
+    #     back_populates="warehouse",
+    #     cascade="all, delete-orphan",
+    #     lazy="selectin",
+    #     doc="List of storage areas within this warehouse",
+    # )
 
     # Table constraints
     __table_args__ = (
