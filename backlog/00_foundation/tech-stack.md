@@ -204,7 +204,7 @@ pip install torch==2.4.0 --index-url https://download.pytorch.org/whl/cu121
 
 ### OpenCV 4.10+
 
-**Version**: `opencv-python-headless==4.10.0`
+**Version**: `opencv-python-headless==4.10.0.84`
 **Why**: Headless = no GUI dependencies (smaller Docker images), optimized C++ core
 
 **Usage**:
@@ -216,6 +216,8 @@ pip install torch==2.4.0 --index-url https://download.pytorch.org/whl/cu121
 
 **Version**: `pillow==11.0.0`
 **Why**: EXIF extraction (GPS, timestamp), AVIF format support, thumbnail generation
+
+**Note**: Added to dependencies (was mentioned but not in pyproject.toml)
 
 ---
 
@@ -232,7 +234,7 @@ pip install torch==2.4.0 --index-url https://download.pytorch.org/whl/cu121
 - Compression: AVIF format (50% smaller than JPEG)
 
 **Circuit Breaker**:
-**Version**: `pybreaker==1.2.0`
+**Version**: `pybreaker==1.4.1`
 ```python
 import pybreaker
 s3_breaker = pybreaker.CircuitBreaker(
@@ -364,7 +366,8 @@ redis==5.2.0
 
 # Machine Learning (CPU-First)
 ultralytics==8.3.0
-opencv-python-headless==4.10.0
+opencv-python-headless==4.10.0.84
+pillow==11.0.0
 torch==2.4.0  # CPU version
 sahi==0.11.18
 
@@ -374,6 +377,7 @@ passlib[bcrypt]==1.7.4
 
 # Storage
 boto3==1.35.0
+pybreaker==1.4.1
 
 # Testing
 pytest==8.3.0
