@@ -28,7 +28,7 @@ def parent_task(session_id):
         child_task.s(session_id, i)
         for i in range(num_children)
     ]
-    
+
     # Chord: children → callback
     chord(children)(callback.s(session_id))
 ```

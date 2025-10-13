@@ -45,7 +45,7 @@ class DensityEstimationService:
     ) -> dict:
         processed_area = np.sum(residual_mask > 0)
         estimated_count = int(np.ceil(processed_area * density_factor))
-        
+
         return {
             'estimation_type': 'density_based',
             'residual_area_px': float(processed_area),

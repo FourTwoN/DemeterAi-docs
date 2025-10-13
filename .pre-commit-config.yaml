@@ -102,6 +102,17 @@ repos:
         name: check-no-log-warn
         description: "Use logger.warning() instead of logger.warn()"
 
+  # Block print() statements in application code
+  - repo: local
+    hooks:
+      - id: no-print-statements
+        name: no-print-statements
+        entry: 'print\('
+        language: pygrep
+        types: [python]
+        files: ^app/
+        description: "Block print() in app/ - use logger instead"
+
 # Performance optimization - run fast hooks first
 default_stages: [pre-commit]
 

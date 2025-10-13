@@ -23,7 +23,7 @@ Callback that aggregates all child task results and updates PhotoProcessingSessi
 def ml_callback(results, session_code):
     total_detections = sum(r['detections'] for r in results)
     total_estimations = sum(r['estimations'] for r in results)
-    
+
     session_repo.update({
         'status': 'completed',
         'total_plants_detected': total_detections,

@@ -404,4 +404,3 @@ pip freeze > requirements.txt
 - ✅ F006: Database connection (can populate app/db/__init__.py)
 
 **Next**: Report to Scrum Master, move to 05_done/ after status update
-

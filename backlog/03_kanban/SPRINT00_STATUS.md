@@ -50,4 +50,3 @@
 
 **Next Action**: Delegate F001 to Team Leader
 **Updated By**: Scrum Master
-

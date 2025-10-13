@@ -120,18 +120,26 @@ This guide covers development workflow, conventions, testing, and the 15-phase i
 
 **Linter/Formatter:** Ruff 0.7.0
 
-**Configuration (.ruff.toml):**
-```toml
-[tool.ruff]
-line-length = 100
-target-version = "py312"
-select = ["E", "F", "I", "N", "W"]
-ignore = ["E501"]  # Line too long (formatter handles)
+Ruff is a fast, all-in-one linter and formatter (10-100x faster than Black+Flake8+isort).
 
-[tool.ruff.format]
-quote-style = "double"
-indent-style = "space"
+**Quick Commands:**
+```bash
+# Format code
+ruff format .
+
+# Check and auto-fix issues
+ruff check . --fix
+
+# Run before commit
+ruff format . && ruff check . --fix
 ```
+
+**Configuration:** See `pyproject.toml` under `[tool.ruff]`
+- Line length: 100 characters
+- Target version: Python 3.12
+- Enabled rules: E, F, I, N, W, UP, B, C4, SIM
+
+**Detailed Guide:** See [../../RUFF_USAGE.md](../../RUFF_USAGE.md) for complete documentation
 
 ### Naming Conventions
 

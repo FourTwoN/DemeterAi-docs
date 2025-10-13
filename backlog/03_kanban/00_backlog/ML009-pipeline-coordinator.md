@@ -26,12 +26,12 @@ class MLPipelineCoordinator:
         self.sahi = sahi_svc
         self.direct = direct_svc
         self.band_estimation = band_est_svc
-        
+
     async def process_complete_pipeline(self, session_id, image_path):
         # 1. Segmentation (20% progress)
         segments = await self.segmentation.segment_image(image_path)
         await self.update_progress(session_id, 0.2)
-        
+
         # 2. Detection (50% progress)
         all_detections = []
         for seg in segments:
@@ -41,16 +41,16 @@ class MLPipelineCoordinator:
                 dets = await self.direct.detect_in_cajon(image_path, seg['bbox'])
             all_detections.extend(dets)
         await self.update_progress(session_id, 0.5)
-        
+
         # 3. Estimation (80% progress)
         estimations = await self.band_estimation.estimate_undetected_plants(...)
         await self.update_progress(session_id, 0.8)
-        
+
         # 4. Persist (100% progress)
         await self.detection_repo.bulk_insert(all_detections)
         await self.estimation_repo.bulk_insert(estimations)
         await self.update_session_complete(session_id, all_detections, estimations)
-        
+
         return {'detections': len(all_detections), 'estimations': sum(e['estimated_count'] for e in estimations)}
 ```
 

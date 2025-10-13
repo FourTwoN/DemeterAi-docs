@@ -6,13 +6,13 @@ This application aims to automate the counting of cacti and succulents in a cult
 
 ### Main Technologies
 
-- **Language**: Python 3.12  
-- **Web Framework**: FastAPI  
-- **ORM**: SQLAlchemy  
-- **Validation**: Pydantic  
-- **Database**: PostgreSQL \+ PostGIS for geo coordinates  
-- **Async Processing**: Celery \+ Redis  
-- **Machine Learning**: YOLO v11 (segmentation and detection)  
+- **Language**: Python 3.12
+- **Web Framework**: FastAPI
+- **ORM**: SQLAlchemy
+- **Validation**: Pydantic
+- **Database**: PostgreSQL \+ PostGIS for geo coordinates
+- **Async Processing**: Celery \+ Redis
+- **Machine Learning**: YOLO v11 (segmentation and detection)
 - **Containers**: Docker \+ Docker Compose
 
 ---
@@ -749,30 +749,30 @@ The database is organized around the concept of geographic location:
 
 **Warehouses** (Largest unit)
 
-- Represent greenhouses, tunnels, or shadehouses  
-- Contain geographic coordinates that form a rectangle on the map  
+- Represent greenhouses, tunnels, or shadehouses
+- Contain geographic coordinates that form a rectangle on the map
 - Have relationships with Storage Areas
 
 **Storage Areas**
 
-- Subdivide a warehouse (generally North or South)  
-- Contain rectangular geographic coordinates  
+- Subdivide a warehouse (generally North or South)
+- Contain rectangular geographic coordinates
 - Have relationships with Storage Locations
 
 **Storage Locations** (Minimum unit)
 
-- Space between column and column of a greenhouse  
-- Contain rectangular geographic coordinates  
-- The unit where each photo is taken  
+- Space between column and column of a greenhouse
+- Contain rectangular geographic coordinates
+- The unit where each photo is taken
 - Have an associated configuration table (StorageLocationConfig)
 
 ### 2.2. Cultivation Zones
 
 Storage bins represent different container types where cacti/succulents can be:
 
-1. **Plugs**: Black trays with small holes where seeds are placed, not ready for sale  
-2. **Seedling Trays**: Boxes with soil where cacti are planted to develop roots, not ready for sale  
-3. **Segments**: Cacti planted in pots in rectangular grid form, ready for sale  
+1. **Plugs**: Black trays with small holes where seeds are placed, not ready for sale
+2. **Seedling Trays**: Boxes with soil where cacti are planted to develop roots, not ready for sale
+3. **Segments**: Cacti planted in pots in rectangular grid form, ready for sale
 4. **Boxes**: Boxes with cacti already in pots (different from seedling trays), ready for sale
 
 Storage bins are defined by their `storage_bin_type`, which specifies the category (plug, seedling\_tray, box, segment, pot).
@@ -783,34 +783,34 @@ Photo → PhotoProcessingSession → Detections \+ Estimations → StockMovement
 
 **PhotoProcessingSession**
 
-- Saves the original photo  
-- Capture date  
+- Saves the original photo
+- Capture date
 - Relevant metadata
 
 **Detections**
 
-- Individual detections made by YOLO v11  
+- Individual detections made by YOLO v11
 - Bounding box coordinates
 
 **Estimations**
 
-- Plants that could not be detected individually  
+- Plants that could not be detected individually
 - Estimation based on area and pot size
 
 **StockMovement**
 
-- Records stock transactions  
-- Count date  
-- User who performed it  
+- Records stock transactions
+- Count date
+- User who performed it
 - Can be automatic receipt (from photo) or manual (by worker):
 
 **StockBatch**
 
-- Groups individual detections into categories  
-- Attributes: packaging, size, product, price, state, etc.  
+- Groups individual detections into categories
+- Attributes: packaging, size, product, price, state, etc.
 - Example: 1500 large plants \+ 500 medium plants from the same segment
 
-### 2.4. Data Flow in the Database for Manual Path 
+### 2.4. Data Flow in the Database for Manual Path
 
 Manual Input → StockMovement → StockBatch
 
@@ -820,8 +820,8 @@ DATA FLOW MES A MES:
 
 1\. Cada foto a final de mes se marca como el inicio del stock de ese mes, ese stock puede sufrir variaciones por:
 
-\- Muertes (resta) (plug, almacigo, cajones y segmento)  
-\- Plantado (suma) (cajones y segmentos)  
+\- Muertes (resta) (plug, almacigo, cajones y segmento)
+\- Plantado (suma) (cajones y segmentos)
 \- Trasplante (resta en un claro, suma en otro): plug \-\> almacigo \-\> cajon/segmento (tamano chico) \-\> cajon/segmento (tamano mediano) \-\> cajon/segmento (tamano grande)
 
 2\. AHORA, a final del siguiente MES se toma otra foto y si faltan PLANTAS se consideran VENTAS (solo para cajon/segmento). ADEMAS, puede haber una especie de validacion externa gracias a ventas de parte de CLIENTE (CSV lo mas probable) donde indica cantidad, clasificacion, tipo\_maceta \+ color PERO DATOS GEOGRAFICOS NO
@@ -830,15 +830,15 @@ CON esa siguiente foto se hace ese calculo e inicia EL SIGUIENTE historial y se 
 
 2.4. Complementary Tables
 
-- **Users**: Administrators or workers  
-- **Products**: Catalog of cactus/succulent species  
-- **PackagingCatalog**: Types of packaging with their prices  
+- **Users**: Administrators or workers
+- **Products**: Catalog of cactus/succulent species
+- **PackagingCatalog**: Types of packaging with their prices
 - **StorageLocationConfig**: Information loaded by administrator about what is planted in each storage location
 
 ### 2.5. PostgreSQL Considerations
 
-- Use PostgreSQL method to verify if a point (latitude, longitude) falls within a coordinate polygon  
-- Many Foreign Keys and complex relationships  
+- Use PostgreSQL method to verify if a point (latitude, longitude) falls within a coordinate polygon
+- Many Foreign Keys and complex relationships
 - The database is NOT changed, SQLAlchemy is adapted to it
 
 ---
@@ -849,19 +849,19 @@ CON esa siguiente foto se hace ese calculo e inicia EL SIGUIENTE historial y se 
 
 Repositories are the **only layer** that directly accesses the database. They handle:
 
-- Data access  
-- Updates (UPDATE)  
-- Inserts (INSERT)  
-- Queries (SELECT)  
+- Data access
+- Updates (UPDATE)
+- Inserts (INSERT)
+- Queries (SELECT)
 - Deletions (DELETE)
 
 ### 3.2. Technology
 
 **SQLAlchemy** for:
 
-- Simplifying data access  
-- Automatic connection handling  
-- Optimized queries  
+- Simplifying data access
+- Automatic connection handling
+- Optimized queries
 - Easier updates and inserts
 
 ### 3.3. Structure
@@ -918,20 +918,20 @@ Repositories are the **only layer** that directly accesses the database. They ha
 
 ### 3.4. Design Principles
 
-- **Single Responsibility**: Each repository handles one main entity  
-- **Reuse**: Repositories can call other repositories to avoid duplication  
-- **Simplicity vs. Completeness**:  
-  - Simple tables (like Products) don't need super-repositories  
-  - Complex tables (like StockBatch, StockMovement) need robust methods  
-- **Base Repo**: Contains basic CRUD operations, others inherit and extend  
+- **Single Responsibility**: Each repository handles one main entity
+- **Reuse**: Repositories can call other repositories to avoid duplication
+- **Simplicity vs. Completeness**:
+  - Simple tables (like Products) don't need super-repositories
+  - Complex tables (like StockBatch, StockMovement) need robust methods
+- **Base Repo**: Contains basic CRUD operations, others inherit and extend
 - **Models**: Must be identical to the database structure
 
 ### 3.5. SQLAlchemy Considerations
 
-- **Avoid infinite loops** with circular relationships  
-- **Lazy vs Eager Loading**: Know when to load relationships  
-- **Don't fetch unnecessary information**: Optimize queries as needed  
-- Be careful with multiple Foreign Keys  
+- **Avoid infinite loops** with circular relationships
+- **Lazy vs Eager Loading**: Know when to load relationships
+- **Don't fetch unnecessary information**: Optimize queries as needed
+- Be careful with multiple Foreign Keys
 - Connections MUST be through Singleton
 
 ---
@@ -944,10 +944,10 @@ Services are the **middle layer** between controllers and repositories. They coo
 
 ### 4.2. Main Functions
 
-- Receive Pydantic schemas from controllers  
-- Transform schemas to SQLAlchemy models  
-- Call other services (not directly to foreign repositories)  
-- Call their own repository  
+- Receive Pydantic schemas from controllers
+- Transform schemas to SQLAlchemy models
+- Call other services (not directly to foreign repositories)
+- Call their own repository
 - Coordinate complex operations
 
 ### 4.3. Communication Rule
@@ -990,7 +990,7 @@ Service A → Repository B directly (must call Service B)
 
   user\_service.py
 
-  
+
 
   /ml\_processing           \# Machine Learning Pipeline
 
@@ -1010,11 +1010,11 @@ Service A → Repository B directly (must call Service B)
 
 Each service should have at least:
 
-- `get_one(id)`: Get an entity by ID  
-- `get_all()`: List all entities  
-- `update(id, data)`: Update an entity  
-- `create(data)`: Create new entity  
-- `delete(id)`: Delete existing entity  
+- `get_one(id)`: Get an entity by ID
+- `get_all()`: List all entities
+- `update(id, data)`: Update an entity
+- `create(data)`: Create new entity
+- `delete(id)`: Delete existing entity
 - Specific methods according to business needs
 
 ---
@@ -1025,84 +1025,84 @@ Each service should have at least:
 
 **CRITICAL**: The pipeline is NOT separated from the REST API. It's an integral part of the system and must:
 
-- Use the same services  
-- Use the same repositories  
-- Follow the same conventions  
+- Use the same services
+- Use the same repositories
+- Follow the same conventions
 - Be organized within `/services/ml_processing`
 
 ### 5.2. Complete Pipeline Flow
 
 #### Step 1: Reception and Localization
 
-1. Receive photo  
-2. Extract metadata (GPS coordinates)  
-3. Search corresponding storage location via PostgreSQL query (point within polygon)  
+1. Receive photo
+2. Extract metadata (GPS coordinates)
+3. Search corresponding storage location via PostgreSQL query (point within polygon)
 4. If no location: mark as "no location" or assign to "undefined" storage location
 
 #### Step 2: Segmentation
 
-1. Pass complete photo through YOLO v11 segmentation model  
-2. Identify important areas (plugs, boxes, segments)  
-3. Smooth obtained masks  
-4. Fill internal holes in masks  
-5. Crop images according to masks with original quality  
+1. Pass complete photo through YOLO v11 segmentation model
+2. Identify important areas (plugs, boxes, segments)
+3. Smooth obtained masks
+4. Fill internal holes in masks
+5. Crop images according to masks with original quality
 6. Typical result: 1 segment \+ 4 boxes (may vary)
 
 #### Step 3A: Segment Processing
 
-1. **SAHI Division**: Divide segment into 512x512 squares (or 640x640, configurable)  
-2. **Detection**: Pass each square through YOLO v11 detection  
-3. **Unification**: Consolidate all detections  
-4. **Creation of detection mask**: Form uniform and smooth mask with all bounding boxes  
-5. **Subtraction**: Segment mask \- Detection mask \= Remaining area  
-6. **Remaining area estimation**:  
-   - Apply OTSU with HSV to eliminate empty soil  
-   - Calculate pixels of remaining area  
+1. **SAHI Division**: Divide segment into 512x512 squares (or 640x640, configurable)
+2. **Detection**: Pass each square through YOLO v11 detection
+3. **Unification**: Consolidate all detections
+4. **Creation of detection mask**: Form uniform and smooth mask with all bounding boxes
+5. **Subtraction**: Segment mask \- Detection mask \= Remaining area
+6. **Remaining area estimation**:
+   - Apply OTSU with HSV to eliminate empty soil
+   - Calculate pixels of remaining area
    - Estimate number of plants according to pot size (e.g., 5-7cm square pots). Pot size may be obtained through close by detections or configuration saved in database table density\_parameters
 
 #### Step 3B: Box Processing
 
-1. **Direct detection**: Pass complete box image through detector  
+1. **Direct detection**: Pass complete box image through detector
 2. **Estimation**: Calculate undetected plants (very full boxes)
 
 #### Step 3C: Plug and Seedling Tray Processing
 
-- Seedling trays are processed like boxes: detection \+ estimation  
+- Seedling trays are processed like boxes: detection \+ estimation
 - Plugs: detection \+ estimation
 
 #### Step 4: Configuration Association
 
-1. Get StorageLocationConfig from identified storage location  
-2. Extract: product, packaging, price  
+1. Get StorageLocationConfig from identified storage location
+2. Extract: product, packaging, price
 3. If configuration doesn't exist: save anyway with relation to storage location (will be updated later with DB trigger)
 
 #### Step 5: Final Image Generation
 
 Create image with visualizations:
 
-- **Detections**: Transparent circles (80% opacity) at the center of each bounding box  
-  - Use nice colors (not generic vibrant YOLO colors)  
-  - Allow seeing the cactus underneath  
-  - Occupy 80% of original bounding box  
-- **Estimated area**: Smooth and transparent mask with different color  
+- **Detections**: Transparent circles (80% opacity) at the center of each bounding box
+  - Use nice colors (not generic vibrant YOLO colors)
+  - Allow seeing the cactus underneath
+  - Occupy 80% of original bounding box
+- **Estimated area**: Smooth and transparent mask with different color
 - Save both original image and image with visualizations
 
 #### Step 6: Database Persistence
 
-1. Insert into `PhotoProcessingSession`  
-2. Insert detections into `Detections`  
-3. Insert estimations into `Estimations`  
-4. Create record in `StockMovement`  
+1. Insert into `PhotoProcessingSession`
+2. Insert detections into `Detections`
+3. Insert estimations into `Estimations`
+4. Create record in `StockMovement`
 5. Group and create records in `StockBatch`
 
 ### 5.3. Configuration
 
 Configurable parameters:
 
-- SAHI square size (512x512 or 640x640)  
-- Confidence threshold for detections  
-- Pot sizes for estimation (section\_id \-\> pot\_id \-\> density\_parameters)  
-- Visualization colors  
+- SAHI square size (512x512 or 640x640)
+- Confidence threshold for detections
+- Pot sizes for estimation (section\_id \-\> pot\_id \-\> density\_parameters)
+- Visualization colors
 - Mask smoothing level
 
 ### 5.4. Class Structure
@@ -1119,13 +1119,13 @@ class PipelineCoordinator:
 
         location \= localization\_service.find\_storage\_location(metadata)
 
-        
+
 
         \# 2\. Segmentation
 
         masks \= segmentation\_service.segment(photo)
 
-        
+
 
         \# 3\. Detection and Estimation
 
@@ -1143,19 +1143,19 @@ class PipelineCoordinator:
 
                 estimations \= estimation\_service.estimate\_remaining(mask, detections)
 
-        
+
 
         \# 4\. Configuration
 
         config \= storage\_location\_config\_service.get\_by\_location(location.id)
 
-        
+
 
         \# 5\. Final image
 
         visualized\_image \= image\_processing\_service.create\_visualization(photo, detections, estimations)
 
-        
+
 
         \# 6\. Persistence
 
@@ -1167,8 +1167,8 @@ class PipelineCoordinator:
 
 ### 6.1. Technology
 
-- **FastAPI** for route definition  
-- **Pydantic** for validation schemas  
+- **FastAPI** for route definition
+- **Pydantic** for validation schemas
 - Strong typing in all parameters and responses
 
 ### 6.2. Location Endpoints
@@ -1419,7 +1419,7 @@ Upload one or multiple photos for processing.
 
 **Behavior:**
 
-- **Single photo**: Synchronous processing, returns immediate result with complete detail  
+- **Single photo**: Synchronous processing, returns immediate result with complete detail
 - **Multiple photos**: Asynchronous processing with Celery, returns task IDs
 
 **Request (single photo):**
@@ -1632,8 +1632,8 @@ Compare two storage locations, storage areas or warehouses.
 
 **Query Parameters:**
 
-- `type`: "storage\_location" | "storage\_area" | "warehouse"  
-- `id1`: ID of the first entity  
+- `type`: "storage\_location" | "storage\_area" | "warehouse"
+- `id1`: ID of the first entity
 - `id2`: ID of the second entity
 
 #### GET `/api/analytics/empty-containers`
@@ -1714,24 +1714,24 @@ Verify API status.
 
 ### 7.1. Use Cases
 
-- **Multiple photos**: When more than 1 photo is uploaded simultaneously  
+- **Multiple photos**: When more than 1 photo is uploaded simultaneously
 - **Long processing**: Avoid HTTP timeouts (can take \~1 minute per photo on CPU)
 
 ### 7.2. Functionality
 
-1. **Single photo**: Synchronous processing, immediate response  
-2. **Multiple photos**:  
-   - Create Celery tasks  
-   - Return task IDs  
-   - Frontend queries status periodically  
+1. **Single photo**: Synchronous processing, immediate response
+2. **Multiple photos**:
+   - Create Celery tasks
+   - Return task IDs
+   - Frontend queries status periodically
    - Each task processes one complete photo (entire pipeline)
 
 ### 7.3. State Persistence
 
-- States saved in Redis (Celery default): This updates the frontend  
-- **Additional**: Save states in PostgreSQL database for:  
-  - Traceability  
-  - Recovery after crashes  
+- States saved in Redis (Celery default): This updates the frontend
+- **Additional**: Save states in PostgreSQL database for:
+  - Traceability
+  - Recovery after crashes
   - Historical queries
 
 ### 7.4. Internal Progress
@@ -1750,10 +1750,10 @@ task.update\_state(
 
 ### 7.5. Failure Recovery
 
-- Tasks should be idempotent when possible  
-- Configurable retries  
-- If server crashes, on restart it should be able to:  
-  - Resume pending tasks  
+- Tasks should be idempotent when possible
+- Configurable retries
+- If server crashes, on restart it should be able to:
+  - Resume pending tasks
   - Not reprocess completed tasks
 
 ### 7.6. Code Reuse
@@ -1766,8 +1766,8 @@ task.update\_state(
 
 ### 8.1. Purpose
 
-- Input data validation  
-- Response serialization  
+- Input data validation
+- Response serialization
 - Automatic documentation in FastAPI
 
 ### 8.2. Structure
@@ -1796,8 +1796,8 @@ task.update\_state(
 
 ### 8.3. Conventions
 
-- All code in English  
-- Strong and explicit typing  
+- All code in English
+- Strong and explicit typing
 - Custom validators when necessary
 
 ### 8.4. Transformation
@@ -1876,7 +1876,7 @@ class Config:
 
         self.load\_env()
 
-    
+
 
     @property
 
@@ -1966,12 +1966,12 @@ async def app\_exception\_handler(request, exc: AppBaseException):
 
 ### 10.4. Principles
 
-- **Don't chain try-catch**: Avoid nested try-catch in multiple layers  
-- **Capture at the right level**:  
-  - Repositories: DB exceptions  
-  - Services: Business logic exceptions  
-  - Controllers: Rarely (global handler takes care)  
-- **User message vs. technical message**: Clearly separate  
+- **Don't chain try-catch**: Avoid nested try-catch in multiple layers
+- **Capture at the right level**:
+  - Repositories: DB exceptions
+  - Services: Business logic exceptions
+  - Controllers: Rarely (global handler takes care)
+- **User message vs. technical message**: Clearly separate
 - **Automatic logging**: Each exception should be logged
 
 ---
@@ -1988,10 +1988,10 @@ async def app\_exception\_handler(request, exc: AppBaseException):
 
 ### 11.2. Logging Levels
 
-- **DEBUG**: Detailed information for debugging  
-- **INFO**: General flow information  
-- **WARNING**: Unusual but manageable situations  
-- **ERROR**: Errors affecting functionality  
+- **DEBUG**: Detailed information for debugging
+- **INFO**: General flow information
+- **WARNING**: Unusual but manageable situations
+- **ERROR**: Errors affecting functionality
 - **CRITICAL**: Serious system failures
 
 ### 11.3. Logger per Class
@@ -2006,7 +2006,7 @@ class StorageLocationService:
 
         self.logger \= logging.getLogger(self.\_\_class\_\_.\_\_name\_\_)
 
-    
+
 
     def get\_storage\_location(self, storage\_location\_id: int):
 
@@ -2068,9 +2068,9 @@ logging.config.dictConfig({
 
 ### 11.5. Useful Logs, Not Excessive
 
-- Log important flow points  
-- Log all exceptions  
-- Don't log every line of code  
+- Log important flow points
+- Log all exceptions
+- Don't log every line of code
 - Don't log sensitive information (passwords, tokens)
 
 ---
@@ -2081,17 +2081,17 @@ logging.config.dictConfig({
 
 Test-driven development (TDD when appropriate):
 
-1. Write test  
-2. Implement functionality  
-3. Refactor  
+1. Write test
+2. Implement functionality
+3. Refactor
 4. Commit
 
 ### 12.2. Types of Tests
 
 #### Unit Tests
 
-- Test each repository method individually  
-- Test each service method with repository mocks  
+- Test each repository method individually
+- Test each service method with repository mocks
 - Test schema transformations
 
 /tests
@@ -2116,8 +2116,8 @@ Test-driven development (TDD when appropriate):
 
 #### Integration Tests
 
-- Test complete flows endpoint → service → repository → DB  
-- Test complete pipeline with test photo  
+- Test complete flows endpoint → service → repository → DB
+- Test complete pipeline with test photo
 - Test Celery tasks
 
 /tests
@@ -2148,14 +2148,14 @@ Include in project:
 
 ### 12.4. Test Database
 
-- Use separate database for tests  
-- Fixtures with test data  
+- Use separate database for tests
+- Fixtures with test data
 - Clean DB after each test
 
 ### 12.5. Coverage
 
-- Goal: \>80% coverage  
-- Tool: pytest-cov  
+- Goal: \>80% coverage
+- Tool: pytest-cov
 - Generate coverage reports in each phase
 
 ### 12.6. Execution
@@ -2184,7 +2184,7 @@ pytest \--cov=app \--cov-report=html
 
     main.py                 \# FastAPI initialization
 
-    
+
 
     /config
 
@@ -2196,7 +2196,7 @@ pytest \--cov=app \--cov-report=html
 
       ml\_config.py
 
-    
+
 
     /repositories
 
@@ -2224,7 +2224,7 @@ pytest \--cov=app \--cov-report=html
 
         \# ... all models
 
-    
+
 
     /services
 
@@ -2240,7 +2240,7 @@ pytest \--cov=app \--cov-report=html
 
       \# ... other services
 
-      
+
 
       /ml\_processing
 
@@ -2258,7 +2258,7 @@ pytest \--cov=app \--cov-report=html
 
         image\_processing\_service.py
 
-    
+
 
     /controllers
 
@@ -2274,7 +2274,7 @@ pytest \--cov=app \--cov-report=html
 
       auth\_controller.py
 
-    
+
 
     /schemas
 
@@ -2288,7 +2288,7 @@ pytest \--cov=app \--cov-report=html
 
       \# ... other schemas
 
-    
+
 
     /exceptions
 
@@ -2302,7 +2302,7 @@ pytest \--cov=app \--cov-report=html
 
       ml\_exceptions.py
 
-    
+
 
     /logging
 
@@ -2312,7 +2312,7 @@ pytest \--cov=app \--cov-report=html
 
       formatters.py
 
-    
+
 
     /celery\_app
 
@@ -2322,7 +2322,7 @@ pytest \--cov=app \--cov-report=html
 
       tasks.py
 
-    
+
 
     /utils
 
@@ -2334,7 +2334,7 @@ pytest \--cov=app \--cov-report=html
 
       date\_utils.py
 
-  
+
 
   /tests
 
@@ -2352,7 +2352,7 @@ pytest \--cov=app \--cov-report=html
 
       /photos
 
-  
+
 
   /docs
 
@@ -2362,7 +2362,7 @@ pytest \--cov=app \--cov-report=html
 
     ml\_pipeline.md
 
-  
+
 
   /planning
 
@@ -2378,7 +2378,7 @@ pytest \--cov=app \--cov-report=html
 
     todo.md                  \# Pending tasks list
 
-  
+
 
   /scripts
 
@@ -2386,7 +2386,7 @@ pytest \--cov=app \--cov-report=html
 
     seed\_data.py
 
-  
+
 
   .env.example
 
@@ -2472,7 +2472,7 @@ def estimate\_remaining\_plants(self, area\_pixels: int, pot\_size\_cm: float) \
 
     Estimates quantity of undetected plants based on area in pixels.
 
-    
+
 
     Converts pixels to cm² using photo resolution and calculates
 
@@ -2484,9 +2484,9 @@ def estimate\_remaining\_plants(self, area\_pixels: int, pot\_size\_cm: float) \
 
 ### 14.5. Code Format
 
-- **Tool**: Ruff  
-- **Lines**: Maximum 100 characters  
-- **Imports**: Organized (stdlib, third-party, local)  
+- **Tool**: Ruff
+- **Lines**: Maximum 100 characters
+- **Imports**: Organized (stdlib, third-party, local)
 - **Run before commit**:
 
 ruff check .
@@ -2507,7 +2507,7 @@ ruff format .
 
       location\_{storage\_location\_id}\_{timestamp}.jpg
 
-  
+
 
   /visualized\_photos
 
@@ -2517,12 +2517,12 @@ ruff format .
 
 ### 15.2. Compression
 
-- Original photos: No additional compression (maintain quality)  
+- Original photos: No additional compression (maintain quality)
 - Visualized photos: Moderate compression (JPEG quality 85\)
 
 ### 15.3. Metadata
 
-- Preserve original EXIF  
+- Preserve original EXIF
 - Add custom metadata: storage\_location\_id, timestamp, model\_version
 
 ### 15.4. Image Service
@@ -2535,13 +2535,13 @@ class ImageService:
 
         \# Save original photo with metadata
 
-        
+
 
     def create\_visualization(self, original\_photo\_path: str, detections: List, estimations: List) \-\> str:
 
         \# Create image with circles and masks
 
-        
+
 
     def get\_image\_url(self, image\_path: str) \-\> str:
 
@@ -2725,135 +2725,135 @@ htmlcov/
 
 ### Phase 0: Initial Setup
 
-- [ ] Configure Git repository  
-- [ ] Create directory structure  
-- [ ] Setup virtual environment  
-- [ ] Install base dependencies  
-- [ ] Configure Ruff and pre-commit hooks  
-- [ ] Create .env.example  
+- [ ] Configure Git repository
+- [ ] Create directory structure
+- [ ] Setup virtual environment
+- [ ] Install base dependencies
+- [ ] Configure Ruff and pre-commit hooks
+- [ ] Create .env.example
 - [ ] Document in `/planning/phase_0_setup.md`
 
 ### Phase 1: Repositories and Models
 
-- [ ] Create SQLAlchemy models for all tables  
-- [ ] Implement BaseRepository  
-- [ ] Implement specific repositories: \- \[ \] WarehouseRepo \- \[ \] StorageAreaRepo \- \[ \] StorageLocationRepo \- \[ \] StorageBinRepo \- \[ \] StorageBinTypeRepo \- \[ \] PhotoProcessingSessionRepo \- \[ \] StockMovementRepo \- \[ \] StockBatchRepo \- \[ \] ProductRepo \- \[ \] ProductCategoryRepo \- \[ \] ProductFamilyRepo \- \[ \] PackagingCatalogRepo \- \[ \] PackagingTypeRepo \- \[ \] PackagingMaterialRepo \- \[ \] PackagingColorRepo \- \[ \] StorageLocationConfigRepo \- \[ \] DensityParametersRepo \- \[ \] UserRepo \- \[ \] DetectionRepo \- \[ \] EstimationRepo \- \[ \] ProductStateRepo \- \[ \] ProductSizeRepo  
-- [ ] Unit tests for each repository  
-- [ ] Document in `/planning/phase_1_repos.md`  
+- [ ] Create SQLAlchemy models for all tables
+- [ ] Implement BaseRepository
+- [ ] Implement specific repositories: \- \[ \] WarehouseRepo \- \[ \] StorageAreaRepo \- \[ \] StorageLocationRepo \- \[ \] StorageBinRepo \- \[ \] StorageBinTypeRepo \- \[ \] PhotoProcessingSessionRepo \- \[ \] StockMovementRepo \- \[ \] StockBatchRepo \- \[ \] ProductRepo \- \[ \] ProductCategoryRepo \- \[ \] ProductFamilyRepo \- \[ \] PackagingCatalogRepo \- \[ \] PackagingTypeRepo \- \[ \] PackagingMaterialRepo \- \[ \] PackagingColorRepo \- \[ \] StorageLocationConfigRepo \- \[ \] DensityParametersRepo \- \[ \] UserRepo \- \[ \] DetectionRepo \- \[ \] EstimationRepo \- \[ \] ProductStateRepo \- \[ \] ProductSizeRepo
+- [ ] Unit tests for each repository
+- [ ] Document in `/planning/phase_1_repos.md`
 - [ ] Commit: "feat: implement all repositories and models"
 
 ### Phase 2: Base Services
 
-- [ ] Create BaseService  
-- [ ] Implement services for simple entities: \- \[ \] ProductService \- \[ \] PackagingCatalogService \- \[ \] WarehouseService \- \[ \] StorageAreaService \- \[ \] StorageLocationService  
-- [ ] Unit tests with mocks  
-- [ ] Document in `/planning/phase_2_base_services.md`  
+- [ ] Create BaseService
+- [ ] Implement services for simple entities: \- \[ \] ProductService \- \[ \] PackagingCatalogService \- \[ \] WarehouseService \- \[ \] StorageAreaService \- \[ \] StorageLocationService
+- [ ] Unit tests with mocks
+- [ ] Document in `/planning/phase_2_base_services.md`
 - [ ] Commit: "feat: implement base services"
 
 ### Phase 3: Complex Services
 
-- [ ] Implement business logic services: \- \[ \] PhotoProcessingSessionService \- \[ \] StockMovementService \- \[ \] StockBatchService \- \[ \] StorageLocationConfigService  
-- [ ] Unit tests  
-- [ ] Document in `/planning/phase_3_complex_services.md`  
+- [ ] Implement business logic services: \- \[ \] PhotoProcessingSessionService \- \[ \] StockMovementService \- \[ \] StockBatchService \- \[ \] StorageLocationConfigService
+- [ ] Unit tests
+- [ ] Document in `/planning/phase_3_complex_services.md`
 - [ ] Commit: "feat: implement complex business services"
 
 ### Phase 4: Machine Learning Pipeline
 
-- [ ] Implement LocalizationService  
-- [ ] Implement SegmentationService  
-- [ ] Implement DetectionService (with SAHI)  
-- [ ] Implement EstimationService  
-- [ ] Implement ImageProcessingService (visualizations)  
-- [ ] Implement PipelineCoordinator  
-- [ ] Integration tests with test photos  
-- [ ] Document in `/planning/phase_4_ml_pipeline.md`  
+- [ ] Implement LocalizationService
+- [ ] Implement SegmentationService
+- [ ] Implement DetectionService (with SAHI)
+- [ ] Implement EstimationService
+- [ ] Implement ImageProcessingService (visualizations)
+- [ ] Implement PipelineCoordinator
+- [ ] Integration tests with test photos
+- [ ] Document in `/planning/phase_4_ml_pipeline.md`
 - [ ] Commit: "feat: implement complete ML pipeline"
 
 ### Phase 5: Pydantic Schemas
 
-- [ ] Create all request/response schemas  
-- [ ] Custom validators  
-- [ ] Schema ↔ model transformation tests  
-- [ ] Document in `/planning/phase_5_schemas.md`  
+- [ ] Create all request/response schemas
+- [ ] Custom validators
+- [ ] Schema ↔ model transformation tests
+- [ ] Document in `/planning/phase_5_schemas.md`
 - [ ] Commit: "feat: implement pydantic schemas"
 
 ### Phase 6: Controllers \- Location
 
-- [ ] Implement location endpoints  
-- [ ] Integration tests  
-- [ ] Document in `/planning/phase_6_location_controllers.md`  
+- [ ] Implement location endpoints
+- [ ] Integration tests
+- [ ] Document in `/planning/phase_6_location_controllers.md`
 - [ ] Commit: "feat: implement location controllers"
 
 ### Phase 7: Controllers \- Configuration
 
-- [ ] Implement configuration endpoints  
-- [ ] Integration tests  
-- [ ] Document in `/planning/phase_7_configuration_controllers.md`  
+- [ ] Implement configuration endpoints
+- [ ] Integration tests
+- [ ] Document in `/planning/phase_7_configuration_controllers.md`
 - [ ] Commit: "feat: implement configuration controllers"
 
 ### Phase 8: Controllers \- Stock and Celery
 
-- [ ] Implement stock input endpoints  
-- [ ] Configure Celery  
-- [ ] Implement async tasks  
-- [ ] Integration tests with Celery  
-- [ ] Document in `/planning/phase_8_stock_celery.md`  
+- [ ] Implement stock input endpoints
+- [ ] Configure Celery
+- [ ] Implement async tasks
+- [ ] Integration tests with Celery
+- [ ] Document in `/planning/phase_8_stock_celery.md`
 - [ ] Commit: "feat: implement stock controllers and celery tasks"
 
 ### Phase 9: Controllers \- Analytics
 
-- [ ] Implement analytics endpoints  
-- [ ] Excel/CSV export  
-- [ ] Integration tests  
-- [ ] Document in `/planning/phase_9_analytics.md`  
+- [ ] Implement analytics endpoints
+- [ ] Excel/CSV export
+- [ ] Integration tests
+- [ ] Document in `/planning/phase_9_analytics.md`
 - [ ] Commit: "feat: implement analytics controllers"
 
 ### Phase 10: Authentication and Users
 
-- [ ] Implement JWT authentication  
-- [ ] Auth and user endpoints  
-- [ ] Authorization middleware  
-- [ ] Tests  
-- [ ] Document in `/planning/phase_10_auth.md`  
+- [ ] Implement JWT authentication
+- [ ] Auth and user endpoints
+- [ ] Authorization middleware
+- [ ] Tests
+- [ ] Document in `/planning/phase_10_auth.md`
 - [ ] Commit: "feat: implement authentication and users"
 
 ### Phase 11: Exceptions and Logging
 
-- [ ] Implement exception system  
-- [ ] Configure centralized logging  
-- [ ] Global exception handlers  
-- [ ] Document in `/planning/phase_11_exceptions_logging.md`  
+- [ ] Implement exception system
+- [ ] Configure centralized logging
+- [ ] Global exception handlers
+- [ ] Document in `/planning/phase_11_exceptions_logging.md`
 - [ ] Commit: "feat: implement exceptions and logging"
 
 ### Phase 12: Centralized Configuration
 
-- [ ] Create configuration system  
-- [ ] Migrate hardcoded values to config  
-- [ ] Document in `/planning/phase_12_config.md`  
+- [ ] Create configuration system
+- [ ] Migrate hardcoded values to config
+- [ ] Document in `/planning/phase_12_config.md`
 - [ ] Commit: "feat: implement centralized configuration"
 
 ### Phase 13: Docker and Deployment
 
-- [ ] Create optimized Dockerfile  
-- [ ] Create docker-compose.yml  
-- [ ] DB initialization scripts  
-- [ ] Document in `/planning/phase_13_docker.md`  
+- [ ] Create optimized Dockerfile
+- [ ] Create docker-compose.yml
+- [ ] DB initialization scripts
+- [ ] Document in `/planning/phase_13_docker.md`
 - [ ] Commit: "feat: add docker configuration"
 
 ### Phase 14: Final Documentation
 
-- [ ] Complete README.md  
-- [ ] API documentation (automatic with FastAPI)  
-- [ ] Contribution guide  
-- [ ] Document in `/docs/`  
+- [ ] Complete README.md
+- [ ] API documentation (automatic with FastAPI)
+- [ ] Contribution guide
+- [ ] Document in `/docs/`
 - [ ] Commit: "docs: complete project documentation"
 
 ### Phase 15: Optimization and Refactoring
 
-- [ ] Review test coverage  
-- [ ] Optimize slow queries  
-- [ ] Refactor duplicate code  
-- [ ] Document in `/planning/phase_15_optimization.md`  
+- [ ] Review test coverage
+- [ ] Optimize slow queries
+- [ ] Refactor duplicate code
+- [ ] Document in `/planning/phase_15_optimization.md`
 - [ ] Commit: "refactor: optimize and clean code"
 
 ---
@@ -2870,10 +2870,10 @@ List of all phases with general progress checkboxes.
 
 Detail of each phase:
 
-- Objectives  
-- Specific tasks  
-- Acceptance criteria  
-- Technical notes  
+- Objectives
+- Specific tasks
+- Acceptance criteria
+- Technical notes
 - Problems encountered
 
 #### current\_status.md
@@ -2982,10 +2982,10 @@ opencv-python-headless==4.9.0.80
 
 numpy==1.26.3
 
-pillow==10.2.0  
-[Turn on screen reader support](https://docs.google.com/document/d/1SF9Bx50syPbm_VcH_Wt0sYwgebb4jyGDb6tYdYtlsWo/edit?tab=t.0#)  
-To enable screen reader support, press Ctrl+Alt+Z To learn about keyboard shortcuts, press Ctrl+slash  
-Banner hidden   
+pillow==10.2.0
+[Turn on screen reader support](https://docs.google.com/document/d/1SF9Bx50syPbm_VcH_Wt0sYwgebb4jyGDb6tYdYtlsWo/edit?tab=t.0#)
+To enable screen reader support, press Ctrl+Alt+Z To learn about keyboard shortcuts, press Ctrl+slash
+Banner hidden
 Show side panel
 
 torch==2.1.2
@@ -3042,50 +3042,50 @@ pyyaml==6.0.1
 
 ### 20.1. SOLID Principles
 
-- **Single Responsibility**: Each class has a clear responsibility  
-- **Open/Closed**: Extend without modifying (use inheritance and composition)  
-- **Liskov Substitution**: Subclasses must be interchangeable  
-- **Interface Segregation**: Specific interfaces, not huge generic ones  
+- **Single Responsibility**: Each class has a clear responsibility
+- **Open/Closed**: Extend without modifying (use inheritance and composition)
+- **Liskov Substitution**: Subclasses must be interchangeable
+- **Interface Segregation**: Specific interfaces, not huge generic ones
 - **Dependency Inversion**: Depend on abstractions, not concrete implementations
 
 ### 20.2. DRY (Don't Repeat Yourself)
 
-- Reuse code between repositories  
-- Reuse code between services  
-- Same pipeline for Celery and synchronous endpoints  
+- Reuse code between repositories
+- Reuse code between services
+- Same pipeline for Celery and synchronous endpoints
 - Same error handling throughout the app
 
 ### 20.3. KISS (Keep It Simple, Stupid)
 
-- Short and clear methods  
-- Don't over-engineer  
+- Short and clear methods
+- Don't over-engineer
 - If a method does an obvious thing, it doesn't need a docstring
 
 ### 20.4. YAGNI (You Aren't Gonna Need It)
 
-- Don't implement functionality "just in case"  
-- Implement only what's specified in this plan  
+- Don't implement functionality "just in case"
+- Implement only what's specified in this plan
 - The generative AI endpoint is marked as PENDING, don't implement yet
 
 ### 20.5. Performance
 
-- **Queries**: Use eager loading when necessary, lazy when not  
-- **Images**: Process in chunks, don't load everything in memory  
-- **Celery**: For long operations, don't block main thread  
+- **Queries**: Use eager loading when necessary, lazy when not
+- **Images**: Process in chunks, don't load everything in memory
+- **Celery**: For long operations, don't block main thread
 - **Caching**: Consider caching configurations that don't change frequently
 
 ### 20.6. Security
 
-- **Don't commit secrets**: Use .env  
-- **Validate inputs**: Pydantic validates automatically  
-- **SQL Injection**: SQLAlchemy protects automatically  
-- **Authentication**: JWT with expiration  
+- **Don't commit secrets**: Use .env
+- **Validate inputs**: Pydantic validates automatically
+- **SQL Injection**: SQLAlchemy protects automatically
+- **Authentication**: JWT with expiration
 - **CORS**: Configure correctly in production
 
 ### 20.7. Monitoring
 
-- Structured logs to facilitate search  
-- Performance metrics (photo processing time)  
+- Structured logs to facilitate search
+- Performance metrics (photo processing time)
 - Alerts when Celery tasks fail repeatedly
 
 ---
@@ -3094,18 +3094,18 @@ pyyaml==6.0.1
 
 Before considering the system ready for production:
 
-- [ ] All tests pass (unit and integration)  
-- [ ] Test coverage \>80%  
-- [ ] Complete documentation in `/docs`  
-- [ ] README.md updated with installation instructions  
-- [ ] Environment variables documented in .env.example  
-- [ ] Dockerfile and docker-compose.yml functional  
-- [ ] Logging system configured  
-- [ ] Robust exception system  
-- [ ] Acceptable performance (photo processing benchmark)  
-- [ ] Basic security review completed  
-- [ ] Backup strategy defined for database  
-- [ ] Rollback plan in case of failure  
+- [ ] All tests pass (unit and integration)
+- [ ] Test coverage \>80%
+- [ ] Complete documentation in `/docs`
+- [ ] README.md updated with installation instructions
+- [ ] Environment variables documented in .env.example
+- [ ] Dockerfile and docker-compose.yml functional
+- [ ] Logging system configured
+- [ ] Robust exception system
+- [ ] Acceptable performance (photo processing benchmark)
+- [ ] Basic security review completed
+- [ ] Backup strategy defined for database
+- [ ] Rollback plan in case of failure
 - [ ] Basic monitoring configured
 
 ---
@@ -3114,23 +3114,23 @@ Before considering the system ready for production:
 
 ### 22.1. Official Documentation
 
-- FastAPI: [https://fastapi.tiangolo.com](https://fastapi.tiangolo.com)  
-- SQLAlchemy: [https://docs.sqlalchemy.org](https://docs.sqlalchemy.org)  
-- Pydantic: [https://docs.pydantic.dev](https://docs.pydantic.dev)  
-- Celery: [https://docs.celeryq.dev](https://docs.celeryq.dev)  
-- Ultralytics YOLO: [https://docs.ultralytics.com](https://docs.ultralytics.com)  
+- FastAPI: [https://fastapi.tiangolo.com](https://fastapi.tiangolo.com)
+- SQLAlchemy: [https://docs.sqlalchemy.org](https://docs.sqlalchemy.org)
+- Pydantic: [https://docs.pydantic.dev](https://docs.pydantic.dev)
+- Celery: [https://docs.celeryq.dev](https://docs.celeryq.dev)
+- Ultralytics YOLO: [https://docs.ultralytics.com](https://docs.ultralytics.com)
 - PostgreSQL: [https://www.postgresql.org/docs/](https://www.postgresql.org/docs/)
 
 ### 22.2. Development Tools
 
-- Ruff: [https://docs.astral.sh/ruff/](https://docs.astral.sh/ruff/)  
-- Pytest: [https://docs.pytest.org](https://docs.pytest.org)  
+- Ruff: [https://docs.astral.sh/ruff/](https://docs.astral.sh/ruff/)
+- Pytest: [https://docs.pytest.org](https://docs.pytest.org)
 - Docker: [https://docs.docker.com](https://docs.docker.com)
 
 ### 22.3. Additional Resources
 
-- Use Context7 MCP for updated library documentation  
-- Search the internet when necessary  
+- Use Context7 MCP for updated library documentation
+- Search the internet when necessary
 - Consult this engineering document frequently
 
 ---
@@ -3141,15 +3141,15 @@ This engineering document is the complete guide for the development of the Autom
 
 **Key principles to remember**:
 
-1. Everything is connected: services use services, repos use repos  
-2. The ML pipeline is an integral part of the API, not something separate  
-3. All code in English  
-4. Tests before considering something finished  
-5. Document progress in `/planning`  
-6. Frequent and descriptive commits  
-7. Strong typing throughout the code  
-8. Centralized configuration  
-9. Well-handled exceptions and logs  
+1. Everything is connected: services use services, repos use repos
+2. The ML pipeline is an integral part of the API, not something separate
+3. All code in English
+4. Tests before considering something finished
+5. Document progress in `/planning`
+6. Frequent and descriptive commits
+7. Strong typing throughout the code
+8. Centralized configuration
+9. Well-handled exceptions and logs
 10. Simplicity over complexity
 
 Any developer who reads this document should be able to understand the complete system and continue development following the established phases.

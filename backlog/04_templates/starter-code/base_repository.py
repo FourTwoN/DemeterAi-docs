@@ -8,10 +8,11 @@ See: ../../00_foundation/architecture-principles.md
 Card: R001-async-repository-base
 """
 
-from typing import Generic, TypeVar, Type, Optional, List, Any, Dict
+from typing import Any, Generic, TypeVar
+
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, update, delete
-from sqlalchemy.orm import selectinload, joinedload
+from sqlalchemy.orm import joinedload, selectinload
 
 # Generic type for SQLAlchemy models
 ModelType = TypeVar("ModelType")
@@ -32,7 +33,7 @@ class AsyncRepository(Generic[ModelType]):
                 return result.scalar_one_or_none()
     """
 
-    def __init__(self, model: Type[ModelType], session: AsyncSession):
+    def __init__(self, model: type[ModelType], session: AsyncSession):
         """
         Initialize repository with model class and database session.
 
@@ -43,7 +44,7 @@ class AsyncRepository(Generic[ModelType]):
         self.model = model
         self.session = session
 
-    async def get(self, id: Any) -> Optional[ModelType]:
+    async def get(self, id: Any) -> ModelType | None:
         """
         Get single record by primary key.
 
@@ -57,12 +58,7 @@ class AsyncRepository(Generic[ModelType]):
         result = await self.session.execute(stmt)
         return result.scalar_one_or_none()
 
-    async def get_multi(
-        self,
-        skip: int = 0,
-        limit: int = 100,
-        **filters
-    ) -> List[ModelType]:
+    async def get_multi(self, skip: int = 0, limit: int = 100, **filters) -> list[ModelType]:
         """
         Get multiple records with pagination and filters.
 
@@ -78,7 +74,7 @@ class AsyncRepository(Generic[ModelType]):
         result = await self.session.execute(stmt)
         return list(result.scalars().all())
 
-    async def create(self, obj_in: Dict[str, Any]) -> ModelType:
+    async def create(self, obj_in: dict[str, Any]) -> ModelType:
         """
         Create new record.
 
@@ -94,7 +90,7 @@ class AsyncRepository(Generic[ModelType]):
         await self.session.refresh(db_obj)
         return db_obj
 
-    async def update(self, id: Any, obj_in: Dict[str, Any]) -> Optional[ModelType]:
+    async def update(self, id: Any, obj_in: dict[str, Any]) -> ModelType | None:
         """
         Update existing record by ID.
 
@@ -145,6 +141,7 @@ class AsyncRepository(Generic[ModelType]):
             Count of matching records
         """
         from sqlalchemy import func
+
         stmt = select(func.count()).select_from(self.model).filter_by(**filters)
         result = await self.session.execute(stmt)
         return result.scalar()
@@ -174,13 +171,10 @@ class StockMovementRepository(AsyncRepository["StockMovement"]):
 
     def __init__(self, session: AsyncSession):
         from app.models.stock_movement import StockMovement  # Import inside
+
         super().__init__(StockMovement, session)
 
-    async def get_by_location(
-        self,
-        location_id: int,
-        limit: int = 50
-    ) -> List["StockMovement"]:
+    async def get_by_location(self, location_id: int, limit: int = 50) -> list["StockMovement"]:
         """
         Get movements for a specific storage location.
 
@@ -191,7 +185,7 @@ class StockMovementRepository(AsyncRepository["StockMovement"]):
             .where(self.model.storage_location_id == location_id)
             .options(
                 joinedload(self.model.storage_location),  # Many-to-one
-                selectinload(self.model.batch),           # Many-to-one
+                selectinload(self.model.batch),  # Many-to-one
             )
             .order_by(self.model.created_at.desc())
             .limit(limit)
@@ -200,17 +194,12 @@ class StockMovementRepository(AsyncRepository["StockMovement"]):
         return list(result.unique().scalars().all())  # .unique() required with joinedload
 
     async def get_by_date_range(
-        self,
-        start_date: "datetime",
-        end_date: "datetime"
-    ) -> List["StockMovement"]:
+        self, start_date: "datetime", end_date: "datetime"
+    ) -> list["StockMovement"]:
         """Get movements within date range."""
         stmt = (
             select(self.model)
-            .where(
-                self.model.created_at >= start_date,
-                self.model.created_at <= end_date
-            )
+            .where(self.model.created_at >= start_date, self.model.created_at <= end_date)
             .order_by(self.model.created_at.desc())
         )
         result = await self.session.execute(stmt)

@@ -1,6 +1,5 @@
 """Base Service Layer Template - Clean Architecture Pattern"""
 
-from typing import Optional, List
 from app.repositories.base import AsyncRepository
 
 
@@ -43,12 +42,12 @@ class StockMovementService:
         self,
         repo,  # StockMovementRepository
         config_service,  # StorageLocationConfigService  ✅
-        batch_service,   # StockBatchService             ✅
-        session_service  # PhotoSessionService           ✅
+        batch_service,  # StockBatchService             ✅
+        session_service,  # PhotoSessionService           ✅
     ):
         self.repo = repo
         self.config_service = config_service  # ✅ Service
-        self.batch_service = batch_service    # ✅ Service
+        self.batch_service = batch_service  # ✅ Service
         self.session_service = session_service  # ✅ Service
 
     async def create_manual_initialization(self, request):
@@ -62,17 +61,16 @@ class StockMovementService:
 
         # Business rule: Validate product matches config
         if config.product_id != request.product_id:
-            raise ProductMismatchException(
-                expected=config.product_id,
-                actual=request.product_id
-            )
+            raise ProductMismatchException(expected=config.product_id, actual=request.product_id)
 
         # Create movement via repository
-        movement = await self.repo.create({
-            "movement_type": "manual_init",
-            "quantity": request.quantity,
-            "location_id": request.location_id,
-        })
+        movement = await self.repo.create(
+            {
+                "movement_type": "manual_init",
+                "quantity": request.quantity,
+                "location_id": request.location_id,
+            }
+        )
 
         # ✅ CORRECT: Call batch_service (NOT batch_repo)
         batch = await self.batch_service.create_from_movement(movement)
@@ -88,11 +86,11 @@ class BAD_Service_Examples:
         self,
         repo,
         config_repo,  # ❌ WRONG: Repository (should be service)
-        batch_repo    # ❌ WRONG: Repository (should be service)
+        batch_repo,  # ❌ WRONG: Repository (should be service)
     ):
         self.repo = repo
         self.config_repo = config_repo  # ❌ WRONG
-        self.batch_repo = batch_repo    # ❌ WRONG
+        self.batch_repo = batch_repo  # ❌ WRONG
 
     async def bad_method(self, request):
         # ❌ WRONG: Direct repository access

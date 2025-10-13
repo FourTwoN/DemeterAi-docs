@@ -23,13 +23,13 @@ Parent task that spawns ML child tasks (one per image) using chord pattern. **CR
 def ml_parent_task(self, session_code, image_ids):
     # Update session status
     session_repo.update_status(session_code, 'processing')
-    
+
     # Create child tasks
     children = [
         ml_child_task.s(session_code, img_id)
         for img_id in image_ids
     ]
-    
+
     # Chord: children → callback
     chord(children)(ml_callback.s(session_code))
 ```

@@ -18,7 +18,7 @@ Para tu flujo "1 foto → 1 parent → 2 child tasks", el patrón óptimo es:
 workflow = chain(
     preprocess_image.s(image_path),
     lambda slices: group([
-        detect_segment.s(slice_data), 
+        detect_segment.s(slice_data),
         detect_boxes.s(slice_data)
     ])(),
     aggregate_detections.s()
@@ -85,9 +85,9 @@ CREATE TABLE detections (
 -- Usa pg_partman para auto-management
 CREATE EXTENSION pg_partman;
 SELECT partman.create_parent(
-    'public.detections', 
-    'detected_at', 
-    'native', 
+    'public.detections',
+    'detected_at',
+    'native',
     'daily',
     p_premake := 7,
     p_start_partition := CURRENT_DATE
@@ -100,7 +100,7 @@ Partition pruning elimina particiones completas en queries con filtro temporal, 
 
 ```sql
 CREATE EXTENSION btree_gist;
-CREATE INDEX idx_detections_time_spatial 
+CREATE INDEX idx_detections_time_spatial
 ON detections USING GIST (detected_at, point_geom);
 ```
 
@@ -163,7 +163,7 @@ class DatabaseSessionManager:
             bind=self._engine,
             expire_on_commit=False  # CRÍTICO para async
         )
-    
+
     @asynccontextmanager
     async def session(self):
         session = self._sessionmaker()
@@ -191,7 +191,7 @@ async def bulk_insert_photos(session: AsyncSession, data: List[dict]):
     stmt = insert(Photo).values(data).returning(Photo.id)
     result = await session.execute(stmt)
     photo_ids = [r.id for r in result]
-    
+
     detection_data = [{"photo_id": pid, ...} for pid in photo_ids]
     await session.execute(insert(Detection).values(detection_data))
     await session.commit()
@@ -204,11 +204,11 @@ class AsyncRepository(Generic[ModelType]):
     def __init__(self, model: type[ModelType], session: AsyncSession):
         self.model = model
         self.session = session
-    
+
     async def get_multi_with_filters(
-        self, 
+        self,
         filters: dict,
-        skip: int = 0, 
+        skip: int = 0,
         limit: int = 100
     ) -> List[ModelType]:
         stmt = select(self.model).filter_by(**filters).offset(skip).limit(limit)
@@ -287,10 +287,10 @@ def batch_detect_plants(self, image_paths: List[str], batch_size=8):
         with torch.cuda.amp.autocast():  # FP16 para 2x speedup
             batch_results = self.model(batch, conf=0.25)
         results.extend(batch_results)
-        
+
         if i % 100 == 0:
             torch.cuda.empty_cache()  # Limpieza periódica
-    
+
     return results
 ```
 
@@ -314,11 +314,11 @@ CREATE TABLE storage_bins (
     bin_id SERIAL PRIMARY KEY,
     location_id INTEGER NOT NULL REFERENCES storage_locations(location_id) ON DELETE RESTRICT,
     bin_geom GEOMETRY(POLYGON, 4326) NOT NULL,
-    
+
     -- Denormalizado para performance
     warehouse_id INTEGER NOT NULL,  -- Denormalizado desde location→area→warehouse
     full_path TEXT NOT NULL,        -- 'warehouse/area/location/bin'
-    
+
     CONSTRAINT valid_bin_geom CHECK (ST_Area(bin_geom) > 0),
     CONSTRAINT bin_within_location CHECK (
         ST_Within(bin_geom, (SELECT geom FROM storage_locations WHERE location_id = storage_bins.location_id))
@@ -378,20 +378,20 @@ DECLARE
 BEGIN
     IF TG_OP = 'UPDATE' THEN
         changed_fields := ARRAY(
-            SELECT key FROM jsonb_each(to_jsonb(NEW)) 
+            SELECT key FROM jsonb_each(to_jsonb(NEW))
             WHERE to_jsonb(NEW)->key IS DISTINCT FROM to_jsonb(OLD)->key
         );
         IF changed_fields = ARRAY[]::TEXT[] THEN
             RETURN NEW;  -- No real changes, skip audit
         END IF;
     END IF;
-    
+
     INSERT INTO audit.logged_actions (
         schema_name, table_name, record_id, action,
         old_data, new_data, changed_fields,
         user_id, application_name, client_addr, query_text
     ) VALUES (
-        TG_TABLE_SCHEMA, TG_TABLE_NAME, 
+        TG_TABLE_SCHEMA, TG_TABLE_NAME,
         COALESCE(NEW.id, OLD.id),
         TG_OP,
         CASE WHEN TG_OP IN ('UPDATE','DELETE') THEN to_jsonb(OLD) END,
@@ -402,7 +402,7 @@ BEGIN
         inet_client_addr(),
         current_query()
     );
-    
+
     RETURN NEW;
 END;
 $$ LANGUAGE plpgsql;
@@ -415,8 +415,8 @@ El overhead es **3-5% en inserts/updates** - costo mínimo para compliance y deb
 Para campos computados frecuentemente como área de bounding boxes:
 
 ```sql
-ALTER TABLE detections 
-ADD COLUMN bbox_area_sqm DOUBLE PRECISION 
+ALTER TABLE detections
+ADD COLUMN bbox_area_sqm DOUBLE PRECISION
 GENERATED ALWAYS AS (
     ST_Area(ST_Transform(bbox_geom, 3857))  -- Proyecto a metros
 ) STORED;
@@ -428,7 +428,7 @@ Generated STORED columns pre-calculan valores al insert/update. El overhead es *
 
 ```sql
 CREATE MATERIALIZED VIEW mv_daily_detection_stats AS
-SELECT 
+SELECT
     warehouse_id,
     DATE_TRUNC('day', detected_at) AS stat_date,
     class_label,
@@ -494,7 +494,7 @@ import backoff
     max_tries=5,
     max_time=300,
     jitter=backoff.full_jitter,  # AWS best practice
-    giveup=lambda e: e.response['Error']['Code'] not in 
+    giveup=lambda e: e.response['Error']['Code'] not in
                      ['RequestTimeout', 'ServiceUnavailable', 'ThrottlingException']
 )
 async def resilient_s3_upload(file_path, bucket, key):
@@ -559,16 +559,16 @@ CeleryInstrumentor().instrument()
 @app.post("/process_image/")
 async def process_image_endpoint(image: UploadFile):
     tracer = trace.get_tracer(__name__)
-    
+
     with tracer.start_as_current_span("image_processing_request") as span:
         s3_key = f"uploads/{image.filename}"
         upload_to_s3(image.file, "bucket", s3_key)
         span.set_attribute("s3.key", s3_key)
         span.set_attribute("s3.bucket", "bucket")
-        
+
         task = process_photo_celery.delay(s3_key)
         span.set_attribute("celery.task_id", task.id)
-        
+
         return {"task_id": task.id, "status": "processing"}
 ```
 
@@ -617,9 +617,9 @@ from PIL import Image
 def optimize_plant_photo(input_path, output_path):
     img = Image.open(input_path)
     exif = img.info.get('exif', b'')  # Preserva GPS/metadata
-    
+
     img.save(
-        output_path, 
+        output_path,
         'AVIF',
         quality=85,      # Quality 85 es sweet spot
         exif=exif,
@@ -699,7 +699,7 @@ flowchart TB
         A[Photo Upload Request] --> B[Validate Format]
         B --> C[Generate Task ID]
     end
-    
+
     subgraph CELERY["⚙️ Celery Worker Pool"]
         D[Parent Task: Process Photo] --> E{Spawn Children}
         E -->|Child 1| F[Geolocation Extraction]
@@ -709,23 +709,23 @@ flowchart TB
         H --> J[Merge Results + NMS]
         I --> J
     end
-    
+
     subgraph DB["🗄️ PostgreSQL + PostGIS"]
         K[(Store Metadata)]
         L[(Store Detections)]
     end
-    
+
     subgraph S3["☁️ S3 Storage"]
         M[/Upload Original Image/]
         N[/Upload Processed Results/]
     end
-    
+
     C -.->|Queue| D
     J --> K
     J --> L
     J --> M
     L --> N
-    
+
     style D fill:#ffd700,stroke:#ff8c00,stroke-width:4px
     style F fill:#87ceeb,stroke:#4682b4,stroke-width:2px
     style G fill:#87ceeb,stroke:#4682b4,stroke-width:2px
@@ -739,14 +739,14 @@ flowchart LR
     B -->|Success| C[Store Results]
     B -->|GPU OOM| D{Retry < 3?}
     B -->|Timeout| D
-    
+
     D -->|Yes| E[Clear Cache + Wait 2^n sec]
     D -->|No| F[Send to DLQ]
-    
+
     E --> B
     F --> G[Alert Ops Team]
     C --> H[Update Metrics]
-    
+
     style B fill:#4682b4,color:#fff
     style D fill:#ff8c00,color:#fff
     style F fill:#dc143c,color:#fff

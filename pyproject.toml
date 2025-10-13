@@ -43,8 +43,61 @@ dev = [
 [tool.ruff]
 line-length = 100
 target-version = "py312"
-select = ["E", "F", "I", "N", "W"]
-ignore = ["E501"]
+
+exclude = [
+    ".git",
+    ".venv",
+    "venv",
+    "alembic/versions/*.py",
+    "__pycache__",
+    "build",
+    "dist",
+    ".pytest_cache",
+    ".mypy_cache",
+    ".ruff_cache"
+]
+
+[tool.ruff.lint]
+# Enable rule sets:
+# E: pycodestyle errors
+# F: Pyflakes
+# I: isort
+# N: pep8-naming
+# W: pycodestyle warnings
+# UP: pyupgrade
+# B: flake8-bugbear
+# C4: flake8-comprehensions
+# SIM: flake8-simplify
+select = ["E", "F", "I", "N", "W", "UP", "B", "C4", "SIM"]
+
+ignore = [
+    "E501",    # Line too long (let formatter handle)
+    "B008",    # Do not perform function call in argument defaults
+    "C901",    # Function is too complex (let developers judge)
+    "E712",    # Comparison to True/False (SQLAlchemy uses this)
+    "N818",    # Exception naming: AppBaseException is intentional (not AppBaseError)
+]
+
+[tool.ruff.lint.per-file-ignores]
+"__init__.py" = ["F401"]  # Unused imports OK in __init__.py
+"alembic/env.py" = ["F401", "E402"]  # Alembic imports
+"tests/**/*.py" = ["S101", "F841", "B007"]  # Allow assert, unused vars (side effects), loop vars in tests
+
+[tool.ruff.lint.isort]
+known-first-party = ["app"]
+section-order = [
+    "future",
+    "standard-library",
+    "third-party",
+    "first-party",
+    "local-folder"
+]
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+skip-magic-trailing-comma = false
+line-ending = "auto"
 
 [tool.setuptools.packages.find]
 include = ["app*"]

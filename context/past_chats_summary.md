@@ -40,31 +40,31 @@ flowchart TB
         WEB[Web Frontend]
         MOBILE[Mobile App]
     end
-    
+
     subgraph API["FastAPI Layer (Async)"]
         UPLOAD[Photo Upload]
         STATUS[Task Status Polling]
         ANALYTICS[Analytics/Reports]
     end
-    
+
     subgraph Workers["Celery Worker Pool"]
         GPU[GPU Workers pool=solo]
         CPU[CPU Workers prefork]
         IO[I/O Workers gevent]
     end
-    
+
     subgraph Storage
         S3[S3 Original/Processed]
         REDIS[Redis Broker/Backend]
         PG[(PostgreSQL + PostGIS)]
     end
-    
+
     subgraph ML["ML Pipeline"]
         SEG[Segmentation YOLO v11]
         DET[Detection + SAHI]
         EST[Area Estimation]
     end
-    
+
     WEB --> UPLOAD
     MOBILE --> UPLOAD
     UPLOAD --> GPU
@@ -325,13 +325,13 @@ density_parameters
 
 ```sql
 -- Geospatial (SP-GiST optimal for non-overlapping polygons)
-CREATE INDEX idx_locations_geom ON storage_locations 
+CREATE INDEX idx_locations_geom ON storage_locations
 USING GIST(geojson_coordinates);
 
 -- Partitioned tables (auto-created per partition)
 CREATE INDEX idx_detections_session ON detections(session_id);
 CREATE INDEX idx_detections_movement ON detections(stock_movement_id);
-CREATE INDEX idx_detections_time_spatial ON detections 
+CREATE INDEX idx_detections_time_spatial ON detections
 USING GIST(detected_at, point_geom); -- Compound for mixed queries
 
 -- Foreign keys
@@ -435,13 +435,13 @@ def estimate_remaining_plants(remaining_mask, detections, density_params, config
     CRITICAL INNOVATION: Auto-calibrate from real detections
     Priority: Band average > Density parameters fallback
     """
-    
+
     # Step 1: Divide remaining area into 5 horizontal bands
     num_bands = 5
     band_height = remaining_mask.shape[0] // num_bands
-    bands = [remaining_mask[i*band_height:(i+1)*band_height] 
+    bands = [remaining_mask[i*band_height:(i+1)*band_height]
              for i in range(num_bands)]
-    
+
     # Step 2: Check for detections in each band
     band_areas = []
     for band_mask in bands:
@@ -449,12 +449,12 @@ def estimate_remaining_plants(remaining_mask, detections, density_params, config
         if len(band_detections) > 0:
             avg_area = np.mean([det.area for det in band_detections])
             band_areas.append(avg_area)
-    
+
     # Step 3: Prioritize band average (real data)
     if len(band_areas) > 0:
         avg_plant_area_cm2 = np.mean(band_areas)
         estimation_method = 'band_estimation'
-        
+
         # Step 4: AUTO-CALIBRATE density_parameters
         update_density_parameters(
             product_id=config['product_id'],
@@ -467,23 +467,23 @@ def estimate_remaining_plants(remaining_mask, detections, density_params, config
         avg_plant_area_cm2 = density_params['avg_area_per_plant_cm2']
         estimation_method = 'density_parameters'
         calibration_updated = False
-    
+
     # Step 5: HSV vegetation filter (remove bare soil)
     hsv = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
     lower_green = (35, 40, 40)
     upper_green = (85, 255, 255)
     vegetation_mask = cv2.inRange(hsv, lower_green, upper_green)
     remaining_vegetation = cv2.bitwise_and(remaining_mask, vegetation_mask)
-    
+
     # Step 6: Calculate area and estimate count
     pixels = cv2.countNonZero(remaining_vegetation)
     pixel_to_cm2 = (config['area_m2'] * 10000) / (image.width * image.height)
     area_cm2 = pixels * pixel_to_cm2
-    
+
     estimated_count = round(
         (area_cm2 / avg_plant_area_cm2) * density_params['overlap_factor']
     )
-    
+
     return {
         'estimated_count': estimated_count,
         'area_cm2': area_cm2,
@@ -590,10 +590,10 @@ from celery import chord, group
 @app.task(bind=True, base=ModelSingletonTask, max_retries=1)
 def ml_parent_task(self, image_id, user_id):
     # ... geolocate, segment, create session ...
-    
+
     # Build child tasks dynamically
     child_tasks = []
-    
+
     if segment_masks:
         for mask_path in segment_masks:
             child_tasks.append(
@@ -601,7 +601,7 @@ def ml_parent_task(self, image_id, user_id):
                     session_id_pk, mask_path, config, density_params
                 )
             )
-    
+
     if box_masks or plug_masks or seedling_masks:
         for class_type, mask_path in other_masks:
             child_tasks.append(
@@ -609,13 +609,13 @@ def ml_parent_task(self, image_id, user_id):
                     session_id_pk, mask_path, class_type, config, density_params
                 )
             )
-    
+
     # Execute chord: all children → callback when all complete
     workflow = chord(
         group(*child_tasks),
         aggregate_results.s(session_id_pk)
     )
-    
+
     return workflow.apply_async(queue='gpu_queue_0')
 ```
 
@@ -627,7 +627,7 @@ from threading import Lock
 class ModelCache:
     _instances = {}
     _lock = Lock()
-    
+
     @classmethod
     def get_model(cls, worker_id: int):
         with cls._lock:
@@ -641,14 +641,14 @@ class ModelCache:
 
 class ModelSingletonTask(Task):
     _model = None
-    
+
     @property
     def model(self):
         if self._model is None:
             worker_id = get_worker_id()
             self._model = ModelCache.get_model(worker_id)
         return self._model
-    
+
     def after_return(self, *args, **kwargs):
         # Clear GPU cache every 100 tasks
         if self.request.id % 100 == 0:
@@ -739,29 +739,29 @@ class AsyncRepository(Generic[ModelType]):
     def __init__(self, model: Type[ModelType], session: AsyncSession):
         self.model = model
         self.session = session
-    
+
     async def get(self, id: int) -> Optional[ModelType]:
         stmt = select(self.model).where(self.model.id == id)
         result = await self.session.execute(stmt)
         return result.scalar_one_or_none()
-    
+
     async def get_multi(
-        self, 
-        skip: int = 0, 
+        self,
+        skip: int = 0,
         limit: int = 100,
         **filters
     ) -> List[ModelType]:
         stmt = select(self.model).filter_by(**filters).offset(skip).limit(limit)
         result = await self.session.execute(stmt)
         return list(result.scalars().all())
-    
+
     async def create(self, obj_in: dict) -> ModelType:
         db_obj = self.model(**obj_in)
         self.session.add(db_obj)
         await self.session.flush()  # Get ID without committing
         await self.session.refresh(db_obj)
         return db_obj
-    
+
     async def update(self, id: int, obj_in: dict) -> Optional[ModelType]:
         db_obj = await self.get(id)
         if not db_obj:
@@ -771,7 +771,7 @@ class AsyncRepository(Generic[ModelType]):
         await self.session.flush()
         await self.session.refresh(db_obj)
         return db_obj
-    
+
     async def delete(self, id: int) -> bool:
         db_obj = await self.get(id)
         if not db_obj:
@@ -783,7 +783,7 @@ class AsyncRepository(Generic[ModelType]):
 # Usage
 class PhotoSessionRepository(AsyncRepository[PhotoProcessingSession]):
     async def get_by_storage_location(
-        self, 
+        self,
         location_id: int,
         limit: int = 10
     ) -> List[PhotoProcessingSession]:
@@ -818,7 +818,7 @@ class DatabaseSessionManager:
             expire_on_commit=False,  # CRITICAL for async
             class_=AsyncSession
         )
-    
+
     @asynccontextmanager
     async def session(self):
         session = self._sessionmaker()
@@ -903,7 +903,7 @@ async def bulk_insert_detections(
             )
             for d in detections
         ]
-        
+
         await conn.copy_records_to_table(
             'detections',
             records=records,
@@ -985,12 +985,12 @@ def cache_aside(
     cached = redis_client.get(key)
     if cached:
         return json.loads(cached)
-    
+
     # Cache miss - fetch from DB
     data = fetch_fn()
     if data:
         redis_client.setex(key, ttl, json.dumps(data))
-    
+
     return data
 
 # Usage
@@ -1017,7 +1017,7 @@ TTL_MAPPING = {
 ```sql
 -- Daily aggregations for analytics dashboard
 CREATE MATERIALIZED VIEW mv_daily_detection_stats AS
-SELECT 
+SELECT
     w.id AS warehouse_id,
     w.name AS warehouse_name,
     DATE_TRUNC('day', d.created_at) AS stat_date,
@@ -1133,21 +1133,21 @@ CeleryInstrumentor().instrument()
 @app.post("/process_image/")
 async def process_image_endpoint(image: UploadFile):
     tracer = trace.get_tracer(__name__)
-    
+
     with tracer.start_as_current_span("image_processing_request") as span:
         span.set_attribute("image.filename", image.filename)
         span.set_attribute("image.size", image.size)
-        
+
         # S3 upload
         with tracer.start_as_current_span("s3_upload"):
             s3_key = upload_to_s3(image.file, "bucket", key)
             span.set_attribute("s3.key", s3_key)
-        
+
         # Celery task dispatch
         with tracer.start_as_current_span("celery_dispatch"):
             task = process_photo_ml.delay(s3_key)
             span.set_attribute("celery.task_id", task.id)
-        
+
         return {"task_id": task.id, "status": "processing"}
 ```
 
@@ -1166,35 +1166,35 @@ groups:
         for: 5m
         annotations:
           summary: "P95 API latency > 200ms"
-      
+
       # Error rate
       - alert: HighErrorRate
         expr: rate(http_requests_total{status=~"5.."}[5m]) > 0.01
         for: 2m
         annotations:
           summary: "Error rate > 1%"
-      
+
       # Cache hit rate
       - alert: LowCacheHitRate
         expr: rate(cache_hits_total[5m]) / (rate(cache_hits_total[5m]) + rate(cache_misses_total[5m])) < 0.7
         for: 10m
         annotations:
           summary: "Cache hit rate < 70%"
-      
+
       # Dead Letter Queue
       - alert: DLQBacklog
         expr: rabbitmq_queue_messages{queue="ml_tasks_dlq"} > 10
         for: 5m
         annotations:
           summary: "DLQ has > 10 failed tasks"
-      
+
       # GPU utilization
       - alert: LowGPUUtilization
         expr: avg(gpu_utilization_percent) < 50
         for: 15m
         annotations:
           summary: "GPU utilization < 50% (underutilized)"
-      
+
       # Database connections
       - alert: DatabaseConnectionPoolExhaustion
         expr: db_connections_active / db_max_connections > 0.8
@@ -1350,7 +1350,7 @@ volumes:
 ## Key Design Decisions & Trade-offs
 
 ### 1. UUID vs SERIAL for s3_images.image_id
-**Decision**: UUID generated in API, **not** database SERIAL  
+**Decision**: UUID generated in API, **not** database SERIAL
 **Rationale**:
 - Allows pre-generation before DB insert (idempotency)
 - Prevents race conditions in distributed system
@@ -1358,7 +1358,7 @@ volumes:
 - Trade-off: 16 bytes vs 8 bytes per row (acceptable overhead)
 
 ### 2. Event Sourcing vs State-Based Inventory
-**Decision**: Hybrid approach - `stock_movements` (events) + `stock_batches` (state)  
+**Decision**: Hybrid approach - `stock_movements` (events) + `stock_batches` (state)
 **Rationale**:
 - Full audit trail from event sourcing
 - Fast queries from materialized state
@@ -1366,7 +1366,7 @@ volumes:
 - Trade-off: 30% more writes, 10-20x faster reads
 
 ### 3. ORM vs asyncpg for Bulk Inserts
-**Decision**: ORM for CRUD, asyncpg COPY for bulk (future upgrade)  
+**Decision**: ORM for CRUD, asyncpg COPY for bulk (future upgrade)
 **Rationale**:
 - ORM bulk_insert_mappings sufficient for current scale (2k rows/sec)
 - asyncpg gives 350× speedup (714k rows/sec) when needed
@@ -1374,7 +1374,7 @@ volumes:
 - Trade-off: Code complexity vs performance
 
 ### 4. Warnings vs Failures (Missing GPS/Config)
-**Decision**: Create session with warning status, allow manual completion  
+**Decision**: Create session with warning status, allow manual completion
 **Rationale**:
 - Photos are valuable - never discard
 - User can fix issues (assign location, configure product)
@@ -1382,7 +1382,7 @@ volumes:
 - Trade-off: More complex state machine, better UX
 
 ### 5. Band-Based Estimation vs Pure Density Parameters
-**Decision**: Prioritize band detections, fallback to density  
+**Decision**: Prioritize band detections, fallback to density
 **Rationale**:
 - Auto-calibration from real data (self-improving system)
 - Adapts to growth stages, pot sizes, spacing variations
@@ -1390,7 +1390,7 @@ volumes:
 - Trade-off: More computation, higher accuracy
 
 ### 6. Daily Partitioning vs No Partitioning
-**Decision**: Daily partitions for detections/estimations  
+**Decision**: Daily partitions for detections/estimations
 **Rationale**:
 - 99% of queries filter by time range (month/week)
 - Partition pruning eliminates 95%+ of data
@@ -1398,7 +1398,7 @@ volumes:
 - Trade-off: Schema complexity vs 10-100× query speedup
 
 ### 7. pool=solo vs prefork for GPU Workers
-**Decision**: pool=solo (mandatory), 1 worker per GPU  
+**Decision**: pool=solo (mandatory), 1 worker per GPU
 **Rationale**:
 - prefork causes CUDA context conflicts → random failures
 - Model singleton pattern requires isolated GPU memory

@@ -19,9 +19,9 @@ Your primary responsibility is to analyze file changes and create clear, descrip
 2. **Follow Conventional Commit Format**: Structure all commit messages using this format:
    ```
    <type>(<scope>): <subject>
-   
+
    <body>
-   
+
    <footer>
    ```
 
@@ -40,7 +40,7 @@ Your primary responsibility is to analyze file changes and create clear, descrip
 
    **Scope** (optional but recommended): Indicate the area affected (e.g., `api`, `database`, `auth`, `ui`, `docs`)
 
-   **Subject**: 
+   **Subject**:
    - Use imperative mood ("add" not "added" or "adds")
    - Don't capitalize first letter
    - No period at the end
