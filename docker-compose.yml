@@ -1,0 +1,175 @@
+services:
+  # ==========================================
+  # PostgreSQL 18 + PostGIS 3.6
+  # ==========================================
+  db:
+    image: postgis/postgis:18-3.6
+    container_name: demeterai-db
+    environment:
+      POSTGRES_USER: demeter
+      POSTGRES_PASSWORD: demeter_dev_password
+      POSTGRES_DB: demeterai
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U demeter"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  # ==========================================
+  # Redis 7
+  # ==========================================
+  redis:
+    image: redis:7-alpine
+    container_name: demeterai-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    restart: unless-stopped
+
+  # ==========================================
+  # FastAPI Application
+  # ==========================================
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: demeterai-api
+    ports:
+      - "8000:8000"
+    env_file:
+      - .env
+    environment:
+      - DATABASE_URL=postgresql+asyncpg://demeter:demeter_dev_password@db:5432/demeterai
+      - DATABASE_URL_SYNC=postgresql+psycopg2://demeter:demeter_dev_password@db:5432/demeterai
+      - REDIS_URL=redis://redis:6379/0
+      - CELERY_BROKER_URL=redis://redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://redis:6379/1
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 3s
+      retries: 3
+      start_period: 40s
+    restart: unless-stopped
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+
+  # ==========================================
+  # Celery CPU Worker (Prefork Pool)
+  # TODO: Enable when app/celery_app.py is created (Sprint 02+)
+  # ==========================================
+  # celery_cpu:
+  #   build:
+  #     context: .
+  #     dockerfile: Dockerfile
+  #   container_name: demeterai-celery-cpu
+  #   env_file:
+  #     - .env
+  #   environment:
+  #     - DATABASE_URL=postgresql+asyncpg://demeter:demeter_dev_password@db:5432/demeterai
+  #     - DATABASE_URL_SYNC=postgresql+psycopg2://demeter:demeter_dev_password@db:5432/demeterai
+  #     - REDIS_URL=redis://redis:6379/0
+  #     - CELERY_BROKER_URL=redis://redis:6379/0
+  #     - CELERY_RESULT_BACKEND=redis://redis:6379/1
+  #   depends_on:
+  #     db:
+  #       condition: service_healthy
+  #     redis:
+  #       condition: service_healthy
+  #   restart: unless-stopped
+  #   command: celery -A app.celery_app worker --pool=prefork --concurrency=4 --queues=cpu_queue --loglevel=info
+
+  # ==========================================
+  # Celery I/O Worker (Gevent Pool)
+  # TODO: Enable when app/celery_app.py is created (Sprint 02+)
+  # ==========================================
+  # celery_io:
+  #   build:
+  #     context: .
+  #     dockerfile: Dockerfile
+  #   container_name: demeterai-celery-io
+  #   env_file:
+  #     - .env
+  #   environment:
+  #     - DATABASE_URL=postgresql+asyncpg://demeter:demeter_dev_password@db:5432/demeterai
+  #     - DATABASE_URL_SYNC=postgresql+psycopg2://demeter:demeter_dev_password@db:5432/demeterai
+  #     - REDIS_URL=redis://redis:6379/0
+  #     - CELERY_BROKER_URL=redis://redis:6379/0
+  #     - CELERY_RESULT_BACKEND=redis://redis:6379/1
+  #   depends_on:
+  #     redis:
+  #       condition: service_healthy
+  #   restart: unless-stopped
+  #   command: celery -A app.celery_app worker --pool=gevent --concurrency=20 --queues=io_queue --loglevel=info
+
+  # ==========================================
+  # Flower (Celery Monitoring)
+  # TODO: Enable when app/celery_app.py is created (Sprint 02+)
+  # ==========================================
+  # flower:
+  #   build:
+  #     context: .
+  #     dockerfile: Dockerfile
+  #   container_name: demeterai-flower
+  #   ports:
+  #     - "5555:5555"
+  #   env_file:
+  #     - .env
+  #   environment:
+  #     - CELERY_BROKER_URL=redis://redis:6379/0
+  #     - CELERY_RESULT_BACKEND=redis://redis:6379/1
+  #   depends_on:
+  #     redis:
+  #       condition: service_healthy
+  #   restart: unless-stopped
+  #   command: celery -A app.celery_app flower --port=5555
+
+  # ==========================================
+  # Prometheus (Sprint 05 - Optional Now)
+  # ==========================================
+  # prometheus:
+  #   image: prom/prometheus:latest
+  #   container_name: demeterai-prometheus
+  #   ports:
+  #     - "9090:9090"
+  #   volumes:
+  #     - ./prometheus.yml:/etc/prometheus/prometheus.yml
+  #     - prometheus_data:/prometheus
+  #   restart: unless-stopped
+
+  # ==========================================
+  # Grafana (Sprint 05 - Optional Now)
+  # ==========================================
+  # grafana:
+  #   image: grafana/grafana:latest
+  #   container_name: demeterai-grafana
+  #   ports:
+  #     - "3000:3000"
+  #   volumes:
+  #     - grafana_data:/var/lib/grafana
+  #   restart: unless-stopped
+
+volumes:
+  postgres_data:
+  redis_data:
+  # prometheus_data:
+  # grafana_data:
+
+networks:
+  default:
+    name: demeterai-network

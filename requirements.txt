@@ -61,6 +61,7 @@ pillow==11.0.0
 pluggy==1.6.0
 prompt_toolkit==3.0.52
 psutil==7.1.0
+psycopg2-binary==2.9.10
 pyasn1==0.6.1
 pybboxes==0.1.6
 pybreaker==1.4.1

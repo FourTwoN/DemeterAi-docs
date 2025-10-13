@@ -1,0 +1,113 @@
+# ============================================
+# GPU-enabled Multi-stage Dockerfile for DemeterAI v2.0
+# CUDA 12.1 runtime for ML workers (Celery + YOLO)
+# ============================================
+
+# Build arguments
+ARG CUDA_VERSION=12.1.0
+ARG UBUNTU_VERSION=22.04
+ARG PYTHON_VERSION=3.12
+ARG APP_ENV=production
+
+# ============================================
+# Stage 1: Builder - Install dependencies
+# ============================================
+FROM nvidia/cuda:${CUDA_VERSION}-runtime-ubuntu${UBUNTU_VERSION} AS builder
+
+WORKDIR /build
+
+# Install Python 3.12 and build dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    software-properties-common \
+    && add-apt-repository ppa:deadsnakes/ppa \
+    && apt-get update && apt-get install -y --no-install-recommends \
+    python3.12 \
+    python3.12-dev \
+    python3-pip \
+    python3.12-distutils \
+    build-essential \
+    libpq-dev \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
+
+# Set Python 3.12 as default
+RUN update-alternatives --install /usr/bin/python3 python3 /usr/bin/python3.12 1 && \
+    update-alternatives --install /usr/bin/python python /usr/bin/python3.12 1
+
+# Copy dependency files
+COPY requirements.txt .
+COPY pyproject.toml .
+
+# Install Python dependencies with CUDA support
+RUN pip install --no-cache-dir --upgrade pip setuptools wheel && \
+    pip install --no-cache-dir -r requirements.txt
+
+# Install CUDA-enabled PyTorch (if not in requirements.txt)
+# This ensures GPU acceleration for YOLO models
+RUN pip install --no-cache-dir torch torchvision --index-url https://download.pytorch.org/whl/cu121
+
+# ============================================
+# Stage 2: Runtime - Minimal GPU-enabled image
+# ============================================
+FROM nvidia/cuda:${CUDA_VERSION}-runtime-ubuntu${UBUNTU_VERSION}
+
+# Set build argument as environment variable
+ARG APP_ENV
+ENV APP_ENV=${APP_ENV}
+
+WORKDIR /app
+
+# Install Python 3.12 and runtime dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    software-properties-common \
+    && add-apt-repository ppa:deadsnakes/ppa \
+    && apt-get update && apt-get install -y --no-install-recommends \
+    python3.12 \
+    python3-pip \
+    libpq5 \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
+
+# Set Python 3.12 as default
+RUN update-alternatives --install /usr/bin/python3 python3 /usr/bin/python3.12 1 && \
+    update-alternatives --install /usr/bin/python python /usr/bin/python3.12 1
+
+# Create non-root user for security
+RUN groupadd -r appuser && \
+    useradd -r -g appuser appuser && \
+    chown -R appuser:appuser /app
+
+# Copy installed Python packages from builder stage
+COPY --from=builder /usr/local/lib/python3.12/dist-packages /usr/local/lib/python3.12/dist-packages
+COPY --from=builder /usr/local/bin /usr/local/bin
+
+# Copy application code with proper ownership
+COPY --chown=appuser:appuser app/ app/
+COPY --chown=appuser:appuser alembic/ alembic/
+COPY --chown=appuser:appuser alembic.ini .
+COPY --chown=appuser:appuser .env.example .env.example
+
+# Switch to non-root user
+USER appuser
+
+# Set CUDA environment variables
+# CUDA_VISIBLE_DEVICES: Which GPUs to use (0 = first GPU, -1 = CPU only)
+# NVIDIA_VISIBLE_DEVICES: Make all GPUs visible to container
+# NVIDIA_DRIVER_CAPABILITIES: Enable compute and utility capabilities
+ENV CUDA_VISIBLE_DEVICES=0 \
+    NVIDIA_VISIBLE_DEVICES=all \
+    NVIDIA_DRIVER_CAPABILITIES=compute,utility
+
+# Health check - verify Celery worker is running
+# For ML workers, check if process is alive (no HTTP endpoint)
+HEALTHCHECK --interval=30s --timeout=3s --start-period=60s --retries=3 \
+    CMD pgrep -f "celery.*worker" || exit 1
+
+# Set Python environment variables
+ENV PYTHONUNBUFFERED=1 \
+    PYTHONDONTWRITEBYTECODE=1
+
+# Run Celery worker with solo pool (MANDATORY for GPU)
+# --pool=solo: Single process, required for GPU (no multiprocessing)
+# --concurrency=1: One task at a time per GPU
+CMD ["celery", "-A", "app.celery_app", "worker", "--pool=solo", "--concurrency=1", "--loglevel=info"]

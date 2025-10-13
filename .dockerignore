@@ -1,0 +1,100 @@
+# Git
+.git
+.gitignore
+.gitattributes
+
+# Python
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+.Python
+*.so
+*.egg
+*.egg-info
+dist
+build
+eggs
+.eggs
+parts
+bin
+var
+sdist
+develop-eggs
+.installed.cfg
+lib
+lib64
+
+# Virtual environments
+.venv
+venv
+ENV
+env
+
+# Testing
+.pytest_cache
+.coverage
+htmlcov
+.tox
+.mypy_cache
+.ruff_cache
+
+# IDE
+.vscode
+.idea
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Environment files (except example)
+.env
+.env.*
+!.env.example
+
+# Logs
+*.log
+logs/
+*.log.*
+
+# Documentation
+README.md
+docs/
+CLAUDE.md
+RUFF_USAGE.md
+
+# Test files
+tests/
+
+# Backlog and planning
+backlog/
+context/
+database/
+engineering_plan/
+flows/
+guides/
+researchs/
+geolocalization/
+
+# User uploads and processed data
+uploads/
+processed_images/
+temp/
+tmp/
+
+# CI/CD
+.github/
+.gitlab-ci.yml
+
+# Pre-commit
+.pre-commit-config.yaml
+.secrets.baseline
+
+# Coverage reports
+.coverage
+coverage.xml
+*.cover
+
+# Jupyter
+.ipynb_checkpoints
+*.ipynb
