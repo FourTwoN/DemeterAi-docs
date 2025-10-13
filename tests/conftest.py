@@ -213,20 +213,175 @@ def warehouse_factory(db_session):
 
 @pytest.fixture
 def sample_storage_area():
-    """Factory fixture for storage area test data.
+    """Factory fixture for storage area test data with PostGIS geometry.
+
+    Returns a dictionary that can be used to create a StorageArea instance.
+    Includes realistic GPS coordinates (Santiago, Chile region) for area INSIDE warehouse.
 
     Usage:
+        from app.models.storage_area import StorageArea
+        from geoalchemy2.shape import from_shape
+
         def test_storage_area_creation(sample_storage_area):
             area = StorageArea(**sample_storage_area)
-            assert area.code == "AREA-TEST"
+            assert area.code == "WH-AREA-TEST"
     """
+    from geoalchemy2.shape import from_shape
+    from shapely.geometry import Polygon
+
+    # 500m x 500m rectangular polygon (realistic storage area size)
+    # Coordinates INSIDE default warehouse bounds
+    coords = [
+        (-70.6485, -33.4495),  # SW corner
+        (-70.6480, -33.4495),  # SE corner (500m east)
+        (-70.6480, -33.4490),  # NE corner (500m north)
+        (-70.6485, -33.4490),  # NW corner
+        (-70.6485, -33.4495),  # Close polygon
+    ]
+
     return {
-        "code": "AREA-TEST",
+        "code": "WH-AREA-TEST",
         "name": "Test Storage Area",
-        "description": "Storage area for testing",
-        "type": "section",
+        "warehouse_id": 1,  # Must be set to valid warehouse ID in tests
+        "position": "N",
+        "geojson_coordinates": from_shape(Polygon(coords), srid=4326),
         "active": True,
     }
+
+
+@pytest.fixture
+def storage_area_factory(db_session, warehouse_factory):
+    """Factory fixture for creating multiple storage area instances.
+
+    Creates storage areas with realistic PostGIS geometry INSIDE warehouse bounds.
+    Auto-creates warehouse if not provided.
+
+    Usage:
+        @pytest.mark.asyncio
+        async def test_multiple_areas(storage_area_factory):
+            area1 = await storage_area_factory(code="WH-AREA-01")
+            area2 = await storage_area_factory(code="WH-AREA-02", position="S")
+            assert area1.storage_area_id != area2.storage_area_id
+    """
+    from geoalchemy2.shape import from_shape
+    from shapely.geometry import Polygon
+
+    from app.models.storage_area import StorageArea
+
+    async def _create_storage_area(warehouse=None, **kwargs):
+        """Create and persist a storage area with sensible defaults."""
+        # Create warehouse if not provided
+        if warehouse is None:
+            warehouse = await warehouse_factory()
+
+        # Default geometry: 500m x 500m polygon INSIDE warehouse
+        default_coords = [
+            (-70.6485, -33.4495),  # SW
+            (-70.6480, -33.4495),  # SE
+            (-70.6480, -33.4490),  # NE
+            (-70.6485, -33.4490),  # NW
+            (-70.6485, -33.4495),  # Close
+        ]
+
+        defaults = {
+            "code": f"WH-AREA-{id(kwargs)}",  # Unique code
+            "name": "Test Storage Area",
+            "warehouse_id": warehouse.warehouse_id,
+            "position": "N",
+            "geojson_coordinates": from_shape(Polygon(default_coords), srid=4326),
+            "active": True,
+        }
+
+        # Merge user-provided kwargs
+        defaults.update(kwargs)
+
+        area = StorageArea(**defaults)
+        db_session.add(area)
+        await db_session.commit()
+        await db_session.refresh(area)
+
+        return area
+
+    return _create_storage_area
+
+
+@pytest.fixture
+async def sample_storage_areas(db_session, warehouse_factory):
+    """Create warehouse + 3 storage areas for testing hierarchical queries.
+
+    Returns:
+        tuple: (warehouse, north_area, south_area, center_area)
+
+    Usage:
+        @pytest.mark.asyncio
+        async def test_multiple_areas(sample_storage_areas):
+            warehouse, north, south, center = sample_storage_areas
+            assert north.warehouse_id == warehouse.warehouse_id
+            assert len(warehouse.storage_areas) == 3
+    """
+    from geoalchemy2.shape import from_shape
+    from shapely.geometry import Polygon
+
+    from app.models.storage_area import StorageArea
+
+    # Create warehouse
+    warehouse = await warehouse_factory(code="WH-SAMPLE")
+
+    # Create North area
+    north_coords = [
+        (-70.6485, -33.4495),
+        (-70.6480, -33.4495),
+        (-70.6480, -33.4490),
+        (-70.6485, -33.4490),
+        (-70.6485, -33.4495),
+    ]
+    north_area = StorageArea(
+        code="WH-SAMPLE-NORTH",
+        name="North Storage Area",
+        warehouse_id=warehouse.warehouse_id,
+        position="N",
+        geojson_coordinates=from_shape(Polygon(north_coords), srid=4326),
+    )
+
+    # Create South area
+    south_coords = [
+        (-70.6485, -33.4505),
+        (-70.6480, -33.4505),
+        (-70.6480, -33.4500),
+        (-70.6485, -33.4500),
+        (-70.6485, -33.4505),
+    ]
+    south_area = StorageArea(
+        code="WH-SAMPLE-SOUTH",
+        name="South Storage Area",
+        warehouse_id=warehouse.warehouse_id,
+        position="S",
+        geojson_coordinates=from_shape(Polygon(south_coords), srid=4326),
+    )
+
+    # Create Center area
+    center_coords = [
+        (-70.6483, -33.4493),
+        (-70.6481, -33.4493),
+        (-70.6481, -33.4491),
+        (-70.6483, -33.4491),
+        (-70.6483, -33.4493),
+    ]
+    center_area = StorageArea(
+        code="WH-SAMPLE-CENTER",
+        name="Center Propagation Zone",
+        warehouse_id=warehouse.warehouse_id,
+        position="C",
+        geojson_coordinates=from_shape(Polygon(center_coords), srid=4326),
+    )
+
+    db_session.add_all([north_area, south_area, center_area])
+    await db_session.commit()
+    await db_session.refresh(north_area)
+    await db_session.refresh(south_area)
+    await db_session.refresh(center_area)
+
+    return warehouse, north_area, south_area, center_area
 
 
 @pytest.fixture
