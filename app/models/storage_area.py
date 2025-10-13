@@ -71,9 +71,8 @@ from app.db.base import Base
 
 # Forward declarations for type hints (avoids circular imports)
 if TYPE_CHECKING:
+    from app.models.storage_location import StorageLocation
     from app.models.warehouse import Warehouse
-    # NOTE: Uncomment after DB003 (StorageLocation) is complete
-    # from app.models.storage_location import StorageLocation
 
 
 class PositionEnum(str, enum.Enum):
@@ -263,17 +262,14 @@ class StorageArea(Base):
         doc="Child storage areas (hierarchical subdivision)",
     )
 
-    # One-to-many: StorageArea → StorageLocation (will be created in DB003)
-    # NOTE: Temporarily commented out until DB003 (StorageLocation model) is complete
-    # This prevents SQLAlchemy configuration errors during testing
-    # TODO: Re-enable after completing DB003 - StorageLocation Model
-    # storage_locations: Mapped[list["StorageLocation"]] = relationship(
-    #     "StorageLocation",
-    #     back_populates="storage_area",
-    #     cascade="all, delete-orphan",
-    #     lazy="selectin",
-    #     doc="List of storage locations within this area",
-    # )
+    # One-to-many: StorageArea → StorageLocation (DB003 complete)
+    storage_locations: Mapped[list["StorageLocation"]] = relationship(
+        "StorageLocation",
+        back_populates="storage_area",
+        cascade="all, delete-orphan",
+        lazy="selectin",
+        doc="List of storage locations within this area",
+    )
 
     # Table constraints
     __table_args__ = (

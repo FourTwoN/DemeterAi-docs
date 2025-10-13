@@ -156,7 +156,7 @@ def sample_warehouse():
         "code": "WH-TEST",
         "name": "Test Warehouse",
         "warehouse_type": "greenhouse",
-        "geojson_coordinates": from_shape(Polygon(coords), srid=4326),
+        "coordinates": from_shape(Polygon(coords), srid=4326),
         "active": True,
     }
 
@@ -194,7 +194,7 @@ def warehouse_factory(db_session):
             "code": f"WH-{id(kwargs)}",  # Unique code
             "name": "Test Warehouse",
             "warehouse_type": "greenhouse",
-            "geojson_coordinates": from_shape(Polygon(default_coords), srid=4326),
+            "coordinates": from_shape(Polygon(default_coords), srid=4326),
             "active": True,
         }
 
@@ -244,7 +244,7 @@ def sample_storage_area():
         "name": "Test Storage Area",
         "warehouse_id": 1,  # Must be set to valid warehouse ID in tests
         "position": "N",
-        "geojson_coordinates": from_shape(Polygon(coords), srid=4326),
+        "coordinates": from_shape(Polygon(coords), srid=4326),
         "active": True,
     }
 
@@ -288,7 +288,7 @@ def storage_area_factory(db_session, warehouse_factory):
             "name": "Test Storage Area",
             "warehouse_id": warehouse.warehouse_id,
             "position": "N",
-            "geojson_coordinates": from_shape(Polygon(default_coords), srid=4326),
+            "coordinates": from_shape(Polygon(default_coords), srid=4326),
             "active": True,
         }
 
@@ -340,7 +340,7 @@ async def sample_storage_areas(db_session, warehouse_factory):
         name="North Storage Area",
         warehouse_id=warehouse.warehouse_id,
         position="N",
-        geojson_coordinates=from_shape(Polygon(north_coords), srid=4326),
+        coordinates=from_shape(Polygon(north_coords), srid=4326),
     )
 
     # Create South area
@@ -356,7 +356,7 @@ async def sample_storage_areas(db_session, warehouse_factory):
         name="South Storage Area",
         warehouse_id=warehouse.warehouse_id,
         position="S",
-        geojson_coordinates=from_shape(Polygon(south_coords), srid=4326),
+        coordinates=from_shape(Polygon(south_coords), srid=4326),
     )
 
     # Create Center area
@@ -372,7 +372,7 @@ async def sample_storage_areas(db_session, warehouse_factory):
         name="Center Propagation Zone",
         warehouse_id=warehouse.warehouse_id,
         position="C",
-        geojson_coordinates=from_shape(Polygon(center_coords), srid=4326),
+        coordinates=from_shape(Polygon(center_coords), srid=4326),
     )
 
     db_session.add_all([north_area, south_area, center_area])
@@ -401,6 +401,152 @@ def sample_product():
         "category": "cactus",
         "active": True,
     }
+
+
+@pytest.fixture
+def sample_storage_location():
+    """Factory fixture for storage location test data with PostGIS geometry (POINT).
+
+    Returns a dictionary that can be used to create a StorageLocation instance.
+    Includes realistic GPS coordinates (Santiago, Chile region) for location INSIDE storage area.
+
+    Usage:
+        from app.models.storage_location import StorageLocation
+        from geoalchemy2.shape import from_shape
+
+        def test_storage_location_creation(sample_storage_location):
+            location = StorageLocation(**sample_storage_location)
+            assert location.code == "WH-AREA-LOC001"
+    """
+    from geoalchemy2.shape import from_shape
+    from shapely.geometry import Point
+
+    # GPS point (realistic location coordinate)
+    # Coordinates INSIDE default storage area bounds
+    point = Point(-70.64825, -33.44925)  # Center of default area
+
+    return {
+        "code": "WH-AREA-LOC001",
+        "name": "Test Storage Location",
+        "storage_area_id": 1,  # Must be set to valid storage area ID in tests
+        "qr_code": "LOC12345",
+        "coordinates": from_shape(point, srid=4326),
+        "position_metadata": {},
+        "active": True,
+    }
+
+
+@pytest.fixture
+def storage_location_factory(db_session, storage_area_factory):
+    """Factory fixture for creating multiple storage location instances.
+
+    Creates storage locations with realistic PostGIS POINT geometry INSIDE storage area bounds.
+    Auto-creates storage area (and warehouse) if not provided.
+
+    Usage:
+        @pytest.mark.asyncio
+        async def test_multiple_locations(storage_location_factory):
+            loc1 = await storage_location_factory(code="WH-AREA-LOC01")
+            loc2 = await storage_location_factory(code="WH-AREA-LOC02", qr_code="QR002")
+            assert loc1.location_id != loc2.location_id
+    """
+    from geoalchemy2.shape import from_shape
+    from shapely.geometry import Point
+
+    from app.models.storage_location import StorageLocation
+
+    async def _create_storage_location(storage_area=None, **kwargs):
+        """Create and persist a storage location with sensible defaults."""
+        # Create storage area (and warehouse) if not provided
+        if storage_area is None:
+            storage_area = await storage_area_factory()
+
+        # Default geometry: POINT INSIDE storage area
+        # Generate unique point coordinates (slight variation for each location)
+        base_x = -70.64825
+        base_y = -33.44925
+        offset = id(kwargs) % 1000 * 0.00001  # Slight offset for uniqueness
+        default_point = Point(base_x + offset, base_y + offset)
+
+        defaults = {
+            "code": f"WH-AREA-LOC-{id(kwargs)}",  # Unique code
+            "name": "Test Storage Location",
+            "storage_area_id": storage_area.storage_area_id,
+            "qr_code": f"LOC{id(kwargs) % 100000:05d}",  # Unique QR code (8 chars)
+            "coordinates": from_shape(default_point, srid=4326),
+            "position_metadata": {},
+            "active": True,
+        }
+
+        # Merge user-provided kwargs
+        defaults.update(kwargs)
+
+        location = StorageLocation(**defaults)
+        db_session.add(location)
+        await db_session.commit()
+        await db_session.refresh(location)
+
+        return location
+
+    return _create_storage_location
+
+
+@pytest.fixture
+async def sample_storage_locations(db_session, storage_area_factory):
+    """Create storage area + 3 storage locations for testing hierarchical queries.
+
+    Returns:
+        tuple: (storage_area, location1, location2, location3)
+
+    Usage:
+        @pytest.mark.asyncio
+        async def test_multiple_locations(sample_storage_locations):
+            area, loc1, loc2, loc3 = sample_storage_locations
+            assert loc1.storage_area_id == area.storage_area_id
+            assert len(area.storage_locations) == 3
+    """
+    from geoalchemy2.shape import from_shape
+    from shapely.geometry import Point
+
+    from app.models.storage_location import StorageLocation
+
+    # Create storage area
+    area = await storage_area_factory(code="WH-SAMPLE-AREA")
+
+    # Create Location 1 (center)
+    location1 = StorageLocation(
+        code="WH-SAMPLE-AREA-LOC1",
+        name="Storage Location 1",
+        storage_area_id=area.storage_area_id,
+        qr_code="LOC-SAM-01",
+        coordinates=from_shape(Point(-70.64825, -33.44925), srid=4326),
+    )
+
+    # Create Location 2 (slightly east)
+    location2 = StorageLocation(
+        code="WH-SAMPLE-AREA-LOC2",
+        name="Storage Location 2",
+        storage_area_id=area.storage_area_id,
+        qr_code="LOC-SAM-02",
+        coordinates=from_shape(Point(-70.64820, -33.44920), srid=4326),
+    )
+
+    # Create Location 3 (slightly west)
+    location3 = StorageLocation(
+        code="WH-SAMPLE-AREA-LOC3",
+        name="Storage Location 3",
+        storage_area_id=area.storage_area_id,
+        qr_code="LOC-SAM-03",
+        coordinates=from_shape(Point(-70.64830, -33.44930), srid=4326),
+    )
+
+    db_session.add_all([location1, location2, location3])
+    await db_session.commit()
+    await db_session.refresh(location1)
+    await db_session.refresh(location2)
+    await db_session.refresh(location3)
+
+    return area, location1, location2, location3
 
 
 # =============================================================================
