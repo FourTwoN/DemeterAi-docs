@@ -16,6 +16,9 @@ Product Catalog (100% COMPLETE):
 Authentication (COMPLETE):
     - User (DB028): Internal staff authentication with role-based access control
 
+S3 Images (COMPLETE):
+    - S3Image (DB011): S3 uploaded image metadata with UUID primary key
+
 ML Pipeline (IN PROGRESS):
     - Classification (DB026): ML prediction cache for product/packaging/size inference
 
@@ -31,6 +34,7 @@ Available Models:
     - ProductState: Product lifecycle state catalog (seed, seedling, adult, flowering, etc.)
     - ProductSize: Product size category catalog (XS, S, M, L, XL, XXL, CUSTOM)
     - User: Internal authentication with bcrypt password hashing and 4-level role hierarchy
+    - S3Image: S3 uploaded image metadata with UUID primary key
     - Classification: ML prediction cache linking detections/estimations to products/packaging/sizes
 
 Usage:
@@ -61,6 +65,12 @@ from app.models.product_category import ProductCategory
 from app.models.product_family import ProductFamily
 from app.models.product_size import ProductSize
 from app.models.product_state import ProductState
+from app.models.s3_image import (
+    ContentTypeEnum,
+    ProcessingStatusEnum,
+    S3Image,
+    UploadSourceEnum,
+)
 from app.models.storage_area import PositionEnum, StorageArea
 from app.models.storage_bin import StorageBin, StorageBinStatusEnum
 from app.models.storage_bin_type import BinCategoryEnum, StorageBinType
@@ -86,4 +96,8 @@ __all__ = [
     "Classification",
     "User",
     "UserRoleEnum",
+    "S3Image",
+    "ContentTypeEnum",
+    "UploadSourceEnum",
+    "ProcessingStatusEnum",
 ]
