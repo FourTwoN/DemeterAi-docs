@@ -10,6 +10,10 @@ from app.services.ml_processing.band_estimation_service import (
     BandEstimationService,
 )
 from app.services.ml_processing.model_cache import ModelCache
+from app.services.ml_processing.pipeline_coordinator import (
+    MLPipelineCoordinator,
+    PipelineResult,
+)
 from app.services.ml_processing.sahi_detection_service import (
     DetectionResult,
     SAHIDetectionService,
@@ -27,4 +31,6 @@ __all__ = [
     "DetectionResult",
     "BandEstimationService",
     "BandEstimation",
+    "MLPipelineCoordinator",
+    "PipelineResult",
 ]
