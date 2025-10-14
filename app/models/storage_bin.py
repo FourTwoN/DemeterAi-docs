@@ -183,7 +183,7 @@ class StorageBin(Base):
     # NOTE: RESTRICT prevents deleting bin type if bins exist (safety)
     storage_bin_type_id = Column(
         Integer,
-        ForeignKey("storage_bin_types.id", ondelete="RESTRICT"),
+        ForeignKey("storage_bin_types.bin_type_id", ondelete="RESTRICT"),
         nullable=True,
         index=True,
         comment="Bin type definition (RESTRICT delete, optional)",
