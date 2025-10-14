@@ -31,7 +31,7 @@ from app.main import app
 # To run tests: docker-compose up db_test -d && pytest
 TEST_DATABASE_URL = os.getenv(
     "TEST_DATABASE_URL",
-    "postgresql+asyncpg://demeter_test:demeter_test_password@localhost:5433/demeterai_test",
+    "postgresql+asyncpg://demeter_test:demeter_test_password@localhost:5434/demeterai_test",
 )
 
 # Create test engine with NullPool (fresh connection per test)

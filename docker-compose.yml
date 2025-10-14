@@ -31,9 +31,9 @@ services:
       POSTGRES_PASSWORD: demeter_test_password
       POSTGRES_DB: demeterai_test
     ports:
-      - "5433:5432"  # Different port to avoid conflicts
-    tmpfs:
-      - /var/lib/postgresql/data  # In-memory for faster tests
+      - "5434:5432"  # Different port to avoid conflicts
+    volumes:
+      - postgres_test_data:/var/lib/postgresql/data
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U demeter_test"]
       interval: 5s
@@ -187,6 +187,7 @@ services:
 
 volumes:
   postgres_data:
+  postgres_test_data:
   redis_data:
   # prometheus_data:
   # grafana_data:
