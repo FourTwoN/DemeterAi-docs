@@ -6,16 +6,25 @@ Models are organized by domain and follow the 4-tier geospatial location hierarc
 Location Hierarchy (100% COMPLETE):
     Warehouse (DB001) → StorageArea (DB002) → StorageLocation (DB003) → StorageBin (DB004)
 
+Product Catalog (IN PROGRESS):
+    - ProductState (DB018): Product lifecycle states (SEED → DEAD)
+    - ProductSize (DB019): Product size categories (XS → XXL, CUSTOM)
+
 Available Models:
     - Warehouse: Root level geospatial container (greenhouses, shadehouses, etc.)
     - StorageArea: Level 2 logical zones within warehouses (North, South, etc.)
     - StorageLocation: Level 3 photo units with QR code tracking
     - StorageBin: Level 4 (LEAF) physical containers where stock exists
-    - (More models will be added in Sprint 01 cards DB005-DB035)
+    - StorageBinType: Container type catalog (plug trays, boxes, segments, pots)
+    - ProductState: Product lifecycle state catalog (seed, seedling, adult, flowering, etc.)
+    - ProductSize: Product size category catalog (XS, S, M, L, XL, XXL, CUSTOM)
 
 Usage:
     ```python
-    from app.models import Warehouse, StorageArea, StorageLocation, StorageBin
+    from app.models import (
+        Warehouse, StorageArea, StorageLocation, StorageBin, StorageBinType,
+        ProductState, ProductSize
+    )
 
     warehouse = Warehouse(code="GH-001", name="Main Greenhouse", ...)
     area = StorageArea(warehouse_id=1, code="GH-001-NORTH", name="North Wing", ...)
@@ -23,9 +32,14 @@ Usage:
                                qr_code="LOC12345-A", ...)
     bin = StorageBin(storage_location_id=1, code="GH-001-NORTH-LOC-001-SEG001",
                      label="Segment 1", status="active", ...)
+    bin_type = StorageBinType(code="PLUG_TRAY_288", name="288-Cell Plug Tray", ...)
+    state = ProductState(code="ADULT", name="Adult Plant", is_sellable=True, ...)
+    size = ProductSize(code="M", name="Medium (10-20cm)", min_height_cm=10, ...)
     ```
 """
 
+from app.models.product_size import ProductSize
+from app.models.product_state import ProductState
 from app.models.storage_area import PositionEnum, StorageArea
 from app.models.storage_bin import StorageBin, StorageBinStatusEnum
 from app.models.storage_bin_type import BinCategoryEnum, StorageBinType
@@ -42,4 +56,6 @@ __all__ = [
     "StorageBinStatusEnum",
     "StorageBinType",
     "BinCategoryEnum",
+    "ProductState",
+    "ProductSize",
 ]
