@@ -51,10 +51,9 @@ from app.db.base import Base
 
 # Forward declarations for type hints (avoids circular imports)
 if TYPE_CHECKING:
+    # NOTE: Uncommented after DB017 (Products) complete
+    from app.models.product import Product
     from app.models.product_category import ProductCategory
-
-    # NOTE: Uncomment after DB017 (Products) is complete
-    # from app.models.product import Product
 
 
 class ProductFamily(Base):
@@ -155,14 +154,13 @@ class ProductFamily(Base):
         doc="Category this family belongs to",
     )
 
-    # One-to-many: ProductFamily → Product (COMMENT OUT - DB017 not ready)
-    # NOTE: Uncomment after DB017 (Products) is complete
-    # products: Mapped[list["Product"]] = relationship(
-    #     "Product",
-    #     back_populates="family",
-    #     foreign_keys="Product.family_id",
-    #     doc="List of products in this family"
-    # )
+    # One-to-many: ProductFamily → Product (UNCOMMENTED - DB017 complete)
+    products: Mapped[list["Product"]] = relationship(
+        "Product",
+        back_populates="family",
+        foreign_keys="[Product.family_id]",
+        doc="List of products in this family",
+    )
 
     # Table constraints
     __table_args__ = (

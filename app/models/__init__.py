@@ -6,9 +6,10 @@ Models are organized by domain and follow the 4-tier geospatial location hierarc
 Location Hierarchy (100% COMPLETE):
     Warehouse (DB001) → StorageArea (DB002) → StorageLocation (DB003) → StorageBin (DB004)
 
-Product Catalog (IN PROGRESS):
+Product Catalog (100% COMPLETE):
     - ProductCategory (DB015): ROOT taxonomy (Cactus, Succulent, Bromeliad, etc.)
     - ProductFamily (DB016): LEVEL 2 taxonomy (Echeveria, Aloe, Monstera, etc.)
+    - Product (DB017): LEAF products with SKU and JSONB metadata
     - ProductState (DB018): Product lifecycle states (SEED → DEAD)
     - ProductSize (DB019): Product size categories (XS → XXL, CUSTOM)
 
@@ -20,6 +21,7 @@ Available Models:
     - StorageBinType: Container type catalog (plug trays, boxes, segments, pots)
     - ProductCategory: Product taxonomy ROOT (Category → Family → Product)
     - ProductFamily: Product taxonomy LEVEL 2 (Echeveria, Aloe, Monstera, etc.)
+    - Product: LEAF products with SKU and JSONB custom_attributes
     - ProductState: Product lifecycle state catalog (seed, seedling, adult, flowering, etc.)
     - ProductSize: Product size category catalog (XS, S, M, L, XL, XXL, CUSTOM)
 
@@ -27,7 +29,7 @@ Usage:
     ```python
     from app.models import (
         Warehouse, StorageArea, StorageLocation, StorageBin, StorageBinType,
-        ProductCategory, ProductFamily, ProductState, ProductSize
+        ProductCategory, ProductFamily, Product, ProductState, ProductSize
     )
 
     warehouse = Warehouse(code="GH-001", name="Main Greenhouse", ...)
@@ -44,6 +46,7 @@ Usage:
     ```
 """
 
+from app.models.product import Product
 from app.models.product_category import ProductCategory
 from app.models.product_family import ProductFamily
 from app.models.product_size import ProductSize
@@ -66,6 +69,7 @@ __all__ = [
     "BinCategoryEnum",
     "ProductCategory",
     "ProductFamily",
+    "Product",
     "ProductState",
     "ProductSize",
 ]
