@@ -27,10 +27,8 @@ from app.models.warehouse import Warehouse
 
 # Skip all tests in this module if PostGIS is not available
 # (i.e., running with SQLite in-memory database)
-pytestmark = pytest.mark.skipif(
-    "sqlite" in pytest.config.getoption("--db-url", default="sqlite"),
-    reason="PostGIS integration tests require PostgreSQL with PostGIS extension",
-)
+# Note: Integration tests are skipped by default in SQLite mode
+pytestmark = pytest.mark.integration
 
 
 @pytest.fixture

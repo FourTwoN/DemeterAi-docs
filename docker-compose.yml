@@ -1,6 +1,6 @@
 services:
   # ==========================================
-  # PostgreSQL 18 + PostGIS 3.6
+  # PostgreSQL 18 + PostGIS 3.6 (Development)
   # ==========================================
   db:
     image: postgis/postgis:18-3.6
@@ -17,6 +17,27 @@ services:
       test: ["CMD-SHELL", "pg_isready -U demeter"]
       interval: 10s
       timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  # ==========================================
+  # PostgreSQL 18 + PostGIS 3.6 (Testing)
+  # ==========================================
+  db_test:
+    image: postgis/postgis:18-3.6
+    container_name: demeterai-db-test
+    environment:
+      POSTGRES_USER: demeter_test
+      POSTGRES_PASSWORD: demeter_test_password
+      POSTGRES_DB: demeterai_test
+    ports:
+      - "5433:5432"  # Different port to avoid conflicts
+    tmpfs:
+      - /var/lib/postgresql/data  # In-memory for faster tests
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U demeter_test"]
+      interval: 5s
+      timeout: 3s
       retries: 5
     restart: unless-stopped
 

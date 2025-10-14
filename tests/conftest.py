@@ -10,6 +10,11 @@ All fixtures use async/await and are compatible with pytest-asyncio.
 Tests get a fresh database state for each test function (scope="function").
 """
 
+# =============================================================================
+# Test Database Configuration
+# =============================================================================
+import os
+
 import pytest
 import pytest_asyncio
 from httpx import AsyncClient
@@ -21,14 +26,13 @@ from app.db.base import Base
 from app.db.session import get_db_session
 from app.main import app
 
-# =============================================================================
-# Test Database Configuration
-# =============================================================================
-
-# Use test database URL from settings (or override for tests)
-# Note: Until F012 (Docker), we use in-memory SQLite for tests
-# SQLite in-memory database for testing (no PostgreSQL required)
-TEST_DATABASE_URL = "sqlite+aiosqlite:///:memory:"
+# Use PostgreSQL test database (real database with PostGIS)
+# This ensures tests are representative of production behavior
+# To run tests: docker-compose up db_test -d && pytest
+TEST_DATABASE_URL = os.getenv(
+    "TEST_DATABASE_URL",
+    "postgresql+asyncpg://demeter_test:demeter_test_password@localhost:5433/demeterai_test",
+)
 
 # Create test engine with NullPool (fresh connection per test)
 test_engine = create_async_engine(
