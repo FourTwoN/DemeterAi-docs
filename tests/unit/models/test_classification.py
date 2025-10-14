@@ -1,16 +1,17 @@
 """Unit tests for Classification model.
 
 Tests the Classification SQLAlchemy model in isolation without database dependencies.
-Covers model instantiation, confidence validation, FK validation, JSONB ml_metadata,
+Covers model instantiation, FK validation, confidence fields, model_version, name/description,
 relationships, and business logic.
 
 Test Coverage:
     - Model instantiation with valid data
-    - Confidence validation (0.0-1.0 range, 4 decimal precision)
     - FK validation (at least ONE FK required)
-    - JSONB ml_metadata (default value, ML model info)
+    - Confidence fields (product_conf, packaging_conf, product_size_conf as INTEGER 0-100)
+    - Model version tracking (VARCHAR)
+    - Name and description fields (VARCHAR/TEXT)
     - Nullable FKs (product_id, packaging_catalog_id, product_size_id)
-    - Required fields (confidence, at least ONE FK)
+    - Required fields (at least ONE FK)
     - __repr__ method
     - Model attributes and types
 
@@ -41,13 +42,12 @@ class TestClassificationModel:
             product_id=42,
             packaging_catalog_id=7,
             product_size_id=3,
-            confidence=0.9523,
-            ml_metadata={
-                "model_name": "yolov11n-seg",
-                "model_version": "1.2.0",
-                "inference_time_ms": 145,
-                "gpu_used": False,
-            },
+            product_conf=95,
+            packaging_conf=87,
+            product_size_conf=92,
+            model_version="yolov11n-seg-v1.2.0",
+            name="Echeveria Adult Medium",
+            description="High confidence detection in all categories",
         )
 
         # Assert
@@ -55,140 +55,180 @@ class TestClassificationModel:
         assert classification.product_id == 42
         assert classification.packaging_catalog_id == 7
         assert classification.product_size_id == 3
-        assert float(classification.confidence) == 0.9523
-        assert classification.ml_metadata["model_name"] == "yolov11n-seg"
-        assert classification.ml_metadata["inference_time_ms"] == 145
+        assert classification.product_conf == 95
+        assert classification.packaging_conf == 87
+        assert classification.product_size_conf == 92
+        assert classification.model_version == "yolov11n-seg-v1.2.0"
+        assert classification.name == "Echeveria Adult Medium"
+        assert classification.description == "High confidence detection in all categories"
 
     def test_create_classification_with_product_only(self):
         """Test creating Classification with only product_id (no packaging/size)."""
         # Arrange & Act
         classification = Classification(
-            product_id=10, confidence=0.8750, ml_metadata={"model_name": "yolov11n"}
+            product_id=10,
+            product_conf=87,
+            model_version="yolov11n-seg-v1.2.0",
+            name="Echeveria",
         )
 
         # Assert
         assert classification.product_id == 10
         assert classification.packaging_catalog_id is None
         assert classification.product_size_id is None
-        assert float(classification.confidence) == 0.8750
-        assert classification.ml_metadata == {"model_name": "yolov11n"}
+        assert classification.product_conf == 87
+        assert classification.packaging_conf is None
+        assert classification.product_size_conf is None
+        assert classification.model_version == "yolov11n-seg-v1.2.0"
+        assert classification.name == "Echeveria"
 
     def test_create_classification_with_packaging_only(self):
         """Test creating Classification with only packaging_catalog_id."""
         # Arrange & Act
         classification = Classification(
             packaging_catalog_id=5,
-            confidence=0.7200,
+            packaging_conf=72,
+            model_version="yolov11n-seg-v1.2.0",
         )
 
         # Assert
         assert classification.product_id is None
         assert classification.packaging_catalog_id == 5
         assert classification.product_size_id is None
-        assert float(classification.confidence) == 0.7200
+        assert classification.product_conf is None
+        assert classification.packaging_conf == 72
+        assert classification.product_size_conf is None
 
     def test_create_classification_with_size_only(self):
         """Test creating Classification with only product_size_id."""
         # Arrange & Act
         classification = Classification(
             product_size_id=2,
-            confidence=0.6500,
+            product_size_conf=65,
+            model_version="yolov11n-seg-v1.2.0",
         )
 
         # Assert
         assert classification.product_id is None
         assert classification.packaging_catalog_id is None
         assert classification.product_size_id == 2
-        assert float(classification.confidence) == 0.6500
+        assert classification.product_conf is None
+        assert classification.packaging_conf is None
+        assert classification.product_size_conf == 65
 
     def test_create_classification_minimal_required_fields(self):
         """Test creating Classification with minimal required fields."""
         # Arrange & Act
-        classification = Classification(product_id=1, confidence=0.9000)
+        classification = Classification(product_id=1)
 
         # Assert
         assert classification.product_id == 1
-        assert float(classification.confidence) == 0.9000
-        assert classification.ml_metadata == {}  # Default empty dict
+        assert classification.product_conf is None  # All conf fields nullable
+        assert classification.packaging_conf is None
+        assert classification.product_size_conf is None
+        assert classification.model_version is None  # Nullable
+        assert classification.name is None  # Nullable
+        assert classification.description is None  # Nullable
         assert classification.created_at is None  # Not set until DB insert
 
 
-class TestClassificationConfidenceValidation:
-    """Test suite for Classification confidence validation logic."""
+class TestClassificationConfidenceFields:
+    """Test suite for Classification confidence fields (INTEGER 0-100, nullable)."""
 
-    def test_valid_confidence_min_value(self):
-        """Test confidence with minimum valid value (0.0)."""
+    def test_product_conf_min_value(self):
+        """Test product_conf with minimum value (0)."""
         # Arrange & Act
-        classification = Classification(product_id=1, confidence=0.0)
+        classification = Classification(product_id=1, product_conf=0)
 
         # Assert
-        assert float(classification.confidence) == 0.0
+        assert classification.product_conf == 0
 
-    def test_valid_confidence_max_value(self):
-        """Test confidence with maximum valid value (1.0)."""
+    def test_product_conf_max_value(self):
+        """Test product_conf with maximum value (100)."""
         # Arrange & Act
-        classification = Classification(product_id=1, confidence=1.0)
+        classification = Classification(product_id=1, product_conf=100)
 
         # Assert
-        assert float(classification.confidence) == 1.0
+        assert classification.product_conf == 100
 
-    def test_valid_confidence_mid_range(self):
-        """Test confidence with mid-range value."""
+    def test_product_conf_mid_range(self):
+        """Test product_conf with mid-range value (50)."""
         # Arrange & Act
-        classification = Classification(product_id=1, confidence=0.5000)
+        classification = Classification(product_id=1, product_conf=50)
 
         # Assert
-        assert float(classification.confidence) == 0.5000
+        assert classification.product_conf == 50
 
-    def test_valid_confidence_high_precision(self):
-        """Test confidence with 4 decimal precision (0.9523)."""
+    def test_product_conf_nullable(self):
+        """Test that product_conf can be NULL."""
         # Arrange & Act
-        classification = Classification(product_id=1, confidence=0.9523)
+        classification = Classification(product_id=1, product_conf=None)
 
         # Assert
-        assert float(classification.confidence) == 0.9523
+        assert classification.product_conf is None
 
-    def test_confidence_above_max_raises_error(self):
-        """Test that confidence > 1.0 raises ValueError."""
-        # Arrange & Act & Assert
-        with pytest.raises(ValueError, match="Confidence must be between 0.0 and 1.0"):
-            Classification(product_id=1, confidence=1.5)
-
-    def test_confidence_negative_raises_error(self):
-        """Test that negative confidence raises ValueError."""
-        # Arrange & Act & Assert
-        with pytest.raises(ValueError, match="Confidence must be between 0.0 and 1.0"):
-            Classification(product_id=1, confidence=-0.1)
-
-    def test_confidence_none_raises_error(self):
-        """Test that None confidence raises ValueError."""
-        # Arrange & Act & Assert
-        with pytest.raises(ValueError, match="Confidence cannot be None"):
-            Classification(product_id=1, confidence=None)
-
-    def test_confidence_decimal_precision(self):
-        """Test that confidence supports 4 decimal places."""
+    def test_packaging_conf_valid(self):
+        """Test packaging_conf with valid value."""
         # Arrange & Act
-        classification = Classification(product_id=1, confidence=0.9876)
+        classification = Classification(packaging_catalog_id=5, packaging_conf=87)
 
         # Assert
-        assert float(classification.confidence) == 0.9876
+        assert classification.packaging_conf == 87
 
-    def test_confidence_edge_case_0_0001(self):
-        """Test confidence with smallest non-zero value (0.0001)."""
+    def test_packaging_conf_nullable(self):
+        """Test that packaging_conf can be NULL."""
         # Arrange & Act
-        classification = Classification(product_id=1, confidence=0.0001)
+        classification = Classification(packaging_catalog_id=5, packaging_conf=None)
 
         # Assert
-        assert float(classification.confidence) == 0.0001
+        assert classification.packaging_conf is None
 
-    def test_confidence_edge_case_0_9999(self):
-        """Test confidence with near-maximum value (0.9999)."""
+    def test_product_size_conf_valid(self):
+        """Test product_size_conf with valid value."""
         # Arrange & Act
-        classification = Classification(product_id=1, confidence=0.9999)
+        classification = Classification(product_size_id=3, product_size_conf=92)
 
         # Assert
-        assert float(classification.confidence) == 0.9999
+        assert classification.product_size_conf == 92
+
+    def test_product_size_conf_nullable(self):
+        """Test that product_size_conf can be NULL."""
+        # Arrange & Act
+        classification = Classification(product_size_id=3, product_size_conf=None)
+
+        # Assert
+        assert classification.product_size_conf is None
+
+    def test_all_conf_fields_together(self):
+        """Test all three confidence fields populated."""
+        # Arrange & Act
+        classification = Classification(
+            product_id=1,
+            packaging_catalog_id=5,
+            product_size_id=3,
+            product_conf=95,
+            packaging_conf=87,
+            product_size_conf=92,
+        )
+
+        # Assert
+        assert classification.product_conf == 95
+        assert classification.packaging_conf == 87
+        assert classification.product_size_conf == 92
+
+    def test_conf_fields_independent(self):
+        """Test that confidence fields are independent (can be set separately)."""
+        # Arrange & Act
+        classification = Classification(
+            product_id=1,
+            packaging_catalog_id=5,
+            product_conf=85,  # Only product_conf set
+        )
+
+        # Assert
+        assert classification.product_conf == 85
+        assert classification.packaging_conf is None  # Not set
+        assert classification.product_size_conf is None  # Not set
 
 
 class TestClassificationFKValidation:
@@ -198,12 +238,12 @@ class TestClassificationFKValidation:
         """Test that no FKs raises ValueError."""
         # Arrange & Act & Assert
         with pytest.raises(ValueError, match="At least one of .* must be NOT NULL"):
-            Classification(confidence=0.9)
+            Classification()
 
     def test_product_and_packaging_both_present(self):
         """Test that product_id + packaging_catalog_id is valid."""
         # Arrange & Act
-        classification = Classification(product_id=10, packaging_catalog_id=5, confidence=0.8)
+        classification = Classification(product_id=10, packaging_catalog_id=5, product_conf=80)
 
         # Assert
         assert classification.product_id == 10
@@ -213,7 +253,7 @@ class TestClassificationFKValidation:
     def test_product_and_size_both_present(self):
         """Test that product_id + product_size_id is valid."""
         # Arrange & Act
-        classification = Classification(product_id=10, product_size_id=3, confidence=0.85)
+        classification = Classification(product_id=10, product_size_id=3, product_conf=85)
 
         # Assert
         assert classification.product_id == 10
@@ -223,7 +263,9 @@ class TestClassificationFKValidation:
     def test_packaging_and_size_both_present(self):
         """Test that packaging_catalog_id + product_size_id is valid."""
         # Arrange & Act
-        classification = Classification(packaging_catalog_id=5, product_size_id=2, confidence=0.75)
+        classification = Classification(
+            packaging_catalog_id=5, product_size_id=2, packaging_conf=75
+        )
 
         # Assert
         assert classification.product_id is None
@@ -231,94 +273,98 @@ class TestClassificationFKValidation:
         assert classification.product_size_id == 2
 
 
-class TestClassificationMLMetadata:
-    """Test suite for Classification JSONB ml_metadata field."""
+class TestClassificationModelVersion:
+    """Test suite for Classification model_version field."""
 
-    def test_ml_metadata_default_empty_dict(self):
-        """Test that ml_metadata defaults to empty dict."""
+    def test_model_version_nullable(self):
+        """Test that model_version can be NULL."""
         # Arrange & Act
-        classification = Classification(product_id=1, confidence=0.9)
+        classification = Classification(product_id=1, model_version=None)
 
         # Assert
-        assert classification.ml_metadata == {}
+        assert classification.model_version is None
 
-    def test_ml_metadata_none_converts_to_empty_dict(self):
-        """Test that None ml_metadata is converted to empty dict."""
+    def test_model_version_valid(self):
+        """Test model_version with valid value."""
         # Arrange & Act
-        classification = Classification(product_id=1, confidence=0.9, ml_metadata=None)
+        classification = Classification(
+            product_id=1,
+            model_version="yolov11n-seg-v1.2.0",
+        )
 
         # Assert
-        assert classification.ml_metadata == {}
+        assert classification.model_version == "yolov11n-seg-v1.2.0"
 
-    def test_ml_metadata_simple_dict(self):
-        """Test ml_metadata with simple key-value pairs."""
-        # Arrange
-        metadata = {
-            "model_name": "yolov11n-seg",
-            "model_version": "1.2.0",
-            "inference_time_ms": 145,
-        }
+    def test_model_version_formats(self):
+        """Test various model_version formats."""
+        # Different version formats
+        versions = [
+            "yolov11n-seg-v1.0.0",
+            "yolov11s-det-v2.3.1",
+            "custom-model-v1",
+            "prod-2024-10-14",
+        ]
 
-        # Act
-        classification = Classification(product_id=1, confidence=0.95, ml_metadata=metadata)
+        for version in versions:
+            classification = Classification(product_id=1, model_version=version)
+            assert classification.model_version == version
 
-        # Assert
-        assert classification.ml_metadata["model_name"] == "yolov11n-seg"
-        assert classification.ml_metadata["model_version"] == "1.2.0"
-        assert classification.ml_metadata["inference_time_ms"] == 145
 
-    def test_ml_metadata_nested_dict(self):
-        """Test ml_metadata with nested structure."""
-        # Arrange
-        metadata = {
-            "model": {"name": "yolov11n", "version": "1.2.0", "type": "segmentation"},
-            "inference": {"time_ms": 145, "gpu_used": False, "batch_size": 1},
-        }
+class TestClassificationNameDescription:
+    """Test suite for Classification name and description fields."""
 
-        # Act
-        classification = Classification(product_id=2, confidence=0.88, ml_metadata=metadata)
+    def test_name_nullable(self):
+        """Test that name can be NULL."""
+        # Arrange & Act
+        classification = Classification(product_id=1, name=None)
 
         # Assert
-        assert classification.ml_metadata["model"]["name"] == "yolov11n"
-        assert classification.ml_metadata["inference"]["gpu_used"] is False
-        assert classification.ml_metadata["inference"]["batch_size"] == 1
+        assert classification.name is None
 
-    def test_ml_metadata_complex_ml_info(self):
-        """Test ml_metadata with realistic ML model information."""
-        # Arrange
-        metadata = {
-            "model_name": "yolov11n-seg",
-            "model_version": "1.2.0",
-            "inference_time_ms": 145,
-            "gpu_used": False,
-            "temperature": 0.7,
-            "top_k": 5,
-            "confidence_threshold": 0.25,
-            "nms_threshold": 0.45,
-            "image_size": [640, 640],
-            "device": "cpu",
-        }
-
-        # Act
-        classification = Classification(product_id=1, confidence=0.9523, ml_metadata=metadata)
+    def test_name_valid(self):
+        """Test name with valid value."""
+        # Arrange & Act
+        classification = Classification(
+            product_id=1,
+            name="Echeveria Adult",
+        )
 
         # Assert
-        assert classification.ml_metadata["temperature"] == 0.7
-        assert classification.ml_metadata["device"] == "cpu"
-        assert classification.ml_metadata["image_size"] == [640, 640]
+        assert classification.name == "Echeveria Adult"
 
-    def test_ml_metadata_boolean_values(self):
-        """Test ml_metadata with boolean flags."""
-        # Arrange
-        metadata = {"gpu_used": True, "augmentation_applied": False, "ensemble_mode": True}
-
-        # Act
-        classification = Classification(product_id=3, confidence=0.92, ml_metadata=metadata)
+    def test_description_nullable(self):
+        """Test that description can be NULL."""
+        # Arrange & Act
+        classification = Classification(product_id=1, description=None)
 
         # Assert
-        assert classification.ml_metadata["gpu_used"] is True
-        assert classification.ml_metadata["augmentation_applied"] is False
-        assert classification.ml_metadata["ensemble_mode"] is True
+        assert classification.description is None
+
+    def test_description_valid(self):
+        """Test description with valid text."""
+        # Arrange & Act
+        classification = Classification(
+            product_id=1,
+            description="High confidence detection with good lighting conditions",
+        )
+
+        # Assert
+        assert (
+            classification.description == "High confidence detection with good lighting conditions"
+        )
+
+    def test_name_and_description_together(self):
+        """Test name and description fields together."""
+        # Arrange & Act
+        classification = Classification(
+            product_id=1,
+            name="Echeveria Adult Medium",
+            description="Detected with high confidence in optimal lighting",
+        )
+
+        # Assert
+        assert classification.name == "Echeveria Adult Medium"
+        assert classification.description == "Detected with high confidence in optimal lighting"
 
 
 class TestClassificationFieldValidation:
@@ -327,7 +373,7 @@ class TestClassificationFieldValidation:
     def test_nullable_packaging_catalog_id(self):
         """Test that packaging_catalog_id can be NULL."""
         # Arrange & Act
-        classification = Classification(product_id=1, packaging_catalog_id=None, confidence=0.8)
+        classification = Classification(product_id=1, packaging_catalog_id=None)
 
         # Assert
         assert classification.packaging_catalog_id is None
@@ -335,7 +381,7 @@ class TestClassificationFieldValidation:
     def test_nullable_product_size_id(self):
         """Test that product_size_id can be NULL."""
         # Arrange & Act
-        classification = Classification(product_id=1, product_size_id=None, confidence=0.8)
+        classification = Classification(product_id=1, product_size_id=None)
 
         # Assert
         assert classification.product_size_id is None
@@ -343,16 +389,26 @@ class TestClassificationFieldValidation:
     def test_nullable_product_id(self):
         """Test that product_id can be NULL (if other FKs present)."""
         # Arrange & Act
-        classification = Classification(product_id=None, packaging_catalog_id=5, confidence=0.7)
+        classification = Classification(product_id=None, packaging_catalog_id=5)
 
         # Assert
         assert classification.product_id is None
 
-    def test_confidence_required(self):
-        """Test that confidence field is required."""
-        # Arrange & Act & Assert
-        with pytest.raises(ValueError, match="Confidence cannot be None"):
-            Classification(product_id=1, confidence=None)
+    def test_all_fields_nullable_except_one_fk(self):
+        """Test that all fields except ONE FK are nullable."""
+        # Arrange & Act - minimal valid classification
+        classification = Classification(product_id=1)
+
+        # Assert - all other fields should be None
+        assert classification.product_id == 1  # Required (at least ONE FK)
+        assert classification.packaging_catalog_id is None
+        assert classification.product_size_id is None
+        assert classification.product_conf is None
+        assert classification.packaging_conf is None
+        assert classification.product_size_conf is None
+        assert classification.model_version is None
+        assert classification.name is None
+        assert classification.description is None
 
 
 class TestClassificationRepr:
@@ -366,7 +422,7 @@ class TestClassificationRepr:
             product_id=42,
             packaging_catalog_id=7,
             product_size_id=3,
-            confidence=0.9523,
+            product_conf=95,
         )
 
         # Act
@@ -378,12 +434,12 @@ class TestClassificationRepr:
         assert "product_id=42" in repr_str
         assert "packaging_catalog_id=7" in repr_str
         assert "product_size_id=3" in repr_str
-        assert "0.9523" in repr_str
+        assert "product_conf=95" in repr_str
 
     def test_repr_with_product_only(self):
         """Test __repr__ with only product_id."""
         # Arrange
-        classification = Classification(product_id=10, confidence=0.85)
+        classification = Classification(product_id=10, product_conf=85)
 
         # Act
         repr_str = repr(classification)
@@ -393,11 +449,12 @@ class TestClassificationRepr:
         assert "product_id=10" in repr_str
         assert "packaging_catalog_id=None" in repr_str
         assert "product_size_id=None" in repr_str
+        assert "product_conf=85" in repr_str
 
     def test_repr_without_classification_id(self):
         """Test __repr__ before classification_id is assigned (pre-insert)."""
         # Arrange
-        classification = Classification(product_id=1, confidence=0.9)
+        classification = Classification(product_id=1, product_conf=90)
 
         # Act
         repr_str = repr(classification)
@@ -406,6 +463,7 @@ class TestClassificationRepr:
         assert "Classification" in repr_str
         assert "classification_id=None" in repr_str
         assert "product_id=1" in repr_str
+        assert "product_conf=90" in repr_str
 
 
 class TestClassificationTableMetadata:
@@ -436,12 +494,12 @@ class TestClassificationTableMetadata:
         assert "CASCADE" in table.c.product_id.comment
         assert "NULLABLE" in table.c.product_id.comment
 
-        # Check confidence comment
-        assert "0.0000-1.0000" in table.c.confidence.comment
-        assert "4 decimals" in table.c.confidence.comment
+        # Check product_conf comment
+        assert "0-100" in table.c.product_conf.comment
+        assert "NULLABLE" in table.c.product_conf.comment
 
-        # Check metadata comment (mapped to ml_metadata)
-        assert "ML model metadata" in table.c.metadata.comment
+        # Check model_version comment
+        assert "ML model version" in table.c.model_version.comment
 
     def test_primary_key(self):
         """Test that id is the primary key."""
@@ -485,27 +543,45 @@ class TestClassificationTableMetadata:
         table = Classification.__table__
         constraint_names = [c.name for c in table.constraints if hasattr(c, "name") and c.name]
 
-        # Should have confidence range constraint
-        assert any("confidence_range" in name for name in constraint_names)
-
         # Should have at least one FK constraint
         assert any("at_least_one_fk" in name for name in constraint_names)
 
-    def test_confidence_numeric_type(self):
-        """Test that confidence is Numeric(5,4)."""
+    def test_confidence_fields_integer_type(self):
+        """Test that confidence fields are INTEGER."""
         table = Classification.__table__
-        confidence_col = table.c.confidence
+
+        # Check product_conf type
+        assert "INTEGER" in str(table.c.product_conf.type)
+
+        # Check packaging_conf type
+        assert "INTEGER" in str(table.c.packaging_conf.type)
+
+        # Check product_size_conf type
+        assert "INTEGER" in str(table.c.product_size_conf.type)
+
+    def test_model_version_varchar_type(self):
+        """Test that model_version is VARCHAR."""
+        table = Classification.__table__
+        model_version_col = table.c.model_version
 
         # Check type
-        assert str(confidence_col.type) == "NUMERIC(5, 4)"
+        assert "VARCHAR" in str(model_version_col.type)
 
-    def test_ml_metadata_jsonb_type(self):
-        """Test that metadata column is JSONB."""
+    def test_name_varchar_type(self):
+        """Test that name is VARCHAR."""
         table = Classification.__table__
-        metadata_col = table.c.metadata
+        name_col = table.c.name
 
-        # Check type name
-        assert "JSONB" in str(metadata_col.type)
+        # Check type
+        assert "VARCHAR" in str(name_col.type)
+
+    def test_description_text_type(self):
+        """Test that description is TEXT."""
+        table = Classification.__table__
+        description_col = table.c.description
+
+        # Check type
+        assert "TEXT" in str(description_col.type)
 
 
 class TestClassificationRelationships:
@@ -548,62 +624,87 @@ class TestClassificationEdgeCases:
     """Test suite for Classification edge cases and corner scenarios."""
 
     def test_very_low_confidence(self):
-        """Test classification with very low confidence (0.0001)."""
+        """Test classification with very low confidence (1)."""
         # Arrange & Act
-        classification = Classification(product_id=1, confidence=0.0001)
+        classification = Classification(product_id=1, product_conf=1)
 
         # Assert
-        assert float(classification.confidence) == 0.0001
+        assert classification.product_conf == 1
 
     def test_zero_confidence(self):
-        """Test classification with zero confidence (valid but suspicious)."""
+        """Test classification with zero confidence (0)."""
         # Arrange & Act
-        classification = Classification(product_id=1, confidence=0.0)
+        classification = Classification(product_id=1, product_conf=0)
 
         # Assert
-        assert float(classification.confidence) == 0.0
+        assert classification.product_conf == 0
 
     def test_perfect_confidence(self):
-        """Test classification with perfect confidence (1.0)."""
+        """Test classification with perfect confidence (100)."""
         # Arrange & Act
-        classification = Classification(product_id=1, confidence=1.0)
+        classification = Classification(product_id=1, product_conf=100)
 
         # Assert
-        assert float(classification.confidence) == 1.0
+        assert classification.product_conf == 100
 
-    def test_complex_ml_metadata_with_arrays(self):
-        """Test ml_metadata with complex nested arrays."""
+    def test_all_confidence_fields_at_max(self):
+        """Test all confidence fields at maximum value (100)."""
+        # Arrange & Act
+        classification = Classification(
+            product_id=1,
+            packaging_catalog_id=5,
+            product_size_id=3,
+            product_conf=100,
+            packaging_conf=100,
+            product_size_conf=100,
+        )
+
+        # Assert
+        assert classification.product_conf == 100
+        assert classification.packaging_conf == 100
+        assert classification.product_size_conf == 100
+
+    def test_mixed_confidence_values(self):
+        """Test mixed confidence values across fields."""
+        # Arrange & Act
+        classification = Classification(
+            product_id=1,
+            packaging_catalog_id=5,
+            product_size_id=3,
+            product_conf=95,  # High
+            packaging_conf=50,  # Medium
+            product_size_conf=10,  # Low
+        )
+
+        # Assert
+        assert classification.product_conf == 95
+        assert classification.packaging_conf == 50
+        assert classification.product_size_conf == 10
+
+    def test_long_model_version_string(self):
+        """Test with long model version string."""
         # Arrange
-        metadata = {
-            "model_name": "yolov11n",
-            "predictions": [
-                {"class": "echeveria", "confidence": 0.95},
-                {"class": "aloe", "confidence": 0.03},
-                {"class": "haworthia", "confidence": 0.02},
-            ],
-            "bounding_boxes": [[10, 20, 100, 150], [200, 300, 50, 75]],
-        }
+        long_version = "yolov11n-seg-custom-trained-2024-10-14-v1.2.3-production"
 
         # Act
-        classification = Classification(product_id=1, confidence=0.95, ml_metadata=metadata)
+        classification = Classification(product_id=1, model_version=long_version)
 
         # Assert
-        assert len(classification.ml_metadata["predictions"]) == 3
-        assert classification.ml_metadata["predictions"][0]["class"] == "echeveria"
-        assert len(classification.ml_metadata["bounding_boxes"]) == 2
+        assert classification.model_version == long_version
 
-    def test_ml_metadata_with_timestamps(self):
-        """Test ml_metadata with timestamp strings."""
+    def test_long_description_text(self):
+        """Test with long description text."""
         # Arrange
-        metadata = {
-            "model_version": "1.2.0",
-            "inference_timestamp": "2025-10-14T14:30:00Z",
-            "model_trained_at": "2025-09-01T00:00:00Z",
-        }
+        long_description = (
+            "This is a high confidence classification detected in optimal lighting "
+            "conditions with minimal occlusion. The model successfully identified "
+            "the product type, packaging, and size with high accuracy scores across "
+            "all three categories. Inference was performed on CPU using the production "
+            "model version yolov11n-seg-v1.2.0."
+        )
 
         # Act
-        classification = Classification(product_id=1, confidence=0.90, ml_metadata=metadata)
+        classification = Classification(product_id=1, description=long_description)
 
         # Assert
-        assert "2025-10-14" in classification.ml_metadata["inference_timestamp"]
-        assert "2025-09-01" in classification.ml_metadata["model_trained_at"]
+        assert classification.description == long_description

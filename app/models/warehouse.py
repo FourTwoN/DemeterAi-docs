@@ -152,7 +152,11 @@ class Warehouse(Base):
 
     # Type classification (enum for data integrity)
     warehouse_type = Column(
-        Enum(WarehouseTypeEnum, name="warehouse_type_enum"),
+        Enum(
+            WarehouseTypeEnum,
+            name="warehouse_type_enum",
+            values_callable=lambda x: [e.value for e in x],
+        ),
         nullable=False,
         index=True,
         comment="Facility type: greenhouse, shadehouse, open_field, tunnel",

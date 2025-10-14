@@ -70,10 +70,11 @@ from app.db.base import Base
 
 # Forward declarations for type hints (avoids circular imports)
 if TYPE_CHECKING:
+    from app.models.photo_processing_session import PhotoProcessingSession
+    from app.models.product_sample_image import ProductSampleImage
     from app.models.storage_area import StorageArea
     from app.models.storage_bin import StorageBin
-    # NOTE: Uncomment after DB012 (PhotoProcessingSession) is complete
-    # from app.models.photo_processing_session import PhotoProcessingSession
+    from app.models.storage_location_config import StorageLocationConfig
 
 
 class StorageLocation(Base):
@@ -169,10 +170,16 @@ class StorageLocation(Base):
     # Foreign key to latest photo processing session (nullable, SET NULL on delete)
     # NOTE: This creates a circular reference with photo_processing_sessions
     # photo_processing_sessions.storage_location_id → storage_locations.location_id
-    # storage_locations.photo_session_id → photo_processing_sessions.session_id
+    # storage_locations.photo_session_id → photo_processing_sessions.id
+    # SOLUTION: use_alter=True breaks circular dependency by creating FK via ALTER TABLE
     photo_session_id = Column(
         Integer,
-        ForeignKey("photo_processing_sessions.session_id", ondelete="SET NULL"),
+        ForeignKey(
+            "photo_processing_sessions.id",
+            ondelete="SET NULL",
+            use_alter=True,
+            name="fk_storage_location_photo_session",
+        ),
         nullable=True,
         index=True,
         comment="Latest photo processing session for this location (nullable, SET NULL on delete)",
@@ -259,13 +266,12 @@ class StorageLocation(Base):
     )
 
     # Many-to-one: StorageLocation → PhotoProcessingSession (latest photo, nullable)
-    # NOTE: Uncomment after DB012 (PhotoProcessingSession) is complete
-    # latest_photo_session: Mapped["PhotoProcessingSession | None"] = relationship(
-    #     "PhotoProcessingSession",
-    #     foreign_keys=[photo_session_id],
-    #     back_populates="storage_locations_latest",
-    #     doc="Latest photo processing session for this location (nullable)"
-    # )
+    latest_photo_session: Mapped["PhotoProcessingSession | None"] = relationship(
+        "PhotoProcessingSession",
+        foreign_keys=[photo_session_id],
+        back_populates="storage_locations_latest",
+        doc="Latest photo processing session for this location (nullable)",
+    )
 
     # One-to-many: StorageLocation → StorageBin (DB004 complete)
     storage_bins: Mapped[list["StorageBin"]] = relationship(
@@ -277,14 +283,30 @@ class StorageLocation(Base):
     )
 
     # One-to-many: StorageLocation → PhotoProcessingSession (all photos for this location)
-    # NOTE: Uncomment after DB012 (PhotoProcessingSession) is complete
-    # photo_processing_sessions: Mapped[list["PhotoProcessingSession"]] = relationship(
-    #     "PhotoProcessingSession",
-    #     back_populates="storage_location",
-    #     foreign_keys="PhotoProcessingSession.storage_location_id",
-    #     cascade="all, delete-orphan",
-    #     doc="All photo processing sessions for this location"
-    # )
+    photo_processing_sessions: Mapped[list["PhotoProcessingSession"]] = relationship(
+        "PhotoProcessingSession",
+        back_populates="storage_location",
+        foreign_keys="PhotoProcessingSession.storage_location_id",
+        cascade="all, delete-orphan",
+        doc="All photo processing sessions for this location",
+    )
+
+    # One-to-many: StorageLocation → ProductSampleImage
+    product_sample_images: Mapped[list["ProductSampleImage"]] = relationship(
+        "ProductSampleImage",
+        back_populates="storage_location",
+        foreign_keys="ProductSampleImage.storage_location_id",
+        doc="Product sample images captured at this location",
+    )
+
+    # One-to-many: StorageLocation → StorageLocationConfig
+    storage_location_configs: Mapped[list["StorageLocationConfig"]] = relationship(
+        "StorageLocationConfig",
+        back_populates="storage_location",
+        foreign_keys="StorageLocationConfig.storage_location_id",
+        cascade="all, delete-orphan",
+        doc="Configuration entries for this location",
+    )
 
     # Table constraints
     __table_args__ = (

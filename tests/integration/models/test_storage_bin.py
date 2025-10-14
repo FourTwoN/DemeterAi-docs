@@ -219,7 +219,7 @@ class TestStorageBinRestrictDelete:
             code="WH-AREA-LOC1-SEG001",
             label="Segmento 1",
             storage_location_id=location.location_id,
-            storage_bin_type_id=bin_type.id,
+            storage_bin_type_id=bin_type.storage_bin_type_id,
         )
         db_session.add(bin_obj)
         await db_session.commit()

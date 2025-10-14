@@ -61,10 +61,17 @@ async def db_session():
     """Create test database session with rollback after each test.
 
     This fixture:
-    1. Creates all tables in the test database
-    2. Yields a session for the test to use
-    3. Rolls back any changes after the test completes
-    4. Drops all tables (clean slate for next test)
+    1. Drops all PostgreSQL ENUM types (from previous test runs)
+    2. Creates all tables in the test database
+    3. Yields a session for the test to use
+    4. Rolls back any changes after the test completes
+    5. Drops all tables (clean slate for next test)
+    6. Drops all ENUM types (clean slate for next test)
+
+    PostgreSQL ENUM handling:
+        - SQLAlchemy's drop_all() drops tables but NOT enum types
+        - This causes "invalid input value" errors on subsequent runs
+        - We explicitly drop all enum types before AND after tests
 
     Usage:
         @pytest.mark.unit
@@ -74,7 +81,31 @@ async def db_session():
             await db_session.commit()
             assert warehouse.id is not None
     """
-    # Create all tables
+    from sqlalchemy import text
+
+    # List of all PostgreSQL ENUM types used in models
+    # IMPORTANT: Keep this list in sync with app/models/*.py
+    enum_types = [
+        "storage_bin_status_enum",
+        "warehouse_type_enum",
+        "position_enum",
+        "processing_session_status_enum",
+        "movement_type_enum",
+        "source_type_enum",
+        "calculation_method_enum",
+        "sample_type_enum",
+        "content_type_enum",
+        "upload_source_enum",
+        "processing_status_enum",
+        "bin_category_enum",
+    ]
+
+    # Drop all ENUM types BEFORE creating tables
+    async with test_engine.begin() as conn:
+        for enum_type in enum_types:
+            await conn.execute(text(f"DROP TYPE IF EXISTS {enum_type} CASCADE"))
+
+    # Create all tables (including ENUM types)
     async with test_engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
 
@@ -91,6 +122,11 @@ async def db_session():
     # Drop all tables
     async with test_engine.begin() as conn:
         await conn.run_sync(Base.metadata.drop_all)
+
+    # Drop all ENUM types AFTER dropping tables (clean slate)
+    async with test_engine.begin() as conn:
+        for enum_type in enum_types:
+            await conn.execute(text(f"DROP TYPE IF EXISTS {enum_type} CASCADE"))
 
 
 @pytest_asyncio.fixture
@@ -592,7 +628,7 @@ def storage_bin_factory(db_session, storage_location_factory):
         async def test_multiple_bins(storage_bin_factory):
             bin1 = await storage_bin_factory(code="WH-AREA-LOC1-SEG001")
             bin2 = await storage_bin_factory(code="WH-AREA-LOC1-SEG002")
-            assert bin1.bin_id != bin2.bin_id
+            assert bin1.storage_bin_id != bin2.storage_bin_id
     """
     from app.models.storage_bin import StorageBin, StorageBinStatusEnum
 
@@ -730,34 +766,32 @@ def pytest_addoption(parser):
     """Add custom command-line options for pytest.
 
     Usage:
-        # Run with PostgreSQL test database
-        pytest --db-url="postgresql+asyncpg://user:pass@localhost/test_db"
+        # Run with PostgreSQL test database (default)
+        pytest
 
-        # Run with SQLite (default, PostGIS tests will be skipped)
-        pytest --db-url="sqlite+aiosqlite:///:memory:"
+        # Override with custom database URL
+        pytest --db-url="postgresql+asyncpg://user:pass@localhost/test_db"
     """
     parser.addoption(
         "--db-url",
         action="store",
-        default="sqlite+aiosqlite:///:memory:",
-        help="Database URL for testing (default: SQLite in-memory)",
+        default=None,
+        help="Database URL for testing (default: PostgreSQL from TEST_DATABASE_URL)",
     )
 
 
 def pytest_configure(config):
     """Configure pytest with custom markers and settings."""
     # Markers are already defined in pyproject.toml
-    # Store db_url in config for access in tests
-    config.db_url = config.getoption("--db-url")
+    # Store db_url in config for access in tests (override TEST_DATABASE_URL if provided)
+    config.db_url = config.getoption("--db-url") or TEST_DATABASE_URL
 
-    # Add note about PostGIS tests
-    if "sqlite" in config.db_url:
-        print("\n" + "=" * 70)
-        print("NOTE: Using SQLite in-memory database")
-        print("PostGIS integration tests will be SKIPPED")
-        print("To run PostGIS tests, use:")
-        print("  pytest --db-url='postgresql+asyncpg://user:pass@localhost/test_db'")
-        print("=" * 70 + "\n")
+    # Show database configuration
+    print("\n" + "=" * 70)
+    print("USING PostgreSQL + PostGIS TEST DATABASE")
+    print(f"Database URL: {config.db_url.replace('demeter_test_password', '***')}")
+    print("All tests (unit + integration) will use PostgreSQL")
+    print("=" * 70 + "\n")
 
 
 def pytest_collection_modifyitems(config, items):

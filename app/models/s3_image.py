@@ -296,7 +296,11 @@ class S3Image(Base):
 
     # File metadata
     content_type = Column(
-        Enum(ContentTypeEnum, name="content_type_enum"),
+        Enum(
+            ContentTypeEnum,
+            name="content_type_enum",
+            values_callable=lambda x: [e.value for e in x],
+        ),
         nullable=False,
         comment="Image MIME type (image/jpeg, image/png)",
     )
@@ -335,7 +339,11 @@ class S3Image(Base):
 
     # Upload tracking
     upload_source = Column(
-        Enum(UploadSourceEnum, name="upload_source_enum"),
+        Enum(
+            UploadSourceEnum,
+            name="upload_source_enum",
+            values_callable=lambda x: [e.value for e in x],
+        ),
         nullable=False,
         default=UploadSourceEnum.WEB,
         comment="Upload source (web, mobile, api)",
@@ -351,7 +359,11 @@ class S3Image(Base):
 
     # Processing status
     status = Column(
-        Enum(ProcessingStatusEnum, name="processing_status_enum"),
+        Enum(
+            ProcessingStatusEnum,
+            name="processing_status_enum",
+            values_callable=lambda x: [e.value for e in x],
+        ),
         nullable=False,
         default=ProcessingStatusEnum.UPLOADED,
         index=True,

@@ -189,7 +189,11 @@ class StorageArea(Base):
 
     # Cardinal position classification (optional)
     position = Column(
-        Enum(PositionEnum, name="position_enum"),
+        Enum(
+            PositionEnum,
+            name="position_enum",
+            values_callable=lambda x: [e.value for e in x],
+        ),
         nullable=True,
         index=True,
         comment="Cardinal direction: N, S, E, W, C (optional)",

@@ -72,9 +72,8 @@ from app.db.base import Base
 
 # Forward declarations for type hints (avoids circular imports)
 if TYPE_CHECKING:
+    from app.models.density_parameter import DensityParameter
     from app.models.storage_bin import StorageBin
-    # NOTE: Uncomment after DB025 (DensityParameters) is complete
-    # from app.models.density_parameter import DensityParameter
 
 
 class BinCategoryEnum(str, enum.Enum):
@@ -110,7 +109,7 @@ class StorageBinType(Base):
         - Seed data: 6-10 common types preloaded in migration
 
     Attributes:
-        bin_type_id: Primary key (auto-increment)
+        storage_bin_type_id: Primary key (auto-increment)
         code: Unique bin type code (uppercase, alphanumeric + underscores, 3-50 chars)
         name: Human-readable type name
         category: Category enum (plug, seedling_tray, box, segment, pot)
@@ -127,7 +126,7 @@ class StorageBinType(Base):
 
     Relationships:
         storage_bins: List of StorageBin instances using this type (one-to-many)
-        density_parameters: List of DensityParameter instances for this type (one-to-many, COMMENTED OUT)
+        density_parameters: List of DensityParameter instances for this type (one-to-many)
 
     Indexes:
         - B-tree index on code (unique lookups)
@@ -162,7 +161,7 @@ class StorageBinType(Base):
     __tablename__ = "storage_bin_types"
 
     # Primary key
-    bin_type_id = Column(
+    storage_bin_type_id = Column(
         Integer,
         primary_key=True,
         autoincrement=True,
@@ -186,7 +185,11 @@ class StorageBinType(Base):
 
     # Category enum
     category = Column(
-        Enum(BinCategoryEnum, name="bin_category_enum"),
+        Enum(
+            BinCategoryEnum,
+            name="bin_category_enum",
+            values_callable=lambda x: [e.value for e in x],
+        ),
         nullable=False,
         index=True,
         comment="Category: plug, seedling_tray, box, segment, pot",
@@ -269,15 +272,14 @@ class StorageBinType(Base):
         doc="List of storage bins using this type",
     )
 
-    # One-to-many: StorageBinType → DensityParameter (COMMENT OUT - DB025 not ready)
-    # NOTE: Uncomment after DB025 (DensityParameters) is complete
-    # density_parameters: Mapped[list["DensityParameter"]] = relationship(
-    #     "DensityParameter",
-    #     back_populates="storage_bin_type",
-    #     foreign_keys="DensityParameter.storage_bin_type_id",
-    #     cascade="all, delete-orphan",
-    #     doc="List of density parameters for this bin type"
-    # )
+    # One-to-many: StorageBinType → DensityParameter
+    density_parameters: Mapped[list["DensityParameter"]] = relationship(
+        "DensityParameter",
+        back_populates="storage_bin_type",
+        foreign_keys="DensityParameter.storage_bin_type_id",
+        cascade="all, delete-orphan",
+        doc="List of density parameters for this bin type",
+    )
 
     # Table constraints
     __table_args__ = (
@@ -344,15 +346,15 @@ class StorageBinType(Base):
         """String representation for debugging.
 
         Returns:
-            String with bin_type_id, code, name, category, and is_grid
+            String with storage_bin_type_id, code, name, category, and is_grid
 
         Example:
-            <StorageBinType(bin_type_id=1, code='PLUG_TRAY_288', name='288-Cell Plug Tray',
+            <StorageBinType(storage_bin_type_id=1, code='PLUG_TRAY_288', name='288-Cell Plug Tray',
              category='plug', is_grid=True)>
         """
         return (
             f"<StorageBinType("
-            f"bin_type_id={self.bin_type_id}, "
+            f"storage_bin_type_id={self.storage_bin_type_id}, "
             f"code='{self.code}', "
             f"name='{self.name}', "
             f"category='{self.category.value if self.category else None}', "

@@ -50,10 +50,8 @@ from app.db.base import Base
 
 # Forward declarations for type hints (avoids circular imports)
 if TYPE_CHECKING:
+    from app.models.price_list import PriceList
     from app.models.product_family import ProductFamily
-
-    # NOTE: Uncomment after DB027 (PriceList) is complete
-    # from app.models.price_list import PriceList
 
 
 class ProductCategory(Base):
@@ -166,14 +164,13 @@ class ProductCategory(Base):
         doc="List of product families in this category",
     )
 
-    # One-to-many: ProductCategory → PriceList (COMMENT OUT - DB027 not ready)
-    # NOTE: Uncomment after DB027 (PriceList) is complete
-    # price_lists: Mapped[list["PriceList"]] = relationship(
-    #     "PriceList",
-    #     back_populates="category",
-    #     foreign_keys="PriceList.category_id",
-    #     doc="List of price lists for this category"
-    # )
+    # One-to-many: ProductCategory → PriceList
+    price_list_items: Mapped[list["PriceList"]] = relationship(
+        "PriceList",
+        back_populates="product_category",
+        foreign_keys="PriceList.product_categories_id",
+        doc="List of price lists for this category",
+    )
 
     # Table constraints
     __table_args__ = (

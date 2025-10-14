@@ -67,10 +67,9 @@ from app.db.base import Base
 
 # Forward declarations for type hints (avoids circular imports)
 if TYPE_CHECKING:
+    from app.models.stock_batch import StockBatch
     from app.models.storage_bin_type import StorageBinType
     from app.models.storage_location import StorageLocation
-    # NOTE: Uncomment after DB007 (StockBatch) is complete
-    # from app.models.stock_batch import StockBatch
 
 
 class StorageBinStatusEnum(str, enum.Enum):
@@ -101,7 +100,7 @@ class StorageBin(Base):
         - confidence tracks segmentation quality (threshold: 0.7+)
 
     Attributes:
-        bin_id: Primary key (auto-increment)
+        storage_bin_id: Primary key (auto-increment)
         storage_location_id: Foreign key to parent storage location (CASCADE delete)
         storage_bin_type_id: Foreign key to bin type catalog (RESTRICT delete, NULLABLE)
         code: Unique bin code (format: WAREHOUSE-AREA-LOCATION-BIN, 4 parts, uppercase)
@@ -163,7 +162,7 @@ class StorageBin(Base):
     __tablename__ = "storage_bins"
 
     # Primary key
-    bin_id = Column(
+    storage_bin_id = Column(
         Integer,
         primary_key=True,
         autoincrement=True,
@@ -183,7 +182,7 @@ class StorageBin(Base):
     # NOTE: RESTRICT prevents deleting bin type if bins exist (safety)
     storage_bin_type_id = Column(
         Integer,
-        ForeignKey("storage_bin_types.bin_type_id", ondelete="RESTRICT"),
+        ForeignKey("storage_bin_types.storage_bin_type_id", ondelete="RESTRICT"),
         nullable=True,
         index=True,
         comment="Bin type definition (RESTRICT delete, optional)",
@@ -220,7 +219,11 @@ class StorageBin(Base):
 
     # Status enum (active/maintenance/retired)
     status = Column(
-        Enum(StorageBinStatusEnum, name="storage_bin_status_enum"),
+        Enum(
+            StorageBinStatusEnum,
+            name="storage_bin_status_enum",
+            values_callable=lambda x: [e.value for e in x],
+        ),
         nullable=False,
         server_default="active",
         index=True,
@@ -260,15 +263,14 @@ class StorageBin(Base):
         doc="Bin type definition (capacity, dimensions)",
     )
 
-    # One-to-many: StorageBin → StockBatch (will be created in DB007)
-    # NOTE: Uncomment after DB007 (StockBatch) is complete
-    # stock_batches: Mapped[list["StockBatch"]] = relationship(
-    #     "StockBatch",
-    #     back_populates="current_storage_bin",
-    #     foreign_keys="StockBatch.current_storage_bin_id",
-    #     cascade="all, delete-orphan",
-    #     doc="List of stock batches in this bin"
-    # )
+    # One-to-many: StorageBin → StockBatch
+    stock_batches: Mapped[list["StockBatch"]] = relationship(
+        "StockBatch",
+        back_populates="current_storage_bin",
+        foreign_keys="StockBatch.current_storage_bin_id",
+        cascade="all, delete-orphan",
+        doc="List of stock batches in this bin",
+    )
 
     # Table constraints
     __table_args__ = (
@@ -375,15 +377,15 @@ class StorageBin(Base):
         """String representation for debugging.
 
         Returns:
-            String with bin_id, code, label, status, and storage_location_id
+            String with storage_bin_id, code, label, status, and storage_location_id
 
         Example:
-            <StorageBin(bin_id=1, code='INV01-NORTH-A1-SEG001', label='Segment 1',
+            <StorageBin(storage_bin_id=1, code='INV01-NORTH-A1-SEG001', label='Segment 1',
              status='active', storage_location_id=1)>
         """
         return (
             f"<StorageBin("
-            f"bin_id={self.bin_id}, "
+            f"storage_bin_id={self.storage_bin_id}, "
             f"code='{self.code}', "
             f"label='{self.label}', "
             f"status='{self.status.value if self.status else None}', "

@@ -93,7 +93,7 @@ class TestRestrictDelete:
         # Create storage bin referencing this type
         storage_bin = StorageBin(
             storage_location_id=sample_storage_location.location_id,
-            storage_bin_type_id=bin_type.bin_type_id,
+            storage_bin_type_id=bin_type.storage_bin_type_id,
             code="TEST-BIN-001",
             label="Test Bin",
             status="active",
@@ -117,7 +117,7 @@ class TestRestrictDelete:
         db_session.add(bin_type)
         db_session.commit()
 
-        bin_type_id = bin_type.bin_type_id
+        bin_type_id = bin_type.storage_bin_type_id
 
         # Delete bin type (should succeed - no storage bins)
         db_session.delete(bin_type)
@@ -125,7 +125,7 @@ class TestRestrictDelete:
 
         # Verify bin type is deleted
         result = db_session.execute(
-            select(StorageBinType).where(StorageBinType.bin_type_id == bin_type_id)
+            select(StorageBinType).where(StorageBinType.storage_bin_type_id == bin_type_id)
         )
         assert result.scalar_one_or_none() is None
 
@@ -150,7 +150,7 @@ class TestRelationships:
         for i in range(3):
             storage_bin = StorageBin(
                 storage_location_id=sample_storage_location.location_id,
-                storage_bin_type_id=bin_type.bin_type_id,
+                storage_bin_type_id=bin_type.storage_bin_type_id,
                 code=f"TEST-BIN-{i:03d}",
                 label=f"Test Bin {i}",
                 status="active",
@@ -162,7 +162,9 @@ class TestRelationships:
 
         # Query bins from bin_type
         result = db_session.execute(
-            select(StorageBinType).where(StorageBinType.bin_type_id == bin_type.bin_type_id)
+            select(StorageBinType).where(
+                StorageBinType.storage_bin_type_id == bin_type.storage_bin_type_id
+            )
         )
         retrieved_type = result.scalar_one()
 
@@ -175,7 +177,7 @@ class TestRelationships:
     def test_fk_integrity_storage_bins_to_bin_type(
         self, db_session, sample_warehouse, sample_storage_area, sample_storage_location
     ):
-        """Test FK integrity (storage_bins.storage_bin_type_id → storage_bin_types.bin_type_id)."""
+        """Test FK integrity (storage_bins.storage_bin_type_id → storage_bin_types.storage_bin_type_id)."""
         # Create bin type
         bin_type = StorageBinType(
             code="TEST_TYPE_FK", name="Test Type for FK", category=BinCategoryEnum.SEGMENT
@@ -183,10 +185,10 @@ class TestRelationships:
         db_session.add(bin_type)
         db_session.commit()
 
-        # Create storage bin with valid bin_type_id
+        # Create storage bin with valid storage_bin_type_id
         storage_bin = StorageBin(
             storage_location_id=sample_storage_location.location_id,
-            storage_bin_type_id=bin_type.bin_type_id,
+            storage_bin_type_id=bin_type.storage_bin_type_id,
             code="TEST-BIN-FK-001",
             label="Test Bin FK",
             status="active",

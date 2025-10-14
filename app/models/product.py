@@ -63,6 +63,7 @@ from app.db.base import Base
 # Forward declarations for type hints (avoids circular imports)
 if TYPE_CHECKING:
     from app.models.classification import Classification
+    from app.models.density_parameter import DensityParameter
     from app.models.product_family import ProductFamily
 
     # NOTE: Uncomment after dependent models are complete
@@ -101,7 +102,8 @@ class Product(Base):
     Relationships:
         family: ProductFamily instance (many-to-one)
         stock_batches: List of StockBatch instances (one-to-many, COMMENTED OUT)
-        classifications: List of Classification instances (one-to-many, COMMENTED OUT)
+        classifications: List of Classification instances (one-to-many)
+        density_parameters: List of DensityParameter instances (one-to-many)
         product_sample_images: List of ProductSampleImage instances (one-to-many, COMMENTED OUT)
         storage_location_configs: List of StorageLocationConfig instances (one-to-many, COMMENTED OUT)
 
@@ -222,6 +224,14 @@ class Product(Base):
         back_populates="product",
         foreign_keys="Classification.product_id",
         doc="List of ML classifications for this product",
+    )
+
+    # One-to-many: Product → DensityParameter
+    density_parameters: Mapped[list["DensityParameter"]] = relationship(
+        "DensityParameter",
+        back_populates="product",
+        foreign_keys="DensityParameter.product_id",
+        doc="List of density parameters for this product",
     )
 
     # One-to-many: Product → ProductSampleImage (COMMENT OUT - DB020 not ready)
