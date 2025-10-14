@@ -62,11 +62,11 @@ from app.db.base import Base
 
 # Forward declarations for type hints (avoids circular imports)
 if TYPE_CHECKING:
+    from app.models.classification import Classification
     from app.models.product_family import ProductFamily
 
     # NOTE: Uncomment after dependent models are complete
     # from app.models.stock_batch import StockBatch
-    # from app.models.classification import Classification
     # from app.models.product_sample_image import ProductSampleImage
     # from app.models.storage_location_config import StorageLocationConfig
 
@@ -216,14 +216,13 @@ class Product(Base):
     #     doc="List of stock batches for this product"
     # )
 
-    # One-to-many: Product → Classification (COMMENT OUT - DB026 not ready)
-    # NOTE: Uncomment after DB026 (Classification) is complete
-    # classifications: Mapped[list["Classification"]] = relationship(
-    #     "Classification",
-    #     back_populates="product",
-    #     foreign_keys="Classification.product_id",
-    #     doc="List of ML classifications for this product"
-    # )
+    # One-to-many: Product → Classification (DB026 COMPLETE)
+    classifications: Mapped[list["Classification"]] = relationship(
+        "Classification",
+        back_populates="product",
+        foreign_keys="Classification.product_id",
+        doc="List of ML classifications for this product",
+    )
 
     # One-to-many: Product → ProductSampleImage (COMMENT OUT - DB020 not ready)
     # NOTE: Uncomment after DB020 (ProductSampleImage) is complete

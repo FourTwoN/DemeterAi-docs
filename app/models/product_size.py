@@ -40,17 +40,17 @@ import re
 from typing import TYPE_CHECKING
 
 from sqlalchemy import CheckConstraint, Column, DateTime, Integer, Numeric, String, Text
-from sqlalchemy.orm import validates
+from sqlalchemy.orm import Mapped, relationship, validates
 from sqlalchemy.sql import func
 
 from app.db.base import Base
 
 # Forward declarations for type hints (avoids circular imports)
 if TYPE_CHECKING:
-    pass
+    from app.models.classification import Classification
+
     # NOTE: Uncomment after respective models are complete
     # from app.models.stock_batch import StockBatch
-    # from app.models.classification import Classification
     # from app.models.product_sample_image import ProductSampleImage
 
 
@@ -195,12 +195,12 @@ class ProductSize(Base):
 
     # One-to-many: ProductSize → Classification
     # NOTE: Uncomment after Classification model is complete
-    # classifications: Mapped[list["Classification"]] = relationship(
-    #     "Classification",
-    #     back_populates="product_size",
-    #     foreign_keys="Classification.product_size_id",
-    #     doc="List of classifications for this size"
-    # )
+    classifications: Mapped[list["Classification"]] = relationship(
+        "Classification",
+        back_populates="product_size",
+        foreign_keys="Classification.product_size_id",
+        doc="List of classifications for this size",
+    )
 
     # One-to-many: ProductSize → ProductSampleImage
     # NOTE: Uncomment after ProductSampleImage model is complete

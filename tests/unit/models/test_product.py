@@ -494,7 +494,7 @@ class TestProductRelationships:
         # Stock batches relationship should NOT exist until DB007 is complete
         assert "stock_batches" not in Product.__mapper__.relationships
 
-    def test_classifications_relationship_commented_out(self):
-        """Test that classifications relationship is NOT defined yet (DB026 not ready)."""
-        # Classifications relationship should NOT exist until DB026 is complete
-        assert "classifications" not in Product.__mapper__.relationships
+    def test_classifications_relationship_exists(self):
+        """Test that classifications relationship is defined (DB026 COMPLETE)."""
+        # Classifications relationship NOW exists (DB026 complete)
+        assert "classifications" in Product.__mapper__.relationships

@@ -16,6 +16,9 @@ Product Catalog (100% COMPLETE):
 Authentication (COMPLETE):
     - User (DB028): Internal staff authentication with role-based access control
 
+ML Pipeline (IN PROGRESS):
+    - Classification (DB026): ML prediction cache for product/packaging/size inference
+
 Available Models:
     - Warehouse: Root level geospatial container (greenhouses, shadehouses, etc.)
     - StorageArea: Level 2 logical zones within warehouses (North, South, etc.)
@@ -28,12 +31,14 @@ Available Models:
     - ProductState: Product lifecycle state catalog (seed, seedling, adult, flowering, etc.)
     - ProductSize: Product size category catalog (XS, S, M, L, XL, XXL, CUSTOM)
     - User: Internal authentication with bcrypt password hashing and 4-level role hierarchy
+    - Classification: ML prediction cache linking detections/estimations to products/packaging/sizes
 
 Usage:
     ```python
     from app.models import (
         Warehouse, StorageArea, StorageLocation, StorageBin, StorageBinType,
-        ProductCategory, ProductFamily, Product, ProductState, ProductSize
+        ProductCategory, ProductFamily, Product, ProductState, ProductSize,
+        Classification
     )
 
     warehouse = Warehouse(code="GH-001", name="Main Greenhouse", ...)
@@ -50,6 +55,7 @@ Usage:
     ```
 """
 
+from app.models.classification import Classification
 from app.models.product import Product
 from app.models.product_category import ProductCategory
 from app.models.product_family import ProductFamily
@@ -77,6 +83,7 @@ __all__ = [
     "Product",
     "ProductState",
     "ProductSize",
+    "Classification",
     "User",
     "UserRoleEnum",
 ]
