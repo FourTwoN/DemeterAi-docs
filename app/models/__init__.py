@@ -13,6 +13,9 @@ Product Catalog (100% COMPLETE):
     - ProductState (DB018): Product lifecycle states (SEED → DEAD)
     - ProductSize (DB019): Product size categories (XS → XXL, CUSTOM)
 
+Authentication (COMPLETE):
+    - User (DB028): Internal staff authentication with role-based access control
+
 Available Models:
     - Warehouse: Root level geospatial container (greenhouses, shadehouses, etc.)
     - StorageArea: Level 2 logical zones within warehouses (North, South, etc.)
@@ -24,6 +27,7 @@ Available Models:
     - Product: LEAF products with SKU and JSONB custom_attributes
     - ProductState: Product lifecycle state catalog (seed, seedling, adult, flowering, etc.)
     - ProductSize: Product size category catalog (XS, S, M, L, XL, XXL, CUSTOM)
+    - User: Internal authentication with bcrypt password hashing and 4-level role hierarchy
 
 Usage:
     ```python
@@ -55,6 +59,7 @@ from app.models.storage_area import PositionEnum, StorageArea
 from app.models.storage_bin import StorageBin, StorageBinStatusEnum
 from app.models.storage_bin_type import BinCategoryEnum, StorageBinType
 from app.models.storage_location import StorageLocation
+from app.models.user import User, UserRoleEnum
 from app.models.warehouse import Warehouse, WarehouseTypeEnum
 
 __all__ = [
@@ -72,4 +77,6 @@ __all__ = [
     "Product",
     "ProductState",
     "ProductSize",
+    "User",
+    "UserRoleEnum",
 ]
