@@ -5,6 +5,10 @@ This package contains machine learning infrastructure and services
 for YOLO model management, inference, and caching.
 """
 
+from app.services.ml_processing.band_estimation_service import (
+    BandEstimation,
+    BandEstimationService,
+)
 from app.services.ml_processing.model_cache import ModelCache
 from app.services.ml_processing.sahi_detection_service import (
     DetectionResult,
@@ -21,4 +25,6 @@ __all__ = [
     "SegmentResult",
     "SAHIDetectionService",
     "DetectionResult",
+    "BandEstimationService",
+    "BandEstimation",
 ]
