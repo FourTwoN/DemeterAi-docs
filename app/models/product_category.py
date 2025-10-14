@@ -43,19 +43,17 @@ import re
 from typing import TYPE_CHECKING
 
 from sqlalchemy import CheckConstraint, Column, DateTime, Integer, String, Text
-from sqlalchemy.orm import validates
+from sqlalchemy.orm import Mapped, relationship, validates
 from sqlalchemy.sql import func
 
 from app.db.base import Base
 
 # Forward declarations for type hints (avoids circular imports)
 if TYPE_CHECKING:
-    # NOTE: Uncomment after DB016 (ProductFamilies) is complete
-    # from app.models.product_family import ProductFamily
+    from app.models.product_family import ProductFamily
 
     # NOTE: Uncomment after DB027 (PriceList) is complete
     # from app.models.price_list import PriceList
-    pass
 
 
 class ProductCategory(Base):
@@ -160,14 +158,13 @@ class ProductCategory(Base):
 
     # Relationships
 
-    # One-to-many: ProductCategory → ProductFamily (COMMENT OUT - DB016 not ready)
-    # NOTE: Uncomment after DB016 (ProductFamilies) is complete
-    # product_families: Mapped[list["ProductFamily"]] = relationship(
-    #     "ProductFamily",
-    #     back_populates="category",
-    #     foreign_keys="ProductFamily.category_id",
-    #     doc="List of product families in this category"
-    # )
+    # One-to-many: ProductCategory → ProductFamily
+    product_families: Mapped[list["ProductFamily"]] = relationship(
+        "ProductFamily",
+        back_populates="category",
+        foreign_keys="ProductFamily.category_id",
+        doc="List of product families in this category",
+    )
 
     # One-to-many: ProductCategory → PriceList (COMMENT OUT - DB027 not ready)
     # NOTE: Uncomment after DB027 (PriceList) is complete

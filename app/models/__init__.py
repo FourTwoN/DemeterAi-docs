@@ -8,6 +8,7 @@ Location Hierarchy (100% COMPLETE):
 
 Product Catalog (IN PROGRESS):
     - ProductCategory (DB015): ROOT taxonomy (Cactus, Succulent, Bromeliad, etc.)
+    - ProductFamily (DB016): LEVEL 2 taxonomy (Echeveria, Aloe, Monstera, etc.)
     - ProductState (DB018): Product lifecycle states (SEED → DEAD)
     - ProductSize (DB019): Product size categories (XS → XXL, CUSTOM)
 
@@ -18,6 +19,7 @@ Available Models:
     - StorageBin: Level 4 (LEAF) physical containers where stock exists
     - StorageBinType: Container type catalog (plug trays, boxes, segments, pots)
     - ProductCategory: Product taxonomy ROOT (Category → Family → Product)
+    - ProductFamily: Product taxonomy LEVEL 2 (Echeveria, Aloe, Monstera, etc.)
     - ProductState: Product lifecycle state catalog (seed, seedling, adult, flowering, etc.)
     - ProductSize: Product size category catalog (XS, S, M, L, XL, XXL, CUSTOM)
 
@@ -25,7 +27,7 @@ Usage:
     ```python
     from app.models import (
         Warehouse, StorageArea, StorageLocation, StorageBin, StorageBinType,
-        ProductCategory, ProductState, ProductSize
+        ProductCategory, ProductFamily, ProductState, ProductSize
     )
 
     warehouse = Warehouse(code="GH-001", name="Main Greenhouse", ...)
@@ -36,12 +38,14 @@ Usage:
                      label="Segment 1", status="active", ...)
     bin_type = StorageBinType(code="PLUG_TRAY_288", name="288-Cell Plug Tray", ...)
     category = ProductCategory(code="CACTUS", name="Cactus", description="Cacti family...")
+    family = ProductFamily(category_id=1, name="Echeveria", scientific_name="Echeveria", ...)
     state = ProductState(code="ADULT", name="Adult Plant", is_sellable=True, ...)
     size = ProductSize(code="M", name="Medium (10-20cm)", min_height_cm=10, ...)
     ```
 """
 
 from app.models.product_category import ProductCategory
+from app.models.product_family import ProductFamily
 from app.models.product_size import ProductSize
 from app.models.product_state import ProductState
 from app.models.storage_area import PositionEnum, StorageArea
@@ -61,6 +65,7 @@ __all__ = [
     "StorageBinType",
     "BinCategoryEnum",
     "ProductCategory",
+    "ProductFamily",
     "ProductState",
     "ProductSize",
 ]
