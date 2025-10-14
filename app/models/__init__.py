@@ -28,6 +28,7 @@ Usage:
 
 from app.models.storage_area import PositionEnum, StorageArea
 from app.models.storage_bin import StorageBin, StorageBinStatusEnum
+from app.models.storage_bin_type import BinCategoryEnum, StorageBinType
 from app.models.storage_location import StorageLocation
 from app.models.warehouse import Warehouse, WarehouseTypeEnum
 
@@ -39,4 +40,6 @@ __all__ = [
     "StorageLocation",
     "StorageBin",
     "StorageBinStatusEnum",
+    "StorageBinType",
+    "BinCategoryEnum",
 ]

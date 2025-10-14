@@ -67,9 +67,8 @@ from app.db.base import Base
 
 # Forward declarations for type hints (avoids circular imports)
 if TYPE_CHECKING:
+    from app.models.storage_bin_type import StorageBinType
     from app.models.storage_location import StorageLocation
-    # NOTE: Uncomment after DB005 (StorageBinType) is complete
-    # from app.models.storage_bin_type import StorageBinType
     # NOTE: Uncomment after DB007 (StockBatch) is complete
     # from app.models.stock_batch import StockBatch
 
@@ -254,13 +253,12 @@ class StorageBin(Base):
     )
 
     # Many-to-one: StorageBin → StorageBinType (optional)
-    # NOTE: Uncomment after DB005 (StorageBinType) is complete
-    # storage_bin_type: Mapped["StorageBinType | None"] = relationship(
-    #     "StorageBinType",
-    #     back_populates="storage_bins",
-    #     foreign_keys=[storage_bin_type_id],
-    #     doc="Bin type definition (capacity, dimensions)"
-    # )
+    storage_bin_type: Mapped["StorageBinType | None"] = relationship(
+        "StorageBinType",
+        back_populates="storage_bins",
+        foreign_keys=[storage_bin_type_id],
+        doc="Bin type definition (capacity, dimensions)",
+    )
 
     # One-to-many: StorageBin → StockBatch (will be created in DB007)
     # NOTE: Uncomment after DB007 (StockBatch) is complete
