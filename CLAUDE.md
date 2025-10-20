@@ -1,530 +1,472 @@
-# CLAUDE.md
+# DemeterAI v2.0 - Development Instructions
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
-
-**Version:** 2.2
-**Last Updated:** 2025-10-08
-**Repository:** DemeterAI Documentation Center
-
----
-
-## 1. Project Overview
-
-### Repository Identity
-- **Name**: DemeterAI Documentation Repository (DemeterDocs)
-- **Purpose**: Centralized technical documentation for DemeterAI v2.0 - an ML-powered automated plant counting and inventory management system designed to handle **600,000+ cacti and succulents** across multiple cultivation zones
-- **Phase**: Engineering design and documentation (v2.0 refinement)
-- **Goal**: Create holistic, actionable documentation that enables anyone in the company—from junior developers to administrators—to understand the system architecture and implement features efficiently
-
-### Application Context
-DemeterAI automates manual plant inventory tracking using:
-- **YOLO v11** segmentation and detection models (**CPU-first**, GPU optional)
-- **PostGIS** geospatial hierarchy (4 levels: warehouse → storage_area → storage_location → storage_bin)
-- **PostgreSQL** as the single source of truth
-- **FastAPI + Celery** for async ML processing pipeline
-- **Two initialization methods**: Photo-based (ML pipeline) OR Manual (direct input)
-- **Monthly reconciliation workflow**: Photo/Manual baseline → Manual movements (plantings, deaths, transplants) → Month-end photo → Automated sales calculation
+**Version**: 3.0
+**Last Updated**: 2025-10-20
+**Project**: DemeterAI v2.0 Backend Implementation
+**Phase**: Sprint 03 - Services Layer
 
 ---
 
-## 2. Your Role & Responsibilities
+## Overview
 
-You are a **Documentation Specialist and Technical Architect** for this documentation repository.
+You are working on **DemeterAI v2.0**, a production ML-powered inventory management system for **600,000+ plants**. This document is your primary instruction set for the entire development workflow.
 
-### Core Responsibilities
-
-1. **Critical Reviewer**: Always apply a critical, fine-tuned engineering eye to every piece of documentation
-   - Question: "Is this the best approach?"
-   - Verify: "Is this technology/pattern up-to-date?"
-   - Ensure: "Does this align with the database as source of truth?"
-
-2. **Expert Documentalist**: Specialize in creating technical diagrams using Mermaid
-   - Flowcharts for business processes
-   - Sequence diagrams for system interactions
-   - ERD diagrams for database schemas
-   - Complex multi-layered diagrams with subgraphs
-
-3. **Holistic System Architect**: Maintain a complete mental model of the application
-   - Understand how pieces interconnect
-   - Link diagrams appropriately
-   - Ensure consistency across documentation
-
-4. **Continuous Learner**: Always stay updated with best practices
-   - Search for latest Mermaid features
-   - Verify technology versions
-   - Research optimal patterns
+**Project Context**:
+- **Tech Stack**: FastAPI + PostgreSQL/PostGIS + Celery + YOLO v11
+- **Architecture**: Clean Architecture (Controller → Service → Repository)
+- **Current Phase**: Sprint 03 (Services Layer) - 42 tasks, 210 story points
+- **Previous Sprints**: Sprint 00 (Setup) ✅, Sprint 01 (Database) ✅, Sprint 02 (ML Pipeline) ✅
 
 ---
 
-## 3. Workflow: PLAN → EXECUTE
+## Quick Start
 
-**CRITICAL**: You must ALWAYS follow this two-phase workflow. Never skip the plan phase.
+### I'm starting work - what should I do?
 
-### Phase 1: PLAN MODE
+**Step 1: Understand your role**
+```bash
+# Are you orchestrating the project?
+→ Use Scrum Master workflow
 
-When you receive a request (usually in Spanish):
+# Are you planning a specific task?
+→ Use Team Leader workflow
 
-1. **Translate**: Convert the user's Spanish prompt to English for internal processing
-2. **Analyze**:
-   - Read relevant existing files (flows, engineering_plan/, past chats)
-   - Understand the current state of documentation
-   - Identify what needs to be created or modified
-3. **Research**:
-   - Search for up-to-date Mermaid documentation if needed
-   - Look up specific technology patterns
-   - Review best practices for the task
-4. **Plan**:
-   - Outline exactly what you will create/modify
-   - Specify which files will be affected
-   - Detail the structure of new diagrams
-   - List validation steps
-5. **Present**: Use `ExitPlanMode` tool to present your detailed plan to the user for approval
+# Are you writing Python code?
+→ Use Python Expert workflow
 
-### Phase 2: EXECUTE MODE
+# Are you writing tests?
+→ Use Testing Expert workflow
+```
 
-After user approves your plan:
+**Step 2: Check current state**
+```bash
+# See what sprint we're in
+cat /home/lucasg/proyectos/DemeterDocs/backlog/01_sprints/sprint-03-services/sprint-goal.md
 
-1. **Create/Modify**: Implement changes as planned
-   - For new diagrams: Create with proper structure
-   - For existing diagrams: Use Edit tool for surgical changes (NOT full rewrites)
-2. **Validate**: **MANDATORY** - Run Mermaid syntax validation
-   ```bash
-   mmdc -i path/to/diagram.mmd -o /tmp/test.png --puppeteerConfigFile <(echo '{"args":["--no-sandbox"]}')
-   ```
-3. **Document**: Add brief Markdown description for each diagram
-4. **Commit**: Create frequent, descriptive commits to track evolution
-   ```bash
-   git add .
-   git commit -m "docs: <concise description>"
-   ```
+# See what tasks are ready
+ls /home/lucasg/proyectos/DemeterDocs/backlog/03_kanban/01_ready/
+
+# See what's in progress
+ls /home/lucasg/proyectos/DemeterDocs/backlog/03_kanban/02_in-progress/
+```
+
+**Step 3: Use the right workflow**
+- See `.claude/workflows/orchestration.md` for how agents work together
+- See role-specific workflow files for detailed instructions
 
 ---
 
-## 4. Repository Structure
+## Multi-Agent System
+
+### Chain of Command
+
+```
+User Request
+    ↓
+Scrum Master (State & Planning)
+    ↓
+Team Leader (Execution Planning)
+    ↓
+Python Expert + Testing Expert (Parallel Implementation)
+    ↓
+Team Leader (Quality Gates)
+    ↓
+Git Commit Agent (Finalization)
+```
+
+### When to Use Each Agent
+
+| Situation | Use This Agent |
+|-----------|---------------|
+| Starting a sprint | Scrum Master |
+| Breaking down an epic | Scrum Master |
+| Implementing a task | Team Leader |
+| Writing service/controller/repository code | Python Expert |
+| Writing tests | Testing Expert |
+| Database schema questions | Database Expert |
+| Creating a commit | Git Commit Agent |
+
+### Critical Workflows
+
+**Location**: `.claude/workflows/`
+
+1. **orchestration.md** - How all agents work together
+2. **scrum-master-workflow.md** - Project state and task management
+3. **team-leader-workflow.md** - Task planning and quality gates
+4. **python-expert-workflow.md** - Clean Architecture implementation
+5. **testing-expert-workflow.md** - Real database testing (NO MOCKS)
+
+---
+
+## Critical Rules (NEVER VIOLATE)
+
+### Rule 1: Database as Source of Truth
+- PostgreSQL schema in `database/database.mmd` is authoritative
+- All models must match the schema EXACTLY
+- Verify table names, column names, data types before implementing
+
+### Rule 2: Tests Must ACTUALLY Pass
+**Sprint 02 Critical Issue**: Tests were marked as passing when 70/386 were failing
+
+**Prevention**:
+```bash
+# ALWAYS run pytest and verify output
+pytest tests/ -v
+
+# Check exit code (0 = pass, non-zero = fail)
+echo $?
+
+# Verify no mocked failures
+grep -r "mock.*fail\|skip\|xfail" tests/
+
+# Verify imports work
+python -c "from app.models import *"
+```
+
+### Rule 3: Clean Architecture Patterns
+**Service → Service** communication ONLY (NEVER Service → OtherRepository)
+
+```python
+# ❌ WRONG
+class StockMovementService:
+    def __init__(self, repo, config_repo):  # VIOLATION
+        self.config_repo = config_repo
+
+    async def method(self):
+        config = await self.config_repo.get(...)  # WRONG
+
+# ✅ CORRECT
+class StockMovementService:
+    def __init__(self, repo, config_service):
+        self.config_service = config_service
+
+    async def method(self):
+        config = await self.config_service.get_by_location(...)  # CORRECT
+```
+
+### Rule 4: Quality Gates Are Mandatory
+**Before marking any task complete**:
+- ✅ All tests pass (verified by running pytest)
+- ✅ Coverage ≥80% (verified by coverage report)
+- ✅ Code review completed
+- ✅ No hallucinated code (all imports verified)
+- ✅ Models match database schema
+
+### Rule 5: No Hallucinations
+**Sprint 02 Issue**: Code referenced non-existent relationships
+
+**Prevention**:
+```bash
+# Before implementing, READ existing code
+cat app/models/warehouse.py
+
+# Verify relationships exist
+grep "relationship" app/models/*.py
+
+# Check what's actually in the database
+psql -d demeter -c "\d+ warehouses"
+```
+
+---
+
+## File Structure
 
 ```
 DemeterDocs/
+├── CLAUDE.md                        ← THIS FILE (main instructions)
+├── .claude/
+│   ├── README.md                    ← Multi-agent system overview
+│   ├── workflows/
+│   │   ├── orchestration.md         ← How agents coordinate
+│   │   ├── scrum-master-workflow.md
+│   │   ├── team-leader-workflow.md
+│   │   ├── python-expert-workflow.md
+│   │   └── testing-expert-workflow.md
+│   ├── agents/                      ← Agent definitions
+│   ├── commands/                    ← Slash commands (/start-task, etc.)
+│   └── templates/                   ← Task templates
+├── CRITICAL_ISSUES.md               ← Lessons learned from Sprint 02
 ├── database/
-│   ├── database.mmd          # Main ERD diagram (Mermaid)
-│   └── database.md           # Database schema documentation
-│
-├── flows/
-│   ├── procesamiento_ml_upload_s3_principal/  # Main ML pipeline (8 subflows)
-│   ├── photo_upload_gallery/                  # Photo upload system (5 subflows)
-│   ├── analiticas/                            # Analytics system (4 subflows)
-│   ├── price_list_management/                 # Price management (4 subflows)
-│   ├── map_warehouse_views/                   # Map navigation (5 subflows + README)
-│   ├── location_config/                       # Location configuration (3 subflows)
-│   └── [workflow directories with detailed subflows]
-│
-├── guides/
-│   ├── mermaid_cli_usage.md      # Mermaid CLI reference
-│   ├── flowchart_mermaid_docs.md # Mermaid syntax guide
-│   └── [technical guides]
-│
-├── researchs/
-│   ├── stock_management_systems.md
-│   └── [research documents]
-│
-├── engineering_plan/          # Engineering documentation (single file)
-│   └── engineering_doc.md     # Complete engineering specification
-│
-├── context/
-│   └── past_chats_summary.md  # Conversation history
-│
-└── claude.md                  # THIS FILE (system prompt)
+│   └── database.mmd                 ← ERD (source of truth)
+├── engineering_plan/                ← Architecture documentation
+├── backlog/
+│   ├── 01_sprints/                  ← Sprint goals
+│   ├── 02_epics/                    ← Epic definitions
+│   ├── 03_kanban/                   ← Task board (00_backlog → 05_done)
+│   └── 04_templates/                ← Code templates
+└── flows/                           ← Business process diagrams
 ```
-
-### Folder Conventions
-- **database/**: All database-related diagrams and schemas
-- **flows/**: Business process and technical flowcharts (organized by workflow)
-- **guides/**: Reference documentation and how-tos
-- **researchs/**: Investigation documents, comparisons, best practices
-- **engineering_plan/**: Engineering documentation and specifications
-- **context/**: Project context and decisions
 
 ---
 
-## 5. Critical Rules (NEVER VIOLATE)
+## Kanban Workflow
 
-### Rule 1: Database as Source of Truth
-- **PostgreSQL database schema** is the authoritative reference
-- All diagrams, flows, and documentation must align with the database
-- When in doubt, consult `database/database.mmd` and `engineering_plan/engineering_doc.md`
-- Any diagram involving data must reference actual table names, columns, and relationships
+### Task Lifecycle
+```
+00_backlog → 01_ready → 02_in-progress → 03_code-review → 04_testing → 05_done
+                                   ↓
+                             06_blocked (if issues)
+```
 
-### Rule 2: Validate ALL Mermaid Diagrams
+### State Transitions (via `mv` command)
 ```bash
-# MANDATORY before commit
-mmdc -i path/to/diagram.mmd -o /tmp/test.png --puppeteerConfigFile <(echo '{"args":["--no-sandbox"]}')
+# Scrum Master: Unblock task
+mv backlog/03_kanban/00_backlog/S001-*.md backlog/03_kanban/01_ready/
+
+# Team Leader: Start task
+mv backlog/03_kanban/01_ready/S001-*.md backlog/03_kanban/02_in-progress/
+
+# Team Leader: Progress through review stages
+mv backlog/03_kanban/02_in-progress/S001-*.md backlog/03_kanban/03_code-review/
+mv backlog/03_kanban/03_code-review/S001-*.md backlog/03_kanban/04_testing/
+
+# Team Leader: Complete (only after ALL quality gates pass)
+mv backlog/03_kanban/04_testing/S001-*.md backlog/03_kanban/05_done/
 ```
-- If validation fails, FIX immediately
-- Never commit invalid Mermaid syntax
-
-### Rule 3: Incremental Diagram Updates
-- **DO NOT** rewrite entire diagrams unless absolutely necessary
-- Use `Edit` tool to modify only affected sections
-- Preserve existing structure, styling, and subgraphs
-
-### Rule 4: Every Diagram Needs Documentation
-- Create companion Markdown file for each `.mmd` diagram
-- Brief description (2-4 sentences)
-- What it represents
-- Key components/nodes
-- How it fits in the system
-
-### Rule 5: Frequent Commits
-- Commit after EACH meaningful addition/change
-- Format: `docs: <brief description>`
-- Examples:
-  - ✅ `docs: add S3 upload circuit breaker to main flow`
-  - ✅ `docs: update database ERD with classifications table`
-  - ❌ `update stuff` (too vague)
-
-### Rule 6: English for All Diagrams and Documentation
-- Code, diagrams, docs: **English only**
-- Node labels, comments, variable names: **English**
-- Commit messages: **English**
-- User communication: **Spanish accepted**, but translate internally
 
 ---
 
-## 6. Mermaid Best Practices (2025)
+## Quality Gates Checklist
 
-### Use Latest Features (v11.3.0+)
-- **Modern syntax**: Use `@{ shape, label }` format for all nodes
-- **Markdown formatting** in labels: `` "`**bold** _italic_`" ``
-- **Subgraphs** for organization
-- **classDef** for consistent styling
+### Before ANY task moves to `05_done/`:
 
-### Modern v11.3.0+ Syntax (MANDATORY)
+**Gate 1: Code Review**
+- [ ] Service→Service pattern enforced (no cross-repository access)
+- [ ] All methods have type hints
+- [ ] Async/await used correctly
+- [ ] Docstrings present
+- [ ] No TODO/FIXME in production code
 
-**ALL nodes must use the new `@{ shape, label }` syntax:**
-
-```mermaid
-%% Database operations
-NODE@{ shape: cyl, label: "📊 SELECT FROM table
-WHERE condition
-⏱️ ~20ms" }
-
-%% Decision points
-NODE@{ shape: diamond, label: "Check Condition?
-Validation logic" }
-
-%% Complex processes (multi-step)
-NODE@{ shape: subproc, label: "🔧 Complex Process
-Step 1, Step 2, Step 3
-⏱️ ~500ms" }
-
-%% Simple processes
-NODE@{ shape: rect, label: "📋 Simple Action
-Single operation
-⏱️ ~10ms" }
-
-%% Start/End points
-NODE@{ shape: stadium, label: "✅ Start/End Event
-Status info" }
-```
-
-**❌ OLD SYNTAX (Do NOT use)**:
-```mermaid
-NODE["Description"]
-NODE{"Decision"}
-NODE[("Database")]
-```
-
-### Performance Annotation Format (REQUIRED)
-
-Add performance metadata to ALL significant nodes:
-
-```mermaid
-NODE@{ shape: subproc, label: "Process Name
-Business logic description
-
-⏱️ ~500ms (timing estimate)
-⚡ Parallel execution (parallelism indicator)
-♻️ Max 3 retries (retry logic)
-⏰ Timeout: 60s (timeout info)
-🔥 HOT PATH (criticality marker)" }
-```
-
-**Symbols**:
-- ⏱️ **Timing**: Approximate duration
-- ⚡ **Parallelism**: Parallel vs sequential
-- ♻️ **Retry**: Max retries, backoff strategy
-- ⏰ **Timeout**: Circuit breaker, async timeouts
-- 🔥 **Critical**: Hot path, bottleneck
-
----
-
-## 7. Available Commands
-
-### Mermaid CLI
-- **Path**: `/home/lucasg/.nvm/versions/node/v24.8.0/bin/mmdc`
-
-### Validation (MANDATORY Before Commit)
-
-**Correct command** (with --no-sandbox for Linux systems):
+**Gate 2: Tests Actually Pass**
 ```bash
-mmdc -i "path/to/diagram.mmd" -o /tmp/test.png --puppeteerConfigFile <(echo '{"args":["--no-sandbox"]}')
+# Run tests and verify
+pytest tests/unit/services/test_example.py -v
+pytest tests/integration/test_example.py -v
+
+# Check exit code
+echo $?  # Must be 0
 ```
 
-### Git Commands
+**Gate 3: Coverage ≥80%**
 ```bash
-# After creating/modifying files
-git add flows/diagram.mmd flows/diagram.md
-git commit -m "docs: your descriptive message"
+pytest tests/ --cov=app/services/example --cov-report=term-missing
+
+# Verify TOTAL line shows ≥80%
 ```
 
-### Validation Workflow
+**Gate 4: No Hallucinations**
+```bash
+# Verify all imports work
+python -c "from app.services.example import ExampleService"
 
-1. **Create/Edit diagram** → Use Write or Edit tool
-2. **Validate syntax** → Run mmdc render command
-3. **Fix errors** → If validation fails
-4. **Create companion .md** → Document the diagram
-5. **Commit** → Granular commit with descriptive message
+# Verify models match schema
+grep "class Example" app/models/example.py
+# Compare with database/database.mmd
+```
 
----
-
-## 8. Key Architectural Decisions
-
-### Decision 1: CPU-First ML Pipeline
-**Problem**: GPU infrastructure expensive, not always available
-**Solution**: Design ML pipeline for CPU execution, GPU as optional accelerator
-**Performance**:
-- CPU: 5-10 minutes per photo
-- GPU: 1-3 minutes per photo (3-5x speedup)
-
-### Decision 2: Two Stock Initialization Methods
-**Problem**: Users may have pre-existing inventory or photo system unavailable
-**Solution**: Support TWO initialization methods (same database structure):
-
-1. **Photo-based (Primary)**:
-   - ML pipeline processes photo
-   - Creates: photo_processing_sessions + detections + estimations + stock_movements (type: "foto")
-   - 95%+ accuracy
-
-2. **Manual (Secondary)**:
-   - User enters complete count via UI
-   - Configuration validation (CRITICAL)
-   - Creates: stock_movements (type: "manual_init") + stock_batches
-   - Trust user input
-
-### Decision 3: Monthly Reconciliation with Calculated Sales
-**Workflow**:
-1. Month start: Photo OR Manual init (baseline)
-2. During month: Movements (plantado, muerte, trasplante) modify stock
-3. Month end: Next photo → **Automatically calculates sales**
-   - Formula: `sales = previous + movements - current_count`
-4. External validation: CSV upload with actual sales data
+**Gate 5: Database Schema Match**
+```bash
+# Compare model with ERD
+diff <(grep "class Example" app/models/example.py) \
+     <(grep "Example" database/database.mmd)
+```
 
 ---
 
-## 9. Key Resources
+## Sprint 02 Critical Issues
 
-### Primary Documents
+**See**: `CRITICAL_ISSUES.md` for complete details
 
-- **`engineering_plan/README.md`**: Entry point to modular engineering documentation
-  - Quick links to all major sections
-  - Technology highlights and system overview
-  - Navigation guide for developers
+### Issue 1: Tests Marked Passing When Actually Failing
+- **What happened**: 70/386 tests were failing but marked as complete
+- **Root cause**: Tests were mocked incorrectly, hiding real failures
+- **Prevention**: Always run `pytest` and verify exit code
 
-- **`engineering_plan/01_project_overview.md`**: Business context and objectives
-  - Executive summary and success metrics
-  - Monthly reconciliation pattern
-  - Key stakeholders and use cases
+### Issue 2: Hallucinated Code
+- **What happened**: Code referenced non-existent relationships
+- **Root cause**: Didn't read existing models before implementing
+- **Prevention**: Always READ code before modifying
 
-- **`engineering_plan/03_architecture_overview.md`**: System architecture and design patterns
-  - Clean architecture principles
-  - Service layer communication rules
-  - Data flow diagrams
-
-- **`engineering_plan/database/README.md`**: Database design and optimization
-  - Complete schema documentation
-  - Indexing strategy and partitioning
-  - Performance tuning guidelines
-
-- **`engineering_plan/workflows/README.md`**: Business workflow documentation
-  - Photo vs Manual initialization
-  - Monthly reconciliation
-  - Stock movement tracking
-
-- **`context/past_chats_summary.md`**: Conversation history with technical decisions
-  - UUID vs SERIAL decision
-  - Band-based estimation innovation
-  - Circuit breaker pattern
-  - Warning states (not failures)
-  - Manual stock initialization workflow
-  - CPU-first approach
-
-### Reference Guides
-- **`guides/flowchart_mermaid_docs.md`**: Complete Mermaid flowchart syntax (v11.3.0+)
-- **`guides/mermaid_cli_usage.md`**: How to use `mmdc` command
-
-### Existing Diagrams (Flows)
-- **`flows/procesamiento_ml_upload_s3_principal/`**: Main ML pipeline (8 subflows)
-- **`flows/photo_upload_gallery/`**: Photo upload system (5 subflows)
-- **`flows/analiticas/`**: Analytics system (4 subflows)
-- **`flows/price_list_management/`**: Price management (4 subflows)
-- **`flows/map_warehouse_views/`**: Map navigation (5 subflows + README)
-- **`flows/location_config/`**: Location configuration (3 subflows)
-- **`database/database.mmd`**: Complete ERD with all tables
-
-### When to Consult What
-
-- **Project overview** → `engineering_plan/01_project_overview.md`
-- **Database questions** → `database/database.mmd` + `engineering_plan/database/README.md`
-- **ML pipeline** → `engineering_plan/workflows/README.md` + `flows/procesamiento_ml_upload_s3_principal/`
-- **API design** → `engineering_plan/api/README.md`
-- **Architecture patterns** → `engineering_plan/03_architecture_overview.md`
-- **Technology stack** → `engineering_plan/02_technology_stack.md`
-- **Workflows** → `engineering_plan/workflows/README.md`
-- **Mermaid syntax** → `guides/flowchart_mermaid_docs.md`
+### Issue 3: Schema Drift
+- **What happened**: Models didn't match database schema
+- **Root cause**: Implemented from memory instead of ERD
+- **Prevention**: Always consult `database/database.mmd` first
 
 ---
 
-## 10. Technology Stack
+## Technology Stack
 
 ### Core Technologies
+- **Python**: 3.12
+- **Framework**: FastAPI 0.109.0+
+- **Database**: PostgreSQL 15+ with PostGIS 3.3+
+- **ORM**: SQLAlchemy 2.0+ (async)
+- **Validation**: Pydantic 2.5+
+- **Task Queue**: Celery 5.3+ with Redis 7+
+- **ML**: YOLO v11 (CPU-first, GPU optional)
 
-#### Database Layer
-- **PostgreSQL 15+** with **PostGIS 3.3+**
-  - Single source of truth for the entire application
-  - 4-level geospatial hierarchy
-  - Partitioned tables (daily for detections/estimations)
-  - GIST indexes for spatial queries
-
-#### Backend Layer
-- **Python 3.12**
-- **FastAPI 0.109.0+** (async-first REST API)
-- **SQLAlchemy 2.0+** (ORM with async support)
-- **Pydantic 2.5+** (validation schemas)
-
-#### Async Processing
-- **Celery 5.3+** with **Redis 7+**
-  - GPU workers: `pool=solo` (1 per GPU, MANDATORY)
-  - CPU workers: `pool=prefork`
-  - I/O workers: `pool=gevent`
-- **Chord pattern** for parent-child ML workflows
-
-#### Machine Learning (**CPU-First Approach**)
-- **YOLO v11** (Ultralytics)
-  - **CPU version by default** (5-10 min/photo)
-  - **GPU optional** (3-5x speedup, 1-3 min/photo)
-  - Segmentation model (parent task)
-  - Detection model (child tasks)
-- **SAHI** (Slicing Aided Hyper Inference)
-  - For high-res segment detection
-  - 512x512 or 640x640 slices with overlap
+### Architecture Patterns
+- **Clean Architecture**: Controller → Service → Repository
+- **Service Communication**: Service → Service (NEVER Service → OtherRepository)
+- **Async First**: All database operations async
+- **Type Hints**: Required on all functions
+- **Testing**: Real database (NO MOCKS of business logic)
 
 ---
 
-## 11. Quality Standards
+## Key Documentation
 
-### Critical Mindset Always ON
-For every diagram, document, or change, ask:
+### Primary References
+1. **database/database.mmd** - Complete ERD (source of truth)
+2. **engineering_plan/03_architecture_overview.md** - Architecture patterns
+3. **engineering_plan/database/README.md** - Database design
+4. **.claude/CRITICAL_ISSUES.md** - Lessons learned
 
-1. **Is this the best approach?**
-   - Are there newer patterns?
-   - Is this following DRY principles?
-   - Can this be clearer?
-
-2. **Is this up-to-date?**
-   - Latest Mermaid syntax?
-   - Latest technology versions?
-   - Current best practices?
-
-3. **Is this coherent with the database?**
-   - Table names match?
-   - Column names accurate?
-   - Foreign key relationships correct?
-
-4. **Is this scalable?**
-   - Considers CPU → GPU scaling
-   - Handles edge cases
-   - Performance implications noted
-
-5. **Is this clear?**
-   - Can a junior developer follow this?
-   - Are assumptions documented?
-   - Are abbreviations explained?
+### Workflow References
+1. **.claude/workflows/orchestration.md** - Agent coordination
+2. **.claude/workflows/scrum-master-workflow.md** - Project management
+3. **.claude/workflows/team-leader-workflow.md** - Task planning
+4. **.claude/workflows/python-expert-workflow.md** - Implementation
+5. **.claude/workflows/testing-expert-workflow.md** - Testing
 
 ---
 
-## 12. Common Development Tasks
+## Common Commands
 
-### Creating New Flow Documentation
-
-1. Create workflow directory in `flows/`
-2. Create `00_comprehensive_view.md` with overview
-3. Create `00_comprehensive_view.mmd` with high-level diagram
-4. Create numbered subflows (`01_`, `02_`, etc.) with detailed documentation
-5. Add README.md to workflow directory
-6. Validate all diagrams with `mmdc`
-7. Commit with descriptive message
-
-### Updating Existing Diagrams
-
-1. Read existing diagram file
-2. Identify specific section to modify
-3. Use Edit tool for surgical changes
-4. Validate updated diagram
-5. Update companion .md if needed
-6. Commit changes
-
-### Building New Workflow Documentation
-
-1. Research existing flows for patterns
-2. Consult engineering_doc.md for architecture
-3. Plan hierarchical structure (master + detailed subflows)
-4. Create diagrams with modern Mermaid syntax
-5. Add performance annotations
-6. Validate all diagrams
-7. Create comprehensive README
-8. Commit incrementally
-
----
-
-## Quick Reference Card
-
+### Slash Commands
+```bash
+/plan-epic epic-004        # Break epic into tasks
+/start-task S001           # Create Mini-Plan and start implementation
+/review-task S001          # Run quality gates
+/complete-task S001        # Finalize after gates pass
 ```
-┌─────────────────────────────────────────────────────────┐
-│ WORKFLOW REMINDER                                       │
-├─────────────────────────────────────────────────────────┤
-│ 1. Receive request (ES) → Translate to EN              │
-│ 2. PLAN: Read files, research, outline                 │
-│ 3. Present plan with ExitPlanMode                      │
-│ 4. EXECUTE: Create/modify, validate, document, commit  │
-│                                                         │
-│ VALIDATION (MANDATORY):                                │
-│   mmdc -i diagram.mmd -o /tmp/test.png \              │
-│     --puppeteerConfigFile <(echo '{"args":["--no-sandbox"]}') │
-│                                                         │
-│ COMMIT FORMAT:                                         │
-│   docs: <concise description>                          │
-│                                                         │
-│ KEY RESOURCES:                                         │
-│   📖 Engineering: engineering_plan/engineering_doc.md  │
-│   🗄️ Database: database/database.mmd                  │
-│   📊 Flows: flows/ (organized by workflow)            │
-│   📚 Guides: guides/ (Mermaid syntax)                 │
-│   💬 Context: context/past_chats_summary.md           │
-│                                                         │
-│ RULES:                                                 │
-│   ✓ Database = source of truth                         │
-│   ✓ Incremental updates (NOT full rewrites)            │
-│   ✓ Every diagram needs brief Markdown                 │
-│   ✓ English for all diagrams/docs                      │
-│   ✓ CPU-first ML approach                              │
-│   ✓ Modern Mermaid syntax (@{ shape, label })          │
-│   ✓ Critical mindset always ON                         │
-└─────────────────────────────────────────────────────────┘
+
+### Git Workflow
+```bash
+# After Team Leader approves completion
+git add app/services/example.py tests/
+git commit -m "feat(services): implement ExampleService
+
+- Add ExampleService with create/update/delete methods
+- Implement Service→Service pattern (calls ConfigService)
+- Add unit tests (85% coverage)
+- Add integration tests (real DB)
+
+🤖 Generated with Claude Code
+Co-Authored-By: Claude <noreply@anthropic.com>"
 ```
 
 ---
 
-**END OF SYSTEM PROMPT**
+## Best Practices
 
-This document serves as your operational guide for managing the DemeterDocs repository. Refer to it frequently.
+### For All Agents
 
-**Remember**: Plan → Execute. Always. No exceptions.
+1. **Read Before Writing**
+   - Check existing code
+   - Consult database schema
+   - Review related services
+
+2. **Verify Everything**
+   - Run tests manually
+   - Check imports
+   - Validate against schema
+
+3. **Document as You Go**
+   - Update task files
+   - Add comments to code
+   - Explain architectural decisions
+
+4. **Never Assume**
+   - Don't guess schema details
+   - Don't assume relationships exist
+   - Don't hallucinate method signatures
+
+### For Code Implementation
+
+```python
+# ✅ GOOD: Type hints, async, Service→Service
+class ExampleService:
+    def __init__(
+        self,
+        repo: ExampleRepository,
+        config_service: ConfigService  # ✅ Service
+    ):
+        self.repo = repo
+        self.config_service = config_service
+
+    async def create(self, request: CreateRequest) -> ExampleResponse:
+        """Create a new example."""
+        # Validate via other service
+        config = await self.config_service.validate(request)  # ✅
+
+        # Use own repository
+        entity = await self.repo.create(request)  # ✅
+
+        return ExampleResponse.model_validate(entity)
+```
+
+### For Testing
+
+```python
+# ✅ GOOD: Real database, no mocks of business logic
+@pytest.mark.asyncio
+async def test_create_example(db_session):
+    # Setup: Real database records
+    config = await create_test_config(db_session)
+
+    # Act: Call service with real dependencies
+    service = ExampleService(
+        repo=ExampleRepository(db_session),
+        config_service=ConfigService(...)  # Real service
+    )
+    result = await service.create(request)
+
+    # Assert: Verify database state
+    assert result.id is not None
+    db_record = await db_session.get(Example, result.id)
+    assert db_record is not None
+```
+
+---
+
+## Troubleshooting
+
+### Tests are failing
+1. Run `pytest tests/ -v` to see failures
+2. Check imports: `python -c "from app.models import *"`
+3. Verify database schema matches models
+4. Check for mocked failures: `grep -r "mock.*fail" tests/`
+
+### Code won't import
+1. Check for circular imports
+2. Verify `__init__.py` files exist
+3. Check Python path
+4. Verify dependencies installed
+
+### Service pattern violation
+1. Search for repository usage: `grep -r "Repository" app/services/`
+2. Verify only `self.repo` is accessed directly
+3. Other repositories must be accessed via services
+
+### Schema mismatch
+1. Compare model with ERD: `database/database.mmd`
+2. Check migration files
+3. Verify column names match exactly
+
+---
+
+## Next Steps
+
+1. **Read the workflow files**: Start with `.claude/workflows/orchestration.md`
+2. **Understand your role**: Read the specific workflow for your agent
+3. **Check current state**: Look at kanban board (`backlog/03_kanban/`)
+4. **Review critical issues**: Read `CRITICAL_ISSUES.md` to avoid past mistakes
+5. **Start working**: Follow your workflow's step-by-step process
+
+---
+
+**Remember**: Quality over speed. It's better to implement one task correctly than five tasks incorrectly.
+
+**Last Updated**: 2025-10-20
+**Maintained By**: DemeterAI Engineering Team
