@@ -667,6 +667,13 @@ def storage_bin_factory(db_session, storage_location_factory):
     return _create_storage_bin
 
 
+# Alias: Some tests use 'session' instead of 'db_session'
+@pytest_asyncio.fixture(scope="function")
+async def session(db_session):
+    """Alias for db_session fixture - allows tests to use either name."""
+    return db_session
+
+
 @pytest.fixture
 async def sample_storage_bins(db_session, storage_location_factory):
     """Create storage location + 3 storage bins for testing hierarchical queries.

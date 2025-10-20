@@ -55,6 +55,8 @@ if TYPE_CHECKING:
     from app.models.packaging_material import PackagingMaterial
     from app.models.packaging_type import PackagingType
     from app.models.price_list import PriceList
+    from app.models.stock_batch import StockBatch
+    from app.models.storage_location_config import StorageLocationConfig
 
 
 class PackagingCatalog(Base):
@@ -223,12 +225,12 @@ class PackagingCatalog(Base):
 
     # One-to-many: PackagingCatalog → StockBatch (COMMENT OUT - not ready)
     # NOTE: Uncomment after StockBatch model is complete
-    # stock_batches: Mapped[list["StockBatch"]] = relationship(
-    #     "StockBatch",
-    #     back_populates="packaging_catalog",
-    #     foreign_keys="StockBatch.packaging_catalog_id",
-    #     doc="List of stock batches using this packaging"
-    # )
+    stock_batches: Mapped[list["StockBatch"]] = relationship(
+        "StockBatch",
+        back_populates="packaging_catalog",
+        foreign_keys="StockBatch.packaging_catalog_id",
+        doc="List of stock batches using this packaging",
+    )
 
     # One-to-many: PackagingCatalog → Classification
     classifications: Mapped[list["Classification"]] = relationship(
@@ -240,12 +242,12 @@ class PackagingCatalog(Base):
 
     # One-to-many: PackagingCatalog → StorageLocationConfig (COMMENT OUT - not ready)
     # NOTE: Uncomment after StorageLocationConfig model is complete
-    # storage_location_configs: Mapped[list["StorageLocationConfig"]] = relationship(
-    #     "StorageLocationConfig",
-    #     back_populates="packaging_catalog",
-    #     foreign_keys="StorageLocationConfig.packaging_catalog_id",
-    #     doc="List of storage location configs using this packaging"
-    # )
+    storage_location_configs: Mapped[list["StorageLocationConfig"]] = relationship(
+        "StorageLocationConfig",
+        back_populates="packaging_catalog",
+        foreign_keys="StorageLocationConfig.packaging_catalog_id",
+        doc="List of storage location configs using this packaging",
+    )
 
     # One-to-many: PackagingCatalog → DensityParameter
     density_parameters: Mapped[list["DensityParameter"]] = relationship(

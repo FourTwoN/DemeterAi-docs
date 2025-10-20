@@ -40,19 +40,17 @@ import re
 from typing import TYPE_CHECKING
 
 from sqlalchemy import Boolean, CheckConstraint, Column, DateTime, Integer, String, Text
-from sqlalchemy.orm import validates
+from sqlalchemy.orm import Mapped, relationship, validates
 from sqlalchemy.sql import func
 
 from app.db.base import Base
 
 # Forward declarations for type hints (avoids circular imports)
 if TYPE_CHECKING:
-    pass
     # NOTE: Uncomment after respective models are complete
-    # from app.models.stock_batch import StockBatch
-    # from app.models.classification import Classification
-    # from app.models.product_sample_image import ProductSampleImage
-    # from app.models.storage_location_config import StorageLocationConfig
+    from app.models.product_sample_image import ProductSampleImage
+    from app.models.stock_batch import StockBatch
+    from app.models.storage_location_config import StorageLocationConfig
 
 
 class ProductState(Base):
@@ -176,12 +174,12 @@ class ProductState(Base):
 
     # One-to-many: ProductState → StockBatch
     # NOTE: Uncomment after StockBatch model is complete
-    # stock_batches: Mapped[list["StockBatch"]] = relationship(
-    #     "StockBatch",
-    #     back_populates="product_state",
-    #     foreign_keys="StockBatch.product_state_id",
-    #     doc="List of stock batches in this state"
-    # )
+    stock_batches: Mapped[list["StockBatch"]] = relationship(
+        "StockBatch",
+        back_populates="product_state",
+        foreign_keys="StockBatch.product_state_id",
+        doc="List of stock batches in this state",
+    )
 
     # One-to-many: ProductState → Classification
     # NOTE: Uncomment after Classification model is complete
@@ -194,21 +192,21 @@ class ProductState(Base):
 
     # One-to-many: ProductState → ProductSampleImage
     # NOTE: Uncomment after ProductSampleImage model is complete
-    # product_sample_images: Mapped[list["ProductSampleImage"]] = relationship(
-    #     "ProductSampleImage",
-    #     back_populates="product_state",
-    #     foreign_keys="ProductSampleImage.product_state_id",
-    #     doc="List of sample images for this state"
-    # )
+    product_sample_images: Mapped[list["ProductSampleImage"]] = relationship(
+        "ProductSampleImage",
+        back_populates="product_state",
+        foreign_keys="ProductSampleImage.product_state_id",
+        doc="List of sample images for this state",
+    )
 
     # One-to-many: ProductState → StorageLocationConfig
     # NOTE: Uncomment after StorageLocationConfig model is complete
-    # storage_location_configs: Mapped[list["StorageLocationConfig"]] = relationship(
-    #     "StorageLocationConfig",
-    #     back_populates="expected_product_state",
-    #     foreign_keys="StorageLocationConfig.expected_product_state_id",
-    #     doc="List of location configs expecting this state"
-    # )
+    storage_location_configs: Mapped[list["StorageLocationConfig"]] = relationship(
+        "StorageLocationConfig",
+        back_populates="expected_product_state",
+        foreign_keys="StorageLocationConfig.expected_product_state_id",
+        doc="List of location configs expecting this state",
+    )
 
     # Table constraints
     __table_args__ = (

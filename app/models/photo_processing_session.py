@@ -78,6 +78,7 @@ if TYPE_CHECKING:
     from app.models.detection import Detection
     from app.models.estimation import Estimation
     from app.models.s3_image import S3Image
+    from app.models.stock_movement import StockMovement
     from app.models.storage_location import StorageLocation
     from app.models.user import User
 
@@ -385,12 +386,12 @@ class PhotoProcessingSession(Base):
 
     # One-to-many: PhotoProcessingSession → StockMovement (COMMENT OUT - not ready)
     # NOTE: Uncomment after StockMovement model is complete
-    # stock_movements: Mapped[list["StockMovement"]] = relationship(
-    #     "StockMovement",
-    #     back_populates="processing_session",
-    #     foreign_keys="StockMovement.processing_session_id",
-    #     doc="List of stock movements generated from this session"
-    # )
+    stock_movements: Mapped[list["StockMovement"]] = relationship(
+        "StockMovement",
+        back_populates="processing_session",
+        foreign_keys="StockMovement.processing_session_id",
+        doc="List of stock movements generated from this session",
+    )
 
     # One-to-many: PhotoProcessingSession → StorageLocation (latest photo reference)
     storage_locations_latest: Mapped[list["StorageLocation"]] = relationship(

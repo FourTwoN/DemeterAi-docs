@@ -76,6 +76,7 @@ if TYPE_CHECKING:
     from app.models.product import Product
     from app.models.product_size import ProductSize
     from app.models.product_state import ProductState
+    from app.models.stock_movement import StockMovement
     from app.models.storage_bin import StorageBin
 
 
@@ -362,13 +363,13 @@ class StockBatch(Base):
 
     # One-to-many: StockBatch → StockMovement (COMMENT OUT - not ready)
     # NOTE: Uncomment after StockMovement model is complete
-    # stock_movements: Mapped[list["StockMovement"]] = relationship(
-    #     "StockMovement",
-    #     back_populates="batch",
-    #     foreign_keys="StockMovement.batch_id",
-    #     cascade="all, delete-orphan",
-    #     doc="List of stock movements for this batch"
-    # )
+    stock_movements: Mapped[list["StockMovement"]] = relationship(
+        "StockMovement",
+        back_populates="batch",
+        foreign_keys="StockMovement.batch_id",
+        cascade="all, delete-orphan",
+        doc="List of stock movements for this batch",
+    )
 
     # Table constraints
     __table_args__ = (

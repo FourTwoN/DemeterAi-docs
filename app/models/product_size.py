@@ -48,10 +48,10 @@ from app.db.base import Base
 # Forward declarations for type hints (avoids circular imports)
 if TYPE_CHECKING:
     from app.models.classification import Classification
+    from app.models.product_sample_image import ProductSampleImage
 
     # NOTE: Uncomment after respective models are complete
-    # from app.models.stock_batch import StockBatch
-    # from app.models.product_sample_image import ProductSampleImage
+    from app.models.stock_batch import StockBatch
 
 
 class ProductSize(Base):
@@ -186,12 +186,12 @@ class ProductSize(Base):
 
     # One-to-many: ProductSize → StockBatch
     # NOTE: Uncomment after StockBatch model is complete
-    # stock_batches: Mapped[list["StockBatch"]] = relationship(
-    #     "StockBatch",
-    #     back_populates="product_size",
-    #     foreign_keys="StockBatch.product_size_id",
-    #     doc="List of stock batches of this size"
-    # )
+    stock_batches: Mapped[list["StockBatch"]] = relationship(
+        "StockBatch",
+        back_populates="product_size",
+        foreign_keys="StockBatch.product_size_id",
+        doc="List of stock batches of this size",
+    )
 
     # One-to-many: ProductSize → Classification
     # NOTE: Uncomment after Classification model is complete
@@ -204,12 +204,12 @@ class ProductSize(Base):
 
     # One-to-many: ProductSize → ProductSampleImage
     # NOTE: Uncomment after ProductSampleImage model is complete
-    # product_sample_images: Mapped[list["ProductSampleImage"]] = relationship(
-    #     "ProductSampleImage",
-    #     back_populates="product_size",
-    #     foreign_keys="ProductSampleImage.product_size_id",
-    #     doc="List of sample images for this size"
-    # )
+    product_sample_images: Mapped[list["ProductSampleImage"]] = relationship(
+        "ProductSampleImage",
+        back_populates="product_size",
+        foreign_keys="ProductSampleImage.product_size_id",
+        doc="List of sample images for this size",
+    )
 
     # Table constraints
     __table_args__ = (

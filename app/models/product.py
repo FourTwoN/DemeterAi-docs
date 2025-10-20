@@ -65,11 +65,11 @@ if TYPE_CHECKING:
     from app.models.classification import Classification
     from app.models.density_parameter import DensityParameter
     from app.models.product_family import ProductFamily
+    from app.models.product_sample_image import ProductSampleImage
 
     # NOTE: Uncomment after dependent models are complete
-    # from app.models.stock_batch import StockBatch
-    # from app.models.product_sample_image import ProductSampleImage
-    # from app.models.storage_location_config import StorageLocationConfig
+    from app.models.stock_batch import StockBatch
+    from app.models.storage_location_config import StorageLocationConfig
 
 
 class Product(Base):
@@ -211,12 +211,12 @@ class Product(Base):
 
     # One-to-many: Product → StockBatch (COMMENT OUT - DB007 not ready)
     # NOTE: Uncomment after DB007 (StockBatch) is complete
-    # stock_batches: Mapped[list["StockBatch"]] = relationship(
-    #     "StockBatch",
-    #     back_populates="product",
-    #     foreign_keys="StockBatch.product_id",
-    #     doc="List of stock batches for this product"
-    # )
+    stock_batches: Mapped[list["StockBatch"]] = relationship(
+        "StockBatch",
+        back_populates="product",
+        foreign_keys="StockBatch.product_id",
+        doc="List of stock batches for this product",
+    )
 
     # One-to-many: Product → Classification (DB026 COMPLETE)
     classifications: Mapped[list["Classification"]] = relationship(
@@ -236,21 +236,21 @@ class Product(Base):
 
     # One-to-many: Product → ProductSampleImage (COMMENT OUT - DB020 not ready)
     # NOTE: Uncomment after DB020 (ProductSampleImage) is complete
-    # product_sample_images: Mapped[list["ProductSampleImage"]] = relationship(
-    #     "ProductSampleImage",
-    #     back_populates="product",
-    #     foreign_keys="ProductSampleImage.product_id",
-    #     doc="List of sample images for this product"
-    # )
+    product_sample_images: Mapped[list["ProductSampleImage"]] = relationship(
+        "ProductSampleImage",
+        back_populates="product",
+        foreign_keys="ProductSampleImage.product_id",
+        doc="List of sample images for this product",
+    )
 
     # One-to-many: Product → StorageLocationConfig (COMMENT OUT - DB006 not ready)
     # NOTE: Uncomment after DB006 (StorageLocationConfig) is complete
-    # storage_location_configs: Mapped[list["StorageLocationConfig"]] = relationship(
-    #     "StorageLocationConfig",
-    #     back_populates="product",
-    #     foreign_keys="StorageLocationConfig.product_id",
-    #     doc="List of storage location configurations for this product"
-    # )
+    storage_location_configs: Mapped[list["StorageLocationConfig"]] = relationship(
+        "StorageLocationConfig",
+        back_populates="product",
+        foreign_keys="StorageLocationConfig.product_id",
+        doc="List of storage location configurations for this product",
+    )
 
     # Table constraints
     __table_args__ = (

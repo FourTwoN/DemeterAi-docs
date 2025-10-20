@@ -113,11 +113,12 @@ from app.db.base import Base
 
 # Forward declarations for type hints (avoids circular imports)
 if TYPE_CHECKING:
-    from app.models.user import User
     # NOTE: Uncomment after DB012 (PhotoProcessingSession) is complete
-    # from app.models.photo_processing_session import PhotoProcessingSession
+    from app.models.photo_processing_session import PhotoProcessingSession
+
     # NOTE: Uncomment after DB020 (ProductSampleImage) is complete
-    # from app.models.product_sample_image import ProductSampleImage
+    from app.models.product_sample_image import ProductSampleImage
+    from app.models.user import User
 
 
 # Enum definitions (will be created in migration as PostgreSQL ENUMs)
@@ -410,23 +411,23 @@ class S3Image(Base):
 
     # One-to-many: S3Image → PhotoProcessingSession (COMMENT OUT - DB012 not ready)
     # NOTE: Uncomment after DB012 (PhotoProcessingSession) is complete
-    # photo_processing_sessions: Mapped[list["PhotoProcessingSession"]] = relationship(
-    #     "PhotoProcessingSession",
-    #     back_populates="source_image",
-    #     foreign_keys="PhotoProcessingSession.original_image_id",
-    #     cascade="all, delete-orphan",
-    #     doc="Photo processing sessions using this image as source"
-    # )
+    photo_processing_sessions: Mapped[list["PhotoProcessingSession"]] = relationship(
+        "PhotoProcessingSession",
+        back_populates="original_image",
+        foreign_keys="PhotoProcessingSession.original_image_id",
+        cascade="all, delete-orphan",
+        doc="Photo processing sessions using this image as source",
+    )
 
     # One-to-many: S3Image → ProductSampleImage (COMMENT OUT - DB020 not ready)
     # NOTE: Uncomment after DB020 (ProductSampleImage) is complete
-    # product_sample_images: Mapped[list["ProductSampleImage"]] = relationship(
-    #     "ProductSampleImage",
-    #     back_populates="image",
-    #     foreign_keys="ProductSampleImage.image_id",
-    #     cascade="all, delete-orphan",
-    #     doc="Product sample images using this S3 image"
-    # )
+    product_sample_images: Mapped[list["ProductSampleImage"]] = relationship(
+        "ProductSampleImage",
+        back_populates="image",
+        foreign_keys="ProductSampleImage.image_id",
+        cascade="all, delete-orphan",
+        doc="Product sample images using this S3 image",
+    )
 
     # Table constraints
     __table_args__ = ({"comment": "S3 Images - Uploaded image metadata with UUID primary key"},)

@@ -68,6 +68,7 @@ from app.db.base import Base
 # Forward declarations for type hints (avoids circular imports)
 if TYPE_CHECKING:
     from app.models.stock_batch import StockBatch
+    from app.models.stock_movement import StockMovement
     from app.models.storage_bin_type import StorageBinType
     from app.models.storage_location import StorageLocation
 
@@ -270,6 +271,22 @@ class StorageBin(Base):
         foreign_keys="StockBatch.current_storage_bin_id",
         cascade="all, delete-orphan",
         doc="List of stock batches in this bin",
+    )
+
+    # One-to-many: StorageBin → StockMovement (as source bin)
+    stock_movements_source: Mapped[list["StockMovement"]] = relationship(
+        "StockMovement",
+        back_populates="source_bin",
+        foreign_keys="StockMovement.source_bin_id",
+        doc="Stock movements where this bin is the source",
+    )
+
+    # One-to-many: StorageBin → StockMovement (as destination bin)
+    stock_movements_destination: Mapped[list["StockMovement"]] = relationship(
+        "StockMovement",
+        back_populates="destination_bin",
+        foreign_keys="StockMovement.destination_bin_id",
+        doc="Stock movements where this bin is the destination",
     )
 
     # Table constraints

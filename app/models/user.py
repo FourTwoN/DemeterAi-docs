@@ -55,7 +55,7 @@ import re
 from typing import TYPE_CHECKING
 
 from sqlalchemy import Boolean, Column, DateTime, Enum, Integer, String
-from sqlalchemy.orm import validates
+from sqlalchemy.orm import Mapped, relationship, validates
 from sqlalchemy.sql import func
 
 from app.db.base import Base
@@ -63,11 +63,10 @@ from app.db.base import Base
 # Forward declarations for type hints (avoids circular imports)
 if TYPE_CHECKING:
     # NOTE: Uncomment after dependent models are complete
-    # from app.models.stock_movement import StockMovement
-    # from app.models.photo_processing_session import PhotoProcessingSession
-    # from app.models.s3_image import S3Image
-    # from app.models.product_sample_image import ProductSampleImage
-    pass
+    from app.models.photo_processing_session import PhotoProcessingSession
+    from app.models.product_sample_image import ProductSampleImage
+    from app.models.s3_image import S3Image
+    from app.models.stock_movement import StockMovement
 
 
 # Enum definition (will be created in migration as PostgreSQL ENUM)
@@ -247,39 +246,39 @@ class User(Base):
 
     # One-to-many: User → StockMovement (COMMENT OUT - DB007 not ready)
     # NOTE: Uncomment after DB007 (StockMovement) is complete
-    # stock_movements: Mapped[list["StockMovement"]] = relationship(
-    #     "StockMovement",
-    #     back_populates="user",
-    #     foreign_keys="StockMovement.user_id",
-    #     doc="Stock movements performed by this user"
-    # )
+    stock_movements: Mapped[list["StockMovement"]] = relationship(
+        "StockMovement",
+        back_populates="user",
+        foreign_keys="StockMovement.user_id",
+        doc="Stock movements performed by this user",
+    )
 
     # One-to-many: User → PhotoProcessingSession (COMMENT OUT - DB012 not ready)
     # NOTE: Uncomment after DB012 (PhotoProcessingSession) is complete
-    # photo_sessions_validated: Mapped[list["PhotoProcessingSession"]] = relationship(
-    #     "PhotoProcessingSession",
-    #     back_populates="validated_by_user",
-    #     foreign_keys="PhotoProcessingSession.validated_by_user_id",
-    #     doc="Photo sessions validated by this user"
-    # )
+    photo_sessions_validated: Mapped[list["PhotoProcessingSession"]] = relationship(
+        "PhotoProcessingSession",
+        back_populates="validated_by_user",
+        foreign_keys="PhotoProcessingSession.validated_by_user_id",
+        doc="Photo sessions validated by this user",
+    )
 
     # One-to-many: User → S3Image (COMMENT OUT - DB010 not ready)
     # NOTE: Uncomment after DB010 (S3Image) is complete
-    # uploaded_images: Mapped[list["S3Image"]] = relationship(
-    #     "S3Image",
-    #     back_populates="uploaded_by_user",
-    #     foreign_keys="S3Image.uploaded_by_user_id",
-    #     doc="S3 images uploaded by this user"
-    # )
+    uploaded_images: Mapped[list["S3Image"]] = relationship(
+        "S3Image",
+        back_populates="uploaded_by_user",
+        foreign_keys="S3Image.uploaded_by_user_id",
+        doc="S3 images uploaded by this user",
+    )
 
     # One-to-many: User → ProductSampleImage (COMMENT OUT - DB020 not ready)
     # NOTE: Uncomment after DB020 (ProductSampleImage) is complete
-    # captured_samples: Mapped[list["ProductSampleImage"]] = relationship(
-    #     "ProductSampleImage",
-    #     back_populates="captured_by_user",
-    #     foreign_keys="ProductSampleImage.captured_by_user_id",
-    #     doc="Product sample images captured by this user"
-    # )
+    captured_samples: Mapped[list["ProductSampleImage"]] = relationship(
+        "ProductSampleImage",
+        back_populates="captured_by_user",
+        foreign_keys="ProductSampleImage.captured_by_user_id",
+        doc="Product sample images captured by this user",
+    )
 
     # Table constraints
     __table_args__ = (
