@@ -523,6 +523,8 @@ async def test_update_storage_area_success(
 
     updated_area = Mock(spec=StorageArea)
     updated_area.storage_area_id = 1
+    updated_area.warehouse_id = 1
+    updated_area.parent_area_id = None  # IMPORTANT: Add this missing field
     updated_area.code = "GH-001-NORTH"
     updated_area.name = "Updated North Wing"
     updated_area.position = Mock()
@@ -530,7 +532,6 @@ async def test_update_storage_area_success(
     updated_area.geojson_coordinates = mock_storage_area.geojson_coordinates
     updated_area.centroid = mock_storage_area.centroid
     updated_area.area_m2 = mock_storage_area.area_m2
-    updated_area.warehouse_id = 1
     updated_area.active = True
     updated_area.created_at = mock_storage_area.created_at
     updated_area.updated_at = datetime(2025, 10, 20, 15, 0, 0)

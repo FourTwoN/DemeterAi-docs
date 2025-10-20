@@ -48,7 +48,13 @@ from app.services.storage_location_service import (
 @pytest.fixture
 def mock_location_repo():
     """Create mock StorageLocationRepository."""
-    return AsyncMock()
+    from app.models.storage_location import StorageLocation
+    mock = AsyncMock()
+    # Add the model attribute that StorageLocationService uses for queries
+    mock.model = StorageLocation
+    # Mock session.execute as async
+    mock.session.execute = AsyncMock()
+    return mock
 
 
 @pytest.fixture
