@@ -203,30 +203,12 @@ class TestMLPipelineIntegration:
         await test_db_session.commit()
 
         # Arrange: Create pipeline coordinator with real services
-        # NOTE: We'll need to create repositories as well
-        from app.repositories.detection_repository import DetectionRepository
-        from app.repositories.estimation_repository import EstimationRepository
-        from app.repositories.photo_processing_session_repository import (
-            PhotoProcessingSessionRepository,
-        )
         from app.services.ml_processing.pipeline_coordinator import MLPipelineCoordinator
 
-        session_repo = PhotoProcessingSessionRepository(test_db_session)
-        detection_repo = DetectionRepository(test_db_session)
-        estimation_repo = EstimationRepository(test_db_session)
-
-        # Create direct detection service (for boxes/plugs)
-        # NOTE: For integration test, we can use SAHI service as fallback
-        direct_svc = real_sahi_service  # Simplified for testing
-
         coordinator = MLPipelineCoordinator(
-            segmentation_svc=real_segmentation_service,
-            sahi_svc=real_sahi_service,
-            direct_svc=direct_svc,
-            band_estimation_svc=real_band_estimation_service,
-            session_repo=session_repo,
-            detection_repo=detection_repo,
-            estimation_repo=estimation_repo,
+            segmentation_service=real_segmentation_service,
+            sahi_service=real_sahi_service,
+            band_estimation_service=real_band_estimation_service,
         )
 
         # Act: Run complete pipeline
@@ -336,24 +318,13 @@ class TestMLPipelineIntegration:
         await test_db_session.commit()
 
         # Arrange: Create minimal coordinator (only segmentation needed)
-        from app.repositories.detection_repository import DetectionRepository
-        from app.repositories.estimation_repository import EstimationRepository
-        from app.repositories.photo_processing_session_repository import (
-            PhotoProcessingSessionRepository,
-        )
+        from unittest.mock import AsyncMock
         from app.services.ml_processing.pipeline_coordinator import MLPipelineCoordinator
 
-        # Create mock services for detection/estimation (won't be called)
-        from unittest.mock import AsyncMock
-
         coordinator = MLPipelineCoordinator(
-            segmentation_svc=real_segmentation_service,
-            sahi_svc=AsyncMock(),  # Won't be called
-            direct_svc=AsyncMock(),  # Won't be called
-            band_estimation_svc=AsyncMock(),  # Won't be called
-            session_repo=PhotoProcessingSessionRepository(test_db_session),
-            detection_repo=DetectionRepository(test_db_session),
-            estimation_repo=EstimationRepository(test_db_session),
+            segmentation_service=real_segmentation_service,
+            sahi_service=AsyncMock(),  # Won't be called
+            band_estimation_service=AsyncMock(),  # Won't be called
         )
 
         # Act: Run pipeline
@@ -409,23 +380,14 @@ class TestMLPipelinePerformance:
         from app.services.ml_processing.pipeline_coordinator import MLPipelineCoordinator
 
         coordinator = MLPipelineCoordinator(
-            segmentation_svc=real_segmentation_service,
-            sahi_svc=real_sahi_service,
-            direct_svc=real_sahi_service,
-            band_estimation_svc=real_band_estimation_service,
-            session_repo=AsyncMock(),
-            detection_repo=AsyncMock(),
-            estimation_repo=AsyncMock(),
+            segmentation_service=real_segmentation_service,
+            sahi_service=real_sahi_service,
+            band_estimation_service=real_band_estimation_service,
         )
 
-        # Mock session repository to avoid DB operations
-        coordinator.session_repo.get_by_session_id.return_value = AsyncMock(
-            id=1, session_id=uuid.uuid4(), status="pending"
-        )
-        coordinator.session_repo.update_progress = AsyncMock()
-        coordinator.session_repo.update = AsyncMock()
-        coordinator.detection_repo.bulk_insert = AsyncMock()
-        coordinator.estimation_repo.bulk_insert = AsyncMock()
+        # NOTE: The coordinator no longer exposes repositories directly.
+        # This test runs the full pipeline including DB operations.
+        # For pure ML benchmarking, use unit tests with mocked services.
 
         # Act: Run pipeline 3 times and average
         import time
@@ -504,20 +466,12 @@ class TestMLPipelineErrorRecovery:
 
         # Arrange: Create coordinator
         from unittest.mock import AsyncMock
-
-        from app.repositories.photo_processing_session_repository import (
-            PhotoProcessingSessionRepository,
-        )
         from app.services.ml_processing.pipeline_coordinator import MLPipelineCoordinator
 
         coordinator = MLPipelineCoordinator(
-            segmentation_svc=real_segmentation_service,
-            sahi_svc=AsyncMock(),
-            direct_svc=AsyncMock(),
-            band_estimation_svc=AsyncMock(),
-            session_repo=PhotoProcessingSessionRepository(test_db_session),
-            detection_repo=AsyncMock(),
-            estimation_repo=AsyncMock(),
+            segmentation_service=real_segmentation_service,
+            sahi_service=AsyncMock(),
+            band_estimation_service=AsyncMock(),
         )
 
         # Act & Assert: Should raise exception
@@ -561,20 +515,12 @@ class TestMLPipelineErrorRecovery:
 
         # Arrange: Create coordinator
         from unittest.mock import AsyncMock
-
-        from app.repositories.photo_processing_session_repository import (
-            PhotoProcessingSessionRepository,
-        )
         from app.services.ml_processing.pipeline_coordinator import MLPipelineCoordinator
 
         coordinator = MLPipelineCoordinator(
-            segmentation_svc=real_segmentation_service,
-            sahi_svc=AsyncMock(),
-            direct_svc=AsyncMock(),
-            band_estimation_svc=AsyncMock(),
-            session_repo=PhotoProcessingSessionRepository(test_db_session),
-            detection_repo=AsyncMock(),
-            estimation_repo=AsyncMock(),
+            segmentation_service=real_segmentation_service,
+            sahi_service=AsyncMock(),
+            band_estimation_service=AsyncMock(),
         )
 
         # Act & Assert: Should raise FileNotFoundError
@@ -641,13 +587,9 @@ class TestMLPipelineResultValidation:
         estimation_repo = EstimationRepository(test_db_session)
 
         coordinator = MLPipelineCoordinator(
-            segmentation_svc=real_segmentation_service,
-            sahi_svc=real_sahi_service,
-            direct_svc=real_sahi_service,
-            band_estimation_svc=real_band_estimation_service,
-            session_repo=session_repo,
-            detection_repo=detection_repo,
-            estimation_repo=estimation_repo,
+            segmentation_service=real_segmentation_service,
+            sahi_service=real_sahi_service,
+            band_estimation_service=real_band_estimation_service,
         )
 
         # Act: Run pipeline

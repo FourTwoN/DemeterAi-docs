@@ -235,27 +235,23 @@ def mock_estimation_repository():
 def pipeline_coordinator(
     mock_segmentation_service,
     mock_sahi_service,
-    mock_direct_detection_service,
     mock_band_estimation_service,
-    mock_session_repository,
-    mock_detection_repository,
-    mock_estimation_repository,
 ):
     """Create MLPipelineCoordinator with all mocked dependencies.
 
     This fixture creates a fully-mocked coordinator for unit testing.
     All external dependencies are mocked to test orchestration logic only.
+
+    Note: Updated to match current MLPipelineCoordinator __init__() signature.
+    The coordinator now only receives services (Service→Service pattern),
+    not repositories directly.
     """
     from app.services.ml_processing.pipeline_coordinator import MLPipelineCoordinator
 
     return MLPipelineCoordinator(
-        segmentation_svc=mock_segmentation_service,
-        sahi_svc=mock_sahi_service,
-        direct_svc=mock_direct_detection_service,
-        band_estimation_svc=mock_band_estimation_service,
-        session_repo=mock_session_repository,
-        detection_repo=mock_detection_repository,
-        estimation_repo=mock_estimation_repository,
+        segmentation_service=mock_segmentation_service,
+        sahi_service=mock_sahi_service,
+        band_estimation_service=mock_band_estimation_service,
     )
 
 
