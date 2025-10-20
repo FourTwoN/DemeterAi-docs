@@ -1,29 +1,28 @@
 """Product family business logic service (LEVEL 2 taxonomy)."""
 
-from app.repositories.product_category_repository import ProductCategoryRepository
 from app.repositories.product_family_repository import ProductFamilyRepository
 from app.schemas.product_family_schema import (
     ProductFamilyCreateRequest,
     ProductFamilyResponse,
     ProductFamilyUpdateRequest,
 )
+from app.services.product_category_service import ProductCategoryService
 
 
 class ProductFamilyService:
     """Business logic for product family operations (CRUD + category validation)."""
 
     def __init__(
-        self, family_repo: ProductFamilyRepository, category_repo: ProductCategoryRepository
+        self, family_repo: ProductFamilyRepository, category_service: ProductCategoryService
     ) -> None:
         self.family_repo = family_repo
-        self.category_repo = category_repo
+        self.category_service = category_service
 
     async def create_family(self, request: ProductFamilyCreateRequest) -> ProductFamilyResponse:
         """Create product family with parent category validation."""
-        # Validate category exists
-        category = await self.category_repo.get(request.category_id)
-        if not category:
-            raise ValueError(f"ProductCategory {request.category_id} not found")
+        # Validate category exists via CategoryService (Service→Service pattern)
+        # This call raises ValueError if category doesn't exist
+        await self.category_service.get_category_by_id(request.category_id)
 
         family_data = request.model_dump()
         family_model = await self.family_repo.create(family_data)

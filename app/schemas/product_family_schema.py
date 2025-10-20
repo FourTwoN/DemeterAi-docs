@@ -1,6 +1,11 @@
 """Product Family Pydantic schemas (LEVEL 2 taxonomy)."""
 
+from typing import TYPE_CHECKING
+
 from pydantic import BaseModel, ConfigDict, Field
+
+if TYPE_CHECKING:
+    from app.models.product_family import ProductFamily
 
 
 class ProductFamilyCreateRequest(BaseModel):
@@ -34,7 +39,7 @@ class ProductFamilyResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
     @classmethod
-    def from_model(cls, family_model):
+    def from_model(cls, family_model: "ProductFamily") -> "ProductFamilyResponse":
         """Create response from SQLAlchemy model."""
         return cls(
             family_id=family_model.family_id,

@@ -1,8 +1,12 @@
 """Product Category Pydantic schemas (ROOT taxonomy level)."""
 
 from datetime import datetime
+from typing import TYPE_CHECKING
 
 from pydantic import BaseModel, ConfigDict, Field
+
+if TYPE_CHECKING:
+    from app.models.product_category import ProductCategory
 
 
 class ProductCategoryCreateRequest(BaseModel):
@@ -38,7 +42,7 @@ class ProductCategoryResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
     @classmethod
-    def from_model(cls, category_model):
+    def from_model(cls, category_model: "ProductCategory") -> "ProductCategoryResponse":
         """Create response from SQLAlchemy model."""
         return cls(
             product_category_id=category_model.product_category_id,
