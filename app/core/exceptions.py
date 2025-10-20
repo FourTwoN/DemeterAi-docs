@@ -439,3 +439,140 @@ class CeleryTaskException(AppBaseException):
                 "error": error or "unknown",
             },
         )
+
+
+# =============================================================================
+# Warehouse-specific exceptions
+# =============================================================================
+
+
+class WarehouseNotFoundException(NotFoundException):
+    """Raised when a warehouse cannot be found by ID.
+
+    HTTP Status: 404 Not Found
+
+    Example:
+        raise WarehouseNotFoundException(warehouse_id=123)
+    """
+
+    def __init__(self, warehouse_id: int):
+        """Initialize WarehouseNotFoundException.
+
+        Args:
+            warehouse_id: Warehouse ID that was not found
+        """
+        super().__init__(resource="Warehouse", identifier=warehouse_id)
+
+
+class DuplicateCodeException(AppBaseException):
+    """Raised when attempting to create a warehouse with a duplicate code.
+
+    HTTP Status: 409 Conflict
+
+    Warehouse codes must be unique across the system.
+
+    Example:
+        raise DuplicateCodeException(code="GH-001")
+    """
+
+    def __init__(self, code: str):
+        """Initialize DuplicateCodeException.
+
+        Args:
+            code: Warehouse code that already exists
+        """
+        super().__init__(
+            technical_message=f"Warehouse code '{code}' already exists",
+            user_message=f"A warehouse with code '{code}' already exists. Please choose a different code.",
+            code=409,
+            extra={"warehouse_code": code},
+        )
+
+
+# =============================================================================
+# Storage Area Exceptions
+# =============================================================================
+
+
+class StorageAreaNotFoundException(NotFoundException):
+    """Raised when a storage area cannot be found by ID.
+
+    HTTP Status: 404 Not Found
+
+    Example:
+        raise StorageAreaNotFoundException(area_id=123)
+    """
+
+    def __init__(self, area_id: int):
+        """Initialize StorageAreaNotFoundException.
+
+        Args:
+            area_id: Storage area ID that was not found
+        """
+        super().__init__(resource="StorageArea", identifier=area_id)
+
+
+class StorageLocationNotFoundException(NotFoundException):
+    """Raised when a storage location cannot be found by ID.
+
+    HTTP Status: 404 Not Found
+
+    Example:
+        raise StorageLocationNotFoundException(location_id=456)
+    """
+
+    def __init__(self, location_id: int):
+        """Initialize StorageLocationNotFoundException.
+
+        Args:
+            location_id: Storage location ID that was not found
+        """
+        super().__init__(resource="StorageLocation", identifier=location_id)
+        self.location_id = location_id
+
+
+class StorageBinNotFoundException(NotFoundException):
+    """Raised when a storage bin cannot be found by ID.
+
+    HTTP Status: 404 Not Found
+
+    Example:
+        raise StorageBinNotFoundException(bin_id=789)
+    """
+
+    def __init__(self, bin_id: int):
+        """Initialize StorageBinNotFoundException.
+
+        Args:
+            bin_id: Storage bin ID that was not found
+        """
+        super().__init__(resource="StorageBin", identifier=bin_id)
+        self.bin_id = bin_id
+
+
+class GeometryOutOfBoundsException(ValidationException):
+    """Raised when a geometry extends beyond its parent's boundaries.
+
+    HTTP Status: 400 Bad Request
+
+    Example:
+        raise GeometryOutOfBoundsException(
+            child="StorageArea",
+            parent="Warehouse",
+            message="Area extends beyond warehouse boundaries"
+        )
+    """
+
+    def __init__(self, child: str, parent: str, message: str):
+        """Initialize GeometryOutOfBoundsException.
+
+        Args:
+            child: Type of child entity
+            parent: Type of parent entity
+            message: Specific error message
+        """
+        super().__init__(
+            field="geojson_coordinates",
+            message=f"{child} geometry extends beyond {parent} boundaries: {message}",
+            value=None,
+        )
