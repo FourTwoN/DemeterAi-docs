@@ -61,6 +61,7 @@ from app.models.classification import Classification
 from app.models.density_parameter import DensityParameter
 from app.models.detection import Detection
 from app.models.estimation import CalculationMethodEnum, Estimation
+from app.models.location_relationships import LocationRelationship, RelationshipTypeEnum
 from app.models.packaging_catalog import PackagingCatalog
 from app.models.packaging_color import PackagingColor
 from app.models.packaging_material import PackagingMaterial
@@ -107,6 +108,8 @@ __all__ = [
     "StorageBinStatusEnum",
     "StorageBinType",
     "BinCategoryEnum",
+    "LocationRelationship",
+    "RelationshipTypeEnum",
     # Product Catalog
     "ProductCategory",
     "ProductFamily",
