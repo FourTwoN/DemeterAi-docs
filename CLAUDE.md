@@ -456,10 +456,467 @@ async def test_create_example(db_session):
 
 ---
 
+## Project Structure & Useful Paths
+
+### Core Application (`app/`)
+```
+app/
+├── main.py                 # FastAPI app entry point
+├── core/
+│   ├── config.py          # Configuration + environment
+│   ├── exceptions.py       # Custom exceptions (CRITICAL: all exceptions here)
+│   └── logging.py         # Logging configuration
+├── db/
+│   ├── base.py            # SQLAlchemy Base (all models inherit from this)
+│   └── session.py         # Database session factory
+├── models/                # 28 SQLAlchemy models (database/database.mmd is source of truth)
+│   ├── warehouse.py       # (DB001) 4-level geospatial hierarchy
+│   ├── storage_area.py    # (DB002)
+│   ├── storage_location.py # (DB003)
+│   ├── storage_bin.py     # (DB004)
+│   ├── product*.py        # (DB015-DB019) 3-level product taxonomy
+│   ├── stock_*.py         # (DB007-DB008) Stock management
+│   ├── photo_processing_session.py # (DB012) ML pipeline
+│   ├── detection.py       # (DB013) Partitioned by date
+│   ├── estimation.py      # (DB014) Partitioned by date
+│   └── [14 more models]
+├── repositories/          # 27 async repositories (BaseRepository + 26 specialized)
+│   ├── base.py            # Generic CRUD: get, get_multi, create, update, delete
+│   ├── warehouse_repository.py
+│   ├── product_repository.py
+│   └── [24 more repositories]
+├── services/              # Services layer (SPRINT 03 - TO BE IMPLEMENTED)
+│   └── ml_processing/     # ML orchestration services
+├── controllers/           # FastAPI route handlers (SPRINT 04+)
+├── schemas/               # Pydantic schemas (SPRINT 03+)
+└── celery/                # Celery tasks for async processing
+```
+
+### Database & Migrations
+```
+alembic/                   # Database migration system
+├── versions/              # 14 migration files (consolidate as new ones added)
+├── env.py                 # Alembic configuration
+└── script.py.mako         # Migration template
+
+database/
+├── database.mmd           # ⭐️ SOURCE OF TRUTH - Complete ERD with all 28 models
+└── database.md            # Schema documentation
+```
+
+### Documentation & Planning
+```
+backlog/                   # Project management
+├── 00_epics/              # 17 epics defining all work
+├── 01_sprints/            # Sprint goals and plans
+│   ├── sprint-00/         # ✅ COMPLETE: Foundation
+│   ├── sprint-01/         # ✅ COMPLETE: Database
+│   ├── sprint-02/         # ✅ COMPLETE: ML Pipeline
+│   └── sprint-03/         # → ACTIVE: Services Layer (42 tasks)
+├── 03_kanban/             # Kanban board (DO NOT DELETE)
+│   ├── 00_backlog/        # Raw backlog
+│   ├── 01_ready/          # Tasks ready to start
+│   ├── 02_in-progress/    # Currently working
+│   ├── 03_code-review/    # Waiting review
+│   ├── 04_testing/        # Testing phase
+│   ├── 05_done/           # Completed tasks
+│   └── 06_blocked/        # Blocked tasks
+
+engineering_plan/          # Architecture & design documentation
+├── 01_project_overview.md
+├── 02_technology_stack.md
+├── 03_architecture_overview.md
+└── database/
+    └── README.md          # Database design guide
+
+flows/                     # Business process flows (Mermaid diagrams)
+├── procesamiento_ml_upload_s3_principal/
+├── photo_upload_gallery/
+├── analiticas/
+└── [other workflows]
+
+.claude/                   # System instructions (READ FIRST!)
+├── CLAUDE.md              # This file
+├── CRITICAL_ISSUES.md     # ⚠️ Problems from Sprint 02 & prevention
+├── README.md              # Quick navigation
+├── workflows/
+│   ├── orchestration.md        # How agents work together
+│   ├── scrum-master-workflow.md
+│   ├── team-leader-workflow.md
+│   ├── python-expert-workflow.md
+│   └── testing-expert-workflow.md
+└── templates/
+    ├── mini-plan-template.md
+    ├── handoff-note.md
+    └── task-progress-update.md
+```
+
+### Tests
+```
+tests/                     # 386/509 passing (75.8%)
+├── unit/
+│   └── models/            # Model tests (DB001-DB028)
+├── integration/           # PostgreSQL integration tests
+└── conftest.py            # Shared fixtures (db_session, factories, etc.)
+```
+
+### Key Documentation Files
+```
+SPRINT_02_COMPLETE_SUMMARY.md      # Current status (you are here)
+FINAL_AUDIT_REPORT_*.md            # Detailed audit results
+context/past_chats_summary.md       # Historical decisions
+guides/flowchart_mermaid_docs.md    # Mermaid syntax reference
+```
+
+### Useful Commands
+
+```bash
+# PROJECT STATE
+cd /home/lucasg/proyectos/DemeterDocs
+ls backlog/03_kanban/01_ready/          # Tasks ready to start
+ls backlog/03_kanban/02_in-progress/    # Currently working
+
+# MODELS & DATABASE
+cat database/database.mmd               # Source of truth for schema
+python -c "from app.models import *; print('✅ Imports OK')"
+pytest tests/unit/models/ -v            # Run model tests
+
+# SERVICES (SPRINT 03)
+ls app/services/                        # Services to implement
+find app/services -name "*.py" | wc -l  # Service count
+
+# REPOSITORIES (ALL 27 READY)
+ls app/repositories/*.py | wc -l        # Verify 27 repos
+python -c "from app.repositories import *"  # Verify imports
+
+# TESTS
+pytest tests/ -v --cov=app --cov-report=term-missing  # Full coverage
+pytest tests/unit/models/ -v                          # Model tests only
+
+# MIGRATIONS
+ls alembic/versions/*.py                # See all migrations
+alembic current                         # Current schema version
+```
+
+### Working with PostgreSQL
+
+```bash
+# Test database connection
+docker compose up db_test -d
+docker exec demeterai-db-test psql -U demeter_test -d demeterai_test -c "SELECT version();"
+
+# Apply migrations
+cd /home/lucasg/proyectos/DemeterDocs
+alembic upgrade head
+
+# Check tables
+alembic current  # Get current revision
+```
+
+---
+
+---
+
+## Practical Programming Patterns
+
+### Real Repository Example
+
+```python
+# ✅ app/repositories/product_repository.py
+from typing import Optional
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import select
+from app.db.base import Base
+from app.models.product import Product
+from app.repositories.base import BaseRepository
+
+class ProductRepository(BaseRepository[Product]):
+    """Repository for Product entities - implements CRUD + domain-specific queries."""
+
+    def __init__(self, session: AsyncSession):
+        super().__init__(Product, session)
+
+    async def get_by_code(self, code: str) -> Optional[Product]:
+        """Get product by unique code (domain-specific query)."""
+        stmt = select(self.model).where(self.model.code == code)
+        result = await self.session.execute(stmt)
+        return result.scalars().first()
+
+    async def get_by_category_and_family(
+        self, category_id: int, family_id: int
+    ) -> list[Product]:
+        """Get products filtered by category and family."""
+        stmt = select(self.model).where(
+            (self.model.product_category_id == category_id) &
+            (self.model.product_family_id == family_id)
+        )
+        result = await self.session.execute(stmt)
+        return result.scalars().all()
+```
+
+### Real Service Example (Sprint 03)
+
+```python
+# ✅ app/services/product_service.py
+from app.repositories.product_repository import ProductRepository
+from app.repositories.product_category_repository import ProductCategoryRepository
+from app.repositories.product_family_repository import ProductFamilyRepository
+
+class ProductService:
+    """Service layer - business logic for products.
+
+    Key Pattern: Service → Service (never Service → OtherRepository)
+    """
+
+    def __init__(
+        self,
+        repo: ProductRepository,
+        category_service: ProductCategoryService,  # ✅ Service (not repo!)
+        family_service: ProductFamilyService        # ✅ Service (not repo!)
+    ):
+        self.repo = repo
+        self.category_service = category_service
+        self.family_service = family_service
+
+    async def create_product(self, request: CreateProductRequest) -> ProductResponse:
+        """Create product with category/family validation.
+
+        Flow:
+        1. Validate category via CategoryService
+        2. Validate family via FamilyService
+        3. Create via ProductRepository
+        4. Return response
+        """
+        # ✅ Call other services (NOT other repos)
+        category = await self.category_service.get_by_id(request.category_id)
+        family = await self.family_service.get_by_id(request.family_id)
+
+        # ✅ Use own repository for database operations
+        product = await self.repo.create(request)
+
+        return ProductResponse.model_validate(product)
+```
+
+### Real Model With All 28 in Project
+
+```
+Database Models (DB001-DB028):
+├─ Geospatial Layer (4-level hierarchy):
+│  ├── DB001: Warehouse
+│  ├── DB002: StorageArea
+│  ├── DB003: StorageLocation
+│  ├── DB004: StorageBin
+│  └── DB006: LocationRelationships (NEW)
+├─ Product Layer (3-level taxonomy):
+│  ├── DB015: ProductCategory
+│  ├── DB016: ProductFamily
+│  ├── DB017: Product
+│  ├── DB018: ProductSize
+│  └── DB019: ProductState
+├─ Stock Management:
+│  ├── DB007: StockBatch
+│  ├── DB008: StockMovement
+│  └── DB005: StorageBinType
+├─ ML Pipeline:
+│  ├── DB012: PhotoProcessingSession
+│  ├── DB013: Detection
+│  ├── DB014: Estimation
+│  └── DB011: Classification
+├─ Packaging & Pricing:
+│  ├── DB009: PackagingType
+│  ├── DB010: PackagingColor
+│  ├── DB021: PackagingMaterial
+│  ├── DB022: PackagingCatalog
+│  └── DB023: PriceList
+├─ User Management:
+│  ├── DB028: User
+│  └── DB020: ProductSampleImage
+└─ Configuration:
+   ├── DB024: StorageLocationConfig
+   ├── DB025: DensityParameter
+   └── DB027: S3Image
+```
+
+---
+
+## Directory Reference for Development
+
+### When Working on Services (Sprint 03)
+
+```bash
+# STEP 1: Check if repository exists
+ls app/repositories/ | grep -i product
+
+# STEP 2: Read the repository to understand available methods
+cat app/repositories/product_repository.py
+
+# STEP 3: Read existing model to understand structure
+cat app/models/product.py
+
+# STEP 4: Create service in correct location
+vim app/services/product_service.py
+
+# STEP 5: Import repository in service
+# Do NOT import other repositories directly!
+from app.repositories.product_repository import ProductRepository
+from app.services.category_service import ProductCategoryService  # ✅ Service!
+```
+
+### When Debugging Tests
+
+```bash
+# Run specific model tests
+pytest tests/unit/models/test_product.py -v
+
+# Run specific service tests (Sprint 03+)
+pytest tests/unit/services/test_product_service.py -v
+
+# Run integration tests
+pytest tests/integration/ -v
+
+# Full coverage with missing lines
+pytest tests/ --cov=app --cov-report=term-missing | grep "TOTAL"
+```
+
+### When Working with Database Schema
+
+```bash
+# View complete ERD (source of truth)
+cat database/database.mmd | grep -A 5 "ProductModel"
+
+# Check what migration version we're at
+alembic current
+
+# View all migrations
+ls -la alembic/versions/ | wc -l  # Should be 14
+
+# See migration history
+alembic history
+```
+
+### When Adding New Features (Proper Workflow)
+
+```bash
+# 1. Check kanban board
+ls backlog/03_kanban/01_ready/ | head -5
+
+# 2. Move task to in-progress
+mv backlog/03_kanban/01_ready/S001-*.md backlog/03_kanban/02_in-progress/
+
+# 3. Read the task spec
+cat backlog/03_kanban/02_in-progress/S001-*.md
+
+# 4. Check if model exists
+cat app/models/product.py
+
+# 5. Check if repository exists
+cat app/repositories/product_repository.py
+
+# 6. Implement service
+vim app/services/product_service.py
+
+# 7. Run tests
+pytest tests/unit/services/test_product_service.py -v
+
+# 8. Check quality gates
+pytest tests/unit/services/test_product_service.py --cov --cov-report=term-missing
+
+# 9. If all pass, move to code-review
+mv backlog/03_kanban/02_in-progress/S001-*.md backlog/03_kanban/03_code-review/
+
+# 10. After code review passes, move to testing
+mv backlog/03_kanban/03_code-review/S001-*.md backlog/03_kanban/04_testing/
+
+# 11. After all gates pass, move to done
+mv backlog/03_kanban/04_testing/S001-*.md backlog/03_kanban/05_done/
+
+# 12. Commit work
+git add app/services/product_service.py tests/unit/services/test_product_service.py
+git commit -m "feat(services): implement ProductService with category/family validation"
+```
+
+---
+
+## System Architecture At A Glance
+
+```
+Request → FastAPI Controller (SPRINT 04+)
+           ↓
+           Service Layer (SPRINT 03)
+           ├─ ProductService
+           ├─ StockService
+           ├─ WarehouseService
+           └─ [25+ more services]
+           ↓
+           Service Dependencies (Service → Service)
+           ├─ ProductService uses CategoryService
+           ├─ StockService uses ProductService
+           └─ WarehouseService uses LocationService
+           ↓
+           Repository Layer (SPRINT 02 COMPLETE ✅)
+           ├─ ProductRepository
+           ├─ StockRepository
+           ├─ WarehouseRepository
+           └─ [24+ more repositories]
+           ↓
+           Database Layer (SPRINT 01 COMPLETE ✅)
+           ├─ 28 SQLAlchemy Models
+           ├─ PostgreSQL + PostGIS
+           └─ 14 Alembic Migrations
+```
+
+---
+
+## .claude/ System Navigation
+
+The `.claude/` folder contains all system instructions organized by purpose:
+
+```
+.claude/
+├── README.md                          # START HERE (system overview)
+├── INSTRUCTION_SYSTEM_README.md       # Detailed system guide
+│
+├── workflows/                         # Core agent workflows
+│   ├── orchestration.md              # How agents coordinate (read first!)
+│   ├── scrum-master-workflow.md       # Sprint/project management
+│   ├── team-leader-workflow.md        # Task planning & quality gates
+│   ├── python-expert-workflow.md      # Code implementation patterns
+│   └── testing-expert-workflow.md     # Test creation & verification
+│
+├── commands/                          # Slash commands for manual triggers
+│   ├── plan-epic.md                  # /plan-epic epic-004
+│   ├── start-task.md                 # /start-task S001
+│   ├── review-task.md                # /review-task S001
+│   ├── complete-task.md              # /complete-task S001
+│   └── sprint-review.md              # /sprint-review
+│
+├── templates/                         # Reusable templates for tasks
+│   ├── mini-plan-template.md         # Use when creating implementation plans
+│   ├── task-progress-update.md       # Track task progress during work
+│   └── handoff-note.md               # Document handoffs between agents
+│
+└── agents/                           # Agent role definitions
+    ├── scrum-master.md               # How Scrum Master thinks/decides
+    ├── team-leader.md                # How Team Leader reviews code
+    ├── python-expert.md              # How Python Expert implements
+    ├── testing-expert.md             # How Testing Expert verifies
+    ├── database-expert.md            # Database schema authority
+    └── git-commit-writer.md          # Commit message standards
+```
+
+**Key Entry Points by Role**:
+- **Starting Sprint**: Read `.claude/workflows/orchestration.md` + `.claude/workflows/scrum-master-workflow.md`
+- **Planning Task**: Read `.claude/workflows/team-leader-workflow.md`
+- **Implementing Feature**: Read `.claude/workflows/python-expert-workflow.md`
+- **Writing Tests**: Read `.claude/workflows/testing-expert-workflow.md`
+- **Need Database Help**: Check `.claude/agents/database-expert.md`
+
+---
+
 ## Next Steps
 
-1. **Read the workflow files**: Start with `.claude/workflows/orchestration.md`
-2. **Understand your role**: Read the specific workflow for your agent
+1. **Read the workflow files**: Start with `.claude/README.md` for navigation
+2. **Understand your role**: Read the specific workflow for your agent type
 3. **Check current state**: Look at kanban board (`backlog/03_kanban/`)
 4. **Review critical issues**: Read `CRITICAL_ISSUES.md` to avoid past mistakes
 5. **Start working**: Follow your workflow's step-by-step process

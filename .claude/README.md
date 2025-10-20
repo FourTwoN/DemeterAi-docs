@@ -1,27 +1,60 @@
-# DemeterAI Multi-Agent System
+# DemeterAI Multi-Agent System & Instruction Index
 
-**Version:** 1.0
-**Last Updated:** 2025-10-11
+**Version:** 3.0
+**Last Updated:** 2025-10-20
 **Project:** DemeterAI v2.0 Backend Implementation
+**Phase**: Sprint 03 - Services Layer (42 tasks, 210 story points)
+**Status**: Sprint 00-02 ✅ COMPLETE (Sprints 01-02 at critical path)
+
+---
+
+## 📍 WHERE AM I? (Navigation Guide)
+
+**QUICK REFERENCE**: Pick your role, then find your starting file:
+
+| Role | Go Here | Then | Purpose |
+|------|---------|------|---------|
+| **🎯 I'm planning** | `.claude/workflows/orchestration.md` | Read top to bottom | Understand system flow |
+| **📋 I'm managing** | `.claude/workflows/scrum-master-workflow.md` | Step 1: Check backlog | Manage tasks & sprints |
+| **🛠️ I'm implementing** | `.claude/workflows/python-expert-workflow.md` | Read mini-plan first | Write clean architecture code |
+| **✅ I'm testing** | `.claude/workflows/testing-expert-workflow.md` | Read quality gates | Write real DB tests (NO MOCKS) |
+| **📊 I'm reviewing** | `.claude/workflows/team-leader-workflow.md` | Check quality gates | Review code before merge |
+| **🗄️ I have DB questions** | `../CLAUDE.md` > Search "Rule 1" | Consult `database/database.mmd` | Get schema authority |
+| **🔴 Something broke** | `../CRITICAL_ISSUES.md` | Read prevention section | Learn from Sprint 02 mistakes |
+
+**MAIN ENTRY POINT**: Start by reading `../CLAUDE.md` (15 minute read) - it has everything you need to know.
 
 ---
 
 ## Overview
 
-This folder contains a **stateless multi-agent system** designed to implement the DemeterAI v2.0 backend using a **local file-based Kanban workflow**. The system coordinates 6 specialized Claude Code agents that work together to transform 229 tasks across 17 epics into production-ready code.
+This folder (`/.claude/`) contains all **system instructions and multi-agent coordination** files for DemeterAI v2.0 development. It's a **stateless, file-based system** that coordinates 6 specialized agents working through a local Kanban board.
 
-### Key Features
+### ✨ Key Features
 
-- **Stateless**: All state stored in markdown files and progress trackers
-- **Local**: No external dependencies (Notion, JIRA, etc.) - pure file-based system
-- **Parallel**: Python Expert + Testing Expert work simultaneously
-- **Quality-gated**: Team Leader enforces ≥80% coverage, tests pass, code review
-- **Automated**: Slash commands for common workflows
-- **Traceable**: Complete audit trail in task files and git commits
+- **🎯 Stateless**: All state in markdown files (no external tools)
+- **⚡ Parallel**: Python Expert + Testing Expert work simultaneously
+- **✅ Quality-gated**: Team Leader enforces ≥80% coverage + tests pass + code review
+- **🔄 Automated**: Slash commands (`/start-task`, `/review-task`, `/complete-task`)
+- **📝 Traceable**: Complete audit trail (task files + git commits)
+- **🏗️ Clean Architecture**: Service → Service pattern (never violate)
+- **🚫 Prevention-Focused**: Critical issues from Sprint 02 documented and prevented
+
+### 📊 Project Status
+
+```
+✅ Sprint 00: Foundation (Setup, Docker, Pre-commit hooks)
+✅ Sprint 01: Database (27 models, 27 repositories)
+✅ Sprint 02: ML Pipeline (5 critical ML services)
+→ Sprint 03: Services Layer (42 tasks - ACTIVE NOW)
+  → 28 services to implement
+  → Service → Service pattern enforcement
+  → ≥80% coverage requirement
+```
 
 ---
 
-## Quick Start
+## 🚀 Quick Start
 
 ### 1. Plan an Epic
 ```bash
@@ -595,34 +628,320 @@ After implementing S001:
 
 ---
 
-## Further Reading
+---
 
-### Documentation References
-- **CLAUDE.md**: System prompt and validation rules
-- **engineering_plan/**: Complete architecture documentation
-- **database/database.mmd**: ERD source of truth
-- **flows/**: Detailed workflow diagrams
-- **backlog/02_epics/**: Epic definitions
-- **backlog/04_templates/**: Code templates
+## 📚 Complete File Structure Reference
 
-### Agent Definitions
-- **agents/scrum-master.md**: Project orchestration
-- **agents/team-leader.md**: Planning & quality gates
-- **agents/python-expert.md**: Code implementation
-- **agents/database-expert.md**: Schema guidance
-- **agents/testing-expert.md**: Test writing
-- **agents/git-commit-writer.md**: Commit creation
+### `.claude/workflows/` - Core Agent Workflows (READ THESE FIRST)
 
-### Commands
-- **commands/plan-epic.md**: Epic decomposition
-- **commands/start-task.md**: Task initiation
-- **commands/review-task.md**: Quality verification
-- **commands/complete-task.md**: Task finalization
+```
+workflows/
+├── orchestration.md               ← START HERE: Complete system flow & agent coordination
+├── scrum-master-workflow.md        ← How to manage sprints, kanban, task decomposition
+├── team-leader-workflow.md         ← Mini-plans, quality gates, code review process
+├── python-expert-workflow.md       ← Clean Architecture patterns, read-before-write, async
+└── testing-expert-workflow.md      ← Real DB testing (NO MOCKS), ≥80% coverage target
+```
 
-### Templates
-- **templates/task-progress-update.md**: Progress notes
-- **templates/mini-plan-template.md**: Planning format
-- **templates/handoff-note.md**: Agent communication
+**When to Read Each**:
+- **orchestration.md**: First time? Read this. Always. (774 lines)
+- **scrum-master-workflow.md**: Managing tasks? Read this. (343 lines)
+- **team-leader-workflow.md**: Planning implementation? Read this. (475 lines)
+- **python-expert-workflow.md**: Writing services/controllers? Read this. (461 lines)
+- **testing-expert-workflow.md**: Writing tests? Read this. (546 lines)
+
+### `.claude/commands/` - Slash Command Definitions
+
+```
+commands/
+├── plan-epic.md        # /plan-epic epic-004
+├── start-task.md       # /start-task S001
+├── review-task.md      # /review-task S001
+├── complete-task.md    # /complete-task S001
+└── sprint-review.md    # /sprint-review
+```
+
+### `.claude/templates/` - Reusable Templates
+
+```
+templates/
+├── mini-plan-template.md       # Team Leader uses to create implementation plans
+├── task-progress-update.md     # Agents append every 30-60 minutes
+└── handoff-note.md            # Agent-to-agent communication
+```
+
+### `.claude/agents/` - Agent Role Definitions
+
+```
+agents/
+├── scrum-master.md      # Project orchestration, backlog management
+├── team-leader.md       # Planning, review, quality gates
+├── python-expert.md     # Code implementation, Clean Architecture
+├── testing-expert.md    # Test writing, coverage verification
+├── database-expert.md   # Schema guidance, migration proposals
+└── git-commit-writer.md # Commit creation, conventional commits
+```
+
+---
+
+## 🗂️ Project Structure (For Development Context)
+
+### Source Code (`app/`)
+
+```
+app/
+├── models/                    # 28 SQLAlchemy models (DB001-DB028)
+│   ├── warehouse.py          # (DB001) Geospatial hierarchy root
+│   ├── storage_area.py       # (DB002)
+│   ├── storage_location.py   # (DB003)
+│   ├── storage_bin.py        # (DB004)
+│   ├── product_category.py   # (DB015) 3-level taxonomy
+│   ├── product_family.py     # (DB016)
+│   ├── product.py            # (DB017)
+│   ├── stock_batch.py        # (DB007) Stock management
+│   ├── stock_movement.py     # (DB008)
+│   ├── photo_processing_session.py  # (DB012) ML pipeline
+│   ├── detection.py          # (DB013) Partitioned by date
+│   ├── estimation.py         # (DB014) Partitioned by date
+│   └── [15 more models]
+│
+├── repositories/              # 27 async repositories (BaseRepository + 26 specialized)
+│   ├── base.py              # Generic CRUD: get, get_multi, create, update, delete
+│   ├── product_repository.py
+│   ├── stock_batch_repository.py
+│   └── [24 more repositories]
+│
+├── services/                 # Services layer (SPRINT 03 - IN PROGRESS)
+│   ├── ml_processing/       # ML orchestration services
+│   └── __init__.py
+│
+├── controllers/              # FastAPI route handlers (SPRINT 04+)
+│   └── __init__.py
+│
+├── schemas/                  # Pydantic validation schemas (SPRINT 03+)
+│   └── __init__.py
+│
+├── core/
+│   ├── config.py            # Environment configuration
+│   ├── exceptions.py        # ⚠️ ALL exceptions must be defined here
+│   └── logging.py           # Centralized logging
+│
+├── db/
+│   ├── base.py              # SQLAlchemy Base (all models inherit)
+│   └── session.py           # AsyncSession factory
+│
+├── celery/                  # Async task queue
+│   ├── base_tasks.py
+│   └── __init__.py
+│
+├── main.py                  # FastAPI app entry point
+└── __init__.py
+```
+
+### Database & Migrations
+
+```
+database/
+├── database.mmd             # ⭐ SOURCE OF TRUTH - Complete ERD (28 models)
+└── database.md              # Schema documentation
+
+alembic/
+├── versions/                # 14 migration files
+│   ├── 6f1b94ebef45_initial_setup_enable_postgis.py
+│   ├── 2f68e3f132f5_create_warehouses_table.py
+│   ├── 742a3bebd3a8_create_storage_areas_table.py
+│   ├── sof6kow8eu3r_create_storage_locations_table.py
+│   ├── 1wgcfiexamud_create_storage_bins_table.py
+│   ├── 3xy8k1m9n4pq_create_product_states_table.py
+│   ├── 4ab9c2d8e5fg_create_product_sizes_table.py
+│   ├── 1a2b3c4d5e6f_create_product_families_table.py
+│   ├── 0fc9cac096f2_create_product_categories_table.py
+│   ├── 5gh9j2n4k7lm_create_products_table.py
+│   ├── 440n457t9cnp_create_s3_images_table.py
+│   ├── 6kp8m3q9n5rt_create_users_table.py
+│   ├── 8807863f7d8c_add_location_relationships_table.py
+│   └── 2wh7p3r9bm6t_create_storage_bin_types_table.py
+├── env.py                   # Alembic configuration
+└── script.py.mako           # Migration template
+```
+
+### Backlog & Project Management
+
+```
+backlog/
+├── 00_epics/               # 17 epic definitions (200+ tasks)
+│   ├── epic-001-foundation/
+│   ├── epic-002-database/
+│   ├── epic-003-repositories/
+│   └── [14 more epics]
+│
+├── 01_sprints/             # Sprint goals and plans
+│   ├── sprint-00/          # ✅ Foundation
+│   ├── sprint-01/          # ✅ Database Models
+│   ├── sprint-02/          # ✅ ML Pipeline
+│   └── sprint-03/          # → Services Layer (ACTIVE)
+│
+├── 03_kanban/              # File-based Kanban board
+│   ├── 00_backlog/         # Not started (raw backlog)
+│   ├── 01_ready/           # Ready for Team Leader
+│   ├── 02_in-progress/     # Currently being implemented
+│   ├── 03_code-review/     # Under code review
+│   ├── 04_testing/         # Testing & quality gates
+│   ├── 05_done/            # ✅ Completed
+│   ├── 06_blocked/         # 🔴 Blocked tasks
+│   └── DATABASE_CARDS_STATUS.md  # Progress tracker
+│
+└── 04_templates/           # Code templates for models, services, repos
+```
+
+### Tests
+
+```
+tests/
+├── unit/
+│   └── models/            # Model tests (DB001-DB028)
+│       ├── test_product.py
+│       ├── test_warehouse.py
+│       ├── test_stock_batch.py
+│       └── [25 more tests]
+│
+├── integration/           # PostgreSQL integration tests
+│   ├── test_product_service.py
+│   └── [other integration tests]
+│
+└── conftest.py            # Shared fixtures
+    ├── db_session fixture
+    ├── test factories
+    └── PostgreSQL setup
+```
+
+### Documentation
+
+```
+engineering_plan/          # Architecture & design documentation
+├── 01_project_overview.md
+├── 02_technology_stack.md
+├── 03_architecture_overview.md
+└── database/
+    └── README.md          # Database design philosophy
+
+flows/                     # Business process Mermaid diagrams
+├── procesamiento_ml_upload_s3_principal/
+├── photo_upload_gallery/
+└── [other workflows]
+
+CLAUDE.md                  # ⭐ MAIN INSTRUCTIONS (632 lines)
+CRITICAL_ISSUES.md         # Sprint 02 lessons learned & prevention
+SPRINT_02_COMPLETE_SUMMARY.md  # Executive summary
+```
+
+---
+
+## 📖 Reading Order (Recommended)
+
+### First Time?
+1. Read: `../CLAUDE.md` (15 min) - Gets you oriented
+2. Read: `./workflows/orchestration.md` (20 min) - Understand system
+3. Reference: `./README.md` (this file) - Find what you need
+
+### Starting Work on a Task?
+1. Read: `.claude/workflows/team-leader-workflow.md` - Understand planning
+2. Read: Task file in `backlog/03_kanban/01_ready/` - Understand requirements
+3. Read: Appropriate specialist workflow (Python/Testing) - Follow pattern
+
+### Implementing a Feature?
+1. Check: `app/models/` for relevant models
+2. Check: `app/repositories/` for available repository methods
+3. Read: `.claude/workflows/python-expert-workflow.md` - Follow Clean Architecture
+4. Implement: Follow Service → Service pattern STRICTLY
+5. Test: Read `.claude/workflows/testing-expert-workflow.md` - Real DB, ≥80% coverage
+
+### Writing Tests?
+1. Read: `.claude/workflows/testing-expert-workflow.md`
+2. Rule 1: NO MOCKS of business logic
+3. Rule 2: Use PostgreSQL real database
+4. Rule 3: Target ≥80% coverage
+5. Rule 4: Test integration points
+
+---
+
+## 🔧 Common Commands (Quick Reference)
+
+```bash
+# CHECK PROJECT STATE
+cd /home/lucasg/proyectos/DemeterDocs
+ls backlog/03_kanban/01_ready/                 # Tasks ready to start
+ls backlog/03_kanban/02_in-progress/           # Currently working
+cat backlog/03_kanban/DATABASE_CARDS_STATUS.md # Overall progress
+
+# VERIFY CODE
+python -c "from app.models import *; print('✅ Models OK')"
+python -c "from app.repositories import *; print('✅ Repos OK')"
+python -c "from app.services import *; print('✅ Services OK')"
+
+# RUN TESTS
+pytest tests/ -v                                          # All tests
+pytest tests/unit/models/ -v                             # Models only
+pytest tests/ --cov=app --cov-report=term-missing        # Full coverage
+
+# DATABASE OPERATIONS
+alembic current                                           # Current schema version
+alembic history                                          # Migration history
+docker compose up db_test -d                             # Start test DB
+
+# GIT OPERATIONS
+git status                                                # See changes
+git log --oneline -10                                    # Recent commits
+git diff CLAUDE.md                                       # See changes
+```
+
+---
+
+## 🚨 Critical Rules (Never Break These)
+
+### Rule 1: Database Schema is Source of Truth
+- File: `database/database.mmd`
+- Consult BEFORE implementing
+- All models must match EXACTLY
+
+### Rule 2: Service → Service Pattern (NO EXCEPTIONS)
+```python
+# ❌ WRONG: Service calling other Service's repository
+class ProductService:
+    def __init__(self, repo, category_repo):  # VIOLATION!
+        self.category_repo = category_repo
+
+# ✅ CORRECT: Service calling other Service
+class ProductService:
+    def __init__(self, repo, category_service):  # ✅ SERVICE
+        self.category_service = category_service
+```
+
+### Rule 3: Tests MUST Use Real Database
+- NO MOCKS of business logic
+- Use PostgreSQL real test database
+- Target ≥80% coverage
+
+### Rule 4: Quality Gates Are Mandatory
+- Tests must PASS (verified by running pytest)
+- Coverage must be ≥80% (verified by running pytest --cov)
+- Code review must PASS (Service→Service pattern enforced)
+- NO hallucinated code (all imports verified)
+
+### Rule 5: Read Before Writing
+- Always read existing code first
+- Consult database schema (database.mmd)
+- Check for existing relationships
+- Verify imports work
+
+---
+
+## 🔗 Further Reading
+
+**Main Documentation**: `../CLAUDE.md` - Complete system guide
+**Critical Issues**: `../CRITICAL_ISSUES.md` - What went wrong in Sprint 02
+**Architecture**: `../engineering_plan/03_architecture_overview.md`
+**Database**: `../database/database.mmd` - Entity relationships
 
 ---
 
