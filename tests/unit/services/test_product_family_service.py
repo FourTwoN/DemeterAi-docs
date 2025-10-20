@@ -42,15 +42,18 @@ def mock_family_repo():
 
 
 @pytest.fixture
-def mock_category_repo():
-    """Create mock ProductCategoryRepository for testing."""
-    return AsyncMock()
+def mock_category_service():
+    """Create mock ProductCategoryService for testing."""
+    service = AsyncMock()
+    # Mock get_category_by_id to return a valid response (doesn't raise)
+    service.get_category_by_id.return_value = AsyncMock()
+    return service
 
 
 @pytest.fixture
-def family_service(mock_family_repo, mock_category_repo):
+def family_service(mock_family_repo, mock_category_service):
     """Create ProductFamilyService with mocked dependencies."""
-    return ProductFamilyService(family_repo=mock_family_repo, category_repo=mock_category_repo)
+    return ProductFamilyService(family_repo=mock_family_repo, category_service=mock_category_service)
 
 
 @pytest.fixture
@@ -74,7 +77,7 @@ def mock_family():
 
 @pytest.mark.asyncio
 async def test_create_family_success(
-    family_service, mock_family_repo, mock_category_repo, mock_family
+    family_service, mock_family_repo, mock_category_service, mock_family
 ):
     """Test successful family creation with parent category validation."""
     # Arrange
@@ -85,8 +88,7 @@ async def test_create_family_success(
         description="Echeveria genus",
     )
 
-    # Mock category repo validates parent exists
-    mock_category_repo.get.return_value = Mock()
+    # Mock category service validates parent exists (already configured in fixture)
     mock_family_repo.create.return_value = mock_family
 
     # Act
@@ -97,12 +99,12 @@ async def test_create_family_success(
     assert response.family_id == 1
     assert response.category_id == 1
     assert response.name == "Echeveria"
-    mock_category_repo.get.assert_called_once_with(1)
+    mock_category_service.get_category_by_id.assert_called_once_with(1)
     mock_family_repo.create.assert_called_once()
 
 
 @pytest.mark.asyncio
-async def test_create_family_minimal_fields(family_service, mock_family_repo, mock_category_repo):
+async def test_create_family_minimal_fields(family_service, mock_family_repo, mock_category_service):
     """Test creating family with only required fields."""
     # Arrange
     request = ProductFamilyCreateRequest(category_id=1, name="Sedum")
@@ -116,7 +118,7 @@ async def test_create_family_minimal_fields(family_service, mock_family_repo, mo
     mock_minimal.created_at = datetime(2025, 10, 20, 15, 0, 0)
     mock_minimal.updated_at = None
 
-    mock_category_repo.get.return_value = Mock()
+    # Category service already mocked in fixture
     mock_family_repo.create.return_value = mock_minimal
 
     # Act
@@ -129,13 +131,13 @@ async def test_create_family_minimal_fields(family_service, mock_family_repo, mo
 
 
 @pytest.mark.asyncio
-async def test_create_family_invalid_category(family_service, mock_category_repo):
+async def test_create_family_invalid_category(family_service, mock_category_service):
     """Test creating family with non-existent category raises ValueError."""
     # Arrange
     request = ProductFamilyCreateRequest(category_id=999, name="Invalid Family")
 
-    # Mock category repo returns None (not found)
-    mock_category_repo.get.return_value = None
+    # Mock category service raises ValueError when category doesn't exist
+    mock_category_service.get_category_by_id.side_effect = ValueError("ProductCategory 999 not found")
 
     # Act & Assert
     with pytest.raises(ValueError, match="ProductCategory 999 not found"):
