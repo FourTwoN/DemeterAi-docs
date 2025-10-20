@@ -16,11 +16,9 @@ class TestProductSizeCodeValidation:
 
     def test_code_valid_uppercase(self, session):
         """Test valid uppercase code is accepted."""
-        size = ProductSize(code="XL", name="Extra Large", sort_order=50)
-        # NOTE: Code too short (<3 chars), will fail
+        # NOTE: Code too short (<3 chars), should raise ValueError
         with pytest.raises(ValueError, match="3-50 characters"):
-            session.add(size)
-            session.flush()
+            size = ProductSize(code="XL", name="Extra Large", sort_order=50)
 
     def test_code_valid_three_chars(self, session):
         """Test valid 3-char code is accepted."""
@@ -41,39 +39,29 @@ class TestProductSizeCodeValidation:
 
     def test_code_empty_raises_error(self, session):
         """Test empty code raises ValueError."""
-        size = ProductSize(code="", name="Test", sort_order=10)
         with pytest.raises(ValueError, match="code cannot be empty"):
-            session.add(size)
-            session.flush()
+            size = ProductSize(code="", name="Test", sort_order=10)
 
     def test_code_with_hyphens_raises_error(self, session):
         """Test code with hyphens raises ValueError."""
-        size = ProductSize(code="EXTRA-LARGE", name="Extra Large", sort_order=50)
         with pytest.raises(ValueError, match="alphanumeric \\+ underscores only"):
-            session.add(size)
-            session.flush()
+            size = ProductSize(code="EXTRA-LARGE", name="Extra Large", sort_order=50)
 
     def test_code_with_spaces_raises_error(self, session):
         """Test code with spaces raises ValueError."""
-        size = ProductSize(code="EXTRA LARGE", name="Extra Large", sort_order=50)
         with pytest.raises(ValueError, match="alphanumeric \\+ underscores only"):
-            session.add(size)
-            session.flush()
+            size = ProductSize(code="EXTRA LARGE", name="Extra Large", sort_order=50)
 
     def test_code_too_short_raises_error(self, session):
         """Test code <3 chars raises ValueError."""
-        size = ProductSize(code="XL", name="Extra Large", sort_order=50)
         with pytest.raises(ValueError, match="3-50 characters"):
-            session.add(size)
-            session.flush()
+            size = ProductSize(code="XL", name="Extra Large", sort_order=50)
 
     def test_code_too_long_raises_error(self, session):
         """Test code >50 chars raises ValueError."""
         long_code = "A" * 51
-        size = ProductSize(code=long_code, name="Test", sort_order=10)
         with pytest.raises(ValueError, match="3-50 characters"):
-            session.add(size)
-            session.flush()
+            size = ProductSize(code=long_code, name="Test", sort_order=10)
 
     def test_code_with_underscores_valid(self, session):
         """Test code with underscores is valid."""

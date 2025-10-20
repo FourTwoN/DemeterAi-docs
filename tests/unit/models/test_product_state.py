@@ -31,43 +31,33 @@ class TestProductStateCodeValidation:
 
     def test_code_empty_raises_error(self, session):
         """Test empty code raises ValueError."""
-        state = ProductState(code="", name="Test", is_sellable=False, sort_order=10)
         with pytest.raises(ValueError, match="code cannot be empty"):
-            session.add(state)
-            session.flush()
+            state = ProductState(code="", name="Test", is_sellable=False, sort_order=10)
 
     def test_code_with_hyphens_raises_error(self, session):
         """Test code with hyphens raises ValueError."""
-        state = ProductState(
-            code="ADULT-PLANT", name="Adult Plant", is_sellable=True, sort_order=50
-        )
         with pytest.raises(ValueError, match="alphanumeric \\+ underscores only"):
-            session.add(state)
-            session.flush()
+            state = ProductState(
+                code="ADULT-PLANT", name="Adult Plant", is_sellable=True, sort_order=50
+            )
 
     def test_code_with_spaces_raises_error(self, session):
         """Test code with spaces raises ValueError."""
-        state = ProductState(
-            code="ADULT PLANT", name="Adult Plant", is_sellable=True, sort_order=50
-        )
         with pytest.raises(ValueError, match="alphanumeric \\+ underscores only"):
-            session.add(state)
-            session.flush()
+            state = ProductState(
+                code="ADULT PLANT", name="Adult Plant", is_sellable=True, sort_order=50
+            )
 
     def test_code_too_short_raises_error(self, session):
         """Test code <3 chars raises ValueError."""
-        state = ProductState(code="SE", name="Seed", is_sellable=False, sort_order=10)
         with pytest.raises(ValueError, match="3-50 characters"):
-            session.add(state)
-            session.flush()
+            state = ProductState(code="SE", name="Seed", is_sellable=False, sort_order=10)
 
     def test_code_too_long_raises_error(self, session):
         """Test code >50 chars raises ValueError."""
         long_code = "A" * 51
-        state = ProductState(code=long_code, name="Test", is_sellable=False, sort_order=10)
         with pytest.raises(ValueError, match="3-50 characters"):
-            session.add(state)
-            session.flush()
+            state = ProductState(code=long_code, name="Test", is_sellable=False, sort_order=10)
 
     def test_code_with_underscores_valid(self, session):
         """Test code with underscores is valid."""
