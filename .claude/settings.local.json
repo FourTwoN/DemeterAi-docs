@@ -6,9 +6,20 @@
       "WebSearch",
       "Bash(git add:*)",
       "Bash(git commit:*)",
-      "Bash(mmdc:*)"
+      "Bash(mmdc:*)",
+      "Bash(python -c:*)",
+      "Bash(alembic current:*)",
+      "Bash(pytest:*)",
+      "Bash(alembic history:*)",
+      "Bash(psql:*)"
     ],
     "deny": [],
     "ask": []
-  }
+  },
+  "enabledMcpjsonServers": [
+    "context7",
+    "postgresql",
+    "memory",
+    "exa"
+  ]
 }

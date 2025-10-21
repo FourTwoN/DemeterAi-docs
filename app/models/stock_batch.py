@@ -50,6 +50,7 @@ Example:
     ```
 """
 
+from datetime import datetime
 from typing import TYPE_CHECKING, Any
 
 from sqlalchemy import (
@@ -312,6 +313,7 @@ class StockBatch(Base):
     created_at = Column(
         DateTime(timezone=True),
         server_default=func.now(),
+        default=datetime.utcnow,
         nullable=False,
         comment="Batch creation timestamp",
     )

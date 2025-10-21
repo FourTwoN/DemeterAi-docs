@@ -76,6 +76,7 @@ Example:
 
 import enum
 import uuid
+from datetime import datetime
 from typing import TYPE_CHECKING
 
 from sqlalchemy import (
@@ -373,6 +374,7 @@ class StockMovement(Base):
     created_at = Column(
         DateTime(timezone=True),
         server_default=func.now(),
+        default=datetime.utcnow,
         nullable=False,
         comment="Movement timestamp (immutable)",
     )

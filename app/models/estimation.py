@@ -48,6 +48,7 @@ Example:
 """
 
 import enum
+from datetime import datetime
 from typing import TYPE_CHECKING, Any
 
 from sqlalchemy import (
@@ -255,6 +256,7 @@ class Estimation(Base):
     created_at = Column(
         DateTime(timezone=True),
         server_default=func.now(),
+        default=datetime.utcnow,
         nullable=False,
         comment="Estimation timestamp (immutable)",
     )

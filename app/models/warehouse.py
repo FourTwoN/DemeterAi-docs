@@ -47,6 +47,7 @@ Example:
 
 import enum
 import re
+from datetime import datetime
 
 # Forward declaration for type hints (avoids circular imports)
 from typing import TYPE_CHECKING
@@ -193,6 +194,7 @@ class Warehouse(Base):
     created_at = Column(
         DateTime(timezone=True),
         server_default=func.now(),
+        default=datetime.utcnow,
         nullable=False,
         comment="Record creation timestamp",
     )

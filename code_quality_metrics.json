@@ -1,0 +1,87 @@
+{
+  "audit_date": "2025-10-20",
+  "overall_score": 78,
+  "grade": "C+",
+  "status": "needs_improvement",
+  "codebase_stats": {
+    "total_files": 115,
+    "services": 26,
+    "repositories": 26,
+    "models": 27,
+    "schemas": 18,
+    "other": 18
+  },
+  "quality_dimensions": {
+    "type_hints": {
+      "score": 75,
+      "status": "needs_improvement",
+      "priority": "high",
+      "total_functions": 228,
+      "with_type_hints": 187,
+      "without_type_hints": 41,
+      "coverage_pct": 82.0,
+      "target_pct": 100.0
+    },
+    "docstrings": {
+      "score": 87,
+      "status": "good",
+      "priority": "medium",
+      "total_methods": 310,
+      "with_docstrings": 268,
+      "without_docstrings": 42,
+      "coverage_pct": 86.5,
+      "target_pct": 90.0
+    },
+    "async_await": {
+      "score": 95,
+      "status": "excellent",
+      "priority": "low",
+      "violations": 0
+    },
+    "imports": {
+      "score": 95,
+      "status": "excellent",
+      "priority": "low",
+      "circular_imports": 0,
+      "clean_architecture_compliance": 100.0
+    },
+    "exceptions": {
+      "score": 65,
+      "status": "poor",
+      "priority": "high",
+      "generic_valueerror_uses": 65,
+      "services_using_custom": 4,
+      "services_using_generic": 22
+    },
+    "solid_principles": {
+      "score": 85,
+      "status": "good",
+      "priority": "medium"
+    }
+  },
+  "critical_issues": [
+    {
+      "id": 1,
+      "title": "Type Hint Coverage Below 100%",
+      "count": 41,
+      "estimated_fix_hours": 2.5
+    },
+    {
+      "id": 2,
+      "title": "Generic Exception Overuse",
+      "count": 65,
+      "estimated_fix_hours": 3.5
+    }
+  ],
+  "summary": {
+    "current_grade": "C+",
+    "current_score": 78,
+    "potential_grade": "A",
+    "potential_score": 95,
+    "production_ready": false,
+    "blockers": [
+      "Type hint coverage must reach 100%",
+      "Generic exceptions must be replaced with custom exceptions"
+    ]
+  }
+}

@@ -48,6 +48,7 @@ Example:
 """
 
 import re
+from datetime import datetime
 from typing import TYPE_CHECKING
 
 from geoalchemy2 import Geometry
@@ -248,6 +249,7 @@ class StorageLocation(Base):
     created_at = Column(
         DateTime(timezone=True),
         server_default=func.now(),
+        default=datetime.utcnow,
         nullable=False,
         comment="Record creation timestamp",
     )

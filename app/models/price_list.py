@@ -45,10 +45,10 @@ class PriceList(Base):
 
     product_categories_id = Column(
         Integer,
-        ForeignKey("product_categories.product_category_id", ondelete="CASCADE"),
+        ForeignKey("product_categories.id", ondelete="CASCADE"),
         nullable=False,
         index=True,
-        comment="FK to product_categories (product_category_id)",
+        comment="FK to product_categories",
     )
 
     # Pricing

@@ -49,6 +49,14 @@ class Settings(BaseSettings):
     DB_MAX_OVERFLOW: int = 10
     DB_ECHO_SQL: bool = False
 
+    # S3 configuration
+    AWS_REGION: str = "us-east-1"
+    AWS_ACCESS_KEY_ID: str = ""
+    AWS_SECRET_ACCESS_KEY: str = ""
+    S3_BUCKET_ORIGINAL: str = "demeter-photos-original"
+    S3_BUCKET_VISUALIZATION: str = "demeter-photos-viz"
+    S3_PRESIGNED_URL_EXPIRY_HOURS: int = 24
+
     model_config = SettingsConfigDict(
         env_file=".env",
         env_file_encoding="utf-8",

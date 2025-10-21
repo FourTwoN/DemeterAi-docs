@@ -576,3 +576,92 @@ class GeometryOutOfBoundsException(ValidationException):
             message=f"{child} geometry extends beyond {parent} boundaries: {message}",
             value=None,
         )
+
+
+class ResourceNotFoundException(NotFoundException):
+    """Raised when a generic resource is not found.
+
+    HTTP Status: 404 Not Found
+
+    Example:
+        raise ResourceNotFoundException(
+            resource_type="PhotoProcessingSession",
+            resource_id=123
+        )
+    """
+
+    def __init__(self, resource_type: str, resource_id: int | str):
+        """Initialize ResourceNotFoundException.
+
+        Args:
+            resource_type: Type of resource (e.g., "PhotoProcessingSession")
+            resource_id: Resource identifier
+        """
+        super().__init__(
+            resource=resource_type,
+            identifier=resource_id,
+        )
+        self.resource_type = resource_type
+        self.resource_id = resource_id
+
+
+class InvalidStatusTransitionException(ValidationException):
+    """Raised when a status transition is invalid.
+
+    HTTP Status: 400 Bad Request
+
+    Example:
+        raise InvalidStatusTransitionException(
+            current="completed",
+            target="pending",
+            reason="Cannot transition from completed to pending"
+        )
+    """
+
+    def __init__(self, current: str, target: str, reason: str):
+        """Initialize InvalidStatusTransitionException.
+
+        Args:
+            current: Current status
+            target: Target status
+            reason: Reason why transition is invalid
+        """
+        super().__init__(
+            field="status",
+            message=f"Invalid status transition from '{current}' to '{target}': {reason}",
+            value=target,
+        )
+        self.current = current
+        self.target = target
+        self.reason = reason
+
+
+class CircuitBreakerException(AppBaseException):
+    """Raised when circuit breaker is open (too many failures).
+
+    HTTP Status: 503 Service Unavailable
+
+    Circuit breaker pattern prevents cascading failures by:
+    - Opening circuit after threshold failures (5 consecutive)
+    - Rejecting all requests while open (fail fast)
+    - Transitioning to half-open after cooldown (5 minutes)
+    - Testing recovery with limited requests
+
+    Example:
+        raise CircuitBreakerException(
+            reason="Circuit breaker OPEN after 5 consecutive failures"
+        )
+    """
+
+    def __init__(self, reason: str):
+        """Initialize CircuitBreakerException.
+
+        Args:
+            reason: Reason why circuit breaker is open
+        """
+        super().__init__(
+            technical_message=f"Circuit breaker OPEN: {reason}",
+            user_message="Service temporarily unavailable due to repeated failures. Please try again later.",
+            code=503,
+            extra={"reason": reason},
+        )

@@ -1,0 +1,16 @@
+INFO  [alembic.runtime.migration] Context impl PostgresqlImpl.
+INFO  [alembic.runtime.migration] Will assume transactional DDL.
+INFO  [alembic.runtime.migration] Running upgrade  -> 6f1b94ebef45, initial_setup_enable_postgis
+INFO  [alembic.runtime.migration] Running upgrade 6f1b94ebef45 -> 2f68e3f132f5, create warehouses table
+INFO  [alembic.runtime.migration] Running upgrade 2f68e3f132f5 -> 742a3bebd3a8, create storage_areas table
+INFO  [alembic.runtime.migration] Running upgrade 742a3bebd3a8 -> sof6kow8eu3r, create storage_locations table
+INFO  [alembic.runtime.migration] Running upgrade sof6kow8eu3r -> 2wh7p3r9bm6t, create_storage_bin_types_table
+INFO  [alembic.runtime.migration] Running upgrade 2wh7p3r9bm6t -> 1wgcfiexamud, create storage_bins table
+INFO  [alembic.runtime.migration] Running upgrade 1wgcfiexamud -> 3xy8k1m9n4pq, create_product_states_table
+INFO  [alembic.runtime.migration] Running upgrade 3xy8k1m9n4pq -> 4ab9c2d8e5fg, create_product_sizes_table
+INFO  [alembic.runtime.migration] Running upgrade 4ab9c2d8e5fg -> 0fc9cac096f2, create product_categories table
+INFO  [alembic.runtime.migration] Running upgrade 0fc9cac096f2 -> 1a2b3c4d5e6f, create product_families table
+INFO  [alembic.runtime.migration] Running upgrade 1a2b3c4d5e6f -> 5gh9j2n4k7lm, create products table
+INFO  [alembic.runtime.migration] Running upgrade 5gh9j2n4k7lm -> 6kp8m3q9n5rt, create users table
+INFO  [alembic.runtime.migration] Running upgrade 6kp8m3q9n5rt -> 440n457t9cnp, create s3_images table
+INFO  [alembic.runtime.migration] Running upgrade 440n457t9cnp -> 8807863f7d8c, add location_relationships table

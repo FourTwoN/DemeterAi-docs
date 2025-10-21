@@ -158,6 +158,31 @@ async def generic_exception_handler(request: Request, exc: Exception) -> JSONRes
     )
 
 
+# =============================================================================
+# Router Registration - Sprint 04 (26 endpoints)
+# =============================================================================
+
+from app.controllers import (
+    analytics_router,
+    config_router,
+    location_router,
+    product_router,
+    stock_router,
+)
+
+# Register all API routers
+app.include_router(stock_router)  # C001-C007: Stock management
+app.include_router(location_router)  # C008-C013: Location hierarchy
+app.include_router(product_router)  # C014-C020: Product management
+app.include_router(config_router)  # C021-C023: Configuration
+app.include_router(analytics_router)  # C024-C026: Analytics
+
+
+# =============================================================================
+# Health Check Endpoint
+# =============================================================================
+
+
 @app.get("/health")
 async def health() -> dict[str, str]:
     """Health check endpoint.

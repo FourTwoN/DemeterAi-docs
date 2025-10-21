@@ -27,6 +27,7 @@ dependencies = [
     "python-jose[cryptography]==3.3.0",
     "passlib[bcrypt]==1.7.4",
     "pybreaker==1.4.1",
+    "python-multipart==0.0.9",
 ]
 
 [project.optional-dependencies]
@@ -124,7 +125,9 @@ addopts = [
 markers = [
     "unit: Unit tests (fast, isolated, mocked dependencies)",
     "integration: Integration tests (slower, real dependencies)",
-    "slow: Slow tests (skip with -m 'not slow')"
+    "slow: Slow tests (skip with -m 'not slow')",
+    "benchmark: Performance benchmark tests (skip with -m 'not benchmark')",
+    "celery: Celery task tests (requires Redis and Celery workers)"
 ]
 
 [tool.mypy]

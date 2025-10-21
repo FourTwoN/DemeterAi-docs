@@ -1,0 +1,161 @@
+================================================================================
+DemeterAI v2.0 - Test Audit Quick Summary
+Date: 2025-10-21
+================================================================================
+
+OVERALL RESULTS:
+----------------
+Total Tests:     1,327
+Passed:          1,059 (79.8%)
+Failed:            240 (18.1%)
+Errors:             20 (1.5%)
+Skipped:             8 (0.6%)
+Exit Code:           0 (pytest ran but coverage failed)
+Coverage:        50.06% (TARGET: 80%)
+Duration:        145.77 seconds
+
+VERDICT: ⚠️  MODERATE RISK - 260 failures/errors (19.6%)
+
+================================================================================
+TOP 5 CRITICAL FAILURES:
+================================================================================
+
+1. PRODUCT SIZE SEED DATA MISSING
+   Test: test_product_size.py::test_seed_data_loaded
+   Impact: HIGH - 16 tests failing
+   Fix: Run seed data migration
+
+2. PRODUCT STATE SEED DATA MISSING
+   Test: test_product_state.py::test_seed_data_loaded
+   Impact: HIGH - 17 tests failing
+   Fix: Run seed data migration
+
+3. STORAGE BIN TYPE SEED DATA MISSING
+   Test: test_storage_bin_type.py::test_seed_data_loaded
+   Impact: HIGH - 17 tests failing
+   Fix: Run seed data migration
+
+4. ML PIPELINE MOCK VIOLATION
+   Test: test_pipeline_integration.py::test_complete_pipeline_with_real_services
+   Error: 'Mock' object is not subscriptable
+   Impact: CRITICAL - 6 tests failing
+   Fix: Replace Mock() with proper YOLO result structure
+
+5. ML COORDINATOR MOCK VIOLATION
+   Test: test_pipeline_coordinator.py::test_process_complete_pipeline_success
+   Error: 'Mock' object is not subscriptable
+   Impact: CRITICAL - 16 tests failing
+   Fix: Mock YOLO results as list with proper structure
+
+================================================================================
+FAILURE DISTRIBUTION:
+================================================================================
+
+Category               Count    % of Failures
+--------------------------------------------------
+Geospatial Models        98         37.7%
+Product Models           45         17.3%
+ML Pipeline              39         15.0%
+Other                    37         14.2%
+Tasks/Celery             23          8.8%
+S3 Integration           17          6.5%
+Repositories              1          0.4%
+--------------------------------------------------
+TOTAL                   260        100.0%
+
+================================================================================
+CRITICAL ISSUES:
+================================================================================
+
+❌ Coverage 50.06% (BELOW 80% threshold)
+❌ Seed data not loaded (product_sizes, product_states, storage_bin_types)
+❌ Geospatial triggers not firing (centroid, area calculations)
+❌ Mock violations in ML tests (Mock object not subscriptable)
+❌ S3 integration completely broken (17 errors during setup)
+
+================================================================================
+SUSPICIOUS PATTERNS:
+================================================================================
+
+Mock Issues:
+  - 'Mock' object is not subscriptable
+  - Files: segmentation_service.py:217, pipeline_coordinator.py:252
+  - Cause: YOLO results mocked incorrectly
+
+Skipped Tests: 8 total
+  - 2: StorageBinType not implemented (acceptable)
+  - 2: Requires Celery worker (acceptable)
+  - 4: GPU/model files required (acceptable)
+
+================================================================================
+ORPHANED TESTS (no matching source):
+================================================================================
+
+Acceptable:
+  ✓ test_pipeline_integration.py (integration test)
+  ✓ test_redis_connection.py (tests config)
+  ✓ test_worker_topology.py (tests config)
+
+Needs Investigation:
+  ⚠️  test_model_singleton_integration.py (expected: model_singleton.py)
+
+================================================================================
+IMMEDIATE ACTION REQUIRED (Est. 15-20 hours):
+================================================================================
+
+1. Run Seed Data Migrations (2 hours)
+   $ alembic revision -m "seed_product_taxonomy"
+   $ psql -d demeterai_test -f database/seeds/product_taxonomy.sql
+
+2. Verify Geospatial Triggers (3 hours)
+   $ psql -d demeterai_test -c "SELECT trigger_name FROM information_schema.triggers;"
+   $ alembic downgrade -1 && alembic upgrade head
+
+3. Fix Mock Violations (4 hours)
+   - Update test_pipeline_coordinator.py (16 tests)
+   - Update test_pipeline_integration.py (6 tests)
+   Pattern: Mock() -> [Mock(boxes=Mock(data=tensor([[...]]))]
+
+4. Fix S3 Integration (6 hours)
+   - Debug S3 client initialization
+   - Fix test fixtures
+   - Ensure moto/localstack working
+
+5. Document Findings (2 hours)
+   - Update CRITICAL_ISSUES.md
+   - Update testing-expert-workflow.md
+   - Create migration guide
+
+================================================================================
+FILES REQUIRING IMMEDIATE ATTENTION:
+================================================================================
+
+Priority: CRITICAL
+  - test_pipeline_coordinator.py (16 failures)
+  - test_s3_image_service.py (17 errors)
+  - segmentation_service.py (mock violation)
+  - pipeline_coordinator.py (mock violation)
+
+Priority: HIGH
+  - test_product_size.py (16 failures - seed data)
+  - test_product_state.py (17 failures - seed data)
+  - test_storage_bin_type.py (17 failures - seed data)
+  - test_photo_processing_session.py (21 failures)
+  - test_storage_area_geospatial.py (15 failures - triggers)
+
+================================================================================
+NEXT STEPS:
+================================================================================
+
+1. Fix seed data migrations (IMMEDIATE)
+2. Fix mock violations in ML tests (IMMEDIATE)
+3. Debug S3 integration (IMMEDIATE)
+4. Verify geospatial triggers (HIGH)
+5. Continue Sprint 03 implementation (NORMAL)
+
+================================================================================
+REPORT LOCATION:
+  Full Report: /home/lucasg/proyectos/DemeterDocs/TEST_AUDIT_COMPREHENSIVE_2025-10-21.md
+  Summary:     /home/lucasg/proyectos/DemeterDocs/TEST_AUDIT_SUMMARY.txt
+  Raw Output:  /home/lucasg/proyectos/DemeterDocs/pytest_output.txt
+================================================================================

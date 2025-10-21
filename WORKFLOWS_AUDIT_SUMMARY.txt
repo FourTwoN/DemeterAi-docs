@@ -1,0 +1,309 @@
+================================================================================
+                   AUDIT DE FLUJOS DE NEGOCIO - RESUMEN
+                         DemeterAI v2.0 Backend
+================================================================================
+
+FECHA: 2025-10-21
+AUDITOR: Code Analysis System
+VERSIÓN REPORTE: 1.0
+
+================================================================================
+HALLAZGOS PRINCIPALES
+================================================================================
+
+ESTADO GENERAL: ⛔ BAJO SINCRONIZACIÓN (51%)
+
+Diagramas Analizados:     38 archivos Mermaid
+Componentes Documentados: 167 elementos
+Implementados:             85 (51%)
+Parcialmente:              32 (19%)
+Faltantes:                 50 (30%)
+
+Problemas Críticos:       37 (bloqueantes)
+Problemas Importantes:    18 (no bloqueantes)
+
+================================================================================
+FLUJOS POR ESTADO
+================================================================================
+
+🟢 BIEN SINCRONIZADO (>90%)
+  • Manual Stock Initialization: 95% (13/13 componentes)
+
+🟡 ACEPTABLE (70-90%)
+  • Stock Movements: 85% (25/32 componentes)
+  • Storage Location Config: 80% (10/14 componentes)
+  • Price List Management: 65% (9/21 componentes)
+
+⛔ CRÍTICO DESINCRONIZADO (<50%)
+  • ML Processing Pipeline: 40% (9/22 componentes) 🔴 BLOQUEANTE
+  • Map Warehouse Views: 35% (4/24 componentes) 🔴 BLOQUEANTE
+  • Photo Gallery: 30% (2/16 componentes) 🔴 BLOQUEANTE
+  • Analytics System: 25% (2/19 componentes) 🔴 BLOQUEANTE
+
+================================================================================
+PROBLEMAS CRÍTICOS (NECESITAN ACCIÓN INMEDIATA)
+================================================================================
+
+1. ML PROCESSING PIPELINE - INCOMPLETO (40% IMPLEMENTADO)
+   ┌─────────────────────────────────────────────────────────┐
+   │ FALTANTE: Child Tasks Execution                         │
+   │ • SAHI Detection para segmentos ❌                       │
+   │ • Direct Detection para boxes/plugs ❌                   │
+   │ • Bulk insert de detecciones ❌                          │
+   │ • Estimaciones de área ❌                                │
+   │ • Densidad auto-calibración ❌                           │
+   │                                                         │
+   │ FALTANTE: Callback Aggregation                         │
+   │ • Agregación de resultados ❌                            │
+   │ • Visualización de detecciones ❌                        │
+   │ • Creación de stock batches ❌                           │
+   │ • Verificación de consistencia ❌                        │
+   │ • Rollback en errores ❌                                 │
+   │                                                         │
+   │ DISCREPANCIA: AVIF Compression                          │
+   │ • Diagrama: AVIF format, quality=85                     │
+   │ • Código: PIL default (no AVIF)                         │
+   │                                                         │
+   │ IMPACTO: Pipeline NO puede completar                    │
+   │ No se crean batches de stock                            │
+   │ Sistema inutilizable                                    │
+   │                                                         │
+   │ ARCHIVO: app/services/photo/detection_service.py VACÍO  │
+   │ ACCIÓN: Implementar child tasks + callback URGENTEMENTE │
+   └─────────────────────────────────────────────────────────┘
+
+2. PHOTO GALLERY - NO EXISTE (30% IMPLEMENTADO)
+   ┌─────────────────────────────────────────────────────────┐
+   │ FALTANTE: Gallery View                                  │
+   │ • GET /api/photos/gallery ❌                             │
+   │ • Filtrado por fecha, warehouse, status ❌               │
+   │ • Paginación ❌                                          │
+   │ • Presigned URLs ❌                                      │
+   │                                                         │
+   │ FALTANTE: Photo Detail View                             │
+   │ • GET /api/photos/{id} ❌                                │
+   │ • Mostrar detecciones ❌                                 │
+   │ • Historial de movimientos ❌                            │
+   │                                                         │
+   │ FALTANTE: Error Recovery                                │
+   │ • Modal de error ❌                                      │
+   │ • Reprocessing endpoint ❌                               │
+   │                                                         │
+   │ IMPACTO: Usuarios no pueden visualizar resultados       │
+   │                                                         │
+   │ ACCIÓN: Implementar gallery endpoints (SPRINT 04)       │
+   └─────────────────────────────────────────────────────────┘
+
+3. MATERIALISED VIEWS - NO EXISTEN
+   ┌─────────────────────────────────────────────────────────┐
+   │ FALTANTE: 3 Vistas Materializadas                       │
+   │ • mv_warehouse_summary ❌                                │
+   │ • mv_storage_location_preview ❌                         │
+   │ • mv_storage_location_history ❌                         │
+   │                                                         │
+   │ IMPACTO: Performance mapas warehouse comprometida        │
+   │ Map queries sin optimización                            │
+   │                                                         │
+   │ ACCIÓN: Crear MVs en database migrations               │
+   └─────────────────────────────────────────────────────────┘
+
+4. ANALYTICS SYSTEM - MUY INCOMPLETO (25% IMPLEMENTADO)
+   ┌─────────────────────────────────────────────────────────┐
+   │ FALTANTE: Sales Comparison                              │
+   │ • CSV Upload ❌                                          │
+   │ • Parse + validate ❌                                    │
+   │ • Variance calculation ❌                                │
+   │                                                         │
+   │ FALTANTE: AI-Powered Analytics                          │
+   │ • LLM integration ❌                                     │
+   │ • Natural language queries ❌                            │
+   │ • SQL generation ❌                                      │
+   │                                                         │
+   │ FALTANTE: Data Export                                   │
+   │ • Excel export ❌                                        │
+   │ • CSV export ❌                                          │
+   │                                                         │
+   │ ACCIÓN: Será SPRINT 05+, documentar gaps               │
+   └─────────────────────────────────────────────────────────┘
+
+5. MAP WAREHOUSE VIEWS - INCOMPLETO (35% IMPLEMENTADO)
+   ┌─────────────────────────────────────────────────────────┐
+   │ FALTANTE: Bulk Load Endpoint                            │
+   │ • GET /map/bulk-load ❌                                  │
+   │                                                         │
+   │ FALTANTE: Detail View                                   │
+   │ • GET /storage-locations/{id}/detail ❌                  │
+   │ • Processed image visualization ❌                       │
+   │ • Financial metrics ❌                                   │
+   │                                                         │
+   │ FALTANTE: Historical Timeline                           │
+   │ • GET /storage-locations/{id}/history ❌                 │
+   │ • 3-month period aggregation ❌                          │
+   │                                                         │
+   │ IMPACTO: Mapa no funcional                              │
+   │                                                         │
+   │ ACCIÓN: Será SPRINT 04+                                │
+   └─────────────────────────────────────────────────────────┘
+
+================================================================================
+DIAGRAMAS OBSOLETOS
+================================================================================
+
+❌ ELIMINAR:
+  flows/procesamiento_ml_upload_s3_principal/FLUJO PRINCIPAL V3-2025-10-07-201442.mmd
+
+  Razón: Versión antigua, reemplazado por v4
+  Acción: BORRAR del repositorio
+
+================================================================================
+CÓDIGO IMPLEMENTADO SIN DIAGRAMA
+================================================================================
+
+⚠️ Documentación Faltante:
+  • Celery task orchestration (app/celery_app.py)
+  • Worker topology (Gevent vs Solo pools)
+  • GPS matching (ubicación automática)
+  • Error handling patterns
+  • Cache invalidation strategy
+
+Recomendación: Crear diagramas para estos componentes
+
+================================================================================
+RECOMENDACIONES POR PRIORIDAD
+================================================================================
+
+🔴 CRÍTICO (Debe hacerse ahora):
+
+  [ ] 1. Completar ML Pipeline
+      - Implementar child tasks (SAHI + Direct detection)
+      - Implementar callback aggregation
+      - Crear stock batches en callback
+      - Archivos: detection_service.py, photo_upload_service.py
+      Impacto: Pipeline NO funciona sin esto
+
+  [ ] 2. Implementar Photo Gallery
+      - GET /api/photos/gallery (list + filter)
+      - GET /api/photos/{id} (detail view)
+      - POST /api/photos/{id}/reprocess (error recovery)
+      Si es SPRINT 04, AHORA. Si SPRINT 05+, documentar gap.
+
+  [ ] 3. Crear Materialised Views
+      - mv_warehouse_summary (5 min refresh)
+      - mv_storage_location_preview (10 min refresh)
+      - mv_storage_location_history (daily refresh)
+
+  [ ] 4. Eliminar Diagrama Obsoleto
+      - Borrar FLUJO PRINCIPAL V3
+
+🟡 IMPORTANTE (SPRINT 04-05):
+
+  [ ] 5. Implementar Map Warehouse Endpoints
+      - Bulk-load
+      - Detail + financial data
+      - Historical timeline
+
+  [ ] 6. Completar Bulk Operations (Price List)
+      - Bulk price update
+      - Availability change
+      - Discount application
+
+  [ ] 7. Mejorar Validaciones (Stock Movements)
+      - Comprehensive verification antes de commit
+      - Partial rollback strategy
+      - Empty containers tracking
+
+  [ ] 8. Crear Diagramas Faltantes
+      - Celery setup y worker topology
+      - Error handling patterns
+      - Cache strategy
+
+🟢 ONGOING (Documentación):
+
+  [ ] 9. Verificar Parámetros Técnicos
+      - AVIF compression support (Pillow)
+      - UUID vs SERIAL en s3_images
+      - Circuit breaker thresholds (50%, 60s)
+      - Partitioned tables (detections, estimations)
+
+  [ ] 10. Audit Log Implementation
+      - Storage location config changes
+      - Price list modifications
+      - Analytics queries
+
+================================================================================
+MATRIZ DE RASTREABILIDAD
+================================================================================
+
+RASTREABILIDAD COMPLETA (Diagrama ↔ Código ↔ Test)
+  ✅ Manual Stock Initialization
+
+RASTREABILIDAD PARCIAL (Falta algo)
+  ⚠️ Stock Movements (falta comprehensive verification)
+  ⚠️ Storage Location Config (falta audit log)
+  ⚠️ Product Management (faltan endpoints de packaging)
+
+SIN RASTREABILIDAD
+  ❌ ML Processing Pipeline (falta 60% código)
+  ❌ Photo Gallery (falta 70% código)
+  ❌ Analytics System (falta 75% código)
+  ❌ Map Warehouse Views (falta 65% código)
+  ❌ Celery Infrastructure (sin diagrama)
+
+================================================================================
+PRÓXIMOS PASOS
+================================================================================
+
+INMEDIATO:
+  1. Leer WORKFLOWS_AUDIT_REPORT.md (detallado)
+  2. Leer FLOWS_DISCREPANCY_MATRIX.md (matriz componente a componente)
+  3. Priorizar: ML Pipeline > Photo Gallery > Materialised Views
+  4. Crear tickets en backlog para cada gap crítico
+
+CORTO PLAZO:
+  5. Completar ML Pipeline child tasks
+  6. Implementar photo gallery endpoints
+  7. Crear materialised views en DB
+  8. Eliminar diagrama v3 obsoleto
+
+MEDIANO PLAZO:
+  9. Implementar map warehouse endpoints
+  10. Completar bulk operations
+  11. Mejorar validaciones stock movements
+  12. Crear diagramas faltantes
+
+LARGO PLAZO:
+  13. Analytics system (SPRINT 05+)
+  14. AI-powered queries
+  15. Advanced error handling
+  16. Performance optimization
+
+================================================================================
+REVISIÓN POR TERCEROS
+================================================================================
+
+Este reporte requiere revisión de:
+  • Tech Lead: Validar prioridades y estimaciones
+  • PM: Determinar impacto en sprints
+  • QA: Verificar que test coverage es suficiente
+  • Architecture: Revisar diagramas faltantes
+
+================================================================================
+CONTACTO Y REFERENCIAS
+================================================================================
+
+Documentos Generados:
+  • WORKFLOWS_AUDIT_REPORT.md (Detallado, 400+ líneas)
+  • FLOWS_DISCREPANCY_MATRIX.md (Matriz, 800+ líneas)
+  • WORKFLOWS_AUDIT_SUMMARY.txt (Este archivo)
+
+Referencias en Codebase:
+  • database/database.mmd (Schema fuente de verdad)
+  • flows/ (38 diagramas Mermaid)
+  • CLAUDE.md (Instrucciones arquitectura)
+  • CRITICAL_ISSUES.md (Lecciones Sprint 02)
+
+================================================================================
+FIN DEL REPORTE
+Fecha: 2025-10-21
+Versión: 1.0
+================================================================================

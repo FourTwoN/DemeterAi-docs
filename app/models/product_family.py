@@ -118,7 +118,7 @@ class ProductFamily(Base):
     # Foreign key to product_categories (CASCADE delete)
     category_id = Column(
         Integer,
-        ForeignKey("product_categories.product_category_id", ondelete="CASCADE"),
+        ForeignKey("product_categories.id", ondelete="CASCADE"),
         nullable=False,
         index=True,
         comment="Foreign key to product_categories (CASCADE delete)",

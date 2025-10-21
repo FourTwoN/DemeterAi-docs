@@ -28,6 +28,9 @@ from app.repositories.classification_repository import ClassificationRepository
 from app.repositories.density_parameter_repository import DensityParameterRepository
 from app.repositories.detection_repository import DetectionRepository
 from app.repositories.estimation_repository import EstimationRepository
+from app.repositories.location_relationship_repository import (
+    LocationRelationshipRepository,
+)
 from app.repositories.packaging_catalog_repository import PackagingCatalogRepository
 from app.repositories.packaging_color_repository import PackagingColorRepository
 from app.repositories.packaging_material_repository import PackagingMaterialRepository
@@ -64,6 +67,7 @@ __all__ = [
     "StorageLocationRepository",
     "StorageBinRepository",
     "StorageBinTypeRepository",
+    "LocationRelationshipRepository",
     # Stock management
     "StockBatchRepository",
     "StockMovementRepository",

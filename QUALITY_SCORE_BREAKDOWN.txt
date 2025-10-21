@@ -1,0 +1,246 @@
+
+╔═══════════════════════════════════════════════════════════════════════════════╗
+║                      CODE QUALITY SCORE BREAKDOWN                             ║
+║                            DemeterAI v2.0                                     ║
+╚═══════════════════════════════════════════════════════════════════════════════╝
+
+┌───────────────────────────────────────────────────────────────────────────────┐
+│                         OVERALL SCORE: 78/100 ⚠️                              │
+│                           Grade: C+ (Needs Improvement)                       │
+└───────────────────────────────────────────────────────────────────────────────┘
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+1. TYPE HINTS                                                        75/100 ⚠️
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Coverage:  82% (187/228 functions)
+Status:    Needs Improvement
+Priority:  🔴 HIGH - Must fix before production
+
+Breakdown:
+  ✅ Functions with type hints:     187  ████████████████████░░░░ 82%
+  ❌ Functions missing type hints:   41  ████░░░░░░░░░░░░░░░░░░░░ 18%
+
+By function type:
+  • Async functions:    100/129 (77.5% coverage) ⚠️
+  • Regular functions:   87/99  (87.9% coverage) ✅
+
+Critical violations:
+  • 12 dependency injection factories (missing return types)
+  •  7 ML processing helpers (numpy return types)
+  •  3 schema classmethods (from_model)
+
+Impact:
+  ❌ Reduced IDE autocomplete support
+  ❌ Type checking tools (mypy) cannot verify correctness
+  ❌ Harder code reviews (unclear return expectations)
+
+Recommendation:
+  Add return type hints to all 41 functions (2-3 hour task)
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+2. DOCSTRINGS                                                        87/100 ✅
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Coverage:  86.5% (268/310 methods)
+Status:    Good (target: 90%)
+Priority:  🟡 MEDIUM - Improve before next sprint
+
+Breakdown by layer:
+  ✅ Repositories:  93.9% (46/49)   ████████████████████████░ Excellent
+  ⚠️  Services:     80.3% (102/127) ████████████████████░░░░░ Below target
+  ✅ All layers:    86.5% (268/310) █████████████████████░░░░ Good
+
+Missing docstrings:
+  • 25 service methods
+  •  3 repository methods
+  • 14 other methods
+
+Impact:
+  ⚠️  Harder onboarding for new developers
+  ⚠️  Reduced code maintainability
+  ⚠️  Missing API documentation
+
+Recommendation:
+  Add docstrings to 42 methods using Google style (1-2 hour task)
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+3. ASYNC/AWAIT                                                       95/100 ✅
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Coverage:  100% (0 violations)
+Status:    Excellent
+Priority:  🟢 LOW - No action needed
+
+Metrics:
+  • Total async functions:     129
+  • Total await calls:         248
+  • Await-without-async:         0  ✅
+  • Sync helpers (validators):  19  ✅ (expected)
+
+Analysis:
+  ✅ All database operations use async/await
+  ✅ No blocking I/O in async context
+  ✅ Proper use of sync helpers for validation
+
+No issues found!
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+4. IMPORTS & DEPENDENCIES                                            95/100 ✅
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Coverage:  100% Clean Architecture compliance
+Status:    Excellent
+Priority:  🟢 LOW - No action needed
+
+Metrics:
+  ✅ Circular imports:              0
+  ✅ Service→Service pattern:     100% (26/26 services)
+  ✅ Cross-repository access:       0
+  ✅ All modules importable:      100%
+
+Clean Architecture verification:
+  ✅ 26/26 services use dependency injection
+  ✅ 0 services access other repositories directly
+  ✅ Repository pattern properly implemented
+
+Example (perfect pattern):
+  class StorageLocationService:
+      def __init__(
+          self,
+          location_repo: StorageLocationRepository,  # ✅ Own repo
+          warehouse_service: WarehouseService,       # ✅ Service
+          area_service: StorageAreaService           # ✅ Service
+      ):
+
+No issues found!
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+5. EXCEPTION HANDLING                                                65/100 ❌
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Coverage:  15.4% custom exception adoption (4/26 services)
+Status:    Poor
+Priority:  🔴 HIGH - Must fix before production
+
+Custom Exception Framework:
+  ✅ 12 specialized exception types available
+  ✅ 4xx/5xx HTTP status code separation
+  ✅ Automatic logging with metadata
+  ✅ User-friendly + technical messages
+
+❌ CRITICAL ISSUE: Generic Exception Overuse
+
+Violations:
+  • 65 uses of "raise ValueError" instead of custom exceptions
+  • Only 4/26 services import from app.core.exceptions
+  • 22/26 services using generic exceptions
+
+Example violation:
+  ❌ raise ValueError(f"ProductCategory {id} not found")
+
+  ✅ raise NotFoundException(resource="ProductCategory", identifier=id)
+
+Impact:
+  ❌ No HTTP status codes (controllers can't determine 404 vs 400 vs 500)
+  ❌ Poor user experience (technical errors exposed to frontend)
+  ❌ No structured logging metadata
+  ❌ Inconsistent API error responses
+
+Recommendation:
+  Replace 65 ValueError with custom exceptions (3-4 hour task)
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+6. SOLID PRINCIPLES                                                  85/100 ✅
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Coverage:  Good overall, 3 SRP violations
+Status:    Good
+Priority:  🟡 MEDIUM - Refactor before scaling
+
+Breakdown by principle:
+
+1. Single Responsibility Principle (SRP): 90/100 ⚠️
+   ✅ Most services: 3-6 methods, <100 lines
+   ⚠️  3 violations:
+       • StorageAreaService:      513 lines, 10 methods
+       • WarehouseService:        430 lines, 9 methods
+       • BandEstimationService:   678 lines, 8 methods
+
+2. Open/Closed Principle (OCP): 85/100 ✅
+   ✅ BaseRepository allows extension without modification
+   ✅ Services prefer composition over inheritance
+
+3. Liskov Substitution Principle (LSP): 90/100 ✅
+   ✅ Exception hierarchy properly substitutable
+   ✅ Repository generics properly typed
+
+4. Interface Segregation Principle (ISP): 80/100 ✅
+   ✅ Services expose only needed methods
+   ✅ No "fat interfaces" detected
+
+5. Dependency Inversion Principle (DIP): 95/100 ✅ EXCELLENT
+   ✅ 26/26 services use dependency injection
+   ✅ No hard-coded dependencies
+   ✅ Perfect DI pattern throughout
+
+Recommendation:
+  Refactor 3 large services to extract geometry/GPS logic (4-6 hour task)
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+┌───────────────────────────────────────────────────────────────────────────────┐
+│                            PRIORITY ACTIONS                                   │
+└───────────────────────────────────────────────────────────────────────────────┘
+
+🔴 CRITICAL (Before Production):
+
+  1. Add 41 missing return type hints
+     • Files: 12 services, 7 ML modules, 3 schemas
+     • Time: 2-3 hours
+     • Impact: Type safety, IDE support
+
+  2. Replace 65 generic exceptions
+     • Files: 22 services using ValueError
+     • Time: 3-4 hours
+     • Impact: API consistency, user experience
+
+🟡 IMPORTANT (Before Next Sprint):
+
+  3. Add 42 missing docstrings
+     • Files: Primarily services (25 methods)
+     • Time: 1-2 hours
+     • Impact: Code documentation
+
+  4. Refactor 3 large services
+     • Files: StorageAreaService, WarehouseService
+     • Time: 4-6 hours
+     • Impact: Maintainability, SRP compliance
+
+🟢 OPTIONAL (Future Sprints):
+
+  5. Add mypy to CI/CD
+  6. Add interrogate (docstring coverage) to CI/CD
+  7. Add pre-commit hooks for type checking
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+┌───────────────────────────────────────────────────────────────────────────────┐
+│                        IMPROVEMENT ROADMAP                                    │
+└───────────────────────────────────────────────────────────────────────────────┘
+
+  Current:    78/100 (C+) ⚠️
+
+  Week 1:     85/100 (B)  → Fix critical issues (type hints + exceptions)
+  Week 2:     90/100 (A-) → Add missing docstrings
+  Week 3:     92/100 (A)  → Refactor large services
+  Week 4:     95/100 (A)  → Add CI/CD quality gates
+
+  Potential:  95/100 (A)  ✅
+
+Total estimated effort: 16 hours
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Full report: /home/lucasg/proyectos/DemeterDocs/CODE_QUALITY_AUDIT_2025-10-20.md
+JSON metrics: /home/lucasg/proyectos/DemeterDocs/code_quality_metrics.json

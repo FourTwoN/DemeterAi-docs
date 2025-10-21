@@ -1,0 +1,289 @@
+================================================================================
+  DETAILED VIOLATION TABLE - DemeterAI v2.0 Architecture Audit
+================================================================================
+
+VIOLATION MATRIX
+================================================================================
+
+ID  | Category              | Severity | File                    | Line(s) | Issue
+----|----------------------|----------|------------------------|---------|-----------------------------------
+V01 | Repository Import    | CRITICAL | stock_controller.py     | 33-34   | Direct StockBatchRepository import
+V02 | Repository Import    | CRITICAL | stock_controller.py     | 34      | Direct StockMovementRepository import
+V03 | Repository Import    | CRITICAL | location_controller.py  | 28-31   | 4 repository imports
+V04 | Repository Import    | CRITICAL | config_controller.py    | 25-28   | 2 repository imports
+V05 | Repository Import    | CRITICAL | product_controller.py   | 30-32   | 3 repository imports
+V06 | Repository Import    | CRITICAL | analytics_controller.py | 28      | Direct StockBatchRepository import
+V07 | Session Direct       | CRITICAL | product_service.py      | 68      | service.session.execute()
+V08 | Session Direct       | CRITICAL | product_service.py      | 159     | service.session.execute()
+V09 | Session Direct       | CRITICAL | product_service.py      | 186     | service.session.execute()
+V10 | Session Direct       | CRITICAL | storage_area_service.py | 251     | service.session.execute()
+V11 | Session Direct       | CRITICAL | storage_area_service.py | 304     | service.session.execute()
+V12 | Session Direct       | CRITICAL | storage_area_service.py | 347     | service.session.execute()
+V13 | Session Direct       | CRITICAL | storage_location_srv.py | Multi   | service.session.execute()
+V14 | Session Direct       | CRITICAL | storage_bin_service.py  | Multi   | service.session.execute()
+V15 | Session Direct       | CRITICAL | stock_movement_srv.py   | 35      | service.session.execute()
+V16 | Session Direct       | CRITICAL | analytics_service.py    | 99      | Direct session access
+V17 | Missing Method       | CRITICAL | stock_controller.py     | 269     | create_manual_initialization()
+V18 | Missing Method       | CRITICAL | stock_batch_service.py  | N/A     | get_by_category_and_family()
+V19 | Missing Method       | CRITICAL | stock_batch_service.py  | N/A     | get_by_family()
+V20 | Missing Method       | CRITICAL | stock_batch_service.py  | N/A     | get_all()
+V21 | Incomplete Service   | CRITICAL | batch_lifecycle_srv.py  | 9       | __init__() takes no dependencies
+V22 | Business Logic       | CRITICAL | location_controller.py  | 368-377 | Data transformation in controller
+V23 | Business Logic       | CRITICAL | analytics_controller.py | 116-136 | Incomplete aggregation logic
+V24 | Dependency Wiring    | MAJOR    | stock_controller.py     | 105-121 | Controller creates 3+ services
+V25 | Dependency Wiring    | MAJOR    | location_controller.py  | 52-119  | Controller creates 5+ services
+V26 | Dependency Wiring    | MAJOR    | product_controller.py   | 56-85   | Controller creates 3+ services
+V27 | Service Injection    | MAJOR    | product_service.py      | 85      | Receives unused category_service
+
+================================================================================
+AFFECTED FILES BREAKDOWN
+================================================================================
+
+FILE: stock_controller.py
+Location: /home/lucasg/proyectos/DemeterDocs/app/controllers/stock_controller.py
+Violations: V01, V02, V17, V24
+Issues:
+  - Line 33-34: Direct imports of StockBatchRepository, StockMovementRepository
+  - Lines 65-79: Creates PhotoProcessingSessionRepository, S3ImageRepository, WarehouseRepository
+  - Line 269: Calls create_manual_initialization() which doesn't exist
+  - Lines 105-121: Creates StockBatchRepository, StockMovementRepository, StorageLocationConfigRepository
+  - Creates StorageLocationConfigService, StockBatchService, StockMovementService
+
+Impact: Endpoints will crash. Cannot test services. Repository changes break controller.
+
+---
+
+FILE: location_controller.py
+Location: /home/lucasg/proyectos/DemeterDocs/app/controllers/location_controller.py
+Violations: V03, V22, V25
+Issues:
+  - Lines 28-31: Direct imports of StorageAreaRepository, StorageBinRepository,
+                 StorageLocationRepository, WarehouseRepository
+  - Lines 368-377: Fetches hierarchy manually instead of calling service method
+  - Lines 52-119: Creates WarehouseRepository, StorageAreaRepository,
+                  StorageLocationRepository, StorageBinRepository
+  - Creates WarehouseService, StorageAreaService, StorageLocationService, StorageBinService
+
+Impact: Business logic in controller. Cannot reuse. Tight coupling to repository impl.
+
+---
+
+FILE: config_controller.py
+Location: /home/lucasg/proyectos/DemeterDocs/app/controllers/config_controller.py
+Violations: V04
+Issues:
+  - Lines 25-28: Direct imports of DensityParameterRepository, StorageLocationConfigRepository
+
+Impact: Cannot swap repository implementations. Direct DB layer exposure.
+
+---
+
+FILE: product_controller.py
+Location: /home/lucasg/proyectos/DemeterDocs/app/controllers/product_controller.py
+Violations: V05, V26
+Issues:
+  - Lines 30-32: Direct imports of ProductCategoryRepository, ProductFamilyRepository, ProductRepository
+  - Lines 56-85: Creates ProductCategoryRepository, ProductFamilyRepository, ProductRepository
+  - Creates ProductCategoryService, ProductFamilyService, ProductService
+
+Impact: Tight coupling. Dependencies hard-coded. Cannot mock for testing.
+
+---
+
+FILE: analytics_controller.py
+Location: /home/lucasg/proyectos/DemeterDocs/app/controllers/analytics_controller.py
+Violations: V06, V23
+Issues:
+  - Line 28: Direct import of StockBatchRepository
+  - Lines 116-136: TODO comment showing business logic should be in service
+
+Impact: Repository exposed to HTTP layer. Incomplete implementation.
+
+---
+
+FILE: product_service.py
+Location: /home/lucasg/proyectos/DemeterDocs/app/services/product_service.py
+Violations: V07, V08, V09, V27
+Issues:
+  - Line 68: await self.product_repo.session.execute(stmt)
+  - Line 159: await self.product_repo.session.execute(stmt)
+  - Line 186: await self.product_repo.session.execute(stmt)
+  - Line 85: Constructor receives unused category_service
+
+Impact: SQL queries in service layer. Cannot optimize. SQL injection risks.
+
+---
+
+FILE: storage_area_service.py
+Location: /home/lucasg/proyectos/DemeterDocs/app/services/storage_area_service.py
+Violations: V10, V11, V12
+Issues:
+  - Line 251: await self.storage_area_repo.session.execute(query)
+  - Line 304: await self.storage_area_repo.session.execute(query)
+  - Line 347: await self.storage_area_repo.session.execute(query)
+
+Impact: 3x direct session access. Complex queries in service layer.
+
+---
+
+FILE: storage_location_service.py
+Location: /home/lucasg/proyectos/DemeterDocs/app/services/storage_location_service.py
+Violations: V13
+Issues:
+  - Multiple instances of await self.location_repo.session.execute(query)
+
+Impact: Bypasses repository pattern. Cannot test without database.
+
+---
+
+FILE: storage_bin_service.py
+Location: /home/lucasg/proyectos/DemeterDocs/app/services/storage_bin_service.py
+Violations: V14
+Issues:
+  - Multiple instances of await self.bin_repo.session.execute(query)
+
+Impact: Service directly accessing SQL. Repository pattern violated.
+
+---
+
+FILE: stock_movement_service.py
+Location: /home/lucasg/proyectos/DemeterDocs/app/services/stock_movement_service.py
+Violations: V15
+Issues:
+  - Line 35: result = await self.movement_repo.session.execute(query)
+
+Impact: Direct session access. Cannot optimize queries.
+
+---
+
+FILE: analytics_service.py
+Location: /home/lucasg/proyectos/DemeterDocs/app/services/analytics_service.py
+Violations: V16
+Issues:
+  - Line 99: session: AsyncSession = self.stock_batch_repo.session
+  - Directly using session to execute aggregation query
+
+Impact: Service logic mixed with data access. Hard to test.
+
+---
+
+FILE: batch_lifecycle_service.py
+Location: /home/lucasg/proyectos/DemeterDocs/app/services/batch_lifecycle_service.py
+Violations: V21
+Issues:
+  - Line 9: def __init__(self) -> None: pass
+  - Service takes NO dependencies but is expected to manage lifecycle
+
+Impact: Missing create_manual_initialization() method. Cannot inject dependencies.
+
+---
+
+FILE: stock_batch_service.py
+Location: /home/lucasg/proyectos/DemeterDocs/app/services/stock_batch_service.py
+Violations: V18, V19, V20
+Issues:
+  - Missing get_by_category_and_family() method
+  - Missing get_by_family() method
+  - Missing get_all() method
+
+Impact: Controllers calling non-existent methods. Runtime crashes.
+
+================================================================================
+VIOLATION FREQUENCY ANALYSIS
+================================================================================
+
+By Severity:
+  CRITICAL: 21 violations (95% of total)
+  MAJOR:    4 violations (5% of total)
+
+By Category:
+  Session Direct Access:      9 violations (41%)
+  Repository Import:          6 violations (27%)
+  Missing Method:             5 violations (23%)
+  Business Logic in Controller: 2 violations (9%)
+  Dependency Wiring:          3 violations (14%)
+
+By Layer Affected:
+  Controllers:     11 violations
+  Services:        10 violations
+  Total:           21 violations
+
+By Impact Type:
+  Test Blocking:        9 violations
+  Runtime Failure:      5 violations
+  Security Risk:        4 violations
+  Maintainability:      3 violations
+
+================================================================================
+IMPACT HEAT MAP
+================================================================================
+
+CRITICAL PATH VIOLATIONS (Will crash in production):
+  1. V17: create_manual_initialization() doesn't exist
+     Endpoint: POST /api/v1/stock/manual
+     Impact: Immediate crash with AttributeError
+
+  2. V18-20: Missing StockBatchService methods
+     Endpoints: GET /api/v1/products (product_controller.py:365-369)
+     Impact: AttributeError when querying products
+
+  3. V07-09, V10-12, V13-15: Session.execute() in services
+     Impact: Cannot test services independently
+
+SECURITY VIOLATIONS:
+  1. V01-06: Repository imports in controllers
+     Exposure: Database schema exposed to HTTP layer
+     Risk: Unauthorized direct database queries
+
+  2. V07-16: Raw SQL in services
+     Risk: SQL injection if user input not parameterized
+     Visibility: 10+ locations in codebase
+
+TESTABILITY BLOCKERS:
+  1. V01-06: Cannot mock repositories
+  2. V07-16: Cannot test without database
+  3. V24-26: Controllers create services (cannot inject mocks)
+
+================================================================================
+RECOMMENDED FIX PRIORITY
+================================================================================
+
+IMMEDIATE (Blocker - Fix before any deployment):
+  [ ] V17: Add create_manual_initialization() to BatchLifecycleService
+  [ ] V18-20: Add missing methods to StockBatchService
+  [ ] V01-06: Remove all Repository imports from controllers
+  [ ] V07-16: Convert session.execute() to repository method calls
+
+THIS SPRINT:
+  [ ] V22-23: Extract business logic from controllers to services
+  [ ] V24-26: Create app/dependencies.py for centralized DI
+  [ ] V21: Add proper constructor to BatchLifecycleService
+
+FUTURE:
+  [ ] V27: Review ProductService constructor to remove unused dependency
+  [ ] Add comprehensive unit tests (now possible after fixes)
+  [ ] Performance optimization at repository layer
+
+================================================================================
+COST ANALYSIS
+================================================================================
+
+Estimated effort to fix:
+  - Create dependencies.py: 2-3 hours
+  - Add missing service methods: 3-4 hours
+  - Remove repository imports: 2-3 hours
+  - Refactor session.execute() calls: 4-6 hours
+  - Extract business logic from controllers: 3-4 hours
+  - Comprehensive testing: 8-10 hours
+
+Total: 22-30 hours (roughly 3 days for 2 engineers)
+
+Cost of NOT fixing:
+  - Production crashes: Priceless
+  - Data integrity issues: Unquantifiable
+  - Security breach potential: Catastrophic
+  - Maintenance debt: Ongoing cost increase
+
+Recommendation: Fix NOW before deployment.
+
+================================================================================

@@ -52,6 +52,7 @@ Example:
 """
 
 import re
+from datetime import datetime
 from typing import TYPE_CHECKING
 
 from sqlalchemy import Boolean, Column, DateTime, Enum, Integer, String
@@ -231,6 +232,7 @@ class User(Base):
     created_at = Column(
         DateTime(timezone=True),
         server_default=func.now(),
+        default=datetime.utcnow,
         nullable=False,
         comment="Account creation timestamp",
     )

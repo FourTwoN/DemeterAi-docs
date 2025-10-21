@@ -40,6 +40,7 @@ Example:
 """
 
 import re
+from datetime import datetime
 from typing import TYPE_CHECKING
 
 from sqlalchemy import CheckConstraint, Column, DateTime, Integer, String, Text
@@ -73,7 +74,7 @@ class ProductCategory(Base):
         - INT PK: Simple auto-increment (reference/catalog pattern)
 
     Attributes:
-        product_category_id: Primary key (auto-increment)
+        id: Primary key (auto-increment)
         code: Unique category code (uppercase, alphanumeric + underscores, 3-50 chars)
         name: Human-readable category name (200 chars max)
         description: Optional detailed description (text)
@@ -105,13 +106,15 @@ class ProductCategory(Base):
 
         # Query by code (UK index used)
         category = session.query(ProductCategory).filter_by(code="BROMELIAD").first()
+        # Access primary key via .id
+        print(f"Category ID: {category.id}")
         ```
     """
 
     __tablename__ = "product_categories"
 
     # Primary key
-    product_category_id = Column(
+    id = Column(
         Integer,
         primary_key=True,
         autoincrement=True,
@@ -143,6 +146,7 @@ class ProductCategory(Base):
     created_at = Column(
         DateTime(timezone=True),
         server_default=func.now(),
+        default=datetime.utcnow,
         nullable=False,
         comment="Record creation timestamp",
     )
@@ -234,14 +238,14 @@ class ProductCategory(Base):
         """String representation for debugging.
 
         Returns:
-            String with product_category_id, code, and name
+            String with id, code, and name
 
         Example:
-            <ProductCategory(product_category_id=1, code='CACTUS', name='Cactus')>
+            <ProductCategory(id=1, code='CACTUS', name='Cactus')>
         """
         return (
             f"<ProductCategory("
-            f"product_category_id={self.product_category_id}, "
+            f"id={self.id}, "
             f"code='{self.code}', "
             f"name='{self.name}'"
             f")>"

@@ -1,0 +1,141 @@
+{
+  "execution_date": "2025-10-21",
+  "execution_time_seconds": 140.92,
+  "exit_code": 1,
+  "status": "FAILED",
+  "summary": {
+    "total": 1327,
+    "passed": 935,
+    "failed": 92,
+    "errors": 292,
+    "skipped": 8,
+    "pass_rate": 70.5,
+    "fail_rate": 6.9,
+    "error_rate": 22.0,
+    "skip_rate": 0.6
+  },
+  "coverage": {
+    "total_coverage_percent": 72.8,
+    "target_coverage_percent": 80.0,
+    "gap_percent": -7.2,
+    "total_statements": 5183,
+    "missing_statements": 1410,
+    "covered_statements": 3773,
+    "statements_needed_for_target": 374
+  },
+  "critical_issues": [
+    {
+      "severity": "BLOCKER",
+      "type": "DATABASE_SCHEMA_ERROR",
+      "count": 292,
+      "description": "asyncpg.exceptions.UndefinedColumnError: column 'storage_bin_type_id' not found",
+      "file": "app/models/density_parameter.py",
+      "line": 132,
+      "impact": "22% of test suite blocked",
+      "fix": "Run: alembic upgrade head OR verify table creation order"
+    },
+    {
+      "severity": "HIGH",
+      "type": "ML_PIPELINE_MOCKING",
+      "count": 11,
+      "description": "Mock object is not subscriptable",
+      "tests_affected": [
+        "test_estimation_accuracy_within_10_percent",
+        "test_estimation_compensates_for_missed_detections",
+        "test_estimations_match_db_schema",
+        "test_task_uses_cached_model_across_invocations",
+        "test_different_workers_use_different_models",
+        "test_complete_pipeline_with_real_services",
+        "test_complete_pipeline_empty_image",
+        "test_pipeline_performance_cpu_benchmark",
+        "test_pipeline_handles_corrupted_image",
+        "test_pipeline_handles_missing_image",
+        "test_pipeline_results_match_database"
+      ],
+      "fix": "Replace Mock objects with real data"
+    },
+    {
+      "severity": "MEDIUM",
+      "type": "LOW_COVERAGE",
+      "count": 1410,
+      "description": "Coverage 7.2% below target (72.8% vs 80%)",
+      "modules_0_percent": [
+        "app/tasks/ml_tasks.py",
+        "app/services/packaging_type_service.py",
+        "app/services/packaging_color_service.py",
+        "app/services/packaging_material_service.py",
+        "app/services/packaging_catalog_service.py",
+        "app/services/product_size_service.py",
+        "app/services/product_state_service.py",
+        "app/services/price_list_service.py",
+        "app/services/storage_bin_type_service.py"
+      ],
+      "modules_low_coverage": [
+        {"file": "app/services/warehouse_service.py", "coverage": 17},
+        {"file": "app/services/storage_area_service.py", "coverage": 16},
+        {"file": "app/services/storage_location_service.py", "coverage": 18}
+      ],
+      "fix": "Add integration tests for uncovered services"
+    }
+  ],
+  "successes": {
+    "core_infrastructure": {"passed": 68, "total": 68, "rate": 100},
+    "celery_redis": {"passed": 14, "total": 14, "rate": 100},
+    "db_session": {"passed": 18, "total": 18, "rate": 100},
+    "ml_processing": {"passed": 11, "total": 27, "rate": 41}
+  },
+  "errors_by_file": {
+    "test_product_size.py": 33,
+    "test_product_state.py": 30,
+    "test_base_repository.py": 23,
+    "test_product_service.py": 22,
+    "test_photo_processing_session.py": 21,
+    "test_storage_area_geospatial.py": 17,
+    "test_product_category_service.py": 15,
+    "test_storage_location_geospatial.py": 13,
+    "test_warehouse_geospatial.py": 12,
+    "test_storage_bin_type.py": 12
+  },
+  "environment": {
+    "platform": "Linux 6.14.0-33-generic",
+    "python_version": "3.12.11",
+    "database": "PostgreSQL + PostGIS (asyncpg)",
+    "database_url": "postgresql+asyncpg://localhost:5434/demeterai_test",
+    "pytest_version": "8.4.2"
+  },
+  "next_actions": [
+    {
+      "priority": "IMMEDIATE",
+      "action": "Fix database schema blocker",
+      "commands": [
+        "docker compose down db_test -v",
+        "docker compose up db_test -d",
+        "alembic upgrade head",
+        "pytest tests/unit/models/ -v"
+      ]
+    },
+    {
+      "priority": "HIGH",
+      "action": "Achieve 80% coverage",
+      "tasks": [
+        "Add tests for ml_tasks.py (0% → 80%)",
+        "Add tests for 7 service modules (0% → 80%)",
+        "Add integration tests for warehouse/storage services"
+      ]
+    },
+    {
+      "priority": "MEDIUM",
+      "action": "Fix ML pipeline tests",
+      "tasks": [
+        "Replace Mock objects in segmentation_service tests",
+        "Fix estimation accuracy assertions"
+      ]
+    }
+  ],
+  "reports": {
+    "detailed_report": "TEST_EXECUTION_REPORT.md",
+    "summary_report": "TEST_RESULTS_SUMMARY.txt",
+    "raw_output": "pytest_final_output.txt",
+    "json_report": "test_results.json"
+  }
+}
