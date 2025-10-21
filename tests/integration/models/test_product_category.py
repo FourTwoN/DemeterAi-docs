@@ -27,7 +27,7 @@ class TestProductCategoryDatabasePersistence:
         await db_session.commit()
         await db_session.refresh(category)
 
-        assert category.product_category_id is not None
+        assert category.id is not None
         assert category.code == "TEST_CAT"
         assert category.created_at is not None
 
@@ -91,7 +91,7 @@ class TestProductCategoryDatabasePersistence:
         db_session.add(category)
         await db_session.commit()
 
-        category_id = category.product_category_id
+        category_id = category.id
 
         # Delete
         await db_session.delete(category)
@@ -99,7 +99,7 @@ class TestProductCategoryDatabasePersistence:
 
         # Verify deleted
         result = await db_session.execute(
-            select(ProductCategory).where(ProductCategory.product_category_id == category_id)
+            select(ProductCategory).where(ProductCategory.id == category_id)
         )
         deleted = result.scalar_one_or_none()
 

@@ -98,6 +98,11 @@ class S3ImageService:
             )
         return self._s3_client
 
+    @s3_client.setter
+    def s3_client(self, value: "boto3.client") -> None:
+        """Set S3 client (used for testing with mocks)."""
+        self._s3_client = value
+
     async def upload_original(
         self,
         file_bytes: bytes,

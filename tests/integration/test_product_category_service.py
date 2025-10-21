@@ -57,7 +57,7 @@ async def test_create_category_success(category_service, db_session):
     response = await category_service.create_category(request)
 
     # Assert
-    assert response.product_category_id is not None
+    assert response.id is not None
     assert response.code == "CACTUS"
     assert response.name == "Cactus"
     assert response.description == "Cacti family (Cactaceae)"
@@ -65,7 +65,7 @@ async def test_create_category_success(category_service, db_session):
 
     # Verify in database
     await db_session.commit()
-    db_category = await db_session.get(ProductCategory, response.product_category_id)
+    db_category = await db_session.get(ProductCategory, response.id)
     assert db_category is not None
     assert db_category.code == "CACTUS"
 
@@ -130,10 +130,10 @@ async def test_get_category_by_id_success(category_service, db_session):
     await db_session.commit()
 
     # Act
-    response = await category_service.get_category_by_id(created.product_category_id)
+    response = await category_service.get_category_by_id(created.id)
 
     # Assert
-    assert response.product_category_id == created.product_category_id
+    assert response.id == created.id
     assert response.code == "CARNIVOROUS"
     assert response.name == "Carnivorous Plant"
 
@@ -204,11 +204,11 @@ async def test_update_category_success(category_service, db_session):
     update_request = ProductCategoryUpdateRequest(
         name="Palm Tree", description="Tropical palm trees"
     )
-    response = await category_service.update_category(created.product_category_id, update_request)
+    response = await category_service.update_category(created.id, update_request)
     await db_session.commit()
 
     # Assert
-    assert response.product_category_id == created.product_category_id
+    assert response.id == created.id
     assert response.code == "PALM"  # Code unchanged
     assert response.name == "Palm Tree"  # Updated
     assert response.description == "Tropical palm trees"  # Updated
@@ -227,7 +227,7 @@ async def test_update_category_partial(category_service, db_session):
 
     # Act - Update only name
     update_request = ProductCategoryUpdateRequest(name="Bamboo Plant")
-    response = await category_service.update_category(created.product_category_id, update_request)
+    response = await category_service.update_category(created.id, update_request)
     await db_session.commit()
 
     # Assert
@@ -259,7 +259,7 @@ async def test_delete_category_success(category_service, db_session):
     created = await category_service.create_category(request)
     await db_session.commit()
 
-    category_id = created.product_category_id
+    category_id = created.id
 
     # Act - Delete
     await category_service.delete_category(category_id)
@@ -307,20 +307,20 @@ async def test_multiple_categories_independence(category_service, db_session):
     await db_session.commit()
 
     # Assert - All exist independently
-    assert cat1.product_category_id != cat2.product_category_id
-    assert cat2.product_category_id != cat3.product_category_id
+    assert cat1.id != cat2.id
+    assert cat2.id != cat3.id
 
     # Delete one shouldn't affect others
-    await category_service.delete_category(cat2.product_category_id)
+    await category_service.delete_category(cat2.id)
     await db_session.commit()
 
     # Verify cat1 and cat3 still exist
-    cat1_still_exists = await category_service.get_category_by_id(cat1.product_category_id)
-    cat3_still_exists = await category_service.get_category_by_id(cat3.product_category_id)
+    cat1_still_exists = await category_service.get_category_by_id(cat1.id)
+    cat3_still_exists = await category_service.get_category_by_id(cat3.id)
 
     assert cat1_still_exists is not None
     assert cat3_still_exists is not None
 
     # Verify cat2 is gone
     with pytest.raises(ValueError):
-        await category_service.get_category_by_id(cat2.product_category_id)
+        await category_service.get_category_by_id(cat2.id)

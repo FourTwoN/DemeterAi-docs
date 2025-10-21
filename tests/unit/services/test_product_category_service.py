@@ -51,7 +51,7 @@ def category_service(mock_category_repo):
 def mock_category():
     """Create mock ProductCategory model instance."""
     category = Mock(spec=ProductCategory)
-    category.product_category_id = 1
+    category.id = 1
     category.code = "CACTUS"
     category.name = "Cactus"
     category.description = "Cacti family (Cactaceae)"
@@ -85,7 +85,7 @@ async def test_create_category_success(category_service, mock_category_repo, moc
 
     # Assert
     assert isinstance(response, ProductCategoryResponse)
-    assert response.product_category_id == 1
+    assert response.id == 1
     assert response.code == "CACTUS"
     assert response.name == "Cactus"
     mock_category_repo.create.assert_called_once()
@@ -98,7 +98,7 @@ async def test_create_category_minimal_fields(category_service, mock_category_re
     request = ProductCategoryCreateRequest(code="ORCHID", name="Orchid")
 
     mock_minimal = Mock(spec=ProductCategory)
-    mock_minimal.product_category_id = 2
+    mock_minimal.id = 2
     mock_minimal.code = "ORCHID"
     mock_minimal.name = "Orchid"
     mock_minimal.description = None
@@ -130,7 +130,7 @@ async def test_get_category_by_id_success(category_service, mock_category_repo, 
     response = await category_service.get_category_by_id(1)
 
     # Assert
-    assert response.product_category_id == 1
+    assert response.id == 1
     assert response.code == "CACTUS"
     mock_category_repo.get.assert_called_once_with(1)
 
@@ -156,7 +156,7 @@ async def test_get_all_categories_success(category_service, mock_category_repo):
     """Test getting all categories."""
     # Arrange
     mock_cat1 = Mock(spec=ProductCategory)
-    mock_cat1.product_category_id = 1
+    mock_cat1.id = 1
     mock_cat1.code = "CACTUS"
     mock_cat1.name = "Cactus"
     mock_cat1.description = "Cacti"
@@ -164,7 +164,7 @@ async def test_get_all_categories_success(category_service, mock_category_repo):
     mock_cat1.updated_at = None
 
     mock_cat2 = Mock(spec=ProductCategory)
-    mock_cat2.product_category_id = 2
+    mock_cat2.id = 2
     mock_cat2.code = "SUCCULENT"
     mock_cat2.name = "Succulent"
     mock_cat2.description = "Succulents"
@@ -224,7 +224,7 @@ async def test_update_category_success(category_service, mock_category_repo, moc
     )
 
     updated_mock = Mock(spec=ProductCategory)
-    updated_mock.product_category_id = 1
+    updated_mock.id = 1
     updated_mock.code = "CACTUS"
     updated_mock.name = "Updated Cactus Name"
     updated_mock.description = "Updated description"
@@ -264,7 +264,7 @@ async def test_update_category_partial(category_service, mock_category_repo, moc
     request = ProductCategoryUpdateRequest(name="New Name Only")
 
     updated_mock = Mock(spec=ProductCategory)
-    updated_mock.product_category_id = 1
+    updated_mock.id = 1
     updated_mock.code = "CACTUS"
     updated_mock.name = "New Name Only"
     updated_mock.description = "Cacti family (Cactaceae)"  # Unchanged

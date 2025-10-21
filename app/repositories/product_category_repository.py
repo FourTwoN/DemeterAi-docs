@@ -20,8 +20,8 @@ class ProductCategoryRepository(AsyncRepository[ProductCategory]):
         super().__init__(ProductCategory, session)
 
     async def get(self, id: Any) -> ProductCategory | None:
-        """Get product category by ID (custom PK column name)."""
-        stmt = select(ProductCategory).where(ProductCategory.product_category_id == id)
+        """Get product category by ID."""
+        stmt = select(ProductCategory).where(ProductCategory.id == id)
         result = await self.session.execute(stmt)
         return result.scalar_one_or_none()
 

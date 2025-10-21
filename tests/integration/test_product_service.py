@@ -72,7 +72,7 @@ async def test_category(category_service, db_session):
 async def test_family(family_service, test_category, db_session):
     """Create a test family for products."""
     request = ProductFamilyCreateRequest(
-        category_id=test_category.product_category_id,
+        category_id=test_category.id,
         name="Echeveria",
         scientific_name="Echeveria spp.",
     )
@@ -158,14 +158,14 @@ async def test_create_product_different_families_independent_skus(
     """Test that different families have independent SKU counters."""
     # Arrange - Create another family
     family1_request = ProductFamilyCreateRequest(
-        category_id=test_category.product_category_id, name="Sedum"
+        category_id=test_category.id, name="Sedum"
     )
     sedum_family = await family_service.create_family(family1_request)
     await db_session.commit()
 
     # Create another family
     family2_request = ProductFamilyCreateRequest(
-        category_id=test_category.product_category_id, name="Aloe"
+        category_id=test_category.id, name="Aloe"
     )
     aloe_family = await family_service.create_family(family2_request)
     await db_session.commit()
@@ -308,13 +308,13 @@ async def test_get_products_by_family_filtering(
     """Test that get_products_by_family only returns products from specified family."""
     # Arrange - Create two families
     family1_request = ProductFamilyCreateRequest(
-        category_id=test_category.product_category_id, name="Family1"
+        category_id=test_category.id, name="Family1"
     )
     family1 = await family_service.create_family(family1_request)
     await db_session.commit()
 
     family2_request = ProductFamilyCreateRequest(
-        category_id=test_category.product_category_id, name="Family2"
+        category_id=test_category.id, name="Family2"
     )
     family2 = await family_service.create_family(family2_request)
     await db_session.commit()
@@ -500,7 +500,7 @@ async def test_sku_generation_handles_family_name_with_spaces(
     """Test SKU generation handles family names with spaces correctly."""
     # Arrange - Create family with spaces in name
     family_request = ProductFamilyCreateRequest(
-        category_id=test_category.product_category_id, name="Aloe Vera Species"
+        category_id=test_category.id, name="Aloe Vera Species"
     )
     family = await family_service.create_family(family_request)
     await db_session.commit()
@@ -521,7 +521,7 @@ async def test_sku_generation_truncates_long_family_names(
     """Test SKU generation truncates long family names to 15 chars."""
     # Arrange - Create family with very long name
     family_request = ProductFamilyCreateRequest(
-        category_id=test_category.product_category_id,
+        category_id=test_category.id,
         name="VeryLongFamilyNameThatExceedsLimit",
     )
     family = await family_service.create_family(family_request)

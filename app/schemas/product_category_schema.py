@@ -32,7 +32,7 @@ class ProductCategoryUpdateRequest(BaseModel):
 class ProductCategoryResponse(BaseModel):
     """Response schema for product category."""
 
-    product_category_id: int
+    id: int
     code: str
     name: str
     description: str | None
@@ -45,7 +45,7 @@ class ProductCategoryResponse(BaseModel):
     def from_model(cls, category_model: "ProductCategory") -> "ProductCategoryResponse":
         """Create response from SQLAlchemy model."""
         return cls(
-            product_category_id=category_model.product_category_id,
+            id=category_model.id,
             code=category_model.code,
             name=category_model.name,
             description=category_model.description,
