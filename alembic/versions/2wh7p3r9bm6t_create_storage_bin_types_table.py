@@ -15,13 +15,14 @@ This is a SIMPLE reference table (no PostGIS, no triggers).
 """
 from typing import Sequence, Union
 
-from alembic import op
+from alembic import op  # type: ignore[attr-defined]
 import sqlalchemy as sa
+from sqlalchemy.dialects import postgresql
 
 
 # revision identifiers, used by Alembic.
 revision: str = '2wh7p3r9bm6t'
-down_revision: Union[str, None] = '1wgcfiexamud'
+down_revision: Union[str, None] = 'sof6kow8eu3r'  # Fixed: bin_types must come before bins
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 
@@ -29,24 +30,22 @@ depends_on: Union[str, Sequence[str], None] = None
 def upgrade() -> None:
     """Create storage_bin_types table with seed data."""
 
-    # 1. Create bin_category_enum type
+    # 1. Create ENUM type (idempotent - checks if exists first)
     op.execute("""
-        CREATE TYPE bin_category_enum AS ENUM (
-            'plug',
-            'seedling_tray',
-            'box',
-            'segment',
-            'pot'
-        );
+        DO $$
+        BEGIN
+            CREATE TYPE bin_category_enum AS ENUM ('plug', 'seedling_tray', 'box', 'segment', 'pot');
+        EXCEPTION WHEN duplicate_object THEN NULL;
+        END $$;
     """)
 
-    # 2. Create storage_bin_types table
+    # 2. Create storage_bin_types table (enum already created)
     op.create_table(
         'storage_bin_types',
         sa.Column('bin_type_id', sa.Integer(), autoincrement=True, nullable=False, comment='Primary key (auto-increment)'),
         sa.Column('code', sa.String(length=50), nullable=False, comment='Unique bin type code (uppercase, alphanumeric + underscores, 3-50 chars)'),
         sa.Column('name', sa.String(length=200), nullable=False, comment='Human-readable type name'),
-        sa.Column('category', sa.Enum('plug', 'seedling_tray', 'box', 'segment', 'pot', name='bin_category_enum'), nullable=False, comment='Category: plug, seedling_tray, box, segment, pot'),
+        sa.Column('category', postgresql.ENUM('plug', 'seedling_tray', 'box', 'segment', 'pot', name='bin_category_enum', create_type=False), nullable=False, comment='Category: plug, seedling_tray, box, segment, pot'),
         sa.Column('description', sa.Text(), nullable=True, comment='Optional detailed description'),
         sa.Column('rows', sa.Integer(), nullable=True, comment='Number of rows (nullable, required for grid types)'),
         sa.Column('columns', sa.Integer(), nullable=True, comment='Number of columns (nullable, required for grid types)'),
@@ -98,8 +97,5 @@ def downgrade() -> None:
     op.drop_index('ix_storage_bin_types_category', table_name='storage_bin_types')
     op.drop_index('ix_storage_bin_types_code', table_name='storage_bin_types')
 
-    # 2. Drop table
+    # 2. Drop table (enum auto-dropped by SQLAlchemy)
     op.drop_table('storage_bin_types')
-
-    # 3. Drop enum type
-    op.execute("DROP TYPE bin_category_enum;")

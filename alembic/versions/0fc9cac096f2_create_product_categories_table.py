@@ -23,13 +23,13 @@ def upgrade() -> None:
     # Create table
     op.create_table(
         'product_categories',
-        sa.Column('product_category_id', sa.Integer(), autoincrement=True, nullable=False, comment='Primary key (auto-increment)'),
+        sa.Column('id', sa.Integer(), autoincrement=True, nullable=False, comment='Primary key (auto-increment)'),
         sa.Column('code', sa.String(length=50), nullable=False, comment='Unique category code (uppercase, alphanumeric + underscores, 3-50 chars)'),
         sa.Column('name', sa.String(length=200), nullable=False, comment='Human-readable category name'),
         sa.Column('description', sa.Text(), nullable=True, comment='Optional detailed description'),
         sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=False, comment='Record creation timestamp'),
         sa.Column('updated_at', sa.DateTime(timezone=True), nullable=True, comment='Last update timestamp'),
-        sa.PrimaryKeyConstraint('product_category_id', name=op.f('pk_product_categories')),
+        sa.PrimaryKeyConstraint('id', name=op.f('pk_product_categories')),
         sa.UniqueConstraint('code', name=op.f('uq_product_categories_code')),
         sa.CheckConstraint('LENGTH(code) >= 3 AND LENGTH(code) <= 50', name='ck_product_category_code_length'),
         comment='Product Categories - ROOT taxonomy table (Category → Family → Product)'

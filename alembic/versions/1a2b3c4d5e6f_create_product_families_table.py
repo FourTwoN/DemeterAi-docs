@@ -29,7 +29,7 @@ def upgrade() -> None:
         sa.Column('scientific_name', sa.String(length=200), nullable=True, comment='Optional botanical/scientific name'),
         sa.Column('description', sa.Text(), nullable=True, comment='Optional detailed description'),
         sa.PrimaryKeyConstraint('family_id', name=op.f('pk_product_families')),
-        sa.ForeignKeyConstraint(['category_id'], ['product_categories.product_category_id'], name=op.f('fk_product_families_category_id_product_categories'), ondelete='CASCADE'),
+        sa.ForeignKeyConstraint(['category_id'], ['product_categories.id'], name=op.f('fk_product_families_category_id_product_categories'), ondelete='CASCADE'),
         comment='Product Families - LEVEL 2 taxonomy (Category → Family → Product)'
     )
 
@@ -42,28 +42,28 @@ def upgrade() -> None:
         -- CACTUS category (4 families)
         INSERT INTO product_families (category_id, name, scientific_name, description)
         SELECT
-            product_category_id,
+            id,
             'Echeveria',
             'Echeveria',
             'Small rosette-forming succulents native to Mexico and Central America'
         FROM product_categories WHERE code = 'CACTUS'
         UNION ALL
         SELECT
-            product_category_id,
+            id,
             'Mammillaria',
             'Mammillaria',
             'Globular cacti with prominent tubercles and colorful flowers'
         FROM product_categories WHERE code = 'CACTUS'
         UNION ALL
         SELECT
-            product_category_id,
+            id,
             'Opuntia',
             'Opuntia',
             'Pad-forming cacti (prickly pear) with flat stem segments'
         FROM product_categories WHERE code = 'CACTUS'
         UNION ALL
         SELECT
-            product_category_id,
+            id,
             'Echinocactus',
             'Echinocactus',
             'Large barrel-shaped cacti native to Mexico and southwestern United States'
@@ -74,28 +74,28 @@ def upgrade() -> None:
         -- SUCCULENT category (4 families)
         INSERT INTO product_families (category_id, name, scientific_name, description)
         SELECT
-            product_category_id,
+            id,
             'Aloe',
             'Aloe',
             'Succulent plants with thick fleshy leaves arranged in rosettes'
         FROM product_categories WHERE code = 'SUCCULENT'
         UNION ALL
         SELECT
-            product_category_id,
+            id,
             'Haworthia',
             'Haworthia',
             'Small succulent plants with distinctive striped or warty leaves'
         FROM product_categories WHERE code = 'SUCCULENT'
         UNION ALL
         SELECT
-            product_category_id,
+            id,
             'Crassula',
             'Crassula',
             'Diverse genus of succulents including jade plants'
         FROM product_categories WHERE code = 'SUCCULENT'
         UNION ALL
         SELECT
-            product_category_id,
+            id,
             'Sedum',
             'Sedum',
             'Ground-covering succulents with star-shaped flowers'
@@ -106,21 +106,21 @@ def upgrade() -> None:
         -- BROMELIAD category (3 families)
         INSERT INTO product_families (category_id, name, scientific_name, description)
         SELECT
-            product_category_id,
+            id,
             'Tillandsia',
             'Tillandsia',
             'Air plants that absorb water and nutrients through their leaves'
         FROM product_categories WHERE code = 'BROMELIAD'
         UNION ALL
         SELECT
-            product_category_id,
+            id,
             'Guzmania',
             'Guzmania',
             'Colorful bromeliads with bright flower bracts'
         FROM product_categories WHERE code = 'BROMELIAD'
         UNION ALL
         SELECT
-            product_category_id,
+            id,
             'Aechmea',
             'Aechmea',
             'Bromeliads with spiky foliage and long-lasting flower spikes'
@@ -131,14 +131,14 @@ def upgrade() -> None:
         -- CARNIVOROUS category (2 families)
         INSERT INTO product_families (category_id, name, scientific_name, description)
         SELECT
-            product_category_id,
+            id,
             'Nepenthes',
             'Nepenthes',
             'Tropical pitcher plants with hanging traps'
         FROM product_categories WHERE code = 'CARNIVOROUS'
         UNION ALL
         SELECT
-            product_category_id,
+            id,
             'Dionaea',
             'Dionaea',
             'Venus flytrap - iconic snap-trap carnivorous plant'
@@ -149,14 +149,14 @@ def upgrade() -> None:
         -- ORCHID category (2 families)
         INSERT INTO product_families (category_id, name, scientific_name, description)
         SELECT
-            product_category_id,
+            id,
             'Phalaenopsis',
             'Phalaenopsis',
             'Moth orchids with long-lasting elegant flowers'
         FROM product_categories WHERE code = 'ORCHID'
         UNION ALL
         SELECT
-            product_category_id,
+            id,
             'Cattleya',
             'Cattleya',
             'Large showy orchids with fragrant flowers'
@@ -167,7 +167,7 @@ def upgrade() -> None:
         -- FERN category (1 family)
         INSERT INTO product_families (category_id, name, scientific_name, description)
         SELECT
-            product_category_id,
+            id,
             'Nephrolepis',
             'Nephrolepis',
             'Boston ferns and relatives with feathery fronds'
@@ -178,7 +178,7 @@ def upgrade() -> None:
         -- TROPICAL category (1 family)
         INSERT INTO product_families (category_id, name, scientific_name, description)
         SELECT
-            product_category_id,
+            id,
             'Monstera',
             'Monstera',
             'Large tropical plants with distinctive split leaves'
@@ -189,7 +189,7 @@ def upgrade() -> None:
         -- HERB category (1 family)
         INSERT INTO product_families (category_id, name, scientific_name, description)
         SELECT
-            product_category_id,
+            id,
             'Mentha',
             'Mentha',
             'Mint family - aromatic herbs used in cooking and medicine'

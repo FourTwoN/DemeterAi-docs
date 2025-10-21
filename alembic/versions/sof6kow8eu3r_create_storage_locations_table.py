@@ -75,7 +75,8 @@ def upgrade() -> None:
         sa.Column('updated_at', sa.DateTime(timezone=True), nullable=True, comment='Last update timestamp'),
         sa.PrimaryKeyConstraint('location_id', name='pk_storage_locations'),
         sa.ForeignKeyConstraint(['storage_area_id'], ['storage_areas.storage_area_id'], name='fk_storage_locations_storage_area_id', ondelete='CASCADE'),
-        sa.ForeignKeyConstraint(['photo_session_id'], ['photo_processing_sessions.session_id'], name='fk_storage_locations_photo_session_id', ondelete='SET NULL'),
+        # TODO: Uncomment when photo_processing_sessions table migration is created
+        # sa.ForeignKeyConstraint(['photo_session_id'], ['photo_processing_sessions.session_id'], name='fk_storage_locations_photo_session_id', ondelete='SET NULL'),
         sa.UniqueConstraint('code', name='uq_storage_locations_code'),
         sa.UniqueConstraint('qr_code', name='uq_storage_locations_qr_code'),
         sa.CheckConstraint('LENGTH(code) >= 2 AND LENGTH(code) <= 50', name='ck_storage_location_code_length'),

@@ -7,8 +7,9 @@ Create Date: 2025-10-20 12:26:12.144439
 """
 from typing import Sequence, Union
 
-from alembic import op
+from alembic import op  # type: ignore[attr-defined]
 import sqlalchemy as sa
+from sqlalchemy.dialects import postgresql
 
 
 # revision identifiers, used by Alembic.
@@ -19,14 +20,22 @@ depends_on: Union[str, Sequence[str], None] = None
 
 
 def upgrade() -> None:
-    op.execute("CREATE TYPE relationshiptypeenum AS ENUM ('contains', 'adjacent_to')")
+    # 1. Create ENUM type (idempotent - checks if exists first)
+    op.execute("""
+        DO $$
+        BEGIN
+            CREATE TYPE relationshiptypeenum AS ENUM ('contains', 'adjacent_to');
+        EXCEPTION WHEN duplicate_object THEN NULL;
+        END $$;
+    """)
 
+    # 2. Create location_relationships table (enum already created)
     op.create_table(
         'location_relationships',
         sa.Column('id', sa.Integer(), autoincrement=True, nullable=False, comment='Primary key'),
         sa.Column('parent_location_id', sa.Integer(), nullable=False, comment='Parent location ID'),
         sa.Column('child_location_id', sa.Integer(), nullable=False, comment='Child location ID'),
-        sa.Column('relationship_type', sa.Enum('contains', 'adjacent_to', name='relationshiptypeenum'), nullable=False, comment='Relationship type: contains or adjacent_to'),
+        sa.Column('relationship_type', postgresql.ENUM('contains', 'adjacent_to', name='relationshiptypeenum', create_type=False), nullable=False, comment='Relationship type: contains or adjacent_to'),
         sa.Column('created_at', sa.DateTime(), server_default=sa.text('now()'), nullable=False, comment='Creation timestamp'),
         sa.Column('updated_at', sa.DateTime(), server_default=sa.text('now()'), nullable=False, comment='Last update timestamp'),
         sa.CheckConstraint('parent_location_id != child_location_id', name='ck_no_self_reference'),
@@ -44,5 +53,5 @@ def upgrade() -> None:
 def downgrade() -> None:
     op.drop_index('ix_location_relationships_child_location_id', table_name='location_relationships')
     op.drop_index('ix_location_relationships_parent_location_id', table_name='location_relationships')
+    # Drop table (enum auto-dropped by SQLAlchemy)
     op.drop_table('location_relationships')
-    op.execute("DROP TYPE relationshiptypeenum")

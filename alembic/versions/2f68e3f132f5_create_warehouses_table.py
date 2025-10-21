@@ -29,6 +29,7 @@ from typing import Sequence, Union
 
 from alembic import op  # type: ignore[attr-defined]
 import sqlalchemy as sa
+from sqlalchemy.dialects import postgresql
 from geoalchemy2 import Geometry
 
 
@@ -43,7 +44,7 @@ def upgrade() -> None:
     """Apply migration: Create warehouses table with PostGIS geometry.
 
     Steps:
-        1. Create warehouse_type_enum
+        1. Create ENUM type (idempotent)
         2. Create warehouses table with PostGIS columns
         3. Add GENERATED column for area_m2
         4. Create trigger function for centroid auto-update
@@ -51,23 +52,22 @@ def upgrade() -> None:
         6. Create GIST spatial indexes
         7. Create standard B-tree indexes
     """
-    # Step 1: Create enum type for warehouse types
+    # Step 0: Create ENUM type (idempotent - checks if exists first)
     op.execute("""
-        CREATE TYPE warehouse_type_enum AS ENUM (
-            'greenhouse',   -- Enclosed glass/plastic structure with climate control
-            'shadehouse',   -- Covered with shade cloth, open sides
-            'open_field',   -- Outdoor cultivation area without cover
-            'tunnel'        -- Low tunnel / hoop house structure
-        )
+        DO $$
+        BEGIN
+            CREATE TYPE warehouse_type_enum AS ENUM ('greenhouse', 'shadehouse', 'open_field', 'tunnel');
+        EXCEPTION WHEN duplicate_object THEN NULL;
+        END $$;
     """)
 
-    # Step 2: Create warehouses table
+    # Step 1: Create warehouses table (enum already created)
     op.create_table(
         'warehouses',
         sa.Column('warehouse_id', sa.Integer(), autoincrement=True, nullable=False, comment='Primary key (auto-increment)'),
         sa.Column('code', sa.String(length=50), nullable=False, comment='Unique warehouse code (uppercase alphanumeric, 2-20 chars)'),
         sa.Column('name', sa.String(length=200), nullable=False, comment='Human-readable warehouse name'),
-        sa.Column('warehouse_type', sa.Enum('GREENHOUSE', 'SHADEHOUSE', 'OPEN_FIELD', 'TUNNEL', name='warehouse_type_enum'), nullable=False, comment='Facility type: greenhouse, shadehouse, open_field, tunnel'),
+        sa.Column('warehouse_type', postgresql.ENUM('greenhouse', 'shadehouse', 'open_field', 'tunnel', name='warehouse_type_enum', create_type=False), nullable=False, comment='Facility type: greenhouse, shadehouse, open_field, tunnel'),
         sa.Column('geojson_coordinates', Geometry('POLYGON', srid=4326, spatial_index=False), nullable=False, comment='Warehouse boundary polygon (WGS84 coordinates)'),
         sa.Column('centroid', Geometry('POINT', srid=4326, spatial_index=False), nullable=True, comment='Auto-calculated center point (database trigger)'),
         # area_m2 will be added as GENERATED column below
@@ -80,7 +80,7 @@ def upgrade() -> None:
         comment='Warehouses - Root level of 4-tier geospatial location hierarchy'
     )
 
-    # Step 3: Add GENERATED column for area_m2 (PostgreSQL 12+)
+    # Step 2: Add GENERATED column for area_m2 (PostgreSQL 12+)
     # This column is auto-calculated from geometry using ST_Area with geography cast
     # geography cast ensures accurate area calculation in square meters (not degrees)
     op.execute("""
@@ -91,7 +91,7 @@ def upgrade() -> None:
         ) STORED
     """)
 
-    # Step 4: Create trigger function for centroid auto-update
+    # Step 3: Create trigger function for centroid auto-update
     # This function calculates the centroid whenever geojson_coordinates changes
     # Uses ST_Centroid to find geometric center of polygon
     op.execute("""
@@ -105,7 +105,7 @@ def upgrade() -> None:
         $$ LANGUAGE plpgsql;
     """)
 
-    # Step 5: Create trigger to auto-update centroid on INSERT or UPDATE
+    # Step 4: Create trigger to auto-update centroid on INSERT or UPDATE
     # Trigger fires BEFORE INSERT OR UPDATE of geojson_coordinates
     # This ensures centroid is always synchronized with polygon boundary
     op.execute("""
@@ -115,13 +115,13 @@ def upgrade() -> None:
         EXECUTE FUNCTION update_warehouse_centroid();
     """)
 
-    # Step 6: Create GIST spatial indexes for PostGIS geometry columns
+    # Step 5: Create GIST spatial indexes for PostGIS geometry columns
     # GIST indexes are critical for spatial query performance
     # Target: <50ms for ST_DWithin queries on 100+ warehouses
     op.execute("CREATE INDEX idx_warehouses_geom ON warehouses USING GIST(geojson_coordinates);")
     op.execute("CREATE INDEX idx_warehouses_centroid ON warehouses USING GIST(centroid);")
 
-    # Step 7: Create standard B-tree indexes for common queries
+    # Step 6: Create standard B-tree indexes for common queries
     op.create_index('idx_warehouses_code', 'warehouses', ['code'], unique=True)
     op.create_index('idx_warehouses_type', 'warehouses', ['warehouse_type'])
     op.create_index('idx_warehouses_active', 'warehouses', ['active'])
@@ -135,8 +135,7 @@ def downgrade() -> None:
         2. Drop GIST spatial indexes
         3. Drop trigger
         4. Drop trigger function
-        5. Drop warehouses table
-        6. Drop warehouse_type_enum
+        5. Drop warehouses table (enum auto-dropped by SQLAlchemy)
     """
     # Step 1: Drop B-tree indexes
     op.drop_index('idx_warehouses_active', table_name='warehouses')
@@ -153,8 +152,5 @@ def downgrade() -> None:
     # Step 4: Drop trigger function
     op.execute("DROP FUNCTION IF EXISTS update_warehouse_centroid();")
 
-    # Step 5: Drop warehouses table (CASCADE removes dependent objects)
+    # Step 5: Drop warehouses table (CASCADE removes dependent objects, enum auto-dropped)
     op.drop_table('warehouses')
-
-    # Step 6: Drop enum type
-    op.execute("DROP TYPE IF EXISTS warehouse_type_enum;")

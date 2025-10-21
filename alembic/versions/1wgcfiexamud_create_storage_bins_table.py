@@ -32,13 +32,14 @@ Create Date: 2025-10-13 17:45:00.000000
 from collections.abc import Sequence
 
 import sqlalchemy as sa
+from sqlalchemy.dialects import postgresql
 from sqlalchemy.dialects.postgresql import JSONB
 
 from alembic import op  # type: ignore[attr-defined]
 
 # revision identifiers, used by Alembic.
 revision: str = '1wgcfiexamud'
-down_revision: str | None = 'sof6kow8eu3r'
+down_revision: str | None = '2wh7p3r9bm6t'  # Fixed: bins come after bin_types
 branch_labels: str | Sequence[str] | None = None
 depends_on: str | Sequence[str] | None = None
 
@@ -47,15 +48,18 @@ def upgrade() -> None:
     """Apply migration: Create storage_bins table with JSONB position_metadata.
 
     Steps:
-        1. Create storage_bin_status_enum type
+        1. Create storage_bin_status_enum type (idempotent)
         2. Create storage_bins table with FKs and JSONB
         3. Create B-tree indexes (code, storage_location_id, storage_bin_type_id, status)
         4. Create GIN index on position_metadata (JSONB queries)
     """
-    # Step 1: Create storage_bin_status_enum type
-    # Enum values: active, maintenance, retired (retired is terminal state)
+    # Step 1: Create ENUM type (idempotent - checks if exists first)
     op.execute("""
-        CREATE TYPE storage_bin_status_enum AS ENUM ('active', 'maintenance', 'retired')
+        DO $$
+        BEGIN
+            CREATE TYPE storage_bin_status_enum AS ENUM ('active', 'maintenance', 'retired');
+        EXCEPTION WHEN duplicate_object THEN NULL;
+        END $$;
     """)
 
     # Step 2: Create storage_bins table
@@ -69,12 +73,12 @@ def upgrade() -> None:
         sa.Column('label', sa.String(length=100), nullable=True, comment='Human-readable bin name (optional)'),
         sa.Column('description', sa.Text(), nullable=True, comment='Optional detailed description'),
         sa.Column('position_metadata', JSONB(), nullable=True, comment='ML segmentation output: mask, bbox, confidence, ml_model_version, container_type'),
-        sa.Column('status', sa.Enum('active', 'maintenance', 'retired', name='storage_bin_status_enum'), nullable=False, server_default='active', comment='Status enum: active, maintenance, retired (terminal state)'),
+        sa.Column('status', postgresql.ENUM('active', 'maintenance', 'retired', name='storage_bin_status_enum', create_type=False), nullable=False, server_default='active', comment='Status enum: active, maintenance, retired (terminal state)'),
         sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=False, comment='Record creation timestamp'),
         sa.Column('updated_at', sa.DateTime(timezone=True), nullable=True, comment='Last update timestamp'),
         sa.PrimaryKeyConstraint('bin_id', name='pk_storage_bins'),
         sa.ForeignKeyConstraint(['storage_location_id'], ['storage_locations.location_id'], name='fk_storage_bins_storage_location_id', ondelete='CASCADE'),
-        sa.ForeignKeyConstraint(['storage_bin_type_id'], ['storage_bin_types.id'], name='fk_storage_bins_storage_bin_type_id', ondelete='RESTRICT'),
+        sa.ForeignKeyConstraint(['storage_bin_type_id'], ['storage_bin_types.bin_type_id'], name='fk_storage_bins_storage_bin_type_id', ondelete='RESTRICT'),
         sa.UniqueConstraint('code', name='uq_storage_bins_code'),
         sa.CheckConstraint('LENGTH(code) >= 2 AND LENGTH(code) <= 100', name='ck_storage_bin_code_length'),
         comment='Storage Bins - Level 4 (LEAF) of 4-tier geospatial location hierarchy (physical container)'

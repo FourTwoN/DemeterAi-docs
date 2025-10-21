@@ -9,6 +9,7 @@ from typing import Sequence, Union
 
 from alembic import op  # type: ignore[attr-defined]
 import sqlalchemy as sa
+from sqlalchemy.dialects import postgresql
 
 
 # revision identifiers, used by Alembic.
@@ -20,12 +21,16 @@ depends_on: Union[str, Sequence[str], None] = None
 
 def upgrade() -> None:
     """Create users table with authentication and role-based access control."""
-    # 1. Create user_role_enum type
+    # 1. Create ENUM type (idempotent - checks if exists first)
     op.execute("""
-        CREATE TYPE user_role_enum AS ENUM ('admin', 'supervisor', 'worker', 'viewer');
+        DO $$
+        BEGIN
+            CREATE TYPE user_role_enum AS ENUM ('admin', 'supervisor', 'worker', 'viewer');
+        EXCEPTION WHEN duplicate_object THEN NULL;
+        END $$;
     """)
 
-    # 2. Create users table
+    # 2. Create users table (enum already created)
     op.create_table(
         'users',
         sa.Column(
@@ -61,7 +66,7 @@ def upgrade() -> None:
         ),
         sa.Column(
             'role',
-            sa.Enum('admin', 'supervisor', 'worker', 'viewer', name='user_role_enum'),
+            postgresql.ENUM('admin', 'supervisor', 'worker', 'viewer', name='user_role_enum', create_type=False),
             nullable=False,
             server_default='worker',
             comment='User role (admin > supervisor > worker > viewer)'
@@ -140,8 +145,5 @@ def downgrade() -> None:
     op.drop_index(op.f('ix_users_role'), table_name='users')
     op.drop_index(op.f('ix_users_email'), table_name='users')
 
-    # 2. Drop table
+    # 2. Drop table (enum auto-dropped by SQLAlchemy)
     op.drop_table('users')
-
-    # 3. Drop enum type
-    op.execute('DROP TYPE user_role_enum;')

@@ -40,7 +40,7 @@ def upgrade() -> None:
         sa.Column('sort_order', sa.Integer(), server_default='99', nullable=False, comment='UI dropdown order (size progression)'),
         sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=False, comment='Record creation timestamp'),
         sa.Column('updated_at', sa.DateTime(timezone=True), nullable=True, comment='Last update timestamp'),
-        sa.CheckConstraint("LENGTH(code) >= 3 AND LENGTH(code) <= 50", name='ck_product_size_code_length'),
+        sa.CheckConstraint("LENGTH(code) >= 1 AND LENGTH(code) <= 50", name='ck_product_size_code_length'),  # Changed from 3 to 1 to allow 'XS', 'S', 'M', 'L' codes
         sa.PrimaryKeyConstraint('product_size_id'),
         sa.UniqueConstraint('code'),
         comment='Product Sizes - Reference/catalog table defining product size categories'

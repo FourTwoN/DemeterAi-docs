@@ -20,20 +20,32 @@ depends_on: Union[str, Sequence[str], None] = None
 
 def upgrade() -> None:
     """Create s3_images table with UUID primary key and 3 enum types."""
-    # 1. Create enum types
+    # 1. Create ENUM types (idempotent - checks if exists first)
     op.execute("""
-        CREATE TYPE content_type_enum AS ENUM ('image/jpeg', 'image/png');
+        DO $$
+        BEGIN
+            CREATE TYPE content_type_enum AS ENUM ('image/jpeg', 'image/png');
+        EXCEPTION WHEN duplicate_object THEN NULL;
+        END $$;
     """)
 
     op.execute("""
-        CREATE TYPE upload_source_enum AS ENUM ('web', 'mobile', 'api');
+        DO $$
+        BEGIN
+            CREATE TYPE upload_source_enum AS ENUM ('web', 'mobile', 'api');
+        EXCEPTION WHEN duplicate_object THEN NULL;
+        END $$;
     """)
 
     op.execute("""
-        CREATE TYPE processing_status_enum AS ENUM ('uploaded', 'processing', 'ready', 'failed');
+        DO $$
+        BEGIN
+            CREATE TYPE processing_status_enum AS ENUM ('uploaded', 'processing', 'ready', 'failed');
+        EXCEPTION WHEN duplicate_object THEN NULL;
+        END $$;
     """)
 
-    # 2. Create s3_images table
+    # 2. Create s3_images table (enums already created)
     op.create_table(
         's3_images',
         sa.Column(
@@ -62,7 +74,7 @@ def upgrade() -> None:
         ),
         sa.Column(
             'content_type',
-            sa.Enum('image/jpeg', 'image/png', name='content_type_enum'),
+            postgresql.ENUM('image/jpeg', 'image/png', name='content_type_enum', create_type=False),
             nullable=False,
             comment='Image MIME type (image/jpeg, image/png)'
         ),
@@ -98,7 +110,7 @@ def upgrade() -> None:
         ),
         sa.Column(
             'upload_source',
-            sa.Enum('web', 'mobile', 'api', name='upload_source_enum'),
+            postgresql.ENUM('web', 'mobile', 'api', name='upload_source_enum', create_type=False),
             nullable=False,
             server_default='web',
             comment='Upload source (web, mobile, api)'
@@ -111,7 +123,7 @@ def upgrade() -> None:
         ),
         sa.Column(
             'status',
-            sa.Enum('uploaded', 'processing', 'ready', 'failed', name='processing_status_enum'),
+            postgresql.ENUM('uploaded', 'processing', 'ready', 'failed', name='processing_status_enum', create_type=False),
             nullable=False,
             server_default='uploaded',
             comment='Processing status (uploaded, processing, ready, failed)'
@@ -192,10 +204,5 @@ def downgrade() -> None:
     op.drop_index('ix_s3_images_created_at_desc', table_name='s3_images')
     op.drop_index(op.f('ix_s3_images_status'), table_name='s3_images')
 
-    # 3. Drop table
+    # 3. Drop table (enums auto-dropped by SQLAlchemy)
     op.drop_table('s3_images')
-
-    # 4. Drop enum types
-    op.execute('DROP TYPE processing_status_enum;')
-    op.execute('DROP TYPE upload_source_enum;')
-    op.execute('DROP TYPE content_type_enum;')

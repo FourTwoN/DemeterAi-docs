@@ -31,6 +31,7 @@ from typing import Sequence, Union
 
 from alembic import op  # type: ignore[attr-defined]
 import sqlalchemy as sa
+from sqlalchemy.dialects import postgresql
 from geoalchemy2 import Geometry
 
 
@@ -45,7 +46,7 @@ def upgrade() -> None:
     """Apply migration: Create storage_areas table with PostGIS geometry.
 
     Steps:
-        1. Create position_enum
+        1. Create position_enum type (idempotent)
         2. Create storage_areas table with PostGIS columns
         3. Add GENERATED column for area_m2
         4. Create trigger function for centroid auto-update
@@ -55,18 +56,16 @@ def upgrade() -> None:
         8. Create GIST spatial indexes
         9. Create standard B-tree indexes
     """
-    # Step 1: Create enum type for cardinal positions
+    # Step 1: Create ENUM type (idempotent - checks if exists first)
     op.execute("""
-        CREATE TYPE position_enum AS ENUM (
-            'N',  -- North
-            'S',  -- South
-            'E',  -- East
-            'W',  -- West
-            'C'   -- Center
-        )
+        DO $$
+        BEGIN
+            CREATE TYPE position_enum AS ENUM ('N', 'S', 'E', 'W', 'C');
+        EXCEPTION WHEN duplicate_object THEN NULL;
+        END $$;
     """)
 
-    # Step 2: Create storage_areas table
+    # Step 2: Create storage_areas table (enum already created)
     op.create_table(
         'storage_areas',
         sa.Column('storage_area_id', sa.Integer(), autoincrement=True, nullable=False, comment='Primary key (auto-increment)'),
@@ -74,7 +73,7 @@ def upgrade() -> None:
         sa.Column('parent_area_id', sa.Integer(), nullable=True, comment='Parent storage area for hierarchical subdivision (NULLABLE)'),
         sa.Column('code', sa.String(length=50), nullable=False, comment='Unique area code (format: WAREHOUSE-AREA, uppercase, 2-50 chars)'),
         sa.Column('name', sa.String(length=200), nullable=False, comment='Human-readable area name'),
-        sa.Column('position', sa.Enum('N', 'S', 'E', 'W', 'C', name='position_enum'), nullable=True, comment='Cardinal direction: N, S, E, W, C (optional)'),
+        sa.Column('position', postgresql.ENUM('N', 'S', 'E', 'W', 'C', name='position_enum', create_type=False), nullable=True, comment='Cardinal direction: N, S, E, W, C (optional)'),
         sa.Column('geojson_coordinates', Geometry('POLYGON', srid=4326, spatial_index=False), nullable=False, comment='Storage area boundary polygon (WGS84 coordinates)'),
         sa.Column('centroid', Geometry('POINT', srid=4326, spatial_index=False), nullable=True, comment='Auto-calculated center point (database trigger)'),
         # area_m2 will be added as GENERATED column below
@@ -187,8 +186,7 @@ def downgrade() -> None:
         4. Drop containment trigger function
         5. Drop centroid trigger
         6. Drop centroid trigger function
-        7. Drop storage_areas table
-        8. Drop position_enum
+        7. Drop storage_areas table (enum auto-dropped by SQLAlchemy)
     """
     # Step 1: Drop B-tree indexes
     op.drop_index('idx_storage_areas_active', table_name='storage_areas')
@@ -213,8 +211,5 @@ def downgrade() -> None:
     # Step 6: Drop centroid trigger function
     op.execute("DROP FUNCTION IF EXISTS update_storage_area_centroid();")
 
-    # Step 7: Drop storage_areas table (CASCADE removes dependent objects)
+    # Step 7: Drop storage_areas table (CASCADE removes dependent objects, enum auto-dropped)
     op.drop_table('storage_areas')
-
-    # Step 8: Drop enum type
-    op.execute("DROP TYPE IF EXISTS position_enum;")
