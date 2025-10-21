@@ -263,6 +263,56 @@ class ProductState(Base):
 
         return code
 
+    @validates("is_sellable")
+    def validate_is_sellable(self, key: str, value: object) -> object:
+        """Validate is_sellable is boolean.
+
+        Rules:
+            1. Must be boolean (True or False)
+            2. Defaults to False if not provided
+
+        Args:
+            key: Column name (always 'is_sellable')
+            value: Boolean value to validate
+
+        Returns:
+            Validated boolean
+
+        Raises:
+            ValueError: If not a boolean
+        """
+        if value is None:
+            return False
+        if not isinstance(value, bool):
+            raise ValueError(f"is_sellable must be boolean (got: {type(value).__name__})")
+        return value
+
+    @validates("sort_order")
+    def validate_sort_order(self, key: str, value: object) -> object:
+        """Validate sort_order is non-negative integer.
+
+        Rules:
+            1. Must be integer ≥0
+            2. Defaults to 99 if not provided
+
+        Args:
+            key: Column name (always 'sort_order')
+            value: Sort order to validate
+
+        Returns:
+            Validated sort_order
+
+        Raises:
+            ValueError: If not valid integer
+        """
+        if value is None:
+            return 99
+        if not isinstance(value, int) or isinstance(value, bool):
+            raise ValueError(f"sort_order must be integer (got: {type(value).__name__})")
+        if value < 0:
+            raise ValueError(f"sort_order must be ≥0 (got: {value})")
+        return value
+
     def __repr__(self) -> str:
         """String representation for debugging.
 

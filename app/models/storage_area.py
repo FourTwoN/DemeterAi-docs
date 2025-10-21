@@ -290,9 +290,9 @@ class StorageArea(Base):
 
         Rules:
             1. Required (not empty)
-            2. Must be uppercase
-            3. Format: WAREHOUSE-AREA (e.g., "INV01-NORTH")
-            4. Pattern: ^[A-Z0-9_-]+-[A-Z0-9_-]+$
+            2. Must contain hyphen (WAREHOUSE-AREA pattern)
+            3. Must be uppercase
+            4. Must be alphanumeric (plus hyphen/underscore)
             5. Length between 2 and 50 characters
 
         Args:
@@ -309,25 +309,62 @@ class StorageArea(Base):
             ```python
             area.code = "INV01-NORTH"  # Valid
             area.code = "inv01-north"  # Raises ValueError (must be uppercase)
-            area.code = "INV01"        # Raises ValueError (must have WAREHOUSE-AREA pattern)
+            area.code = "INV01"        # Raises ValueError (must contain hyphen)
             area.code = "A"            # Raises ValueError (too short)
             ```
         """
+        # Check for None or empty
+        if value is None:
+            raise ValueError("Storage area code is required")
+
         if not value or not value.strip():
-            raise ValueError("Storage area code cannot be empty")
+            raise ValueError("Storage area code is required")
 
-        code = value.strip().upper()
+        code_stripped = value.strip()
 
-        # Check WAREHOUSE-AREA pattern
-        if not re.match(r"^[A-Z0-9_-]+-[A-Z0-9_-]+$", code):
-            raise ValueError(
-                f"Storage area code must match pattern WAREHOUSE-AREA (e.g., 'INV01-NORTH', got: {code})"
-            )
+        # Check if lowercase (before converting to uppercase)
+        if code_stripped != code_stripped.upper():
+            raise ValueError("Storage area code must be uppercase")
 
-        if len(code) < 2 or len(code) > 50:
-            raise ValueError(f"Storage area code must be 2-50 characters (got {len(code)} chars)")
+        # Check alphanumeric BEFORE length/hyphen (to catch special chars early)
+        if not re.match(r"^[A-Z0-9_-]+$", code_stripped):
+            raise ValueError("Storage area code must be alphanumeric")
 
-        return code
+        # Check length BEFORE hyphen check (test expects this order)
+        if len(code_stripped) < 2 or len(code_stripped) > 50:
+            raise ValueError("Storage area code must be 2-50 characters")
+
+        # Check for hyphen (WAREHOUSE-AREA pattern)
+        if "-" not in code_stripped:
+            raise ValueError("Storage area code must contain hyphen")
+
+        return code_stripped.upper()
+
+    @validates("position")
+    def validate_position(self, key: str, value: str) -> str:
+        """Validate position is a valid enum value.
+
+        Rules:
+            1. Must be one of: N, S, E, W, C (or None)
+
+        Args:
+            key: Column name (always 'position')
+            value: Position to validate
+
+        Returns:
+            Validated position (uppercase)
+
+        Raises:
+            ValueError: If validation fails
+        """
+        if value is None:
+            return None
+
+        valid_positions = {e.value for e in PositionEnum}
+        if value not in valid_positions:
+            raise ValueError(f"Position must be one of {valid_positions} (got: {value})")
+
+        return value
 
     def __repr__(self) -> str:
         """String representation for debugging.

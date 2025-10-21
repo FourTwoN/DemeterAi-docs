@@ -266,6 +266,100 @@ class ProductSize(Base):
 
         return code
 
+    @validates("sort_order")
+    def validate_sort_order(self, key: str, value: object) -> object:
+        """Validate sort_order is non-negative integer.
+
+        Rules:
+            1. Must be integer ≥0
+            2. Defaults to 99 if not provided
+
+        Args:
+            key: Column name (always 'sort_order')
+            value: Sort order to validate
+
+        Returns:
+            Validated sort_order
+
+        Raises:
+            ValueError: If not valid integer
+        """
+        if value is None:
+            return 99
+        if not isinstance(value, int) or isinstance(value, bool):
+            raise ValueError(f"sort_order must be integer (got: {type(value).__name__})")
+        if value < 0:
+            raise ValueError(f"sort_order must be ≥0 (got: {value})")
+        return value
+
+    @validates("min_height_cm")
+    def validate_min_height_cm(self, key: str, value: object) -> object:
+        """Validate min_height_cm is non-negative numeric.
+
+        Rules:
+            1. If provided, must be ≥0
+            2. Can be None
+
+        Args:
+            key: Column name (always 'min_height_cm')
+            value: Min height in cm
+
+        Returns:
+            Validated value
+
+        Raises:
+            ValueError: If not valid
+        """
+        if value is None:
+            return None
+        try:
+            float_val = float(value)  # type: ignore[arg-type]
+            if float_val < 0:
+                raise ValueError(f"min_height_cm must be ≥0 (got: {value})")
+        except (TypeError, ValueError) as e:
+            if "must be ≥0" in str(e):
+                raise
+            raise ValueError(f"min_height_cm must be numeric (got: {type(value).__name__})") from e
+        return value
+
+    @validates("max_height_cm")
+    def validate_max_height_cm(self, key: str, value: object) -> object:
+        """Validate max_height_cm is non-negative numeric and ≥ min_height_cm.
+
+        Rules:
+            1. If provided, must be ≥0
+            2. Must be ≥ min_height_cm
+            3. Can be None
+
+        Args:
+            key: Column name (always 'max_height_cm')
+            value: Max height in cm
+
+        Returns:
+            Validated value
+
+        Raises:
+            ValueError: If not valid
+        """
+        if value is None:
+            return None
+        try:
+            float_val = float(value)  # type: ignore[arg-type]
+            if float_val < 0:
+                raise ValueError(f"max_height_cm must be ≥0 (got: {value})")
+            # Check against min_height_cm if it exists
+            if self.min_height_cm is not None:
+                min_val = float(self.min_height_cm)
+                if float_val < min_val:
+                    raise ValueError(
+                        f"max_height_cm must be ≥ min_height_cm ({min_val}, got: {value})"
+                    )
+        except (TypeError, ValueError) as e:
+            if "must be" in str(e):
+                raise
+            raise ValueError(f"max_height_cm must be numeric (got: {type(value).__name__})") from e
+        return value
+
     def __repr__(self) -> str:
         """String representation for debugging.
 
