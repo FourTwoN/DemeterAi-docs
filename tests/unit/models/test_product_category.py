@@ -130,5 +130,5 @@ class TestProductCategoryRepr:
         repr_str = repr(category)
         assert "ProductCategory" in repr_str
         assert "ORCHID" in repr_str
-        # ID should be None before persistence
-        assert "product_category_id=None" in repr_str
+        # ID should be None before persistence (repr uses 'id', not 'product_category_id')
+        assert "id=None" in repr_str

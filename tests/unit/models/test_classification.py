@@ -604,20 +604,20 @@ class TestClassificationRelationships:
         """Test that product_size relationship has correct type hint."""
         assert "product_size" in Classification.__mapper__.relationships
 
-    def test_packaging_catalog_relationship_commented_out(self):
-        """Test that packaging_catalog relationship is NOT defined yet."""
-        # PackagingCatalog model not ready yet
-        assert "packaging_catalog" not in Classification.__mapper__.relationships
+    def test_packaging_catalog_relationship_exists(self):
+        """Test that packaging_catalog relationship is defined."""
+        # PackagingCatalog model is complete
+        assert "packaging_catalog" in Classification.__mapper__.relationships
 
-    def test_detections_relationship_commented_out(self):
-        """Test that detections relationship is NOT defined yet (DB013 not ready)."""
-        # Detections relationship should NOT exist until DB013 is complete
-        assert "detections" not in Classification.__mapper__.relationships
+    def test_detections_relationship_exists(self):
+        """Test that detections relationship is defined."""
+        # Detections model is complete (DB013)
+        assert "detections" in Classification.__mapper__.relationships
 
-    def test_estimations_relationship_commented_out(self):
-        """Test that estimations relationship is NOT defined yet (DB014 not ready)."""
-        # Estimations relationship should NOT exist until DB014 is complete
-        assert "estimations" not in Classification.__mapper__.relationships
+    def test_estimations_relationship_exists(self):
+        """Test that estimations relationship is defined."""
+        # Estimations model is complete (DB014)
+        assert "estimations" in Classification.__mapper__.relationships
 
 
 class TestClassificationEdgeCases:

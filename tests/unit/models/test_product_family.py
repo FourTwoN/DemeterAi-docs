@@ -242,7 +242,7 @@ class TestProductFamilyRelationships:
         # Check that relationship is defined (will be tested in integration)
         assert "category" in ProductFamily.__mapper__.relationships
 
-    def test_products_relationship_commented_out(self):
-        """Test that products relationship is NOT defined yet (DB017 not ready)."""
-        # Products relationship should NOT exist until DB017 is complete
-        assert "products" not in ProductFamily.__mapper__.relationships
+    def test_products_relationship_exists(self):
+        """Test that products relationship is defined."""
+        # Products model is complete (DB017)
+        assert "products" in ProductFamily.__mapper__.relationships
