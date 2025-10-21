@@ -9,16 +9,33 @@ services:
       POSTGRES_USER: demeter
       POSTGRES_PASSWORD: demeter_dev_password
       POSTGRES_DB: demeterai
+      # Performance tuning for development
+      POSTGRES_SHARED_BUFFERS: 256MB
+      POSTGRES_EFFECTIVE_CACHE_SIZE: 1GB
     ports:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U demeter"]
+      test: ["CMD-SHELL", "pg_isready -U demeter -d demeterai"]
       interval: 10s
       timeout: 5s
       retries: 5
+      start_period: 10s
     restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: '2'
+          memory: 2G
+        reservations:
+          cpus: '0.5'
+          memory: 512M
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
 
   # ==========================================
   # PostgreSQL 18 + PostGIS 3.6 (Testing)
@@ -30,6 +47,9 @@ services:
       POSTGRES_USER: demeter_test
       POSTGRES_PASSWORD: demeter_test_password
       POSTGRES_DB: demeterai_test
+      # Performance tuning for testing
+      POSTGRES_SHARED_BUFFERS: 128MB
+      POSTGRES_EFFECTIVE_CACHE_SIZE: 512MB
     ports:
       - "5434:5432"  # Different port to avoid conflicts
     volumes:
@@ -39,14 +59,29 @@ services:
       interval: 5s
       timeout: 3s
       retries: 5
+      start_period: 5s
     restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: '1'
+          memory: 1G
+        reservations:
+          cpus: '0.25'
+          memory: 256M
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "5m"
+        max-file: "2"
 
   # ==========================================
-  # Redis 7
+  # Redis 7 - Cache & Celery Broker
   # ==========================================
   redis:
     image: redis:7-alpine
     container_name: demeterai-redis
+    command: redis-server --appendonly yes --maxmemory 512mb --maxmemory-policy allkeys-lru
     ports:
       - "6379:6379"
     volumes:
@@ -56,26 +91,65 @@ services:
       interval: 5s
       timeout: 3s
       retries: 5
+      start_period: 5s
     restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
+        reservations:
+          cpus: '0.1'
+          memory: 128M
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "5m"
+        max-file: "2"
 
   # ==========================================
-  # FastAPI Application
+  # FastAPI Application - Development Mode
   # ==========================================
   api:
     build:
       context: .
       dockerfile: Dockerfile
+      args:
+        APP_ENV: development
     container_name: demeterai-api
     ports:
       - "8000:8000"
     env_file:
       - .env
     environment:
+      # Database configuration
       - DATABASE_URL=postgresql+asyncpg://demeter:demeter_dev_password@db:5432/demeterai
       - DATABASE_URL_SYNC=postgresql+psycopg2://demeter:demeter_dev_password@db:5432/demeterai
+      - DB_POOL_SIZE=20
+      - DB_MAX_OVERFLOW=10
+      - DB_ECHO_SQL=false
+      # Redis & Celery
       - REDIS_URL=redis://redis:6379/0
       - CELERY_BROKER_URL=redis://redis:6379/0
       - CELERY_RESULT_BACKEND=redis://redis:6379/1
+      # Logging
+      - LOG_LEVEL=DEBUG
+      - DEBUG=true
+      # OpenTelemetry configuration
+      - OTEL_ENABLED=true
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4318
+      - OTEL_SERVICE_NAME=demeterai-api
+      - APP_ENV=development
+      # Auth0 configuration (override with .env)
+      - AUTH0_DOMAIN=${AUTH0_DOMAIN:-}
+      - AUTH0_API_AUDIENCE=${AUTH0_API_AUDIENCE:-}
+      - AUTH0_ALGORITHMS=RS256
+      # S3 configuration (override with .env)
+      - AWS_REGION=${AWS_REGION:-us-east-1}
+      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID:-}
+      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY:-}
+      - S3_BUCKET_ORIGINAL=${S3_BUCKET_ORIGINAL:-demeter-photos-original}
+      - S3_BUCKET_VISUALIZATION=${S3_BUCKET_VISUALIZATION:-demeter-photos-viz}
     depends_on:
       db:
         condition: service_healthy
@@ -84,11 +158,24 @@ services:
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
       interval: 30s
-      timeout: 3s
+      timeout: 5s
       retries: 3
       start_period: 40s
     restart: unless-stopped
-    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+    deploy:
+      resources:
+        limits:
+          cpus: '2'
+          memory: 2G
+        reservations:
+          cpus: '0.5'
+          memory: 512M
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload --log-level debug
 
   # ==========================================
   # Celery CPU Worker (Prefork Pool)
@@ -161,6 +248,35 @@ services:
   #   command: celery -A app.celery_app flower --port=5555
 
   # ==========================================
+  # OpenTelemetry Collector (Optional - Sprint 05)
+  # ==========================================
+  # otel-collector:
+  #   image: otel/opentelemetry-collector-contrib:latest
+  #   container_name: demeterai-otel-collector
+  #   command: ["--config=/etc/otel-collector-config.yaml"]
+  #   ports:
+  #     - "4317:4317"   # OTLP gRPC receiver
+  #     - "4318:4318"   # OTLP HTTP receiver
+  #     - "8888:8888"   # Prometheus metrics exposed by collector
+  #     - "8889:8889"   # Prometheus exporter
+  #   volumes:
+  #     - ./otel-collector-config.yaml:/etc/otel-collector-config.yaml
+  #   restart: unless-stopped
+  #   deploy:
+  #     resources:
+  #       limits:
+  #         cpus: '0.5'
+  #         memory: 512M
+  #       reservations:
+  #         cpus: '0.1'
+  #         memory: 128M
+  #   logging:
+  #     driver: "json-file"
+  #     options:
+  #       max-size: "5m"
+  #       max-file: "2"
+
+  # ==========================================
   # Prometheus (Sprint 05 - Optional Now)
   # ==========================================
   # prometheus:
@@ -172,6 +288,19 @@ services:
   #     - ./prometheus.yml:/etc/prometheus/prometheus.yml
   #     - prometheus_data:/prometheus
   #   restart: unless-stopped
+  #   deploy:
+  #     resources:
+  #       limits:
+  #         cpus: '0.5'
+  #         memory: 512M
+  #       reservations:
+  #         cpus: '0.1'
+  #         memory: 128M
+  #   logging:
+  #     driver: "json-file"
+  #     options:
+  #       max-size: "5m"
+  #       max-file: "2"
 
   # ==========================================
   # Grafana (Sprint 05 - Optional Now)
@@ -183,7 +312,22 @@ services:
   #     - "3000:3000"
   #   volumes:
   #     - grafana_data:/var/lib/grafana
+  #   environment:
+  #     - GF_SECURITY_ADMIN_PASSWORD=admin
   #   restart: unless-stopped
+  #   deploy:
+  #     resources:
+  #       limits:
+  #         cpus: '0.5'
+  #         memory: 512M
+  #       reservations:
+  #         cpus: '0.1'
+  #         memory: 128M
+  #   logging:
+  #     driver: "json-file"
+  #     options:
+  #       max-size: "5m"
+  #       max-file: "2"
 
 volumes:
   postgres_data:

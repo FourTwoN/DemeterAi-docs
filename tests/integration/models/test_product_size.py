@@ -123,8 +123,7 @@ class TestProductSizeQueries:
         # Sizes with both min and max defined
         result = await session.execute(
             select(ProductSize).where(
-                ProductSize.min_height_cm.isnot(None),
-                ProductSize.max_height_cm.isnot(None)
+                ProductSize.min_height_cm.isnot(None), ProductSize.max_height_cm.isnot(None)
             )
         )
         complete_ranges = result.scalars().all()
@@ -138,8 +137,7 @@ class TestProductSizeQueries:
         """Test filtering sizes without height range (CUSTOM)."""
         result = await session.execute(
             select(ProductSize).where(
-                ProductSize.min_height_cm.is_(None),
-                ProductSize.max_height_cm.is_(None)
+                ProductSize.min_height_cm.is_(None), ProductSize.max_height_cm.is_(None)
             )
         )
         no_range = result.scalars().all()

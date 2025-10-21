@@ -14,7 +14,6 @@ Tests get a fresh database state for each test function (scope="function").
 # Test Database Configuration
 # =============================================================================
 import os
-import subprocess
 
 import pytest
 import pytest_asyncio
@@ -118,16 +117,19 @@ async def db_session():
         try:
             # Warehouses: Convert area_m2 to GENERATED column
             await conn.execute(text("ALTER TABLE warehouses DROP COLUMN IF EXISTS area_m2 CASCADE"))
-            await conn.execute(text("""
+            await conn.execute(
+                text("""
                 ALTER TABLE warehouses ADD COLUMN area_m2 NUMERIC(10,2)
                 GENERATED ALWAYS AS (ST_Area(geojson_coordinates::geography)) STORED
-            """))
+            """)
+            )
         except Exception:
             pass  # Column conversion failed, but tests can still run
 
         try:
             # Warehouses: centroid trigger function
-            await conn.execute(text("""
+            await conn.execute(
+                text("""
                 CREATE OR REPLACE FUNCTION update_warehouse_centroid()
                 RETURNS TRIGGER AS $$
                 BEGIN
@@ -135,31 +137,39 @@ async def db_session():
                     RETURN NEW;
                 END;
                 $$ LANGUAGE plpgsql;
-            """))
+            """)
+            )
             # Create trigger
-            await conn.execute(text("""
+            await conn.execute(
+                text("""
                 CREATE TRIGGER IF NOT EXISTS trg_warehouse_centroid
                 BEFORE INSERT OR UPDATE OF geojson_coordinates ON warehouses
                 FOR EACH ROW
                 EXECUTE FUNCTION update_warehouse_centroid();
-            """))
+            """)
+            )
         except Exception:
             pass  # Trigger might already exist
 
         try:
             # StorageAreas: area_m2 GENERATED column
-            await conn.execute(text("ALTER TABLE storage_areas DROP COLUMN IF EXISTS area_m2 CASCADE"))
-            await conn.execute(text("""
+            await conn.execute(
+                text("ALTER TABLE storage_areas DROP COLUMN IF EXISTS area_m2 CASCADE")
+            )
+            await conn.execute(
+                text("""
                 ALTER TABLE storage_areas
                 ADD COLUMN area_m2 NUMERIC(10,2)
                 GENERATED ALWAYS AS (ST_Area(geojson_coordinates::geography)) STORED
-            """))
+            """)
+            )
         except Exception:
             pass
 
         try:
             # StorageAreas: centroid trigger function
-            await conn.execute(text("""
+            await conn.execute(
+                text("""
                 CREATE OR REPLACE FUNCTION update_storage_area_centroid()
                 RETURNS TRIGGER AS $$
                 BEGIN
@@ -167,31 +177,39 @@ async def db_session():
                     RETURN NEW;
                 END;
                 $$ LANGUAGE plpgsql;
-            """))
+            """)
+            )
             # Create trigger
-            await conn.execute(text("""
+            await conn.execute(
+                text("""
                 CREATE TRIGGER IF NOT EXISTS trg_storage_area_centroid
                 BEFORE INSERT OR UPDATE OF geojson_coordinates ON storage_areas
                 FOR EACH ROW
                 EXECUTE FUNCTION update_storage_area_centroid();
-            """))
+            """)
+            )
         except Exception:
             pass
 
         try:
             # StorageLocations: area_m2 GENERATED column (should be 0 for POINT geometries)
-            await conn.execute(text("ALTER TABLE storage_locations DROP COLUMN IF EXISTS area_m2 CASCADE"))
-            await conn.execute(text("""
+            await conn.execute(
+                text("ALTER TABLE storage_locations DROP COLUMN IF EXISTS area_m2 CASCADE")
+            )
+            await conn.execute(
+                text("""
                 ALTER TABLE storage_locations
                 ADD COLUMN area_m2 NUMERIC(10,2)
                 GENERATED ALWAYS AS (0) STORED
-            """))
+            """)
+            )
         except Exception:
             pass
 
         try:
             # StorageLocations: centroid = coordinates (for POINT geometries)
-            await conn.execute(text("""
+            await conn.execute(
+                text("""
                 CREATE OR REPLACE FUNCTION update_storage_location_centroid()
                 RETURNS TRIGGER AS $$
                 BEGIN
@@ -199,14 +217,17 @@ async def db_session():
                     RETURN NEW;
                 END;
                 $$ LANGUAGE plpgsql;
-            """))
+            """)
+            )
             # Create trigger
-            await conn.execute(text("""
+            await conn.execute(
+                text("""
                 CREATE TRIGGER IF NOT EXISTS trg_storage_location_centroid
                 BEFORE INSERT OR UPDATE OF geojson_coordinates ON storage_locations
                 FOR EACH ROW
                 EXECUTE FUNCTION update_storage_location_centroid();
-            """))
+            """)
+            )
         except Exception:
             pass
 

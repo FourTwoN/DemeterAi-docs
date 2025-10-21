@@ -157,16 +157,12 @@ async def test_create_product_different_families_independent_skus(
 ):
     """Test that different families have independent SKU counters."""
     # Arrange - Create another family
-    family1_request = ProductFamilyCreateRequest(
-        category_id=test_category.id, name="Sedum"
-    )
+    family1_request = ProductFamilyCreateRequest(category_id=test_category.id, name="Sedum")
     sedum_family = await family_service.create_family(family1_request)
     await db_session.commit()
 
     # Create another family
-    family2_request = ProductFamilyCreateRequest(
-        category_id=test_category.id, name="Aloe"
-    )
+    family2_request = ProductFamilyCreateRequest(category_id=test_category.id, name="Aloe")
     aloe_family = await family_service.create_family(family2_request)
     await db_session.commit()
 
@@ -307,15 +303,11 @@ async def test_get_products_by_family_filtering(
 ):
     """Test that get_products_by_family only returns products from specified family."""
     # Arrange - Create two families
-    family1_request = ProductFamilyCreateRequest(
-        category_id=test_category.id, name="Family1"
-    )
+    family1_request = ProductFamilyCreateRequest(category_id=test_category.id, name="Family1")
     family1 = await family_service.create_family(family1_request)
     await db_session.commit()
 
-    family2_request = ProductFamilyCreateRequest(
-        category_id=test_category.id, name="Family2"
-    )
+    family2_request = ProductFamilyCreateRequest(category_id=test_category.id, name="Family2")
     family2 = await family_service.create_family(family2_request)
     await db_session.commit()
 

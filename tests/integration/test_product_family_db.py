@@ -102,9 +102,7 @@ class TestProductFamilyDatabaseOperations:
         await db_session.commit()
 
         # Act - Query families by category_id
-        stmt = select(ProductFamily).where(
-            ProductFamily.category_id == category.id
-        )
+        stmt = select(ProductFamily).where(ProductFamily.category_id == category.id)
         result = await db_session.execute(stmt)
         families = result.scalars().all()
 
@@ -154,9 +152,7 @@ class TestProductFamilyDatabaseOperations:
         await db_session.commit()
 
         # Assert - Both families exist
-        stmt = select(ProductFamily).where(
-            ProductFamily.category_id == category.id
-        )
+        stmt = select(ProductFamily).where(ProductFamily.category_id == category.id)
         result = await db_session.execute(stmt)
         families = result.scalars().all()
         assert len(families) == 2
@@ -300,9 +296,7 @@ class TestProductFamilyUpdateDelete:
         deleted_family = result.scalar_one_or_none()
         assert deleted_family is None
 
-        stmt_category = select(ProductCategory).where(
-            ProductCategory.id == category_id
-        )
+        stmt_category = select(ProductCategory).where(ProductCategory.id == category_id)
         result = await db_session.execute(stmt_category)
         category_still_exists = result.scalar_one_or_none()
         assert category_still_exists is not None

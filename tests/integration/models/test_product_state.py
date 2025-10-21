@@ -117,7 +117,9 @@ class TestProductStateQueries:
 
     async def test_filter_by_is_sellable_false(self, session):
         """Test filtering by is_sellable=FALSE."""
-        result = await session.execute(select(ProductState).where(ProductState.is_sellable == False))
+        result = await session.execute(
+            select(ProductState).where(ProductState.is_sellable == False)
+        )
         non_sellable_states = result.scalars().all()
 
         assert (

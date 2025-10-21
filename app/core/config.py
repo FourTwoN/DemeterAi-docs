@@ -34,6 +34,12 @@ class Settings(BaseSettings):
         DB_ECHO_SQL: Enable SQL query logging (default: False)
                      When True, logs all SQL queries to stdout.
                      Use only in DEBUG mode for development.
+        AUTH0_DOMAIN: Auth0 tenant domain (e.g., demeter.us.auth0.com)
+                      Used to construct JWKS endpoint and validate issuer.
+        AUTH0_API_AUDIENCE: API identifier registered in Auth0 dashboard
+                            Used to validate JWT audience claim.
+        AUTH0_ALGORITHMS: List of allowed JWT algorithms (default: ["RS256"])
+                          Auth0 uses RS256 (RSA signature with SHA-256).
     """
 
     # Logging configuration
@@ -56,6 +62,32 @@ class Settings(BaseSettings):
     S3_BUCKET_ORIGINAL: str = "demeter-photos-original"
     S3_BUCKET_VISUALIZATION: str = "demeter-photos-viz"
     S3_PRESIGNED_URL_EXPIRY_HOURS: int = 24
+
+    # Auth0 configuration
+    AUTH0_DOMAIN: str = ""  # Example: demeter.us.auth0.com
+    AUTH0_API_AUDIENCE: str = ""  # Example: https://api.demeter.ai
+    AUTH0_ALGORITHMS: list[str] = ["RS256"]
+
+    @property
+    def AUTH0_ISSUER(self) -> str:
+        """Derived Auth0 issuer URL from domain.
+
+        Returns:
+            Issuer URL (e.g., https://demeter.us.auth0.com/)
+        """
+        if not self.AUTH0_DOMAIN:
+            return ""
+        domain = self.AUTH0_DOMAIN.replace("https://", "").replace("http://", "")
+        return f"https://{domain}/"
+
+    # OpenTelemetry configuration
+    OTEL_ENABLED: bool = True
+    OTEL_EXPORTER_OTLP_ENDPOINT: str = "http://localhost:4318"
+    OTEL_SERVICE_NAME: str = "demeterai-api"
+    APP_ENV: str = "development"
+
+    # Metrics configuration
+    ENABLE_METRICS: bool = True
 
     model_config = SettingsConfigDict(
         env_file=".env",

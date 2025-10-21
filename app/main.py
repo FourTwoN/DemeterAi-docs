@@ -5,21 +5,47 @@ from typing import Any
 from uuid import uuid4
 
 from fastapi import FastAPI, Request
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, Response
 from starlette.middleware.base import BaseHTTPMiddleware
 
 from app.core.config import settings
 from app.core.exceptions import AppBaseException
 from app.core.logging import get_correlation_id, get_logger, set_correlation_id, setup_logging
 
-# Setup logging with level from environment
+# =============================================================================
+# Step 1: Setup Telemetry FIRST (before any other initialization)
+# =============================================================================
+from app.core.telemetry import setup_telemetry
+
+# Initialize OpenTelemetry (must happen before FastAPI creation)
+setup_telemetry()
+
+# =============================================================================
+# Step 2: Setup Logging
+# =============================================================================
+
 setup_logging(log_level=settings.log_level)
 logger = get_logger(__name__)
+
+# =============================================================================
+# Step 3: Setup Metrics
+# =============================================================================
+
+from app.core.metrics import get_metrics_text, setup_metrics
+
+# Initialize Prometheus metrics
+setup_metrics()
+
+# =============================================================================
+# Step 4: Create FastAPI Application
+# =============================================================================
 
 app = FastAPI(
     title="DemeterAI v2.0",
     version="2.0.0",
     description="Automated plant counting and inventory management system",
+    docs_url="/docs",
+    redoc_url="/redoc",
 )
 
 
@@ -159,11 +185,12 @@ async def generic_exception_handler(request: Request, exc: Exception) -> JSONRes
 
 
 # =============================================================================
-# Router Registration - Sprint 04 (26 endpoints)
+# Router Registration - Sprint 04 & Sprint 05 (30 endpoints)
 # =============================================================================
 
 from app.controllers import (
     analytics_router,
+    auth_router,
     config_router,
     location_router,
     product_router,
@@ -171,6 +198,7 @@ from app.controllers import (
 )
 
 # Register all API routers
+app.include_router(auth_router)  # Sprint 05: Authentication (4 endpoints)
 app.include_router(stock_router)  # C001-C007: Stock management
 app.include_router(location_router)  # C008-C013: Location hierarchy
 app.include_router(product_router)  # C014-C020: Product management
@@ -192,3 +220,49 @@ async def health() -> dict[str, str]:
     """
     logger.info("Health check endpoint called")
     return {"status": "healthy", "service": "DemeterAI v2.0"}
+
+
+# =============================================================================
+# Metrics Endpoint (Prometheus)
+# =============================================================================
+
+
+@app.get("/metrics")
+async def metrics() -> Response:
+    """Prometheus metrics endpoint.
+
+    Exposes application metrics in Prometheus text format for scraping.
+    Metrics include:
+    - API request duration and error rates
+    - Stock operation counts
+    - ML inference timing
+    - Database connection pool stats
+    - Celery task execution stats
+
+    Returns:
+        Response: Prometheus-formatted metrics (text/plain)
+
+    Example:
+        ```bash
+        curl http://localhost:8000/metrics
+        ```
+
+    Integration:
+        Configure Prometheus to scrape this endpoint:
+        ```yaml
+        scrape_configs:
+          - job_name: 'demeterai-api'
+            static_configs:
+              - targets: ['localhost:8000']
+            metrics_path: '/metrics'
+        ```
+    """
+    logger.debug("Metrics endpoint called")
+
+    # Get metrics in Prometheus text format
+    metrics_data = get_metrics_text()
+
+    return Response(
+        content=metrics_data,
+        media_type="text/plain; version=0.0.4; charset=utf-8",
+    )

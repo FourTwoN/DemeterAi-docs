@@ -1,72 +1,103 @@
-# Git
+# ============================================
+# .dockerignore for DemeterAI v2.0
+# Excludes unnecessary files from Docker build context
+# Reduces image size and build time
+# ============================================
+
+# Git & Version Control
 .git
 .gitignore
 .gitattributes
+.github/
+.gitlab-ci.yml
 
-# Python
-__pycache__
+# Python bytecode & cache
+__pycache__/
 *.pyc
 *.pyo
 *.pyd
 .Python
 *.so
 *.egg
-*.egg-info
-dist
-build
-eggs
-.eggs
-parts
-bin
-var
-sdist
-develop-eggs
+*.egg-info/
+dist/
+build/
+eggs/
+.eggs/
+parts/
+bin/
+var/
+sdist/
+develop-eggs/
 .installed.cfg
-lib
-lib64
+lib/
+lib64/
+*.py[cod]
+*$py.class
 
 # Virtual environments
-.venv
-venv
-ENV
-env
+.venv/
+venv/
+ENV/
+env/
+.virtualenv/
 
-# Testing
-.pytest_cache
+# Testing & Quality Tools
+.pytest_cache/
 .coverage
-htmlcov
-.tox
-.mypy_cache
-.ruff_cache
+.coverage.*
+htmlcov/
+.tox/
+.mypy_cache/
+.ruff_cache/
+.hypothesis/
+.dmypy.json
+dmypy.json
+.pyre/
+.pytype/
+tests/
+pytest.ini
+.coveragerc
 
-# IDE
-.vscode
-.idea
+# IDE & Editor files
+.vscode/
+.idea/
 *.swp
 *.swo
+*.swn
 *~
 .DS_Store
+.project
+.pydevproject
+.settings/
+*.sublime-project
+*.sublime-workspace
+.vscode-test
 
-# Environment files (except example)
+# Environment files (include only .env.example)
 .env
 .env.*
 !.env.example
+!.env.production
 
 # Logs
 *.log
 logs/
 *.log.*
+*.out
 
-# Documentation
+# Documentation & Planning
 README.md
+CHANGELOG.md
+CONTRIBUTING.md
+LICENSE
 docs/
 CLAUDE.md
 RUFF_USAGE.md
+*.md
+!.env.example
 
-# Test files
-tests/
-
-# Backlog and planning
+# Project management & planning
 backlog/
 context/
 database/
@@ -75,26 +106,84 @@ flows/
 guides/
 researchs/
 geolocalization/
+.claude/
 
-# User uploads and processed data
+# User data & uploads
 uploads/
 processed_images/
 temp/
 tmp/
+data/
+*.csv
+*.json
+!requirements.txt
+!pyproject.toml
+!package.json
 
-# CI/CD
-.github/
-.gitlab-ci.yml
-
-# Pre-commit
+# Pre-commit hooks
 .pre-commit-config.yaml
 .secrets.baseline
 
-# Coverage reports
+# Coverage & test reports
 .coverage
 coverage.xml
 *.cover
+htmlcov/
+nosetests.xml
+test-results/
 
-# Jupyter
-.ipynb_checkpoints
+# Jupyter notebooks
+.ipynb_checkpoints/
 *.ipynb
+
+# Database files
+*.db
+*.sqlite
+*.sqlite3
+
+# Docker files (don't nest Docker in Docker)
+docker-compose*.yml
+!docker-compose.yml
+Dockerfile.*
+.dockerignore
+
+# CI/CD configuration
+.gitlab-ci.yml
+.travis.yml
+.circleci/
+.jenkins/
+Jenkinsfile
+
+# OS-specific files
+Thumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+.Spotlight-V100
+.Trashes
+
+# Temporary files
+*.tmp
+*.bak
+*.swp
+*.swo
+*~.nib
+local_settings.py
+db.sqlite3
+db.sqlite3-journal
+instance/
+.webassets-cache
+
+# Build artifacts
+*.whl
+*.tar.gz
+*.zip
+
+# ML models (if large - should be downloaded at runtime)
+models/*.pt
+models/*.pth
+weights/
+
+# Configuration files that shouldn't be in image
+prometheus.yml
+grafana/
+otel-collector-config.yaml
