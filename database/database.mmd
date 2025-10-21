@@ -333,23 +333,6 @@ erDiagram
 		timestamp created_at  ""
 		timestamp updated_at  ""
 	}
-	s3_images {
-		uuid image_id PK "UUID generated in API layer"
-		varchar s3_bucket  ""
-		varchar s3_key_original UK "S3 key for original image"
-		varchar s3_key_thumbnail  "nullable - S3 key for thumbnail"
-		varchar content_type  "image/jpeg|image/png"
-		bigint file_size_bytes  ""
-		int width_px  ""
-		int height_px  ""
-		jsonb exif_metadata  "nullable - camera EXIF data"
-		jsonb gps_coordinates  "nullable - {lat lng altitude accuracy}"
-		varchar upload_source  "web|mobile|api"
-		int uploaded_by_user_id FK "nullable - SET NULL on user delete"
-		varchar status  "uploaded|processing|ready|failed"
-		timestamp created_at  ""
-		timestamp updated_at  ""
-	}
 	warehouses||--o{storage_areas:"contains"
 	storage_areas||--o{storage_locations:"contains"
 	storage_locations||--o{storage_bins:"contains"

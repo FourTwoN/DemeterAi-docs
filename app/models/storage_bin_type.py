@@ -109,7 +109,7 @@ class StorageBinType(Base):
         - Seed data: 6-10 common types preloaded in migration
 
     Attributes:
-        storage_bin_type_id: Primary key (auto-increment)
+        id: Primary key (auto-increment)
         code: Unique bin type code (uppercase, alphanumeric + underscores, 3-50 chars)
         name: Human-readable type name
         category: Category enum (plug, seedling_tray, box, segment, pot)
@@ -161,7 +161,8 @@ class StorageBinType(Base):
     __tablename__ = "storage_bin_types"
 
     # Primary key
-    storage_bin_type_id = Column(
+    bin_type_id = Column(
+        "bin_type_id",
         Integer,
         primary_key=True,
         autoincrement=True,
@@ -346,15 +347,15 @@ class StorageBinType(Base):
         """String representation for debugging.
 
         Returns:
-            String with storage_bin_type_id, code, name, category, and is_grid
+            String with id, code, name, category, and is_grid
 
         Example:
-            <StorageBinType(storage_bin_type_id=1, code='PLUG_TRAY_288', name='288-Cell Plug Tray',
+            <StorageBinType(bin_type_id=1, code='PLUG_TRAY_288', name='288-Cell Plug Tray',
              category='plug', is_grid=True)>
         """
         return (
             f"<StorageBinType("
-            f"storage_bin_type_id={self.storage_bin_type_id}, "
+            f"bin_type_id={self.bin_type_id}, "
             f"code='{self.code}', "
             f"name='{self.name}', "
             f"category='{self.category.value if self.category else None}', "

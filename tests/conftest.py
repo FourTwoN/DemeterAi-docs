@@ -84,20 +84,17 @@ async def db_session():
     from sqlalchemy import text
 
     # List of all PostgreSQL ENUM types used in models
-    # IMPORTANT: Keep this list in sync with app/models/*.py
+    # IMPORTANT: Keep this list in sync with app/models/*.py and alembic migrations
     enum_types = [
         "storage_bin_status_enum",
         "warehouse_type_enum",
         "position_enum",
-        "processing_session_status_enum",
-        "movement_type_enum",
-        "source_type_enum",
-        "calculation_method_enum",
-        "sample_type_enum",
-        "content_type_enum",
-        "upload_source_enum",
-        "processing_status_enum",
-        "bin_category_enum",
+        "sessionstatusenum",  # photo_processing_sessions
+        "sampletypeenum",  # product_sample_images
+        "movementtypeenum",  # stock_movements
+        "sourcetypeenum",  # stock_movements
+        "calculationmethodenum",  # estimations
+        "bin_category_enum",  # storage_bin_types
     ]
 
     # Drop all ENUM types BEFORE creating tables
@@ -105,9 +102,16 @@ async def db_session():
         for enum_type in enum_types:
             await conn.execute(text(f"DROP TYPE IF EXISTS {enum_type} CASCADE"))
 
-    # Create all tables (including ENUM types)
-    async with test_engine.begin() as conn:
-        await conn.run_sync(Base.metadata.create_all)
+    # Use Alembic to run migrations in correct order (respects FK dependencies)
+    # This is better than Base.metadata.create_all() which can create tables in wrong order
+    from alembic.command import upgrade as alembic_upgrade  # type: ignore[import-not-found]
+    from alembic.config import Config  # type: ignore[import-not-found]
+
+    alembic_cfg = Config("alembic.ini")
+    alembic_cfg.set_main_option("sqlalchemy.url", TEST_DATABASE_URL.replace("+asyncpg", ""))
+
+    # Sync the database schema with migrations
+    alembic_upgrade(alembic_cfg, "head")
 
     # Create session
     async with TestSessionLocal() as session:

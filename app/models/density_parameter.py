@@ -129,7 +129,7 @@ class DensityParameter(Base):
     # Foreign keys
     storage_bin_type_id = Column(
         Integer,
-        ForeignKey("storage_bin_types.storage_bin_type_id", ondelete="CASCADE"),
+        ForeignKey("storage_bin_types.bin_type_id", ondelete="CASCADE"),
         nullable=False,
         index=True,
         comment="Foreign key to storage_bin_types (CASCADE delete)",
