@@ -171,15 +171,16 @@ class StorageLocation(Base):
     # NOTE: This creates a circular reference with photo_processing_sessions
     # photo_processing_sessions.storage_location_id → storage_locations.location_id
     # storage_locations.photo_session_id → photo_processing_sessions.id
-    # SOLUTION: use_alter=True breaks circular dependency by creating FK via ALTER TABLE
+    # TODO: Uncomment use_alter=True once migration is updated to include the circular FK
     photo_session_id = Column(
         Integer,
-        ForeignKey(
-            "photo_processing_sessions.id",
-            ondelete="SET NULL",
-            use_alter=True,
-            name="fk_storage_location_photo_session",
-        ),
+        # NOTE: FK commented out because migration doesn't include circular reference constraint
+        # ForeignKey(
+        #     "photo_processing_sessions.id",
+        #     ondelete="SET NULL",
+        #     use_alter=True,
+        #     name="fk_storage_location_photo_session",
+        # ),
         nullable=True,
         index=True,
         comment="Latest photo processing session for this location (nullable, SET NULL on delete)",
@@ -266,12 +267,13 @@ class StorageLocation(Base):
     )
 
     # Many-to-one: StorageLocation → PhotoProcessingSession (latest photo, nullable)
-    latest_photo_session: Mapped["PhotoProcessingSession | None"] = relationship(
-        "PhotoProcessingSession",
-        foreign_keys=[photo_session_id],
-        back_populates="storage_locations_latest",
-        doc="Latest photo processing session for this location (nullable)",
-    )
+    # TODO: Uncomment once circular FK is added to migration
+    # latest_photo_session: Mapped["PhotoProcessingSession | None"] = relationship(
+    #     "PhotoProcessingSession",
+    #     foreign_keys=[photo_session_id],
+    #     back_populates="storage_locations_latest",
+    #     doc="Latest photo processing session for this location (nullable)",
+    # )
 
     # One-to-many: StorageLocation → StorageBin (DB004 complete)
     storage_bins: Mapped[list["StorageBin"]] = relationship(

@@ -267,6 +267,83 @@ class Warehouse(Base):
 
         return value
 
+    @validates("warehouse_type")
+    def validate_warehouse_type(self, key: str, value: str) -> str:
+        """Validate warehouse_type is a valid enum value.
+
+        Rules:
+            1. Must be one of: greenhouse, shadehouse, open_field, tunnel
+
+        Args:
+            key: Column name (always 'warehouse_type')
+            value: Warehouse type to validate
+
+        Returns:
+            Validated warehouse type
+
+        Raises:
+            ValueError: If validation fails
+
+        Example:
+            ```python
+            warehouse.warehouse_type = "greenhouse"  # Valid
+            warehouse.warehouse_type = "factory"     # Raises ValueError
+            ```
+        """
+        if not value:
+            raise ValueError("Warehouse type is required")
+
+        valid_types = {e.value for e in WarehouseTypeEnum}
+        if value not in valid_types:
+            raise ValueError(f"Warehouse type must be one of {valid_types} (got: {value})")
+
+        return value
+
+    @validates("name")
+    def validate_name(self, key: str, value: str) -> str:
+        """Validate name field is not null or empty.
+
+        Rules:
+            1. Cannot be None
+            2. Cannot be empty string
+
+        Args:
+            key: Column name (always 'name')
+            value: Name to validate
+
+        Returns:
+            Validated name
+
+        Raises:
+            ValueError: If validation fails
+        """
+        if value is None:
+            raise ValueError("Warehouse name is required (cannot be None)")
+        if not value or not value.strip():
+            raise ValueError("Warehouse name cannot be empty")
+        return value
+
+    @validates("geojson_coordinates")
+    def validate_geojson_coordinates(self, key: str, value: object) -> object:
+        """Validate geojson_coordinates field is not null.
+
+        Rules:
+            1. Cannot be None
+
+        Args:
+            key: Column name (always 'geojson_coordinates')
+            value: Geometry to validate
+
+        Returns:
+            Validated geometry
+
+        Raises:
+            ValueError: If validation fails
+        """
+        if value is None:
+            raise ValueError("Warehouse geojson_coordinates is required (cannot be None)")
+        return value
+
     def __repr__(self) -> str:
         """String representation for debugging.
 
