@@ -1,8 +1,5 @@
 """Base Celery task classes with model singleton support.
 
-This is a STUB implementation for Testing Expert to write tests against.
-The Python Expert will implement the actual logic in parallel.
-
 Provides:
 - ModelSingletonTask: Base task with cached model access
 - GPU memory cleanup after N tasks
@@ -33,8 +30,6 @@ logger = logging.getLogger(__name__)
 
 class ModelSingletonTask(Task):  # type: ignore[misc]
     """Base Celery task with singleton model caching.
-
-    This is a STUB - Python Expert will implement.
 
     Features:
     - Lazy-loaded model properties (seg_model, det_model)

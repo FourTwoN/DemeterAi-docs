@@ -218,27 +218,17 @@ class PhotoUploadService:
         )
 
         # STEP 5: Dispatch ML pipeline (Celery task)
-        # NOTE: Celery integration is not implemented yet
-        # This will be implemented in CEL005
-        # For now, we'll create a placeholder task_id
+        from app.tasks.ml_tasks import ml_parent_task
 
-        # TODO: Replace with actual Celery task dispatch
-        # celery_task = celery_app.send_task(
-        #     "ml.parent_task",
-        #     args=[session.id, original_image.s3_key]
-        # )
-        # task_id = celery_task.id
+        celery_task = ml_parent_task.delay(session.session_id, original_image.s3_key)
+        task_id = celery_task.id
 
-        # Placeholder task ID (UUID)
-        import uuid
-
-        task_id = uuid.uuid4()
-
-        logger.warning(
-            "Celery task dispatch not implemented yet (placeholder task_id)",
+        logger.info(
+            "ML pipeline task dispatched",
             extra={
                 "task_id": str(task_id),
                 "session_id": str(session.session_id),
+                "s3_key": original_image.s3_key,
             },
         )
 

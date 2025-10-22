@@ -263,18 +263,17 @@ async def get_celery_task_status(
         Currently returns placeholder response.
     """
     try:
-        # TODO: Replace with actual Celery task lookup when CEL005 is implemented
-        logger.warning(
-            "Celery task status endpoint called (not yet implemented)",
-            extra={"task_id": str(task_id)},
-        )
+        from app.celery_app import app as celery_app
 
-        # Placeholder response
+        logger.info("Getting task status", extra={"task_id": str(task_id)})
+
+        task_result = celery_app.AsyncResult(str(task_id))
+
         return {
             "task_id": str(task_id),
-            "status": "PENDING",
-            "message": "Celery integration not yet implemented (CEL005)",
-            "result": None,
+            "status": task_result.state,
+            "result": task_result.result if task_result.ready() else None,
+            "info": task_result.info if hasattr(task_result, "info") else None,
         }
 
     except Exception as e:

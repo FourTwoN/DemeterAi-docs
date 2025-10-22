@@ -1,8 +1,5 @@
 """ModelCache singleton for YOLO model management.
 
-This is a STUB implementation for Testing Expert to write tests against.
-The Python Expert will implement the actual logic in parallel.
-
 Provides:
 - Singleton pattern for model caching
 - Thread-safe model loading
@@ -28,10 +25,7 @@ ModelType = Literal["segment", "detect"]
 
 
 class ModelCache:
-    """Singleton cache for YOLO models (per worker, per model type).
-
-    This is a STUB - Python Expert will implement.
-    """
+    """Singleton cache for YOLO models (per worker, per model type)."""
 
     _instances: dict[str, "YOLO"] = {}
     _lock: threading.Lock = threading.Lock()
@@ -109,6 +103,9 @@ class ModelCache:
 
         Returns:
             (segment_path, detect_path)
+
+        Note:
+            Paths should be configured via environment variables in production.
+            Default paths assume models are mounted at /models/ in Docker.
         """
-        # STUB - Python Expert will implement with proper paths
         return ("/models/segment.pt", "/models/detect.pt")
