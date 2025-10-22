@@ -233,15 +233,36 @@ class PhotoUploadService:
         # STEP 5: Dispatch ML pipeline (Celery task)
         from app.tasks.ml_tasks import ml_parent_task
 
-        celery_task = ml_parent_task.delay(session.session_id, original_image.s3_key_original)
+        # Build image_data for ML task
+        # NOTE: ml_parent_task expects list[dict] with keys:
+        #   - image_id: S3Image UUID (used for tracking)
+        #   - image_path (str): Path to image file (local or S3)
+        #   - storage_location_id (int): Where photo was taken
+        image_data = [
+            {
+                "image_id": str(original_image.image_id),  # S3Image UUID as string
+                "image_path": original_image.s3_key_original,  # S3 key path
+                "storage_location_id": storage_location_id,  # From GPS lookup (line 156)
+            }
+        ]
+
+        # Call ML task with correct signature
+        # ml_parent_task(session_id: int, image_data: list[dict])
+        celery_task = ml_parent_task.delay(
+            session_id=session.id,  # PhotoProcessingSession.id (integer PK)
+            image_data=image_data,
+        )
         task_id = celery_task.id
 
         logger.info(
             "ML pipeline task dispatched",
             extra={
                 "task_id": str(task_id),
-                "session_id": str(session.session_id),
-                "s3_key": original_image.s3_key_original,
+                "session_db_id": session.id,  # Database ID (int)
+                "session_uuid": str(session.session_id),  # UUID for external reference
+                "image_uuid": str(original_image.image_id),  # S3Image UUID
+                "storage_location_id": storage_location_id,
+                "num_images": len(image_data),
             },
         )
 

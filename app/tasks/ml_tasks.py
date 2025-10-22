@@ -194,10 +194,10 @@ def ml_parent_task(
     4. Callback aggregates results when all children complete
 
     Args:
-        session_id: PhotoProcessingSession database ID
+        session_id: PhotoProcessingSession database ID (integer PK)
         image_data: List of image metadata dicts with keys:
-            - image_id (int): S3Image record ID
-            - image_path (str): Local/S3 path to image file
+            - image_id (str): S3Image UUID as string (for tracking)
+            - image_path (str): Local path or S3 key to image file
             - storage_location_id (int): Where photo was taken
 
     Returns:
@@ -309,7 +309,7 @@ def ml_parent_task(
 def ml_child_task(
     self: Task,
     session_id: int,
-    image_id: int,
+    image_id: str,  # S3Image UUID as string
     image_path: str,
     storage_location_id: int,
 ) -> dict[str, Any]:
@@ -322,9 +322,9 @@ def ml_child_task(
     3. Estimation (band-based estimation for undetected areas)
 
     Args:
-        session_id: PhotoProcessingSession database ID
-        image_id: S3Image record ID
-        image_path: Path to image file (local or S3)
+        session_id: PhotoProcessingSession database ID (integer PK)
+        image_id: S3Image UUID as string (for tracking/logging)
+        image_path: Path to image file (local or S3 key)
         storage_location_id: Storage location where photo was taken
 
     Returns:
