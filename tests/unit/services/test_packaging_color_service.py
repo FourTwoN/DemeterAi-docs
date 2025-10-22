@@ -224,9 +224,7 @@ async def test_update_packaging_color_success(
 
 
 @pytest.mark.asyncio
-async def test_update_packaging_color_not_found(
-    packaging_color_service, mock_packaging_color_repo
-):
+async def test_update_packaging_color_not_found(packaging_color_service, mock_packaging_color_repo):
     """Test ValueError when updating non-existent packaging color."""
     # Arrange
     mock_packaging_color_repo.get.return_value = None
@@ -264,9 +262,7 @@ async def test_delete_packaging_color_success(
 
 
 @pytest.mark.asyncio
-async def test_delete_packaging_color_not_found(
-    packaging_color_service, mock_packaging_color_repo
-):
+async def test_delete_packaging_color_not_found(packaging_color_service, mock_packaging_color_repo):
     """Test ValueError when deleting non-existent packaging color."""
     # Arrange
     mock_packaging_color_repo.get.return_value = None

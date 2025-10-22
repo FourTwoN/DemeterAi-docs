@@ -43,7 +43,7 @@ class TestStorageAreaCodeValidation:
                 code=code,
                 name="Test Storage Area",
                 warehouse_id=1,
-                geojson_coordinates=from_shape(
+                geojson_geojson_coordinates=from_shape(
                     Polygon(
                         [
                             (-70.6485, -33.4495),
@@ -65,7 +65,7 @@ class TestStorageAreaCodeValidation:
                 code="NORTH",  # Missing hyphen - invalid
                 name="Test Area",
                 warehouse_id=1,
-                geojson_coordinates=from_shape(
+                geojson_geojson_coordinates=from_shape(
                     Polygon(
                         [
                             (-70.6485, -33.4495),
@@ -85,7 +85,7 @@ class TestStorageAreaCodeValidation:
             code="INV01-NORTH",
             name="Test Storage Area",
             warehouse_id=1,
-            geojson_coordinates=from_shape(
+            geojson_geojson_coordinates=from_shape(
                 Polygon(
                     [
                         (-70.6485, -33.4495),
@@ -109,7 +109,7 @@ class TestStorageAreaCodeValidation:
             code="WH-AREA-01",
             name="Test Storage Area",
             warehouse_id=1,
-            geojson_coordinates=from_shape(
+            geojson_geojson_coordinates=from_shape(
                 Polygon(
                     [
                         (-70.6485, -33.4495),
@@ -143,7 +143,7 @@ class TestStorageAreaCodeValidation:
             code="W-A",  # Minimum 3 chars (X-Y)
             name="Test Storage Area",
             warehouse_id=1,
-            geojson_coordinates=from_shape(
+            geojson_geojson_coordinates=from_shape(
                 Polygon(
                     [
                         (-70.6485, -33.4495),
@@ -183,7 +183,7 @@ class TestStorageAreaCodeValidation:
                 code="WH-AREA",
                 name="Test Area",
                 warehouse_id=1,
-                geojson_coordinates=from_shape(
+                geojson_geojson_coordinates=from_shape(
                     Polygon(
                         [
                             (-70.6485, -33.4495),
@@ -205,7 +205,7 @@ class TestStorageAreaCodeValidation:
                 code="WH-AREA",
                 name="Test Area",
                 warehouse_id=1,
-                geojson_coordinates=from_shape(
+                geojson_geojson_coordinates=from_shape(
                     Polygon(
                         [
                             (-70.6485, -33.4495),
@@ -234,7 +234,7 @@ class TestStorageAreaPositionEnum:
                 name="Test Storage Area",
                 warehouse_id=1,
                 position=position,
-                geojson_coordinates=from_shape(
+                geojson_geojson_coordinates=from_shape(
                     Polygon(
                         [
                             (-70.6485, -33.4495),
@@ -260,7 +260,7 @@ class TestStorageAreaPositionEnum:
                     name="Test Storage Area",
                     warehouse_id=1,
                     position=invalid_pos,
-                    geojson_coordinates=from_shape(
+                    geojson_geojson_coordinates=from_shape(
                         Polygon(
                             [
                                 (-70.6485, -33.4495),
@@ -281,7 +281,7 @@ class TestStorageAreaPositionEnum:
             name="Test Storage Area",
             warehouse_id=1,
             position=None,  # Should be allowed
-            geojson_coordinates=from_shape(
+            geojson_geojson_coordinates=from_shape(
                 Polygon(
                     [
                         (-70.6485, -33.4495),
@@ -308,7 +308,7 @@ class TestStorageAreaForeignKeys:
                 code="WH-AREA",
                 name="Test Storage Area",
                 warehouse_id=None,  # Should fail
-                geojson_coordinates=from_shape(
+                geojson_geojson_coordinates=from_shape(
                     Polygon(
                         [
                             (-70.6485, -33.4495),
@@ -329,7 +329,7 @@ class TestStorageAreaForeignKeys:
             name="Root Storage Area",
             warehouse_id=1,
             parent_area_id=None,  # Should be allowed
-            geojson_coordinates=from_shape(
+            geojson_geojson_coordinates=from_shape(
                 Polygon(
                     [
                         (-70.6485, -33.4495),
@@ -358,7 +358,7 @@ class TestStorageAreaRelationships:
             code="WH-AREA",
             name="Test Storage Area",
             warehouse_id=1,
-            geojson_coordinates=from_shape(
+            geojson_geojson_coordinates=from_shape(
                 Polygon(
                     [
                         (-70.6485, -33.4495),
@@ -381,7 +381,7 @@ class TestStorageAreaRelationships:
             code="WH-PARENT",
             name="Parent Area",
             warehouse_id=1,
-            geojson_coordinates=from_shape(
+            geojson_geojson_coordinates=from_shape(
                 Polygon(
                     [
                         (-70.649, -33.450),
@@ -401,7 +401,7 @@ class TestStorageAreaRelationships:
             name="Child Area",
             warehouse_id=1,
             parent_area_id=1,  # Will reference parent.storage_area_id after DB insert
-            geojson_coordinates=from_shape(
+            geojson_geojson_coordinates=from_shape(
                 Polygon(
                     [
                         (-70.6485, -33.4495),
@@ -432,7 +432,10 @@ class TestStorageAreaRequiredFields:
         """geojson_coordinates field must not be null."""
         with pytest.raises((ValueError, TypeError)):
             StorageArea(
-                code="WH-AREA", name="Test Storage Area", warehouse_id=1, geojson_coordinates=None
+                code="WH-AREA",
+                name="Test Storage Area",
+                warehouse_id=1,
+                geojson_geojson_coordinates=None,
             )
 
 
@@ -445,7 +448,7 @@ class TestStorageAreaDefaultValues:
             code="WH-AREA",
             name="Test Storage Area",
             warehouse_id=1,
-            geojson_coordinates=from_shape(
+            geojson_geojson_coordinates=from_shape(
                 Polygon(
                     [
                         (-70.6485, -33.4495),
@@ -470,7 +473,7 @@ class TestStorageAreaDefaultValues:
             code="WH-AREA",
             name="Test Storage Area",
             warehouse_id=1,
-            geojson_coordinates=from_shape(
+            geojson_geojson_coordinates=from_shape(
                 Polygon(
                     [
                         (-70.6485, -33.4495),
@@ -507,7 +510,7 @@ class TestStorageAreaGeometryAssignment:
             code="GEO-AREA",
             name="Geometry Test Area",
             warehouse_id=1,
-            geojson_coordinates=from_shape(polygon, srid=4326),
+            geojson_geojson_coordinates=from_shape(polygon, srid=4326),
         )
 
         assert area.geojson_coordinates is not None
@@ -529,7 +532,7 @@ class TestStorageAreaGeometryAssignment:
             code="SRID-AREA",
             name="SRID Test",
             warehouse_id=1,
-            geojson_coordinates=from_shape(polygon, srid=4326),
+            geojson_geojson_coordinates=from_shape(polygon, srid=4326),
         )
 
         assert area.geojson_coordinates is not None
@@ -554,7 +557,7 @@ class TestStorageAreaGeometryAssignment:
             code="COMPLEX-AREA",
             name="Complex Polygon Area",
             warehouse_id=1,
-            geojson_coordinates=from_shape(polygon, srid=4326),
+            geojson_geojson_coordinates=from_shape(polygon, srid=4326),
         )
 
         assert area.geojson_coordinates is not None
@@ -570,7 +573,7 @@ class TestStorageAreaFieldCombinations:
             name="North Wing",
             warehouse_id=1,
             position="N",
-            geojson_coordinates=from_shape(
+            geojson_geojson_coordinates=from_shape(
                 Polygon(
                     [
                         (-70.6485, -33.4495),
@@ -595,7 +598,7 @@ class TestStorageAreaFieldCombinations:
             name="South Wing",
             warehouse_id=1,
             position="S",
-            geojson_coordinates=from_shape(
+            geojson_geojson_coordinates=from_shape(
                 Polygon(
                     [
                         (-70.6485, -33.4495),
@@ -618,7 +621,7 @@ class TestStorageAreaFieldCombinations:
             name="Central Propagation Zone",
             warehouse_id=1,
             position="C",
-            geojson_coordinates=from_shape(
+            geojson_geojson_coordinates=from_shape(
                 Polygon(
                     [
                         (-70.6485, -33.4495),
@@ -641,7 +644,7 @@ class TestStorageAreaFieldCombinations:
             name="Zone A",
             warehouse_id=1,
             position=None,  # Explicitly NULL
-            geojson_coordinates=from_shape(
+            geojson_geojson_coordinates=from_shape(
                 Polygon(
                     [
                         (-70.6485, -33.4495),
@@ -663,7 +666,7 @@ class TestStorageAreaFieldCombinations:
             code="INACTIVE-AREA",
             name="Closed Storage Area",
             warehouse_id=1,
-            geojson_coordinates=from_shape(
+            geojson_geojson_coordinates=from_shape(
                 Polygon(
                     [
                         (-70.6485, -33.4495),
@@ -688,7 +691,7 @@ class TestStorageAreaFieldCombinations:
             warehouse_id=1,
             parent_area_id=5,  # References parent area
             position="N",
-            geojson_coordinates=from_shape(
+            geojson_geojson_coordinates=from_shape(
                 Polygon(
                     [
                         (-70.6485, -33.4495),

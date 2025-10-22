@@ -53,7 +53,9 @@ def mock_category_service():
 @pytest.fixture
 def family_service(mock_family_repo, mock_category_service):
     """Create ProductFamilyService with mocked dependencies."""
-    return ProductFamilyService(family_repo=mock_family_repo, category_service=mock_category_service)
+    return ProductFamilyService(
+        family_repo=mock_family_repo, category_service=mock_category_service
+    )
 
 
 @pytest.fixture
@@ -104,7 +106,9 @@ async def test_create_family_success(
 
 
 @pytest.mark.asyncio
-async def test_create_family_minimal_fields(family_service, mock_family_repo, mock_category_service):
+async def test_create_family_minimal_fields(
+    family_service, mock_family_repo, mock_category_service
+):
     """Test creating family with only required fields."""
     # Arrange
     request = ProductFamilyCreateRequest(category_id=1, name="Sedum")
@@ -137,7 +141,9 @@ async def test_create_family_invalid_category(family_service, mock_category_serv
     request = ProductFamilyCreateRequest(category_id=999, name="Invalid Family")
 
     # Mock category service raises ValueError when category doesn't exist
-    mock_category_service.get_category_by_id.side_effect = ValueError("ProductCategory 999 not found")
+    mock_category_service.get_category_by_id.side_effect = ValueError(
+        "ProductCategory 999 not found"
+    )
 
     # Act & Assert
     with pytest.raises(ValueError, match="ProductCategory 999 not found"):

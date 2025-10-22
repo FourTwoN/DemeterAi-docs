@@ -502,7 +502,7 @@ async def sample_storage_areas(db_session, warehouse_factory):
         name="North Storage Area",
         warehouse_id=warehouse.warehouse_id,
         position="N",
-        coordinates=from_shape(Polygon(north_coords), srid=4326),
+        geojson_coordinates=from_shape(Polygon(north_coords), srid=4326),
     )
 
     # Create South area
@@ -518,7 +518,7 @@ async def sample_storage_areas(db_session, warehouse_factory):
         name="South Storage Area",
         warehouse_id=warehouse.warehouse_id,
         position="S",
-        coordinates=from_shape(Polygon(south_coords), srid=4326),
+        geojson_coordinates=from_shape(Polygon(south_coords), srid=4326),
     )
 
     # Create Center area
@@ -534,7 +534,7 @@ async def sample_storage_areas(db_session, warehouse_factory):
         name="Center Propagation Zone",
         warehouse_id=warehouse.warehouse_id,
         position="C",
-        coordinates=from_shape(Polygon(center_coords), srid=4326),
+        geojson_coordinates=from_shape(Polygon(center_coords), srid=4326),
     )
 
     db_session.add_all([north_area, south_area, center_area])
@@ -551,17 +551,28 @@ def sample_product():
     """Factory fixture for product test data.
 
     Usage:
-        def test_product_creation(sample_product):
+        async def test_product_creation(sample_product, db_session):
+            # Create family first
+            family = ProductFamily(
+                category_id=1,
+                code="TEST-FAM",
+                name="Test Family"
+            )
+            db_session.add(family)
+            await db_session.commit()
+
+            # Then create product
+            sample_product["family_id"] = family.family_id
             product = Product(**sample_product)
-            assert product.code == "PROD-TEST"
+            assert product.sku == "TEST-PROD-001"
     """
     return {
-        "code": "PROD-TEST",
-        "name": "Test Product",
+        "sku": "TEST-PROD-001",
+        "common_name": "Test Product",
         "description": "Product for testing",
         "scientific_name": "Testus productus",
-        "category": "cactus",
-        "active": True,
+        "family_id": 1,  # Must be set to valid family ID in tests
+        "custom_attributes": {},
     }
 
 
@@ -592,7 +603,7 @@ def sample_storage_location():
         "name": "Test Storage Location",
         "storage_area_id": 1,  # Must be set to valid storage area ID in tests
         "qr_code": "LOC12345",
-        "geojson_coordinates": from_shape(point, srid=4326),
+        "coordinates": from_shape(point, srid=4326),
         "position_metadata": {},
         "active": True,
     }
@@ -635,7 +646,7 @@ def storage_location_factory(db_session, storage_area_factory):
             "name": "Test Storage Location",
             "storage_area_id": storage_area.storage_area_id,
             "qr_code": f"LOC{id(kwargs) % 100000:05d}",  # Unique QR code (8 chars)
-            "geojson_coordinates": from_shape(default_point, srid=4326),
+            "coordinates": from_shape(default_point, srid=4326),
             "position_metadata": {},
             "active": True,
         }
@@ -681,7 +692,8 @@ async def sample_storage_locations(db_session, storage_area_factory):
         name="Storage Location 1",
         storage_area_id=area.storage_area_id,
         qr_code="LOC-SAM-01",
-        coordinates=from_shape(Point(-70.64825, -33.44925), srid=4326),
+        geojson_coordinates=from_shape(Point(-70.64825, -33.44925), srid=4326),
+        position_metadata={},
     )
 
     # Create Location 2 (slightly east)
@@ -690,7 +702,8 @@ async def sample_storage_locations(db_session, storage_area_factory):
         name="Storage Location 2",
         storage_area_id=area.storage_area_id,
         qr_code="LOC-SAM-02",
-        coordinates=from_shape(Point(-70.64820, -33.44920), srid=4326),
+        geojson_coordinates=from_shape(Point(-70.64820, -33.44920), srid=4326),
+        position_metadata={},
     )
 
     # Create Location 3 (slightly west)
@@ -699,7 +712,8 @@ async def sample_storage_locations(db_session, storage_area_factory):
         name="Storage Location 3",
         storage_area_id=area.storage_area_id,
         qr_code="LOC-SAM-03",
-        coordinates=from_shape(Point(-70.64830, -33.44930), srid=4326),
+        geojson_coordinates=from_shape(Point(-70.64830, -33.44930), srid=4326),
+        position_metadata={},
     )
 
     db_session.add_all([location1, location2, location3])
@@ -861,6 +875,207 @@ async def sample_storage_bins(db_session, storage_location_factory):
     await db_session.refresh(bin3)
 
     return location, bin1, bin2, bin3
+
+
+# =============================================================================
+# Product & Category Factories
+# =============================================================================
+
+
+@pytest.fixture
+def product_category_factory(db_session):
+    """Factory for creating ProductCategory instances.
+
+    Usage:
+        category = await product_category_factory(code="CACTUS", name="Cacti")
+    """
+    from app.models.product_category import ProductCategory
+
+    async def _create(**kwargs):
+        defaults = {
+            "code": kwargs.pop("code", "TEST-CAT"),
+            "name": kwargs.pop("name", "Test Category"),
+            "description": kwargs.pop("description", "Test category description"),
+        }
+        defaults.update(kwargs)
+
+        category = ProductCategory(**defaults)
+        db_session.add(category)
+        await db_session.commit()
+        await db_session.refresh(category)
+        return category
+
+    return _create
+
+
+@pytest.fixture
+def product_family_factory(db_session, product_category_factory):
+    """Factory for creating ProductFamily instances.
+
+    Usage:
+        family = await product_family_factory(category_id=1, name="Echeveria")
+    """
+    from app.models.product_family import ProductFamily
+
+    async def _create(**kwargs):
+        # If category_id not provided, create a category first
+        if "category_id" not in kwargs:
+            category = await product_category_factory()
+            kwargs["category_id"] = category.category_id
+
+        defaults = {
+            "name": kwargs.pop("name", "Test Family"),
+            "scientific_name": kwargs.pop("scientific_name", "Test scientific name"),
+            "description": kwargs.pop("description", "Test family description"),
+        }
+        defaults.update(kwargs)
+
+        family = ProductFamily(**defaults)
+        db_session.add(family)
+        await db_session.commit()
+        await db_session.refresh(family)
+        return family
+
+    return _create
+
+
+@pytest.fixture
+def product_factory(db_session, product_family_factory):
+    """Factory for creating Product instances.
+
+    Usage:
+        product = await product_factory(sku="TEST-001", common_name="Test Plant")
+    """
+    from app.models.product import Product
+
+    async def _create(**kwargs):
+        # If family_id not provided, create a family first
+        if "family_id" not in kwargs:
+            family = await product_family_factory()
+            kwargs["family_id"] = family.family_id
+
+        defaults = {
+            "sku": kwargs.pop("sku", "TEST-SKU-001"),
+            "common_name": kwargs.pop("common_name", "Test Product"),
+            "scientific_name": kwargs.pop("scientific_name", None),
+            "description": kwargs.pop("description", "Test product description"),
+            "custom_attributes": kwargs.pop("custom_attributes", {}),
+        }
+        defaults.update(kwargs)
+
+        product = Product(**defaults)
+        db_session.add(product)
+        await db_session.commit()
+        await db_session.refresh(product)
+        return product
+
+    return _create
+
+
+@pytest.fixture
+def user_factory(db_session):
+    """Factory for creating User instances.
+
+    Usage:
+        user = await user_factory(email="test@example.com", first_name="John")
+    """
+    from bcrypt import gensalt, hashpw
+
+    from app.models.user import User, UserRoleEnum
+
+    async def _create(**kwargs):
+        # Generate a valid bcrypt hash for password
+        password = kwargs.pop("password", "test_password_123")
+        password_hash = hashpw(password.encode("utf-8"), gensalt(rounds=12)).decode("utf-8")
+
+        defaults = {
+            "email": kwargs.pop(
+                "email", f"test{db_session.info.get('_user_counter', 0)}@demeter.ai"
+            ),
+            "password_hash": password_hash,
+            "first_name": kwargs.pop("first_name", "Test"),
+            "last_name": kwargs.pop("last_name", "User"),
+            "role": kwargs.pop("role", UserRoleEnum.WORKER),
+            "active": kwargs.pop("active", True),
+        }
+
+        # Update user counter
+        if "_user_counter" not in db_session.info:
+            db_session.info["_user_counter"] = 0
+        db_session.info["_user_counter"] += 1
+
+        defaults.update(kwargs)
+
+        user = User(**defaults)
+        db_session.add(user)
+        await db_session.commit()
+        await db_session.refresh(user)
+        return user
+
+    return _create
+
+
+@pytest.fixture
+def product_size_factory(db_session):
+    """Factory for creating ProductSize instances.
+
+    Note: ProductSizes are usually seeded in database migrations.
+    Use this factory to create additional test sizes if needed.
+
+    Usage:
+        size = await product_size_factory(code="XL", name="Extra Large")
+    """
+    from app.models.product_size import ProductSize
+
+    async def _create(**kwargs):
+        defaults = {
+            "code": kwargs.pop("code", "TESTSIZE"),
+            "name": kwargs.pop("name", "Test Size"),
+            "description": kwargs.pop("description", "Test size description"),
+            "min_height_cm": kwargs.pop("min_height_cm", None),
+            "max_height_cm": kwargs.pop("max_height_cm", None),
+            "sort_order": kwargs.pop("sort_order", 99),
+        }
+        defaults.update(kwargs)
+
+        size = ProductSize(**defaults)
+        db_session.add(size)
+        await db_session.commit()
+        await db_session.refresh(size)
+        return size
+
+    return _create
+
+
+@pytest.fixture
+def product_state_factory(db_session):
+    """Factory for creating ProductState instances.
+
+    Note: ProductStates are usually seeded in database migrations.
+    Use this factory to create additional test states if needed.
+
+    Usage:
+        state = await product_state_factory(code="TESTSTATE", name="Test State")
+    """
+    from app.models.product_state import ProductState
+
+    async def _create(**kwargs):
+        defaults = {
+            "code": kwargs.pop("code", "TESTSTATE"),
+            "name": kwargs.pop("name", "Test State"),
+            "description": kwargs.pop("description", "Test state description"),
+            "is_sellable": kwargs.pop("is_sellable", False),
+            "sort_order": kwargs.pop("sort_order", 99),
+        }
+        defaults.update(kwargs)
+
+        state = ProductState(**defaults)
+        db_session.add(state)
+        await db_session.commit()
+        await db_session.refresh(state)
+        return state
+
+    return _create
 
 
 # =============================================================================

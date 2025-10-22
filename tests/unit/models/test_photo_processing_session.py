@@ -33,7 +33,6 @@ import pytest
 from app.models.photo_processing_session import PhotoProcessingSession, ProcessingSessionStatusEnum
 from app.models.s3_image import ContentTypeEnum, S3Image
 from app.models.s3_image import ProcessingStatusEnum as S3ProcessingStatusEnum
-from app.models.user import User
 
 
 class TestPhotoProcessingSessionBasicCRUD:
@@ -85,7 +84,7 @@ class TestPhotoProcessingSessionBasicCRUD:
 
     @pytest.mark.asyncio
     async def test_create_session_all_fields(
-        self, db_session, warehouse_factory, storage_area_factory, storage_location_factory
+        self, db_session, warehouse_factory, storage_area_factory, storage_location_factory, user_factory
     ):
         """Test creating session with all fields populated."""
         location = await storage_location_factory()
@@ -112,7 +111,7 @@ class TestPhotoProcessingSessionBasicCRUD:
             status=S3ProcessingStatusEnum.READY,
         )
 
-        user = User(username="testuser", email="test@example.com", hashed_password="hashed_pass")
+        user = await user_factory(email="test@example.com", first_name="testuser")
 
         db_session.add_all([original_image, processed_image, user])
         await db_session.commit()

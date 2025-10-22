@@ -94,9 +94,7 @@ async def test_create_product_state_success(
 
 
 @pytest.mark.asyncio
-async def test_create_product_state_not_sellable(
-    product_state_service, mock_product_state_repo
-):
+async def test_create_product_state_not_sellable(product_state_service, mock_product_state_repo):
     """Test creating product state with is_sellable=False."""
     # Arrange
     mock_state = Mock()
@@ -163,9 +161,7 @@ async def test_get_by_id_not_found(product_state_service, mock_product_state_rep
 
 
 @pytest.mark.asyncio
-async def test_get_all_success(
-    product_state_service, mock_product_state_repo, mock_product_state
-):
+async def test_get_all_success(product_state_service, mock_product_state_repo, mock_product_state):
     """Test successful retrieval of all product states."""
     # Arrange
     mock_state_2 = Mock()

@@ -213,9 +213,7 @@ async def test_update_packaging_type_success(
 
 
 @pytest.mark.asyncio
-async def test_update_packaging_type_not_found(
-    packaging_type_service, mock_packaging_type_repo
-):
+async def test_update_packaging_type_not_found(packaging_type_service, mock_packaging_type_repo):
     """Test ValueError when updating non-existent packaging type."""
     # Arrange
     mock_packaging_type_repo.get.return_value = None
@@ -253,9 +251,7 @@ async def test_delete_packaging_type_success(
 
 
 @pytest.mark.asyncio
-async def test_delete_packaging_type_not_found(
-    packaging_type_service, mock_packaging_type_repo
-):
+async def test_delete_packaging_type_not_found(packaging_type_service, mock_packaging_type_repo):
     """Test ValueError when deleting non-existent packaging type."""
     # Arrange
     mock_packaging_type_repo.get.return_value = None

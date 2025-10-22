@@ -69,7 +69,7 @@ class Settings(BaseSettings):
     AUTH0_ALGORITHMS: list[str] = ["RS256"]
 
     @property
-    def AUTH0_ISSUER(self) -> str:
+    def auth0_issuer(self) -> str:
         """Derived Auth0 issuer URL from domain.
 
         Returns:

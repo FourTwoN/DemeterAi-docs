@@ -78,7 +78,7 @@ class TestWarehouseGeneratedColumnArea:
             code="AREA-TEST-01",
             name="Area Calculation Test Warehouse",
             warehouse_type="greenhouse",
-            geojson_coordinates=from_shape(sample_polygon_100x50m, srid=4326),
+            geojson_geojson_coordinates=from_shape(sample_polygon_100x50m, srid=4326),
         )
 
         # Act
@@ -108,7 +108,7 @@ class TestWarehouseGeneratedColumnArea:
             code="AREA-UPDATE-01",
             name="Area Update Test",
             warehouse_type="greenhouse",
-            geojson_coordinates=from_shape(sample_polygon_100x50m, srid=4326),
+            geojson_geojson_coordinates=from_shape(sample_polygon_100x50m, srid=4326),
         )
         db_session.add(warehouse)
         await db_session.commit()
@@ -138,7 +138,7 @@ class TestWarehouseGeneratedColumnArea:
             code="GEOGRAPHY-01",
             name="Geography Cast Test",
             warehouse_type="greenhouse",
-            geojson_coordinates=from_shape(sample_polygon_100x50m, srid=4326),
+            geojson_geojson_coordinates=from_shape(sample_polygon_100x50m, srid=4326),
         )
         db_session.add(warehouse)
         await db_session.commit()
@@ -169,7 +169,7 @@ class TestWarehouseCentroidTrigger:
             code="CENTROID-01",
             name="Centroid Test Warehouse",
             warehouse_type="greenhouse",
-            geojson_coordinates=from_shape(sample_polygon_100x50m, srid=4326),
+            geojson_geojson_coordinates=from_shape(sample_polygon_100x50m, srid=4326),
         )
 
         # Centroid should be None before insert
@@ -193,7 +193,7 @@ class TestWarehouseCentroidTrigger:
             code="CENTROID-INSIDE-01",
             name="Centroid Inside Test",
             warehouse_type="greenhouse",
-            geojson_coordinates=from_shape(sample_polygon_100x50m, srid=4326),
+            geojson_geojson_coordinates=from_shape(sample_polygon_100x50m, srid=4326),
         )
         db_session.add(warehouse)
         await db_session.commit()
@@ -219,7 +219,7 @@ class TestWarehouseCentroidTrigger:
             code="CENTROID-UPDATE-01",
             name="Centroid Update Test",
             warehouse_type="greenhouse",
-            geojson_coordinates=from_shape(sample_polygon_100x50m, srid=4326),
+            geojson_geojson_coordinates=from_shape(sample_polygon_100x50m, srid=4326),
         )
         db_session.add(warehouse)
         await db_session.commit()
@@ -250,7 +250,7 @@ class TestWarehouseSpatialQueries:
             code="NEAR-01",
             name="Nearby Warehouse",
             warehouse_type="greenhouse",
-            geojson_coordinates=from_shape(
+            geojson_geojson_coordinates=from_shape(
                 Polygon(
                     [
                         (-70.648, -33.449),
@@ -269,7 +269,7 @@ class TestWarehouseSpatialQueries:
             code="MID-01",
             name="Mid Distance Warehouse",
             warehouse_type="shadehouse",
-            geojson_coordinates=from_shape(
+            geojson_geojson_coordinates=from_shape(
                 Polygon(
                     [
                         (-70.653, -33.453),
@@ -288,7 +288,7 @@ class TestWarehouseSpatialQueries:
             code="FAR-01",
             name="Far Warehouse",
             warehouse_type="open_field",
-            geojson_coordinates=from_shape(
+            geojson_geojson_coordinates=from_shape(
                 Polygon(
                     [
                         (-70.665, -33.465),
@@ -375,7 +375,7 @@ class TestWarehouseSpatialQueries:
             code="CONTAIN-01",
             name="Containment Test Warehouse",
             warehouse_type="greenhouse",
-            geojson_coordinates=from_shape(
+            geojson_geojson_coordinates=from_shape(
                 Polygon(
                     [
                         (-70.6480, -33.4490),
@@ -432,7 +432,7 @@ class TestWarehouseGISTIndexPerformance:
             code="INDEX-01",
             name="Index Test Warehouse",
             warehouse_type="greenhouse",
-            geojson_coordinates=from_shape(
+            geojson_geojson_coordinates=from_shape(
                 Polygon(
                     [
                         (-70.648, -33.449),
@@ -476,7 +476,7 @@ class TestWarehouseGISTIndexPerformance:
             code="CONTAIN-INDEX-01",
             name="Containment Index Test",
             warehouse_type="greenhouse",
-            geojson_coordinates=from_shape(
+            geojson_geojson_coordinates=from_shape(
                 Polygon(
                     [
                         (-70.648, -33.449),
@@ -523,7 +523,7 @@ class TestWarehouseCodeUniqueness:
             code="UNIQUE-01",
             name="First Warehouse",
             warehouse_type="greenhouse",
-            geojson_coordinates=from_shape(sample_polygon_100x50m, srid=4326),
+            geojson_geojson_coordinates=from_shape(sample_polygon_100x50m, srid=4326),
         )
         db_session.add(w1)
         await db_session.commit()
@@ -535,7 +535,7 @@ class TestWarehouseCodeUniqueness:
             code="UNIQUE-01",  # Duplicate!
             name="Second Warehouse",
             warehouse_type="shadehouse",
-            geojson_coordinates=from_shape(sample_polygon_100x50m, srid=4326),
+            geojson_geojson_coordinates=from_shape(sample_polygon_100x50m, srid=4326),
         )
         db_session.add(w2)
 

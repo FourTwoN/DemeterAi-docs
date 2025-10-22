@@ -114,7 +114,7 @@ async def test_create_warehouse_success(
         code="GH-001",
         name="Main Greenhouse",
         warehouse_type=WarehouseTypeEnum.GREENHOUSE,
-        geojson_coordinates=sample_geojson,
+        geojson_geojson_coordinates=sample_geojson,
     )
 
     # Act - patch ONLY geoalchemy2 functions (let Shapely validation run)
@@ -157,7 +157,7 @@ async def test_create_warehouse_duplicate_code(
         code="GH-001",
         name="Another Warehouse",
         warehouse_type=WarehouseTypeEnum.GREENHOUSE,
-        geojson_coordinates=sample_geojson,
+        geojson_geojson_coordinates=sample_geojson,
     )
 
     # Act & Assert
@@ -191,7 +191,7 @@ async def test_create_warehouse_invalid_geometry_not_closed(warehouse_service, m
         code="GH-002",
         name="Invalid Warehouse",
         warehouse_type=WarehouseTypeEnum.GREENHOUSE,
-        geojson_coordinates=invalid_geojson,
+        geojson_geojson_coordinates=invalid_geojson,
     )
 
     # Act & Assert
@@ -224,7 +224,7 @@ async def test_create_warehouse_invalid_geometry_too_few_vertices(
         code="GH-003",
         name="Invalid Warehouse",
         warehouse_type=WarehouseTypeEnum.GREENHOUSE,
-        geojson_coordinates=invalid_geojson,
+        geojson_geojson_coordinates=invalid_geojson,
     )
 
     # Act & Assert
@@ -487,7 +487,7 @@ async def test_update_warehouse_with_geometry(
     mock_warehouse_repo.get.return_value = mock_warehouse
     mock_warehouse_repo.update.return_value = mock_warehouse
 
-    request = WarehouseUpdateRequest(geojson_coordinates=sample_geojson)
+    request = WarehouseUpdateRequest(geojson_geojson_coordinates=sample_geojson)
 
     # Act
     with patch("geoalchemy2.shape.from_shape") as mock_from_shape:

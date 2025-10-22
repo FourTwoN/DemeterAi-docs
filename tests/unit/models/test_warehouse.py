@@ -32,7 +32,7 @@ class TestWarehouseCodeValidation:
             code="TEST01",  # Valid uppercase
             name="Test Warehouse",
             warehouse_type="greenhouse",
-            geojson_coordinates=from_shape(
+            geojson_geojson_coordinates=from_shape(
                 Polygon(
                     [
                         (-70.648, -33.449),
@@ -56,7 +56,7 @@ class TestWarehouseCodeValidation:
             code="TEST-01",
             name="Test Warehouse",
             warehouse_type="greenhouse",
-            geojson_coordinates=from_shape(
+            geojson_geojson_coordinates=from_shape(
                 Polygon(
                     [
                         (-70.648, -33.449),
@@ -90,7 +90,7 @@ class TestWarehouseCodeValidation:
             code="AB",  # Minimum 2 chars
             name="Test Warehouse",
             warehouse_type="greenhouse",
-            geojson_coordinates=from_shape(
+            geojson_geojson_coordinates=from_shape(
                 Polygon(
                     [
                         (-70.648, -33.449),
@@ -148,7 +148,7 @@ class TestWarehouseTypeEnum:
                 code="TEST01",
                 name="Test Warehouse",
                 warehouse_type=wtype,
-                geojson_coordinates=from_shape(
+                geojson_geojson_coordinates=from_shape(
                     Polygon(
                         [
                             (-70.648, -33.449),
@@ -173,7 +173,7 @@ class TestWarehouseTypeEnum:
                     code="TEST01",
                     name="Test Warehouse",
                     warehouse_type=invalid_type,
-                    geojson_coordinates=from_shape(
+                    geojson_geojson_coordinates=from_shape(
                         Polygon(
                             [
                                 (-70.648, -33.449),
@@ -208,7 +208,7 @@ class TestWarehouseRequiredFields:
                 code="TEST01",
                 name="Test Warehouse",
                 warehouse_type="greenhouse",
-                geojson_coordinates=None,
+                geojson_geojson_coordinates=None,
             )
 
 
@@ -221,7 +221,7 @@ class TestWarehouseDefaultValues:
             code="TEST01",
             name="Test Warehouse",
             warehouse_type="greenhouse",
-            geojson_coordinates=from_shape(
+            geojson_geojson_coordinates=from_shape(
                 Polygon(
                     [
                         (-70.648, -33.449),
@@ -246,7 +246,7 @@ class TestWarehouseDefaultValues:
             code="TEST01",
             name="Test Warehouse",
             warehouse_type="greenhouse",
-            geojson_coordinates=from_shape(
+            geojson_geojson_coordinates=from_shape(
                 Polygon(
                     [
                         (-70.648, -33.449),
@@ -283,7 +283,7 @@ class TestWarehouseGeometryAssignment:
             code="GEO01",
             name="Geometry Test Warehouse",
             warehouse_type="greenhouse",
-            geojson_coordinates=from_shape(polygon, srid=4326),
+            geojson_geojson_coordinates=from_shape(polygon, srid=4326),
         )
 
         assert warehouse.geojson_coordinates is not None
@@ -305,7 +305,7 @@ class TestWarehouseGeometryAssignment:
             code="SRID01",
             name="SRID Test",
             warehouse_type="greenhouse",
-            geojson_coordinates=from_shape(polygon, srid=4326),
+            geojson_geojson_coordinates=from_shape(polygon, srid=4326),
         )
 
         assert warehouse.geojson_coordinates is not None
@@ -330,7 +330,7 @@ class TestWarehouseGeometryAssignment:
             code="COMPLEX01",
             name="Complex Polygon Warehouse",
             warehouse_type="open_field",
-            geojson_coordinates=from_shape(polygon, srid=4326),
+            geojson_geojson_coordinates=from_shape(polygon, srid=4326),
         )
 
         assert warehouse.geojson_coordinates is not None
@@ -345,7 +345,7 @@ class TestWarehouseFieldCombinations:
             code="GREENHOUSE-01",
             name="Main Greenhouse",
             warehouse_type="greenhouse",
-            geojson_coordinates=from_shape(
+            geojson_geojson_coordinates=from_shape(
                 Polygon(
                     [
                         (-70.648, -33.449),
@@ -369,7 +369,7 @@ class TestWarehouseFieldCombinations:
             code="SHADE-01",
             name="Shadehouse Zone A",
             warehouse_type="shadehouse",
-            geojson_coordinates=from_shape(
+            geojson_geojson_coordinates=from_shape(
                 Polygon(
                     [
                         (-70.648, -33.449),
@@ -391,7 +391,7 @@ class TestWarehouseFieldCombinations:
             code="FIELD-01",
             name="Open Field North",
             warehouse_type="open_field",
-            geojson_coordinates=from_shape(
+            geojson_geojson_coordinates=from_shape(
                 Polygon(
                     [
                         (-70.648, -33.449),
@@ -413,7 +413,7 @@ class TestWarehouseFieldCombinations:
             code="TUNNEL-01",
             name="Low Tunnel Section B",
             warehouse_type="tunnel",
-            geojson_coordinates=from_shape(
+            geojson_geojson_coordinates=from_shape(
                 Polygon(
                     [
                         (-70.648, -33.449),
@@ -435,7 +435,7 @@ class TestWarehouseFieldCombinations:
             code="INACTIVE-01",
             name="Closed Warehouse",
             warehouse_type="greenhouse",
-            geojson_coordinates=from_shape(
+            geojson_geojson_coordinates=from_shape(
                 Polygon(
                     [
                         (-70.648, -33.449),

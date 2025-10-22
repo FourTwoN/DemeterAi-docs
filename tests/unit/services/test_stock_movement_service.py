@@ -103,7 +103,9 @@ def create_request():
 
 
 @pytest.mark.asyncio
-async def test_create_stock_movement_success(movement_service, mock_movement_repo, mock_movement, create_request):
+async def test_create_stock_movement_success(
+    movement_service, mock_movement_repo, mock_movement, create_request
+):
     """Test successful movement creation with UUID generation."""
     # Arrange
     mock_movement_repo.create.return_value = mock_movement

@@ -85,7 +85,7 @@ class TestStorageBinCascadeDelete:
             name="Location 1",
             storage_area_id=area.storage_area_id,
             qr_code="LOC-CASCADE-01",
-            coordinates=from_shape(Point(-70.64825, -33.44925), srid=4326),
+            geojson_coordinates=from_shape(Point(-70.64825, -33.44925), srid=4326),
         )
         db_session.add(location)
         await db_session.commit()
@@ -138,7 +138,7 @@ class TestStorageBinCascadeDelete:
             name="Test Area",
             warehouse_id=warehouse.warehouse_id,
             position="N",
-            coordinates=from_shape(
+            geojson_coordinates=from_shape(
                 Polygon(
                     [
                         (-70.6485, -33.4495),
@@ -161,7 +161,7 @@ class TestStorageBinCascadeDelete:
             name="Location 1",
             storage_area_id=area.storage_area_id,
             qr_code="LOC-WH-CASCADE-01",
-            coordinates=from_shape(Point(-70.64825, -33.44925), srid=4326),
+            geojson_coordinates=from_shape(Point(-70.64825, -33.44925), srid=4326),
         )
         db_session.add(location)
         await db_session.commit()

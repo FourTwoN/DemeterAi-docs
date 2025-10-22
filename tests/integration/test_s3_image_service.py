@@ -39,6 +39,7 @@ from app.models.s3_image import (
     UploadSourceEnum,
 )
 from app.repositories.s3_image_repository import S3ImageRepository
+from app.schemas.s3_image_schema import S3ImageUploadRequest
 from app.services.photo.s3_image_service import S3ImageService
 
 # ============================================================================
@@ -92,10 +93,14 @@ async def test_upload_original_full_workflow(s3_service, db_session):
     result = await s3_service.upload_original(
         file_bytes=file_bytes,
         session_id=session_id,
-        filename=filename,
-        content_type=ContentTypeEnum.JPEG,
-        width_px=4000,
-        height_px=3000,
+        upload_request=S3ImageUploadRequest(
+            session_id=session_id,
+            filename=filename,
+            content_type=ContentTypeEnum.JPEG,
+            file_size_bytes=len(file_bytes),
+            width_px=4000,
+            height_px=3000,
+        ),
     )
 
     # Assert - Verify response

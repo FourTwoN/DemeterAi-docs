@@ -34,7 +34,6 @@ from app.schemas.photo_processing_session_schema import (
     PhotoProcessingSessionCreate,
 )
 from app.schemas.photo_schema import PhotoUploadResponse
-from app.schemas.s3_image_schema import S3ImageUploadRequest
 from app.services.photo.photo_processing_session_service import (
     PhotoProcessingSessionService,
 )
@@ -166,15 +165,6 @@ class PhotoUploadService:
         # Read file bytes
         file_bytes = await file.read()
         await file.seek(0)  # Reset file pointer
-
-        # Upload via S3ImageService
-        s3_upload_request = S3ImageUploadRequest(
-            session_id=None,  # Will be set after session creation
-            file_bytes=file_bytes,
-            filename=file.filename or "photo.jpg",
-            content_type=file.content_type or "image/jpeg",
-            image_type="original",
-        )
 
         # Upload original image (returns S3Image record)
         original_image = await self.s3_service.upload_original(

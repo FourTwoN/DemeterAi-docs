@@ -99,7 +99,9 @@ def create_request():
 
 
 @pytest.mark.asyncio
-async def test_create_stock_batch_success(batch_service, mock_batch_repo, mock_batch, create_request):
+async def test_create_stock_batch_success(
+    batch_service, mock_batch_repo, mock_batch, create_request
+):
     """Test successful batch creation."""
     # Arrange
     mock_batch_repo.get_by_field.return_value = None  # No existing batch
@@ -122,7 +124,9 @@ async def test_create_stock_batch_success(batch_service, mock_batch_repo, mock_b
 
 
 @pytest.mark.asyncio
-async def test_create_stock_batch_duplicate_code(batch_service, mock_batch_repo, mock_batch, create_request):
+async def test_create_stock_batch_duplicate_code(
+    batch_service, mock_batch_repo, mock_batch, create_request
+):
     """Test batch creation fails when batch code already exists."""
     # Arrange
     mock_batch_repo.get_by_field.return_value = mock_batch  # Existing batch
@@ -303,7 +307,9 @@ async def test_update_batch_quantity_increase(batch_service, mock_batch_repo):
 
 
 @pytest.mark.asyncio
-async def test_create_stock_batch_with_zero_empty_containers(batch_service, mock_batch_repo, mock_batch):
+async def test_create_stock_batch_with_zero_empty_containers(
+    batch_service, mock_batch_repo, mock_batch
+):
     """Test batch creation with zero empty containers (default value)."""
     # Arrange
     mock_batch_repo.get_by_field.return_value = None

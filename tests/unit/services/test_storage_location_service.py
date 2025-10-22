@@ -49,6 +49,7 @@ from app.services.storage_location_service import (
 def mock_location_repo():
     """Create mock StorageLocationRepository."""
     from app.models.storage_location import StorageLocation
+
     mock = AsyncMock()
     # Add the model attribute that StorageLocationService uses for queries
     mock.model = StorageLocation
@@ -170,7 +171,7 @@ async def test_create_storage_location_success(
         code="GH-001-NORTH-LOC01",
         name="Location 01",
         qr_code="QR-LOC-001",
-        coordinates=sample_point_geojson,
+        geojson_coordinates=sample_point_geojson,
     )
 
     # Act
@@ -212,7 +213,7 @@ async def test_create_storage_location_duplicate_code(
         storage_area_id=1,
         code="GH-001-NORTH-LOC01",
         name="Another Location",
-        coordinates=sample_point_geojson,
+        geojson_coordinates=sample_point_geojson,
     )
 
     # Act & Assert
@@ -242,7 +243,7 @@ async def test_create_storage_location_point_outside_area(
         storage_area_id=1,
         code="GH-001-NORTH-LOC99",
         name="Outside Location",
-        coordinates=outside_point,
+        geojson_coordinates=outside_point,
     )
 
     # Act & Assert

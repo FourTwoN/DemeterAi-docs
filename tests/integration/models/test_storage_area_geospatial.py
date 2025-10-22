@@ -132,7 +132,7 @@ class TestStorageAreaGeneratedColumnArea:
             name="Area Calculation Test",
             warehouse_id=warehouse.warehouse_id,
             position="N",
-            geojson_coordinates=from_shape(area_inside_warehouse_500x500m, srid=4326),
+            geojson_geojson_coordinates=from_shape(area_inside_warehouse_500x500m, srid=4326),
         )
 
         # Act
@@ -161,7 +161,7 @@ class TestStorageAreaGeneratedColumnArea:
             code="WH-UPDATE-TEST-NORTH",
             name="Area Update Test",
             warehouse_id=warehouse.warehouse_id,
-            geojson_coordinates=from_shape(area_inside_warehouse_500x500m, srid=4326),
+            geojson_geojson_coordinates=from_shape(area_inside_warehouse_500x500m, srid=4326),
         )
         db_session.add(area)
         await db_session.commit()
@@ -198,7 +198,7 @@ class TestStorageAreaGeneratedColumnArea:
             code="WH-GEOGRAPHY-CENTER",
             name="Geography Cast Test",
             warehouse_id=warehouse.warehouse_id,
-            geojson_coordinates=from_shape(area_inside_warehouse_500x500m, srid=4326),
+            geojson_geojson_coordinates=from_shape(area_inside_warehouse_500x500m, srid=4326),
         )
         db_session.add(area)
         await db_session.commit()
@@ -236,7 +236,7 @@ class TestStorageAreaCentroidTrigger:
             code="WH-CENTROID-NORTH",
             name="Centroid Test Area",
             warehouse_id=warehouse.warehouse_id,
-            geojson_coordinates=from_shape(area_inside_warehouse_500x500m, srid=4326),
+            geojson_geojson_coordinates=from_shape(area_inside_warehouse_500x500m, srid=4326),
         )
 
         # Centroid should be None before insert
@@ -262,7 +262,7 @@ class TestStorageAreaCentroidTrigger:
             code="WH-CENTROID-INSIDE-SOUTH",
             name="Centroid Inside Test",
             warehouse_id=warehouse.warehouse_id,
-            geojson_coordinates=from_shape(area_inside_warehouse_500x500m, srid=4326),
+            geojson_geojson_coordinates=from_shape(area_inside_warehouse_500x500m, srid=4326),
         )
         db_session.add(area)
         await db_session.commit()
@@ -287,7 +287,7 @@ class TestStorageAreaCentroidTrigger:
             code="WH-CENTROID-UPDATE-EAST",
             name="Centroid Update Test",
             warehouse_id=warehouse.warehouse_id,
-            geojson_coordinates=from_shape(area_inside_warehouse_500x500m, srid=4326),
+            geojson_geojson_coordinates=from_shape(area_inside_warehouse_500x500m, srid=4326),
         )
         db_session.add(area)
         await db_session.commit()
@@ -336,7 +336,7 @@ class TestStorageAreaSpatialContainment:
             code="WH-CONTAIN-SUCCESS",
             name="Containment Success Warehouse",
             warehouse_type="greenhouse",
-            geojson_coordinates=from_shape(warehouse_polygon_1000x1000m, srid=4326),
+            geojson_geojson_coordinates=from_shape(warehouse_polygon_1000x1000m, srid=4326),
         )
         db_session.add(warehouse)
         await db_session.commit()
@@ -348,7 +348,7 @@ class TestStorageAreaSpatialContainment:
             name="North Storage Area",
             warehouse_id=warehouse.warehouse_id,
             position="N",
-            geojson_coordinates=from_shape(area_inside_warehouse_500x500m, srid=4326),
+            geojson_geojson_coordinates=from_shape(area_inside_warehouse_500x500m, srid=4326),
         )
         db_session.add(area)
         await db_session.commit()
@@ -374,7 +374,7 @@ class TestStorageAreaSpatialContainment:
             code="WH-CONTAIN-FAIL",
             name="Containment Fail Warehouse",
             warehouse_type="greenhouse",
-            geojson_coordinates=from_shape(warehouse_polygon_1000x1000m, srid=4326),
+            geojson_geojson_coordinates=from_shape(warehouse_polygon_1000x1000m, srid=4326),
         )
         db_session.add(warehouse)
         await db_session.commit()
@@ -385,7 +385,7 @@ class TestStorageAreaSpatialContainment:
             code="WH-CONTAIN-FAIL-OUTSIDE",
             name="Outside Storage Area",
             warehouse_id=warehouse.warehouse_id,
-            geojson_coordinates=from_shape(area_outside_warehouse, srid=4326),
+            geojson_geojson_coordinates=from_shape(area_outside_warehouse, srid=4326),
         )
         db_session.add(area)
 
@@ -411,7 +411,7 @@ class TestStorageAreaSpatialContainment:
             code="WH-PARTIAL-FAIL",
             name="Partial Containment Warehouse",
             warehouse_type="greenhouse",
-            geojson_coordinates=from_shape(warehouse_polygon_1000x1000m, srid=4326),
+            geojson_geojson_coordinates=from_shape(warehouse_polygon_1000x1000m, srid=4326),
         )
         db_session.add(warehouse)
         await db_session.commit()
@@ -422,7 +422,7 @@ class TestStorageAreaSpatialContainment:
             code="WH-PARTIAL-FAIL-OVERLAP",
             name="Overlapping Area",
             warehouse_id=warehouse.warehouse_id,
-            geojson_coordinates=from_shape(area_partially_outside_warehouse, srid=4326),
+            geojson_geojson_coordinates=from_shape(area_partially_outside_warehouse, srid=4326),
         )
         db_session.add(area)
 
@@ -445,7 +445,7 @@ class TestStorageAreaSpatialContainment:
             code="WH-UPDATE-CONTAIN",
             name="Update Containment Warehouse",
             warehouse_type="greenhouse",
-            geojson_coordinates=from_shape(warehouse_polygon_1000x1000m, srid=4326),
+            geojson_geojson_coordinates=from_shape(warehouse_polygon_1000x1000m, srid=4326),
         )
         db_session.add(warehouse)
         await db_session.commit()
@@ -454,7 +454,7 @@ class TestStorageAreaSpatialContainment:
             code="WH-UPDATE-CONTAIN-AREA",
             name="Valid Area",
             warehouse_id=warehouse.warehouse_id,
-            geojson_coordinates=from_shape(area_inside_warehouse_500x500m, srid=4326),
+            geojson_geojson_coordinates=from_shape(area_inside_warehouse_500x500m, srid=4326),
         )
         db_session.add(area)
         await db_session.commit()
@@ -491,7 +491,7 @@ class TestStorageAreaHierarchy:
             name="North Wing",
             warehouse_id=warehouse.warehouse_id,
             position="N",
-            geojson_coordinates=from_shape(area_inside_warehouse_500x500m, srid=4326),
+            geojson_geojson_coordinates=from_shape(area_inside_warehouse_500x500m, srid=4326),
         )
         db_session.add(parent)
         await db_session.commit()
@@ -512,7 +512,7 @@ class TestStorageAreaHierarchy:
             name="Propagation Zone 1",
             warehouse_id=warehouse.warehouse_id,
             parent_area_id=parent.storage_area_id,
-            geojson_coordinates=from_shape(child1_polygon, srid=4326),
+            geojson_geojson_coordinates=from_shape(child1_polygon, srid=4326),
         )
 
         child2_polygon = Polygon(
@@ -529,7 +529,7 @@ class TestStorageAreaHierarchy:
             name="Propagation Zone 2",
             warehouse_id=warehouse.warehouse_id,
             parent_area_id=parent.storage_area_id,
-            geojson_coordinates=from_shape(child2_polygon, srid=4326),
+            geojson_geojson_coordinates=from_shape(child2_polygon, srid=4326),
         )
 
         db_session.add_all([child1, child2])
@@ -566,7 +566,7 @@ class TestStorageAreaCascadeDelete:
             code="WH-CASCADE-DELETE",
             name="Cascade Delete Warehouse",
             warehouse_type="greenhouse",
-            geojson_coordinates=from_shape(warehouse_polygon_1000x1000m, srid=4326),
+            geojson_geojson_coordinates=from_shape(warehouse_polygon_1000x1000m, srid=4326),
         )
         db_session.add(warehouse)
         await db_session.commit()
@@ -576,19 +576,19 @@ class TestStorageAreaCascadeDelete:
             code="WH-CASCADE-DELETE-NORTH",
             name="North Area",
             warehouse_id=warehouse.warehouse_id,
-            geojson_coordinates=from_shape(area_inside_warehouse_500x500m, srid=4326),
+            geojson_geojson_coordinates=from_shape(area_inside_warehouse_500x500m, srid=4326),
         )
         area2 = StorageArea(
             code="WH-CASCADE-DELETE-SOUTH",
             name="South Area",
             warehouse_id=warehouse.warehouse_id,
-            geojson_coordinates=from_shape(area_inside_warehouse_500x500m, srid=4326),
+            geojson_geojson_coordinates=from_shape(area_inside_warehouse_500x500m, srid=4326),
         )
         area3 = StorageArea(
             code="WH-CASCADE-DELETE-EAST",
             name="East Area",
             warehouse_id=warehouse.warehouse_id,
-            geojson_coordinates=from_shape(area_inside_warehouse_500x500m, srid=4326),
+            geojson_geojson_coordinates=from_shape(area_inside_warehouse_500x500m, srid=4326),
         )
 
         db_session.add_all([area1, area2, area3])
@@ -620,7 +620,7 @@ class TestStorageAreaCascadeDelete:
             code="WH-CASCADE-PARENT-NORTH",
             name="North Wing",
             warehouse_id=warehouse.warehouse_id,
-            geojson_coordinates=from_shape(area_inside_warehouse_500x500m, srid=4326),
+            geojson_geojson_coordinates=from_shape(area_inside_warehouse_500x500m, srid=4326),
         )
         db_session.add(parent)
         await db_session.commit()
@@ -640,7 +640,7 @@ class TestStorageAreaCascadeDelete:
             name="Child 1",
             warehouse_id=warehouse.warehouse_id,
             parent_area_id=parent.storage_area_id,
-            geojson_coordinates=from_shape(child1_polygon, srid=4326),
+            geojson_geojson_coordinates=from_shape(child1_polygon, srid=4326),
         )
 
         child2_polygon = Polygon(
@@ -657,7 +657,7 @@ class TestStorageAreaCascadeDelete:
             name="Child 2",
             warehouse_id=warehouse.warehouse_id,
             parent_area_id=parent.storage_area_id,
-            geojson_coordinates=from_shape(child2_polygon, srid=4326),
+            geojson_geojson_coordinates=from_shape(child2_polygon, srid=4326),
         )
 
         db_session.add_all([child1, child2])
@@ -699,7 +699,7 @@ class TestStorageAreaSpatialQueries:
             name="Center Area",
             warehouse_id=warehouse.warehouse_id,
             position="C",
-            geojson_coordinates=from_shape(area_inside_warehouse_500x500m, srid=4326),
+            geojson_geojson_coordinates=from_shape(area_inside_warehouse_500x500m, srid=4326),
         )
         db_session.add(area)
         await db_session.commit()
@@ -729,7 +729,7 @@ class TestStorageAreaSpatialQueries:
             code="WH-RADIUS-NEAR",
             name="Near Area",
             warehouse_id=warehouse.warehouse_id,
-            geojson_coordinates=from_shape(area_inside_warehouse_500x500m, srid=4326),
+            geojson_geojson_coordinates=from_shape(area_inside_warehouse_500x500m, srid=4326),
         )
 
         # Area 2: Far from target point
@@ -746,7 +746,7 @@ class TestStorageAreaSpatialQueries:
             code="WH-RADIUS-FAR",
             name="Far Area",
             warehouse_id=warehouse.warehouse_id,
-            geojson_coordinates=from_shape(far_polygon, srid=4326),
+            geojson_geojson_coordinates=from_shape(far_polygon, srid=4326),
         )
 
         db_session.add_all([area1, area2])
@@ -791,7 +791,7 @@ class TestStorageAreaGISTIndexPerformance:
             code="WH-INDEX-TEST-NORTH",
             name="Index Test Area",
             warehouse_id=warehouse.warehouse_id,
-            geojson_coordinates=from_shape(area_inside_warehouse_500x500m, srid=4326),
+            geojson_geojson_coordinates=from_shape(area_inside_warehouse_500x500m, srid=4326),
         )
         db_session.add(area)
         await db_session.commit()
@@ -834,7 +834,7 @@ class TestStorageAreaCodeUniqueness:
             code="WH-UNIQUE-NORTH",
             name="First North Area",
             warehouse_id=warehouse.warehouse_id,
-            geojson_coordinates=from_shape(area_inside_warehouse_500x500m, srid=4326),
+            geojson_geojson_coordinates=from_shape(area_inside_warehouse_500x500m, srid=4326),
         )
         db_session.add(area1)
         await db_session.commit()
@@ -844,7 +844,7 @@ class TestStorageAreaCodeUniqueness:
             code="WH-UNIQUE-NORTH",  # Duplicate!
             name="Second North Area",
             warehouse_id=warehouse.warehouse_id,
-            geojson_coordinates=from_shape(area_inside_warehouse_500x500m, srid=4326),
+            geojson_geojson_coordinates=from_shape(area_inside_warehouse_500x500m, srid=4326),
         )
         db_session.add(area2)
 

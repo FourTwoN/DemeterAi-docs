@@ -36,7 +36,6 @@ import pytest
 from app.models.classification import Classification
 from app.models.estimation import CalculationMethodEnum, Estimation
 from app.models.photo_processing_session import PhotoProcessingSession, ProcessingSessionStatusEnum
-from app.models.product import Product
 from app.models.s3_image import ContentTypeEnum, S3Image
 from app.models.s3_image import ProcessingStatusEnum as S3ProcessingStatusEnum
 from app.models.stock_movement import MovementTypeEnum, SourceTypeEnum, StockMovement
@@ -47,7 +46,12 @@ class TestEstimationBasicCRUD:
 
     @pytest.mark.asyncio
     async def test_create_estimation_minimal_fields(
-        self, db_session, warehouse_factory, storage_area_factory, storage_location_factory
+        self,
+        db_session,
+        warehouse_factory,
+        storage_area_factory,
+        storage_location_factory,
+        product_factory,
     ):
         """Test creating estimation with minimal required fields."""
         location = await storage_location_factory()
@@ -76,7 +80,7 @@ class TestEstimationBasicCRUD:
         await db_session.commit()
         await db_session.refresh(session)
 
-        product = Product(code="PROD-001", name="Test Product", category="cactus")
+        product = await product_factory(sku="PROD-001", common_name="Test Product")
         db_session.add(product)
         await db_session.commit()
         await db_session.refresh(product)
@@ -126,7 +130,12 @@ class TestEstimationBasicCRUD:
 
     @pytest.mark.asyncio
     async def test_create_estimation_all_fields(
-        self, db_session, warehouse_factory, storage_area_factory, storage_location_factory
+        self,
+        db_session,
+        warehouse_factory,
+        storage_area_factory,
+        storage_location_factory,
+        product_factory,
     ):
         """Test creating estimation with all fields populated."""
         location = await storage_location_factory()
@@ -155,7 +164,7 @@ class TestEstimationBasicCRUD:
         await db_session.commit()
         await db_session.refresh(session)
 
-        product = Product(code="PROD-002", name="Test Product 2", category="succulent")
+        product = await product_factory(sku="PROD-002", common_name="Test Product 2")
         db_session.add(product)
         await db_session.commit()
         await db_session.refresh(product)
@@ -205,7 +214,12 @@ class TestEstimationBasicCRUD:
 
     @pytest.mark.asyncio
     async def test_read_estimation_by_id(
-        self, db_session, warehouse_factory, storage_area_factory, storage_location_factory
+        self,
+        db_session,
+        warehouse_factory,
+        storage_area_factory,
+        storage_location_factory,
+        product_factory,
     ):
         """Test reading estimation by primary key."""
         location = await storage_location_factory()
@@ -233,7 +247,7 @@ class TestEstimationBasicCRUD:
         await db_session.commit()
         await db_session.refresh(session)
 
-        product = Product(code="PROD-003", name="Test Product 3", category="cactus")
+        product = await product_factory(sku="PROD-003", common_name="Test Product 3")
         db_session.add(product)
         await db_session.commit()
         await db_session.refresh(product)
@@ -285,7 +299,12 @@ class TestEstimationCalculationMethodEnum:
 
     @pytest.mark.asyncio
     async def test_calculation_method_band_estimation(
-        self, db_session, warehouse_factory, storage_area_factory, storage_location_factory
+        self,
+        db_session,
+        warehouse_factory,
+        storage_area_factory,
+        storage_location_factory,
+        product_factory,
     ):
         """Test estimation with BAND_ESTIMATION method."""
         location = await storage_location_factory()
@@ -313,7 +332,7 @@ class TestEstimationCalculationMethodEnum:
         await db_session.commit()
         await db_session.refresh(session)
 
-        product = Product(code="PROD-004", name="Test Product 4", category="cactus")
+        product = await product_factory(sku="PROD-004", common_name="Test Product 4")
         db_session.add(product)
         await db_session.commit()
         await db_session.refresh(product)
@@ -355,7 +374,12 @@ class TestEstimationCalculationMethodEnum:
 
     @pytest.mark.asyncio
     async def test_calculation_method_density_estimation(
-        self, db_session, warehouse_factory, storage_area_factory, storage_location_factory
+        self,
+        db_session,
+        warehouse_factory,
+        storage_area_factory,
+        storage_location_factory,
+        product_factory,
     ):
         """Test estimation with DENSITY_ESTIMATION method."""
         location = await storage_location_factory()
@@ -383,7 +407,7 @@ class TestEstimationCalculationMethodEnum:
         await db_session.commit()
         await db_session.refresh(session)
 
-        product = Product(code="PROD-005", name="Test Product 5", category="succulent")
+        product = await product_factory(sku="PROD-005", common_name="Test Product 5")
         db_session.add(product)
         await db_session.commit()
         await db_session.refresh(product)
@@ -424,7 +448,12 @@ class TestEstimationCalculationMethodEnum:
 
     @pytest.mark.asyncio
     async def test_calculation_method_grid_analysis(
-        self, db_session, warehouse_factory, storage_area_factory, storage_location_factory
+        self,
+        db_session,
+        warehouse_factory,
+        storage_area_factory,
+        storage_location_factory,
+        product_factory,
     ):
         """Test estimation with GRID_ANALYSIS method."""
         location = await storage_location_factory()
@@ -452,7 +481,7 @@ class TestEstimationCalculationMethodEnum:
         await db_session.commit()
         await db_session.refresh(session)
 
-        product = Product(code="PROD-006", name="Test Product 6", category="cactus")
+        product = await product_factory(sku="PROD-006", common_name="Test Product 6")
         db_session.add(product)
         await db_session.commit()
         await db_session.refresh(product)
@@ -497,7 +526,12 @@ class TestEstimationConfidenceValidation:
 
     @pytest.mark.asyncio
     async def test_confidence_default_value(
-        self, db_session, warehouse_factory, storage_area_factory, storage_location_factory
+        self,
+        db_session,
+        warehouse_factory,
+        storage_area_factory,
+        storage_location_factory,
+        product_factory,
     ):
         """Test estimation_confidence defaults to 0.70."""
         location = await storage_location_factory()
@@ -525,7 +559,7 @@ class TestEstimationConfidenceValidation:
         await db_session.commit()
         await db_session.refresh(session)
 
-        product = Product(code="PROD-007", name="Test Product 7", category="cactus")
+        product = await product_factory(sku="PROD-007", common_name="Test Product 7")
         db_session.add(product)
         await db_session.commit()
         await db_session.refresh(product)
@@ -566,7 +600,12 @@ class TestEstimationConfidenceValidation:
 
     @pytest.mark.asyncio
     async def test_confidence_min_value(
-        self, db_session, warehouse_factory, storage_area_factory, storage_location_factory
+        self,
+        db_session,
+        warehouse_factory,
+        storage_area_factory,
+        storage_location_factory,
+        product_factory,
     ):
         """Test estimation_confidence with minimum value (0.0)."""
         location = await storage_location_factory()
@@ -594,7 +633,7 @@ class TestEstimationConfidenceValidation:
         await db_session.commit()
         await db_session.refresh(session)
 
-        product = Product(code="PROD-008", name="Test Product 8", category="cactus")
+        product = await product_factory(sku="PROD-008", common_name="Test Product 8")
         db_session.add(product)
         await db_session.commit()
         await db_session.refresh(product)
@@ -636,7 +675,12 @@ class TestEstimationConfidenceValidation:
 
     @pytest.mark.asyncio
     async def test_confidence_max_value(
-        self, db_session, warehouse_factory, storage_area_factory, storage_location_factory
+        self,
+        db_session,
+        warehouse_factory,
+        storage_area_factory,
+        storage_location_factory,
+        product_factory,
     ):
         """Test estimation_confidence with maximum value (1.0)."""
         location = await storage_location_factory()
@@ -664,7 +708,7 @@ class TestEstimationConfidenceValidation:
         await db_session.commit()
         await db_session.refresh(session)
 
-        product = Product(code="PROD-009", name="Test Product 9", category="cactus")
+        product = await product_factory(sku="PROD-009", common_name="Test Product 9")
         db_session.add(product)
         await db_session.commit()
         await db_session.refresh(product)
@@ -777,7 +821,12 @@ class TestEstimationTimestamps:
 
     @pytest.mark.asyncio
     async def test_created_at_auto_populated(
-        self, db_session, warehouse_factory, storage_area_factory, storage_location_factory
+        self,
+        db_session,
+        warehouse_factory,
+        storage_area_factory,
+        storage_location_factory,
+        product_factory,
     ):
         """Test created_at is auto-populated by database."""
         location = await storage_location_factory()
@@ -805,7 +854,7 @@ class TestEstimationTimestamps:
         await db_session.commit()
         await db_session.refresh(session)
 
-        product = Product(code="PROD-010", name="Test Product 10", category="cactus")
+        product = await product_factory(sku="PROD-010", common_name="Test Product 10")
         db_session.add(product)
         await db_session.commit()
         await db_session.refresh(product)
@@ -850,7 +899,12 @@ class TestEstimationCascadeDelete:
 
     @pytest.mark.asyncio
     async def test_delete_session_cascades_to_estimations(
-        self, db_session, warehouse_factory, storage_area_factory, storage_location_factory
+        self,
+        db_session,
+        warehouse_factory,
+        storage_area_factory,
+        storage_location_factory,
+        product_factory,
     ):
         """Test CASCADE delete when session is deleted."""
         location = await storage_location_factory()
@@ -878,7 +932,7 @@ class TestEstimationCascadeDelete:
         await db_session.commit()
         await db_session.refresh(session)
 
-        product = Product(code="PROD-011", name="Test Product 11", category="cactus")
+        product = await product_factory(sku="PROD-011", common_name="Test Product 11")
         db_session.add(product)
         await db_session.commit()
         await db_session.refresh(product)

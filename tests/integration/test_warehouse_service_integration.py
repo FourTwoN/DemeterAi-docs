@@ -85,7 +85,7 @@ async def test_warehouse_service_full_lifecycle(warehouse_service, db_session, s
         code="INT-GH-001",
         name="Integration Test Greenhouse",
         warehouse_type=WarehouseTypeEnum.GREENHOUSE,
-        geojson_coordinates=sample_geojson,
+        geojson_geojson_coordinates=sample_geojson,
         active=True,
     )
 
@@ -140,7 +140,7 @@ async def test_warehouse_service_full_lifecycle(warehouse_service, db_session, s
         ],
     }
 
-    geometry_update_request = WarehouseUpdateRequest(geojson_coordinates=new_geojson)
+    geometry_update_request = WarehouseUpdateRequest(geojson_geojson_coordinates=new_geojson)
 
     updated_geometry = await warehouse_service.update_warehouse(
         created.warehouse_id, geometry_update_request
@@ -181,7 +181,7 @@ async def test_gps_lookup_point_inside_polygon(warehouse_service, db_session, sa
         code="GPS-TEST-001",
         name="GPS Test Warehouse",
         warehouse_type=WarehouseTypeEnum.GREENHOUSE,
-        geojson_coordinates=sample_geojson,
+        geojson_geojson_coordinates=sample_geojson,
     )
 
     created = await warehouse_service.create_warehouse(create_request)
@@ -202,7 +202,7 @@ async def test_gps_lookup_point_outside_polygon(warehouse_service, db_session, s
         code="GPS-TEST-002",
         name="GPS Test Warehouse 2",
         warehouse_type=WarehouseTypeEnum.GREENHOUSE,
-        geojson_coordinates=sample_geojson,
+        geojson_geojson_coordinates=sample_geojson,
     )
 
     await warehouse_service.create_warehouse(create_request)
@@ -227,7 +227,7 @@ async def test_duplicate_code_rejection(warehouse_service, db_session, sample_ge
         code="DUP-001",
         name="First Warehouse",
         warehouse_type=WarehouseTypeEnum.GREENHOUSE,
-        geojson_coordinates=sample_geojson,
+        geojson_geojson_coordinates=sample_geojson,
     )
 
     await warehouse_service.create_warehouse(create_request_1)
@@ -238,7 +238,7 @@ async def test_duplicate_code_rejection(warehouse_service, db_session, sample_ge
         code="DUP-001",  # Same code
         name="Second Warehouse",
         warehouse_type=WarehouseTypeEnum.SHADEHOUSE,
-        geojson_coordinates=sample_geojson,
+        geojson_geojson_coordinates=sample_geojson,
     )
 
     with pytest.raises(DuplicateCodeException) as exc_info:
@@ -267,7 +267,7 @@ async def test_invalid_geometry_rejected(warehouse_service, db_session):
         code="INVALID-001",
         name="Invalid Warehouse",
         warehouse_type=WarehouseTypeEnum.GREENHOUSE,
-        geojson_coordinates=invalid_geojson,
+        geojson_geojson_coordinates=invalid_geojson,
     )
 
     with pytest.raises(ValueError, match="(at least 3 vertices|Too few points)"):
@@ -323,7 +323,7 @@ async def test_get_active_warehouses_filters_inactive(
         code="ACTIVE-001",
         name="Active Warehouse",
         warehouse_type=WarehouseTypeEnum.GREENHOUSE,
-        geojson_coordinates=sample_geojson,
+        geojson_geojson_coordinates=sample_geojson,
         active=True,
     )
 
@@ -335,7 +335,7 @@ async def test_get_active_warehouses_filters_inactive(
         code="INACTIVE-001",
         name="Inactive Warehouse",
         warehouse_type=WarehouseTypeEnum.GREENHOUSE,
-        geojson_coordinates=sample_geojson,
+        geojson_geojson_coordinates=sample_geojson,
         active=True,
     )
 
@@ -379,7 +379,7 @@ async def test_polygon_with_minimum_vertices(warehouse_service, db_session):
         code="TRIANGLE-001",
         name="Triangle Warehouse",
         warehouse_type=WarehouseTypeEnum.OPEN_FIELD,
-        geojson_coordinates=triangle_geojson,
+        geojson_geojson_coordinates=triangle_geojson,
     )
 
     created = await warehouse_service.create_warehouse(create_request)
@@ -415,7 +415,7 @@ async def test_complex_polygon_with_many_vertices(warehouse_service, db_session)
         code="OCTAGON-001",
         name="Octagon Warehouse",
         warehouse_type=WarehouseTypeEnum.TUNNEL,
-        geojson_coordinates=octagon_geojson,
+        geojson_geojson_coordinates=octagon_geojson,
     )
 
     created = await warehouse_service.create_warehouse(create_request)

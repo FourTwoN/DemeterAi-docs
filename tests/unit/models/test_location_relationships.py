@@ -12,6 +12,7 @@ Tests cover:
 """
 
 import pytest
+
 from app.models.location_relationships import (
     LocationRelationship,
     RelationshipTypeEnum,

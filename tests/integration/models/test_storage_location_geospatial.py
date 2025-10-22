@@ -131,7 +131,7 @@ class TestStorageLocationGeneratedColumnArea:
             name="Point Area Test Location",
             storage_area_id=area.storage_area_id,
             qr_code="LOC12345",
-            coordinates=from_shape(point_inside_area, srid=4326),
+            geojson_coordinates=from_shape(point_inside_area, srid=4326),
         )
 
         # Act
@@ -169,7 +169,7 @@ class TestStorageLocationCentroidTrigger:
             name="Centroid Test Location",
             storage_area_id=area.storage_area_id,
             qr_code="LOC-CENT-01",
-            coordinates=from_shape(point_inside_area, srid=4326),
+            geojson_coordinates=from_shape(point_inside_area, srid=4326),
         )
 
         # Centroid should be None before insert
@@ -209,7 +209,7 @@ class TestStorageLocationCentroidTrigger:
             name="Centroid Update Test",
             storage_area_id=area.storage_area_id,
             qr_code="LOC-CENT-02",
-            coordinates=from_shape(point_inside_area, srid=4326),
+            geojson_coordinates=from_shape(point_inside_area, srid=4326),
         )
         db_session.add(location)
         await db_session.commit()
@@ -262,7 +262,7 @@ class TestStorageLocationSpatialContainment:
             code="WH-CONTAIN-SUCCESS",
             name="Containment Success Warehouse",
             warehouse_type="greenhouse",
-            coordinates=from_shape(warehouse_polygon_1000x1000m, srid=4326),
+            geojson_coordinates=from_shape(warehouse_polygon_1000x1000m, srid=4326),
         )
         db_session.add(warehouse)
         await db_session.commit()
@@ -273,7 +273,7 @@ class TestStorageLocationSpatialContainment:
             name="North Storage Area",
             warehouse_id=warehouse.warehouse_id,
             position="N",
-            coordinates=from_shape(area_inside_warehouse_500x500m, srid=4326),
+            geojson_coordinates=from_shape(area_inside_warehouse_500x500m, srid=4326),
         )
         db_session.add(area)
         await db_session.commit()
@@ -285,7 +285,7 @@ class TestStorageLocationSpatialContainment:
             name="North Location 1",
             storage_area_id=area.storage_area_id,
             qr_code="LOC-INSIDE",
-            coordinates=from_shape(point_inside_area, srid=4326),
+            geojson_coordinates=from_shape(point_inside_area, srid=4326),
         )
         db_session.add(location)
         await db_session.commit()
@@ -312,7 +312,7 @@ class TestStorageLocationSpatialContainment:
             code="WH-CONTAIN-FAIL",
             name="Containment Fail Warehouse",
             warehouse_type="greenhouse",
-            coordinates=from_shape(warehouse_polygon_1000x1000m, srid=4326),
+            geojson_coordinates=from_shape(warehouse_polygon_1000x1000m, srid=4326),
         )
         db_session.add(warehouse)
         await db_session.commit()
@@ -322,7 +322,7 @@ class TestStorageLocationSpatialContainment:
             code="WH-CONTAIN-FAIL-NORTH",
             name="North Storage Area",
             warehouse_id=warehouse.warehouse_id,
-            coordinates=from_shape(area_inside_warehouse_500x500m, srid=4326),
+            geojson_coordinates=from_shape(area_inside_warehouse_500x500m, srid=4326),
         )
         db_session.add(area)
         await db_session.commit()
@@ -334,7 +334,7 @@ class TestStorageLocationSpatialContainment:
             name="Outside Location",
             storage_area_id=area.storage_area_id,
             qr_code="LOC-OUTSIDE",
-            coordinates=from_shape(point_outside_area, srid=4326),
+            geojson_coordinates=from_shape(point_outside_area, srid=4326),
         )
         db_session.add(location)
 
@@ -359,7 +359,7 @@ class TestStorageLocationSpatialContainment:
             code="WH-UPDATE-CONTAIN",
             name="Update Containment Warehouse",
             warehouse_type="greenhouse",
-            coordinates=from_shape(warehouse_polygon_1000x1000m, srid=4326),
+            geojson_coordinates=from_shape(warehouse_polygon_1000x1000m, srid=4326),
         )
         db_session.add(warehouse)
         await db_session.commit()
@@ -368,7 +368,7 @@ class TestStorageLocationSpatialContainment:
             code="WH-UPDATE-CONTAIN-NORTH",
             name="North Area",
             warehouse_id=warehouse.warehouse_id,
-            coordinates=from_shape(area_inside_warehouse_500x500m, srid=4326),
+            geojson_coordinates=from_shape(area_inside_warehouse_500x500m, srid=4326),
         )
         db_session.add(area)
         await db_session.commit()
@@ -378,7 +378,7 @@ class TestStorageLocationSpatialContainment:
             name="Valid Location",
             storage_area_id=area.storage_area_id,
             qr_code="LOC-VALID",
-            coordinates=from_shape(point_inside_area, srid=4326),
+            geojson_coordinates=from_shape(point_inside_area, srid=4326),
         )
         db_session.add(location)
         await db_session.commit()
@@ -420,7 +420,7 @@ class TestStorageLocationQRCodeUniqueness:
             name="First Location",
             storage_area_id=area.storage_area_id,
             qr_code="LOC12345",  # First use
-            coordinates=from_shape(point_inside_area, srid=4326),
+            geojson_coordinates=from_shape(point_inside_area, srid=4326),
         )
         db_session.add(location1)
         await db_session.commit()
@@ -431,7 +431,7 @@ class TestStorageLocationQRCodeUniqueness:
             name="Second Location",
             storage_area_id=area.storage_area_id,
             qr_code="LOC12345",  # Duplicate!
-            coordinates=from_shape(Point(-70.64820, -33.44920), srid=4326),
+            geojson_coordinates=from_shape(Point(-70.64820, -33.44920), srid=4326),
         )
         db_session.add(location2)
 
@@ -467,21 +467,21 @@ class TestStorageLocationCascadeDelete:
             name="Location 1",
             storage_area_id=area.storage_area_id,
             qr_code="LOC-DEL-01",
-            coordinates=from_shape(point_inside_area, srid=4326),
+            geojson_coordinates=from_shape(point_inside_area, srid=4326),
         )
         location2 = StorageLocation(
             code="WH-CASCADE-DELETE-NORTH-LOC2",
             name="Location 2",
             storage_area_id=area.storage_area_id,
             qr_code="LOC-DEL-02",
-            coordinates=from_shape(Point(-70.64820, -33.44920), srid=4326),
+            geojson_coordinates=from_shape(Point(-70.64820, -33.44920), srid=4326),
         )
         location3 = StorageLocation(
             code="WH-CASCADE-DELETE-NORTH-LOC3",
             name="Location 3",
             storage_area_id=area.storage_area_id,
             qr_code="LOC-DEL-03",
-            coordinates=from_shape(Point(-70.64830, -33.44930), srid=4326),
+            geojson_coordinates=from_shape(Point(-70.64830, -33.44930), srid=4326),
         )
 
         db_session.add_all([location1, location2, location3])
@@ -529,7 +529,7 @@ class TestStorageLocationPhotoSessionFK:
             name="No Photo Location",
             storage_area_id=area.storage_area_id,
             qr_code="LOC-NO-PHOTO",
-            coordinates=from_shape(point_inside_area, srid=4326),
+            geojson_coordinates=from_shape(point_inside_area, srid=4326),
             photo_session_id=None,  # No photo yet
         )
         db_session.add(location)
@@ -569,7 +569,7 @@ class TestStorageLocationSpatialQueries:
             name="GPS Lookup Location",
             storage_area_id=area.storage_area_id,
             qr_code="LOC-GPS-001",
-            coordinates=from_shape(point_inside_area, srid=4326),
+            geojson_coordinates=from_shape(point_inside_area, srid=4326),
         )
         db_session.add(location)
         await db_session.commit()
@@ -612,21 +612,21 @@ class TestStorageLocationSpatialQueries:
             name="Location 1",
             storage_area_id=area.storage_area_id,
             qr_code="LOC-AREA-01",
-            coordinates=from_shape(Point(-70.64825, -33.44925), srid=4326),
+            geojson_coordinates=from_shape(Point(-70.64825, -33.44925), srid=4326),
         )
         location2 = StorageLocation(
             code="WH-AREA-QUERY-NORTH-LOC2",
             name="Location 2",
             storage_area_id=area.storage_area_id,
             qr_code="LOC-AREA-02",
-            coordinates=from_shape(Point(-70.64820, -33.44920), srid=4326),
+            geojson_coordinates=from_shape(Point(-70.64820, -33.44920), srid=4326),
         )
         location3 = StorageLocation(
             code="WH-AREA-QUERY-NORTH-LOC3",
             name="Location 3",
             storage_area_id=area.storage_area_id,
             qr_code="LOC-AREA-03",
-            coordinates=from_shape(Point(-70.64830, -33.44930), srid=4326),
+            geojson_coordinates=from_shape(Point(-70.64830, -33.44930), srid=4326),
         )
 
         db_session.add_all([location1, location2, location3])
@@ -673,7 +673,7 @@ class TestStorageLocationGISTIndexPerformance:
             name="Index Test Location",
             storage_area_id=area.storage_area_id,
             qr_code="LOC-INDEX-01",
-            coordinates=from_shape(point_inside_area, srid=4326),
+            geojson_coordinates=from_shape(point_inside_area, srid=4326),
         )
         db_session.add(location)
         await db_session.commit()
@@ -723,7 +723,7 @@ class TestStorageLocationCodeUniqueness:
             name="First Location",
             storage_area_id=area.storage_area_id,
             qr_code="LOC-CODE-01",
-            coordinates=from_shape(point_inside_area, srid=4326),
+            geojson_coordinates=from_shape(point_inside_area, srid=4326),
         )
         db_session.add(location1)
         await db_session.commit()
@@ -734,7 +734,7 @@ class TestStorageLocationCodeUniqueness:
             name="Second Location",
             storage_area_id=area.storage_area_id,
             qr_code="LOC-CODE-02",
-            coordinates=from_shape(Point(-70.64820, -33.44920), srid=4326),
+            geojson_coordinates=from_shape(Point(-70.64820, -33.44920), srid=4326),
         )
         db_session.add(location2)
 

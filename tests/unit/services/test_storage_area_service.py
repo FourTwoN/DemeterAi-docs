@@ -166,7 +166,7 @@ async def test_create_storage_area_success(
         code="GH-001-NORTH",
         name="North Wing",
         position="N",
-        geojson_coordinates=sample_area_geojson,
+        geojson_geojson_coordinates=sample_area_geojson,
     )
 
     # Act - patch ONLY geoalchemy2 functions
@@ -209,7 +209,7 @@ async def test_create_storage_area_warehouse_not_found(
         warehouse_id=999,
         code="GH-999-NORTH",
         name="Orphan Area",
-        geojson_coordinates=sample_area_geojson,
+        geojson_geojson_coordinates=sample_area_geojson,
     )
 
     # Act & Assert
@@ -238,7 +238,7 @@ async def test_create_storage_area_duplicate_code(
         warehouse_id=1,
         code="GH-001-NORTH",
         name="Another North Wing",
-        geojson_coordinates=sample_area_geojson,
+        geojson_geojson_coordinates=sample_area_geojson,
     )
 
     # Act & Assert
@@ -277,7 +277,7 @@ async def test_create_storage_area_geometry_out_of_bounds(
         warehouse_id=1,
         code="GH-001-OUTSIDE",
         name="Outside Area",
-        geojson_coordinates=out_of_bounds_geojson,
+        geojson_geojson_coordinates=out_of_bounds_geojson,
     )
 
     # Act & Assert

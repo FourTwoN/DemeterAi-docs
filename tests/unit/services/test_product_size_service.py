@@ -132,9 +132,7 @@ async def test_create_product_size_small(product_size_service, mock_product_size
 
 
 @pytest.mark.asyncio
-async def test_get_by_id_success(
-    product_size_service, mock_product_size_repo, mock_product_size
-):
+async def test_get_by_id_success(product_size_service, mock_product_size_repo, mock_product_size):
     """Test successful retrieval by ID."""
     # Arrange
     mock_product_size_repo.get.return_value = mock_product_size

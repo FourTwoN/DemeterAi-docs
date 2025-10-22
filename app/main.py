@@ -8,14 +8,23 @@ from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse, Response
 from starlette.middleware.base import BaseHTTPMiddleware
 
+from app.controllers import (
+    analytics_router,
+    auth_router,
+    config_router,
+    location_router,
+    product_router,
+    stock_router,
+)
 from app.core.config import settings
 from app.core.exceptions import AppBaseException
 from app.core.logging import get_correlation_id, get_logger, set_correlation_id, setup_logging
+from app.core.metrics import get_metrics_text, setup_metrics
+from app.core.telemetry import setup_telemetry
 
 # =============================================================================
 # Step 1: Setup Telemetry FIRST (before any other initialization)
 # =============================================================================
-from app.core.telemetry import setup_telemetry
 
 # Initialize OpenTelemetry (must happen before FastAPI creation)
 setup_telemetry()
@@ -30,8 +39,6 @@ logger = get_logger(__name__)
 # =============================================================================
 # Step 3: Setup Metrics
 # =============================================================================
-
-from app.core.metrics import get_metrics_text, setup_metrics
 
 # Initialize Prometheus metrics
 setup_metrics()
@@ -187,15 +194,6 @@ async def generic_exception_handler(request: Request, exc: Exception) -> JSONRes
 # =============================================================================
 # Router Registration - Sprint 04 & Sprint 05 (30 endpoints)
 # =============================================================================
-
-from app.controllers import (
-    analytics_router,
-    auth_router,
-    config_router,
-    location_router,
-    product_router,
-    stock_router,
-)
 
 # Register all API routers
 app.include_router(auth_router)  # Sprint 05: Authentication (4 endpoints)

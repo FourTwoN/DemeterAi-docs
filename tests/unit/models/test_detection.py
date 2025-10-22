@@ -33,7 +33,6 @@ import pytest
 from app.models.classification import Classification
 from app.models.detection import Detection
 from app.models.photo_processing_session import PhotoProcessingSession, ProcessingSessionStatusEnum
-from app.models.product import Product
 from app.models.s3_image import ContentTypeEnum, S3Image
 from app.models.s3_image import ProcessingStatusEnum as S3ProcessingStatusEnum
 from app.models.stock_movement import MovementTypeEnum, SourceTypeEnum, StockMovement
@@ -44,7 +43,12 @@ class TestDetectionBasicCRUD:
 
     @pytest.mark.asyncio
     async def test_create_detection_minimal_fields(
-        self, db_session, warehouse_factory, storage_area_factory, storage_location_factory
+        self,
+        db_session,
+        warehouse_factory,
+        storage_area_factory,
+        storage_location_factory,
+        product_factory,
     ):
         """Test creating detection with minimal required fields."""
         location = await storage_location_factory()
@@ -73,10 +77,7 @@ class TestDetectionBasicCRUD:
         await db_session.commit()
         await db_session.refresh(session)
 
-        product = Product(code="PROD-001", name="Test Product", category="cactus")
-        db_session.add(product)
-        await db_session.commit()
-        await db_session.refresh(product)
+        product = await product_factory(sku="PROD-001", common_name="Test Product")
 
         classification = Classification(product_id=product.id, product_conf=95)
         db_session.add(classification)
@@ -104,7 +105,7 @@ class TestDetectionBasicCRUD:
             center_y_px=Decimal("768.30"),
             width_px=120,
             height_px=135,
-            bbox_coordinates={"x1": 452, "y1": 700, "x2": 572, "y2": 835},
+            bbox_geojson_coordinates={"x1": 452, "y1": 700, "x2": 572, "y2": 835},
             detection_confidence=Decimal("0.9500"),
         )
         db_session.add(detection)
@@ -125,7 +126,12 @@ class TestDetectionBasicCRUD:
 
     @pytest.mark.asyncio
     async def test_create_detection_all_fields(
-        self, db_session, warehouse_factory, storage_area_factory, storage_location_factory
+        self,
+        db_session,
+        warehouse_factory,
+        storage_area_factory,
+        storage_location_factory,
+        product_factory,
     ):
         """Test creating detection with all fields populated."""
         location = await storage_location_factory()
@@ -154,7 +160,7 @@ class TestDetectionBasicCRUD:
         await db_session.commit()
         await db_session.refresh(session)
 
-        product = Product(code="PROD-002", name="Test Product 2", category="succulent")
+        product = await product_factory(sku="PROD-002", common_name="Test Product 2")
         db_session.add(product)
         await db_session.commit()
         await db_session.refresh(product)
@@ -185,7 +191,7 @@ class TestDetectionBasicCRUD:
             center_y_px=Decimal("1536.25"),
             width_px=200,
             height_px=250,
-            bbox_coordinates={"x1": 924, "y1": 1411, "x2": 1124, "y2": 1661},
+            bbox_geojson_coordinates={"x1": 924, "y1": 1411, "x2": 1124, "y2": 1661},
             detection_confidence=Decimal("0.8700"),
             is_empty_container=False,
             is_alive=True,
@@ -203,7 +209,12 @@ class TestDetectionBasicCRUD:
 
     @pytest.mark.asyncio
     async def test_read_detection_by_id(
-        self, db_session, warehouse_factory, storage_area_factory, storage_location_factory
+        self,
+        db_session,
+        warehouse_factory,
+        storage_area_factory,
+        storage_location_factory,
+        product_factory,
     ):
         """Test reading detection by primary key."""
         location = await storage_location_factory()
@@ -231,7 +242,7 @@ class TestDetectionBasicCRUD:
         await db_session.commit()
         await db_session.refresh(session)
 
-        product = Product(code="PROD-003", name="Test Product 3", category="cactus")
+        product = await product_factory(sku="PROD-003", common_name="Test Product 3")
         db_session.add(product)
         await db_session.commit()
         await db_session.refresh(product)
@@ -262,7 +273,7 @@ class TestDetectionBasicCRUD:
             center_y_px=Decimal("600.0"),
             width_px=100,
             height_px=120,
-            bbox_coordinates={"x1": 450, "y1": 540, "x2": 550, "y2": 660},
+            bbox_geojson_coordinates={"x1": 450, "y1": 540, "x2": 550, "y2": 660},
             detection_confidence=Decimal("0.9200"),
         )
         db_session.add(detection)
@@ -284,7 +295,12 @@ class TestDetectionConfidenceValidation:
 
     @pytest.mark.asyncio
     async def test_confidence_min_value(
-        self, db_session, warehouse_factory, storage_area_factory, storage_location_factory
+        self,
+        db_session,
+        warehouse_factory,
+        storage_area_factory,
+        storage_location_factory,
+        product_factory,
     ):
         """Test detection_confidence with minimum value (0.0)."""
         location = await storage_location_factory()
@@ -312,7 +328,7 @@ class TestDetectionConfidenceValidation:
         await db_session.commit()
         await db_session.refresh(session)
 
-        product = Product(code="PROD-004", name="Test Product 4", category="cactus")
+        product = await product_factory(sku="PROD-004", common_name="Test Product 4")
         db_session.add(product)
         await db_session.commit()
         await db_session.refresh(product)
@@ -343,7 +359,7 @@ class TestDetectionConfidenceValidation:
             center_y_px=Decimal("600.0"),
             width_px=100,
             height_px=120,
-            bbox_coordinates={"x1": 450, "y1": 540, "x2": 550, "y2": 660},
+            bbox_geojson_coordinates={"x1": 450, "y1": 540, "x2": 550, "y2": 660},
             detection_confidence=Decimal("0.0000"),
         )
         db_session.add(detection)
@@ -354,7 +370,12 @@ class TestDetectionConfidenceValidation:
 
     @pytest.mark.asyncio
     async def test_confidence_max_value(
-        self, db_session, warehouse_factory, storage_area_factory, storage_location_factory
+        self,
+        db_session,
+        warehouse_factory,
+        storage_area_factory,
+        storage_location_factory,
+        product_factory,
     ):
         """Test detection_confidence with maximum value (1.0)."""
         location = await storage_location_factory()
@@ -382,7 +403,7 @@ class TestDetectionConfidenceValidation:
         await db_session.commit()
         await db_session.refresh(session)
 
-        product = Product(code="PROD-005", name="Test Product 5", category="cactus")
+        product = await product_factory(sku="PROD-005", common_name="Test Product 5")
         db_session.add(product)
         await db_session.commit()
         await db_session.refresh(product)
@@ -413,7 +434,7 @@ class TestDetectionConfidenceValidation:
             center_y_px=Decimal("600.0"),
             width_px=100,
             height_px=120,
-            bbox_coordinates={"x1": 450, "y1": 540, "x2": 550, "y2": 660},
+            bbox_geojson_coordinates={"x1": 450, "y1": 540, "x2": 550, "y2": 660},
             detection_confidence=Decimal("1.0000"),
         )
         db_session.add(detection)
@@ -433,7 +454,7 @@ class TestDetectionConfidenceValidation:
                 center_y_px=Decimal("600.0"),
                 width_px=100,
                 height_px=120,
-                bbox_coordinates={"x1": 450, "y1": 540, "x2": 550, "y2": 660},
+                bbox_geojson_coordinates={"x1": 450, "y1": 540, "x2": 550, "y2": 660},
                 detection_confidence=Decimal("1.5000"),
             )
 
@@ -448,7 +469,7 @@ class TestDetectionConfidenceValidation:
                 center_y_px=Decimal("600.0"),
                 width_px=100,
                 height_px=120,
-                bbox_coordinates={"x1": 450, "y1": 540, "x2": 550, "y2": 660},
+                bbox_geojson_coordinates={"x1": 450, "y1": 540, "x2": 550, "y2": 660},
                 detection_confidence=None,
             )
 
@@ -467,7 +488,7 @@ class TestDetectionBboxValidation:
                 center_y_px=Decimal("600.0"),
                 width_px=0,
                 height_px=120,
-                bbox_coordinates={"x1": 450, "y1": 540, "x2": 550, "y2": 660},
+                bbox_geojson_coordinates={"x1": 450, "y1": 540, "x2": 550, "y2": 660},
                 detection_confidence=Decimal("0.9000"),
             )
 
@@ -482,7 +503,7 @@ class TestDetectionBboxValidation:
                 center_y_px=Decimal("600.0"),
                 width_px=100,
                 height_px=-10,
-                bbox_coordinates={"x1": 450, "y1": 540, "x2": 550, "y2": 660},
+                bbox_geojson_coordinates={"x1": 450, "y1": 540, "x2": 550, "y2": 660},
                 detection_confidence=Decimal("0.9000"),
             )
 
@@ -497,7 +518,7 @@ class TestDetectionBboxValidation:
                 center_y_px=Decimal("600.0"),
                 width_px=100,
                 height_px=120,
-                bbox_coordinates={"x1": 450, "y1": 540},  # Missing x2, y2
+                bbox_geojson_coordinates={"x1": 450, "y1": 540},  # Missing x2, y2
                 detection_confidence=Decimal("0.9000"),
             )
 
@@ -512,7 +533,7 @@ class TestDetectionBboxValidation:
                 center_y_px=Decimal("600.0"),
                 width_px=100,
                 height_px=120,
-                bbox_coordinates=None,
+                bbox_geojson_coordinates=None,
                 detection_confidence=Decimal("0.9000"),
             )
 
@@ -522,7 +543,12 @@ class TestDetectionBooleanFlags:
 
     @pytest.mark.asyncio
     async def test_is_empty_container_true(
-        self, db_session, warehouse_factory, storage_area_factory, storage_location_factory
+        self,
+        db_session,
+        warehouse_factory,
+        storage_area_factory,
+        storage_location_factory,
+        product_factory,
     ):
         """Test detection with is_empty_container=True."""
         location = await storage_location_factory()
@@ -550,7 +576,7 @@ class TestDetectionBooleanFlags:
         await db_session.commit()
         await db_session.refresh(session)
 
-        product = Product(code="PROD-006", name="Empty Container", category="container")
+        product = await product_factory(sku="PROD-006", common_name="Empty Container")
         db_session.add(product)
         await db_session.commit()
         await db_session.refresh(product)
@@ -581,7 +607,7 @@ class TestDetectionBooleanFlags:
             center_y_px=Decimal("600.0"),
             width_px=100,
             height_px=120,
-            bbox_coordinates={"x1": 450, "y1": 540, "x2": 550, "y2": 660},
+            bbox_geojson_coordinates={"x1": 450, "y1": 540, "x2": 550, "y2": 660},
             detection_confidence=Decimal("0.8500"),
             is_empty_container=True,
             is_alive=False,
@@ -595,7 +621,12 @@ class TestDetectionBooleanFlags:
 
     @pytest.mark.asyncio
     async def test_is_alive_false(
-        self, db_session, warehouse_factory, storage_area_factory, storage_location_factory
+        self,
+        db_session,
+        warehouse_factory,
+        storage_area_factory,
+        storage_location_factory,
+        product_factory,
     ):
         """Test detection with is_alive=False (dead plant)."""
         location = await storage_location_factory()
@@ -623,7 +654,7 @@ class TestDetectionBooleanFlags:
         await db_session.commit()
         await db_session.refresh(session)
 
-        product = Product(code="PROD-007", name="Dead Plant", category="cactus")
+        product = await product_factory(sku="PROD-007", common_name="Dead Plant")
         db_session.add(product)
         await db_session.commit()
         await db_session.refresh(product)
@@ -654,7 +685,7 @@ class TestDetectionBooleanFlags:
             center_y_px=Decimal("600.0"),
             width_px=100,
             height_px=120,
-            bbox_coordinates={"x1": 450, "y1": 540, "x2": 550, "y2": 660},
+            bbox_geojson_coordinates={"x1": 450, "y1": 540, "x2": 550, "y2": 660},
             detection_confidence=Decimal("0.7500"),
             is_empty_container=False,
             is_alive=False,
@@ -672,7 +703,12 @@ class TestDetectionTimestamps:
 
     @pytest.mark.asyncio
     async def test_created_at_auto_populated(
-        self, db_session, warehouse_factory, storage_area_factory, storage_location_factory
+        self,
+        db_session,
+        warehouse_factory,
+        storage_area_factory,
+        storage_location_factory,
+        product_factory,
     ):
         """Test created_at is auto-populated by database."""
         location = await storage_location_factory()
@@ -700,7 +736,7 @@ class TestDetectionTimestamps:
         await db_session.commit()
         await db_session.refresh(session)
 
-        product = Product(code="PROD-008", name="Test Product 8", category="cactus")
+        product = await product_factory(sku="PROD-008", common_name="Test Product 8")
         db_session.add(product)
         await db_session.commit()
         await db_session.refresh(product)
@@ -731,7 +767,7 @@ class TestDetectionTimestamps:
             center_y_px=Decimal("600.0"),
             width_px=100,
             height_px=120,
-            bbox_coordinates={"x1": 450, "y1": 540, "x2": 550, "y2": 660},
+            bbox_geojson_coordinates={"x1": 450, "y1": 540, "x2": 550, "y2": 660},
             detection_confidence=Decimal("0.9000"),
         )
         db_session.add(detection)
@@ -746,7 +782,12 @@ class TestDetectionCascadeDelete:
 
     @pytest.mark.asyncio
     async def test_delete_session_cascades_to_detections(
-        self, db_session, warehouse_factory, storage_area_factory, storage_location_factory
+        self,
+        db_session,
+        warehouse_factory,
+        storage_area_factory,
+        storage_location_factory,
+        product_factory,
     ):
         """Test CASCADE delete when session is deleted."""
         location = await storage_location_factory()
@@ -774,7 +815,7 @@ class TestDetectionCascadeDelete:
         await db_session.commit()
         await db_session.refresh(session)
 
-        product = Product(code="PROD-009", name="Test Product 9", category="cactus")
+        product = await product_factory(sku="PROD-009", common_name="Test Product 9")
         db_session.add(product)
         await db_session.commit()
         await db_session.refresh(product)
@@ -805,7 +846,7 @@ class TestDetectionCascadeDelete:
             center_y_px=Decimal("600.0"),
             width_px=100,
             height_px=120,
-            bbox_coordinates={"x1": 450, "y1": 540, "x2": 550, "y2": 660},
+            bbox_geojson_coordinates={"x1": 450, "y1": 540, "x2": 550, "y2": 660},
             detection_confidence=Decimal("0.9000"),
         )
         db_session.add(detection)

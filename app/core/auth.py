@@ -245,7 +245,7 @@ async def fetch_jwks() -> dict[str, Any]:
             error=str(e),
             exc_info=True,
         )
-        raise UnauthorizedException(reason=f"Cannot fetch Auth0 public keys: {str(e)}")
+        raise UnauthorizedException(reason=f"Cannot fetch Auth0 public keys: {str(e)}") from e
 
 
 @lru_cache(maxsize=10)
@@ -286,7 +286,7 @@ async def get_signing_key(token: str) -> str:
         unverified_header = jwt.get_unverified_header(token)
     except JWTError as e:
         logger.warning("Invalid JWT header", error=str(e))
-        raise UnauthorizedException(reason=f"Invalid token header: {str(e)}")
+        raise UnauthorizedException(reason=f"Invalid token header: {str(e)}") from e
 
     # Get key ID from header
     kid = unverified_header.get("kid")
@@ -387,16 +387,16 @@ async def verify_token(token: str) -> TokenClaims:
 
     except JWTError as e:
         logger.warning("JWT verification failed", error=str(e), exc_info=True)
-        raise UnauthorizedException(reason=f"Invalid token: {str(e)}")
+        raise UnauthorizedException(reason=f"Invalid token: {str(e)}") from e
 
     except ValueError as e:
         # Pydantic validation error (e.g., expired token)
         logger.warning("Token validation failed", error=str(e))
-        raise UnauthorizedException(reason=str(e))
+        raise UnauthorizedException(reason=str(e)) from e
 
     except Exception as e:
         logger.error("Unexpected error during token verification", error=str(e), exc_info=True)
-        raise UnauthorizedException(reason="Token verification failed")
+        raise UnauthorizedException(reason="Token verification failed") from e
 
 
 # =============================================================================
@@ -433,7 +433,7 @@ async def get_current_user(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail=e.user_message,
             headers={"WWW-Authenticate": "Bearer"},
-        )
+        ) from e
 
 
 # =============================================================================

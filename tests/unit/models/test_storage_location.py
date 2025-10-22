@@ -49,7 +49,7 @@ class TestStorageLocationQRCodeValidation:
                 name="Test Location",
                 storage_area_id=1,
                 qr_code=qr_code,
-                coordinates=from_shape(Point(-70.6485, -33.4495), srid=4326),
+                geojson_coordinates=from_shape(Point(-70.6485, -33.4495), srid=4326),
             )
             assert location.qr_code == qr_code.upper()  # Should be uppercase
 
@@ -60,7 +60,7 @@ class TestStorageLocationQRCodeValidation:
             name="Test Location",
             storage_area_id=1,
             qr_code="loc12345",  # Lowercase input
-            coordinates=from_shape(Point(-70.6485, -33.4495), srid=4326),
+            geojson_coordinates=from_shape(Point(-70.6485, -33.4495), srid=4326),
         )
 
         # Should be converted to uppercase
@@ -77,7 +77,7 @@ class TestStorageLocationQRCodeValidation:
             name="Test Location",
             storage_area_id=1,
             qr_code="LOC12345",
-            coordinates=from_shape(Point(-70.6485, -33.4495), srid=4326),
+            geojson_coordinates=from_shape(Point(-70.6485, -33.4495), srid=4326),
         )
 
         # Valid patterns with hyphen and underscore
@@ -104,7 +104,7 @@ class TestStorageLocationQRCodeValidation:
             name="Test Location",
             storage_area_id=1,
             qr_code="LOC12345",  # Minimum 8 chars
-            coordinates=from_shape(Point(-70.6485, -33.4495), srid=4326),
+            geojson_coordinates=from_shape(Point(-70.6485, -33.4495), srid=4326),
         )
 
         # Valid lengths
@@ -133,7 +133,7 @@ class TestStorageLocationQRCodeValidation:
                 name="Test Location",
                 storage_area_id=1,
                 qr_code=None,  # Should fail
-                coordinates=from_shape(Point(-70.6485, -33.4495), srid=4326),
+                geojson_coordinates=from_shape(Point(-70.6485, -33.4495), srid=4326),
             )
 
     def test_qr_code_empty_string_rejected(self):
@@ -144,7 +144,7 @@ class TestStorageLocationQRCodeValidation:
                 name="Test Location",
                 storage_area_id=1,
                 qr_code="LOC12345",
-                coordinates=from_shape(Point(-70.6485, -33.4495), srid=4326),
+                geojson_coordinates=from_shape(Point(-70.6485, -33.4495), srid=4326),
             )
             location.qr_code = ""
 
@@ -156,7 +156,7 @@ class TestStorageLocationQRCodeValidation:
                 name="Test Location",
                 storage_area_id=1,
                 qr_code="LOC12345",
-                coordinates=from_shape(Point(-70.6485, -33.4495), srid=4326),
+                geojson_coordinates=from_shape(Point(-70.6485, -33.4495), srid=4326),
             )
             location.qr_code = "   "
 
@@ -181,7 +181,7 @@ class TestStorageLocationCodeValidation:
                 name="Test Location",
                 storage_area_id=1,
                 qr_code="LOC12345",
-                coordinates=from_shape(Point(-70.6485, -33.4495), srid=4326),
+                geojson_coordinates=from_shape(Point(-70.6485, -33.4495), srid=4326),
             )
             assert location.code == code
 
@@ -193,7 +193,7 @@ class TestStorageLocationCodeValidation:
                 name="Test Location",
                 storage_area_id=1,
                 qr_code="LOC12345",
-                coordinates=from_shape(Point(-70.6485, -33.4495), srid=4326),
+                geojson_coordinates=from_shape(Point(-70.6485, -33.4495), srid=4326),
             )
 
         with pytest.raises(ValueError, match="WAREHOUSE-AREA-LOCATION"):
@@ -202,7 +202,7 @@ class TestStorageLocationCodeValidation:
                 name="Test Location",
                 storage_area_id=1,
                 qr_code="LOC12345",
-                coordinates=from_shape(Point(-70.6485, -33.4495), srid=4326),
+                geojson_coordinates=from_shape(Point(-70.6485, -33.4495), srid=4326),
             )
 
     def test_storage_location_code_uppercase_enforced(self):
@@ -212,7 +212,7 @@ class TestStorageLocationCodeValidation:
             name="Test Location",
             storage_area_id=1,
             qr_code="LOC12345",
-            coordinates=from_shape(Point(-70.6485, -33.4495), srid=4326),
+            geojson_coordinates=from_shape(Point(-70.6485, -33.4495), srid=4326),
         )
 
         # Lowercase should raise ValueError
@@ -226,7 +226,7 @@ class TestStorageLocationCodeValidation:
             name="Test Location",
             storage_area_id=1,
             qr_code="LOC12345",
-            coordinates=from_shape(Point(-70.6485, -33.4495), srid=4326),
+            geojson_coordinates=from_shape(Point(-70.6485, -33.4495), srid=4326),
         )
 
         # Valid patterns
@@ -250,7 +250,7 @@ class TestStorageLocationCodeValidation:
             name="Test Location",
             storage_area_id=1,
             qr_code="LOC12345",
-            coordinates=from_shape(Point(-70.6485, -33.4495), srid=4326),
+            geojson_coordinates=from_shape(Point(-70.6485, -33.4495), srid=4326),
         )
 
         # Valid lengths
@@ -273,7 +273,7 @@ class TestStorageLocationCodeValidation:
                 name="Test Location",
                 storage_area_id=1,
                 qr_code="LOC12345",
-                coordinates=from_shape(Point(-70.6485, -33.4495), srid=4326),
+                geojson_coordinates=from_shape(Point(-70.6485, -33.4495), srid=4326),
             )
 
     def test_storage_location_code_empty_string(self):
@@ -284,7 +284,7 @@ class TestStorageLocationCodeValidation:
                 name="Test Location",
                 storage_area_id=1,
                 qr_code="LOC12345",
-                coordinates=from_shape(Point(-70.6485, -33.4495), srid=4326),
+                geojson_coordinates=from_shape(Point(-70.6485, -33.4495), srid=4326),
             )
             location.code = ""
 
@@ -299,7 +299,7 @@ class TestStorageLocationPositionMetadata:
             name="Test Location",
             storage_area_id=1,
             qr_code="LOC12345",
-            coordinates=from_shape(Point(-70.6485, -33.4495), srid=4326),
+            geojson_coordinates=from_shape(Point(-70.6485, -33.4495), srid=4326),
         )
 
         # Default should be empty dict
@@ -320,7 +320,7 @@ class TestStorageLocationPositionMetadata:
                 name="Test Location",
                 storage_area_id=1,
                 qr_code="LOC12345",
-                coordinates=from_shape(Point(-70.6485, -33.4495), srid=4326),
+                geojson_coordinates=from_shape(Point(-70.6485, -33.4495), srid=4326),
                 position_metadata=metadata,
             )
             assert location.position_metadata == metadata
@@ -332,7 +332,7 @@ class TestStorageLocationPositionMetadata:
             name="Test Location",
             storage_area_id=1,
             qr_code="LOC12345",
-            coordinates=from_shape(Point(-70.6485, -33.4495), srid=4326),
+            geojson_coordinates=from_shape(Point(-70.6485, -33.4495), srid=4326),
             position_metadata=None,
         )
 
@@ -351,7 +351,7 @@ class TestStorageLocationGeometry:
             name="Test Location",
             storage_area_id=1,
             qr_code="LOC12345",
-            coordinates=from_shape(point, srid=4326),
+            geojson_coordinates=from_shape(point, srid=4326),
         )
 
         assert location.coordinates is not None
@@ -365,7 +365,7 @@ class TestStorageLocationGeometry:
             name="Test Location",
             storage_area_id=1,
             qr_code="LOC12345",
-            coordinates=from_shape(point, srid=4326),
+            geojson_coordinates=from_shape(point, srid=4326),
         )
 
         assert location.coordinates is not None
@@ -392,7 +392,7 @@ class TestStorageLocationGeometry:
             name="Test Location",
             storage_area_id=1,
             qr_code="LOC12345",
-            coordinates=from_shape(polygon, srid=4326),
+            geojson_coordinates=from_shape(polygon, srid=4326),
         )
 
         # At Python level, assignment works
@@ -411,7 +411,7 @@ class TestStorageLocationForeignKeys:
                 name="Test Location",
                 storage_area_id=None,  # Should fail
                 qr_code="LOC12345",
-                coordinates=from_shape(Point(-70.6485, -33.4495), srid=4326),
+                geojson_coordinates=from_shape(Point(-70.6485, -33.4495), srid=4326),
             )
 
     def test_photo_session_id_nullable(self):
@@ -421,7 +421,7 @@ class TestStorageLocationForeignKeys:
             name="Test Location",
             storage_area_id=1,
             qr_code="LOC12345",
-            coordinates=from_shape(Point(-70.6485, -33.4495), srid=4326),
+            geojson_coordinates=from_shape(Point(-70.6485, -33.4495), srid=4326),
             photo_session_id=None,  # Should be allowed
         )
 
@@ -441,7 +441,7 @@ class TestStorageLocationRelationships:
             name="Test Location",
             storage_area_id=1,
             qr_code="LOC12345",
-            coordinates=from_shape(Point(-70.6485, -33.4495), srid=4326),
+            geojson_coordinates=from_shape(Point(-70.6485, -33.4495), srid=4326),
         )
 
         # Relationship should be defined
@@ -454,7 +454,7 @@ class TestStorageLocationRelationships:
             name="Test Location",
             storage_area_id=1,
             qr_code="LOC12345",
-            coordinates=from_shape(Point(-70.6485, -33.4495), srid=4326),
+            geojson_coordinates=from_shape(Point(-70.6485, -33.4495), srid=4326),
             photo_session_id=123,
         )
 
@@ -468,7 +468,7 @@ class TestStorageLocationRelationships:
             name="Test Location",
             storage_area_id=1,
             qr_code="LOC12345",
-            coordinates=from_shape(Point(-70.6485, -33.4495), srid=4326),
+            geojson_coordinates=from_shape(Point(-70.6485, -33.4495), srid=4326),
         )
 
         # Relationship should be defined
@@ -486,7 +486,7 @@ class TestStorageLocationRequiredFields:
                 name=None,
                 storage_area_id=1,
                 qr_code="LOC12345",
-                coordinates=from_shape(Point(-70.6485, -33.4495), srid=4326),
+                geojson_coordinates=from_shape(Point(-70.6485, -33.4495), srid=4326),
             )
 
     def test_geometry_field_required(self):
@@ -497,7 +497,7 @@ class TestStorageLocationRequiredFields:
                 name="Test Location",
                 storage_area_id=1,
                 qr_code="LOC12345",
-                coordinates=None,
+                geojson_coordinates=None,
             )
 
 
@@ -511,7 +511,7 @@ class TestStorageLocationDefaultValues:
             name="Test Location",
             storage_area_id=1,
             qr_code="LOC12345",
-            coordinates=from_shape(Point(-70.6485, -33.4495), srid=4326),
+            geojson_coordinates=from_shape(Point(-70.6485, -33.4495), srid=4326),
         )
 
         # active should default to True (before DB insert)
@@ -526,7 +526,7 @@ class TestStorageLocationDefaultValues:
             name="Test Location",
             storage_area_id=1,
             qr_code="LOC12345",
-            coordinates=from_shape(Point(-70.6485, -33.4495), srid=4326),
+            geojson_coordinates=from_shape(Point(-70.6485, -33.4495), srid=4326),
         )
 
         # Timestamps start as None (set by DB on insert)
@@ -544,7 +544,7 @@ class TestStorageLocationFieldCombinations:
             name="North Wing Location A1",
             storage_area_id=1,
             qr_code="LOC12345",
-            coordinates=from_shape(Point(-70.6485, -33.4495), srid=4326),
+            geojson_coordinates=from_shape(Point(-70.6485, -33.4495), srid=4326),
             photo_session_id=456,  # Latest photo
             position_metadata={"camera_angle": "45deg", "lighting": "natural"},
         )
@@ -560,7 +560,7 @@ class TestStorageLocationFieldCombinations:
             name="South Wing Location B2",
             storage_area_id=2,
             qr_code="QR-LOC-002",
-            coordinates=from_shape(Point(-70.6480, -33.4490), srid=4326),
+            geojson_coordinates=from_shape(Point(-70.6480, -33.4490), srid=4326),
             photo_session_id=None,  # No photo yet
         )
 
@@ -573,7 +573,7 @@ class TestStorageLocationFieldCombinations:
             name="Inactive Location",
             storage_area_id=1,
             qr_code="LOC99999",
-            coordinates=from_shape(Point(-70.6485, -33.4495), srid=4326),
+            geojson_coordinates=from_shape(Point(-70.6485, -33.4495), srid=4326),
             active=False,
         )
 
@@ -592,7 +592,7 @@ class TestStorageLocationFieldCombinations:
             name="Propagation Zone Location 01",
             storage_area_id=3,
             qr_code="LOC-PROP-01",
-            coordinates=from_shape(Point(-70.6482, -33.4492), srid=4326),
+            geojson_coordinates=from_shape(Point(-70.6482, -33.4492), srid=4326),
             position_metadata=metadata,
         )
 

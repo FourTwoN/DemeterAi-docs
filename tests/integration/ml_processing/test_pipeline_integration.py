@@ -30,11 +30,8 @@ Critical Success Criteria:
     4. Performance within acceptable range
 """
 
-import asyncio
 import os
-import tempfile
 import uuid
-from pathlib import Path
 
 import pytest
 
@@ -239,9 +236,7 @@ class TestMLPipelineIntegration:
         # Assert: Performance within acceptable range
         # CPU: <10 min (600s), GPU: <3 min (180s)
         max_time = 600  # 10 minutes for CPU
-        assert (
-            elapsed_time < max_time
-        ), f"Pipeline too slow: {elapsed_time:.1f}s (max: {max_time}s)"
+        assert elapsed_time < max_time, f"Pipeline too slow: {elapsed_time:.1f}s (max: {max_time}s)"
 
         # Assert: Session updated in database
         await test_db_session.refresh(session)
@@ -266,12 +261,12 @@ class TestMLPipelineIntegration:
         assert estimations_count >= 0
 
         # Log performance metrics
-        print(f"\n--- Pipeline Performance ---")
+        print("\n--- Pipeline Performance ---")
         print(f"Total time: {elapsed_time:.2f}s")
         print(f"Detections: {result['total_detections']}")
         print(f"Estimations: {result['total_estimations']}")
         print(f"Avg confidence: {result['avg_confidence']:.4f}")
-        print(f"----------------------------\n")
+        print("----------------------------\n")
 
     @pytest.mark.asyncio
     @pytest.mark.slow
@@ -319,6 +314,7 @@ class TestMLPipelineIntegration:
 
         # Arrange: Create minimal coordinator (only segmentation needed)
         from unittest.mock import AsyncMock
+
         from app.services.ml_processing.pipeline_coordinator import MLPipelineCoordinator
 
         coordinator = MLPipelineCoordinator(
@@ -375,7 +371,6 @@ class TestMLPipelinePerformance:
             pytest.skip("Skipping benchmark in CI environment")
 
         # Arrange: Create minimal pipeline (no DB operations for pure ML benchmark)
-        from unittest.mock import AsyncMock
 
         from app.services.ml_processing.pipeline_coordinator import MLPipelineCoordinator
 
@@ -412,12 +407,12 @@ class TestMLPipelinePerformance:
         min_time = min(times)
         max_time_limit = 600  # 10 minutes
 
-        print(f"\n--- CPU Performance Benchmark ---")
+        print("\n--- CPU Performance Benchmark ---")
         print(f"Average time: {avg_time:.2f}s")
         print(f"Min time: {min_time:.2f}s")
         print(f"Max time: {max(times):.2f}s")
         print(f"Target: <{max_time_limit}s")
-        print(f"-----------------------------------\n")
+        print("-----------------------------------\n")
 
         # Assert: Performance within acceptable range
         assert avg_time < max_time_limit, f"CPU too slow: {avg_time:.1f}s (max: {max_time_limit}s)"
@@ -466,6 +461,7 @@ class TestMLPipelineErrorRecovery:
 
         # Arrange: Create coordinator
         from unittest.mock import AsyncMock
+
         from app.services.ml_processing.pipeline_coordinator import MLPipelineCoordinator
 
         coordinator = MLPipelineCoordinator(
@@ -515,6 +511,7 @@ class TestMLPipelineErrorRecovery:
 
         # Arrange: Create coordinator
         from unittest.mock import AsyncMock
+
         from app.services.ml_processing.pipeline_coordinator import MLPipelineCoordinator
 
         coordinator = MLPipelineCoordinator(
