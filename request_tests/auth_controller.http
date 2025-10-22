@@ -1,0 +1,173 @@
+###
+### DemeterAI v2.0 - Authentication Controller HTTP Tests
+### Base URL: http://localhost:8000
+### Controller: auth_controller.py (Sprint 05)
+### Note: Auth0 integration required - these are example requests
+###
+
+### Variables
+@baseUrl = http://localhost:8000
+@apiPrefix = /api/v1/auth
+@accessToken = YOUR_AUTH0_ACCESS_TOKEN_HERE
+
+###
+### POST - Login (Auth0)
+### Note: This redirects to Auth0 login page
+###
+POST {{baseUrl}}{{apiPrefix}}/login
+Content-Type: application/json
+
+{
+  "return_url": "http://localhost:3000/dashboard"
+}
+
+###
+### POST - Logout
+###
+POST {{baseUrl}}{{apiPrefix}}/logout
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+###
+### GET - Get current user profile
+###
+GET {{baseUrl}}{{apiPrefix}}/me
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+###
+### PUT - Update user profile
+###
+PUT {{baseUrl}}{{apiPrefix}}/me
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "name": "Updated Name",
+  "email": "user@example.com",
+  "preferences": {
+    "language": "es",
+    "theme": "dark",
+    "notifications": true
+  }
+}
+
+###
+### POST - Refresh access token
+###
+POST {{baseUrl}}{{apiPrefix}}/refresh
+Content-Type: application/json
+
+{
+  "refresh_token": "YOUR_REFRESH_TOKEN_HERE"
+}
+
+###
+### GET - List users (admin only)
+###
+GET {{baseUrl}}{{apiPrefix}}/users
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+###
+### GET - Get user by ID (admin only)
+###
+GET {{baseUrl}}{{apiPrefix}}/users/USER_ID_HERE
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+###
+### POST - Create user (admin only)
+###
+POST {{baseUrl}}{{apiPrefix}}/users
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "email": "newuser@example.com",
+  "name": "New User",
+  "role": "operator",
+  "permissions": ["read:inventory", "write:stock"]
+}
+
+###
+### PUT - Update user (admin only)
+###
+PUT {{baseUrl}}{{apiPrefix}}/users/USER_ID_HERE
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "role": "supervisor",
+  "permissions": ["read:inventory", "write:stock", "read:analytics"]
+}
+
+###
+### DELETE - Delete user (admin only)
+###
+DELETE {{baseUrl}}{{apiPrefix}}/users/USER_ID_HERE
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+###
+### GET - Check permissions
+###
+GET {{baseUrl}}{{apiPrefix}}/permissions
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+###
+### POST - Validate token
+###
+POST {{baseUrl}}{{apiPrefix}}/validate
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+###
+### Error Test: Access protected endpoint without token
+###
+GET {{baseUrl}}{{apiPrefix}}/me
+Content-Type: application/json
+
+###
+### Error Test: Access with invalid token
+###
+GET {{baseUrl}}{{apiPrefix}}/me
+Authorization: Bearer INVALID_TOKEN_HERE
+Content-Type: application/json
+
+###
+### Error Test: Access admin endpoint as regular user
+###
+GET {{baseUrl}}{{apiPrefix}}/users
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+###
+
+###
+### ========================================
+### DEVELOPMENT TESTING (NO AUTH REQUIRED)
+### ========================================
+### Note: These endpoints may be available in development mode
+### with AUTH0_DOMAIN not configured
+###
+
+###
+### GET - Health check (no auth)
+###
+GET {{baseUrl}}/health
+Content-Type: application/json
+
+###
+### GET - API documentation (no auth)
+###
+GET {{baseUrl}}/docs
+
+###
+### GET - OpenAPI spec (no auth)
+###
+GET {{baseUrl}}/openapi.json
+Content-Type: application/json
+
+###

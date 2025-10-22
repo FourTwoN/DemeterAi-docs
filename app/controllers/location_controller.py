@@ -79,7 +79,10 @@ async def list_warehouses(
         logger.info("Listing warehouses", extra={"skip": skip, "limit": limit})
 
         service = factory.get_warehouse_service()
-        warehouses = await service.get_all(skip=skip, limit=limit)
+        warehouses = await service.get_active_warehouses(include_areas=False)
+
+        # Apply pagination manually
+        warehouses = warehouses[skip : skip + limit]
 
         logger.info("Warehouses retrieved", extra={"count": len(warehouses)})
 
@@ -90,7 +93,7 @@ async def list_warehouses(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to list warehouses.",
-        )
+        ) from e
 
 
 @router.get(
@@ -122,7 +125,7 @@ async def get_warehouse_areas(
         logger.info("Getting warehouse areas", extra={"warehouse_id": warehouse_id})
 
         service = factory.get_storage_area_service()
-        areas = await service.get_by_warehouse(warehouse_id)
+        areas = await service.get_areas_by_warehouse(warehouse_id)
 
         logger.info(
             "Warehouse areas retrieved",
@@ -133,14 +136,14 @@ async def get_warehouse_areas(
 
     except ResourceNotFoundException as e:
         logger.warning("Warehouse not found", extra={"error": str(e)})
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e)) from e
 
     except Exception as e:
         logger.error("Failed to get warehouse areas", extra={"error": str(e)}, exc_info=True)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to get warehouse areas.",
-        )
+        ) from e
 
 
 @router.get(
@@ -172,7 +175,7 @@ async def get_area_locations(
         logger.info("Getting area locations", extra={"area_id": area_id})
 
         service = factory.get_storage_location_service()
-        locations = await service.get_by_area(area_id)
+        locations = await service.get_locations_by_area(area_id)
 
         logger.info(
             "Area locations retrieved",
@@ -183,14 +186,14 @@ async def get_area_locations(
 
     except ResourceNotFoundException as e:
         logger.warning("Area not found", extra={"error": str(e)})
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e)) from e
 
     except Exception as e:
         logger.error("Failed to get area locations", extra={"error": str(e)}, exc_info=True)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to get area locations.",
-        )
+        ) from e
 
 
 @router.get(
@@ -222,7 +225,7 @@ async def get_location_bins(
         logger.info("Getting location bins", extra={"location_id": location_id})
 
         service = factory.get_storage_bin_service()
-        bins = await service.get_by_location(location_id)
+        bins = await service.get_bins_by_location(location_id)
 
         logger.info(
             "Location bins retrieved",
@@ -233,26 +236,26 @@ async def get_location_bins(
 
     except ResourceNotFoundException as e:
         logger.warning("Location not found", extra={"error": str(e)})
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e)) from e
 
     except Exception as e:
         logger.error("Failed to get location bins", extra={"error": str(e)}, exc_info=True)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to get location bins.",
-        )
+        ) from e
 
 
 @router.get(
     "/search",
-    response_model=dict,
+    response_model=dict[str, object],
     summary="Search by GPS coordinates",
 )
 async def search_by_gps(
     longitude: float = Query(..., description="GPS longitude coordinate"),
     latitude: float = Query(..., description="GPS latitude coordinate"),
     factory: ServiceFactory = Depends(get_factory),
-) -> dict:
+) -> dict[str, object]:
     """Search warehouse hierarchy by GPS coordinates (C012).
 
     Uses PostGIS ST_Contains to find location containing the GPS point.
@@ -332,12 +335,12 @@ async def search_by_gps(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="GPS search failed.",
-        )
+        ) from e
 
 
 @router.post(
     "/validate",
-    response_model=dict,
+    response_model=dict[str, object],
     summary="Validate location hierarchy",
 )
 async def validate_location_hierarchy(
@@ -346,7 +349,7 @@ async def validate_location_hierarchy(
     location_id: int | None = None,
     bin_id: int | None = None,
     factory: ServiceFactory = Depends(get_factory),
-) -> dict:
+) -> dict[str, object]:
     """Validate location hierarchy integrity (C013).
 
     Checks that child entities belong to specified parents.
@@ -420,4 +423,4 @@ async def validate_location_hierarchy(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Hierarchy validation failed.",
-        )
+        ) from e

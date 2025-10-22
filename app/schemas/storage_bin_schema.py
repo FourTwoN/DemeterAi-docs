@@ -16,7 +16,7 @@ class StorageBinCreateRequest(BaseModel):
 
 
 class StorageBinResponse(BaseModel):
-    storage_bin_id: int
+    bin_id: int
     storage_location_id: int
     storage_bin_type_id: int
     code: str
@@ -31,7 +31,7 @@ class StorageBinResponse(BaseModel):
     @classmethod
     def from_model(cls, bin_model):
         return cls(
-            storage_bin_id=bin_model.storage_bin_id,
+            bin_id=bin_model.bin_id,
             storage_location_id=bin_model.storage_location_id,
             storage_bin_type_id=bin_model.storage_bin_type_id,
             code=bin_model.code,

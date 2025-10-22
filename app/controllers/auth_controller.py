@@ -208,7 +208,7 @@ async def get_current_user_info(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to retrieve user information.",
-        )
+        ) from e
 
 
 @router.post(
@@ -274,7 +274,7 @@ async def login(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail=e.user_message,
             headers={"WWW-Authenticate": "Bearer"},
-        )
+        ) from e
 
     except Exception as e:
         logger.error(
@@ -285,7 +285,7 @@ async def login(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Login service temporarily unavailable.",
-        )
+        ) from e
 
 
 @router.post(
@@ -330,7 +330,7 @@ async def logout(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Logout failed.",
-        )
+        ) from e
 
 
 @router.get(
@@ -381,11 +381,11 @@ async def get_public_key() -> PublicKeyResponse:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Authentication service not configured. Please contact system administrator.",
-        )
+        ) from e
 
     except Exception as e:
         logger.error("Failed to get public key info", extra={"error": str(e)}, exc_info=True)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to retrieve public key information.",
-        )
+        ) from e

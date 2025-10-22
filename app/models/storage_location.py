@@ -220,15 +220,17 @@ class StorageLocation(Base):
     centroid: Mapped[str | None] = mapped_column(
         Geometry("POINT", srid=4326, spatial_index=False),
         nullable=True,
+        insert_default=None,
         comment="Auto-calculated center point (equals coordinates for POINT geometry)",
     )
 
     # Area calculation (GENERATED column - always 0 for POINT geometry)
     # NOTE: This column is added via Alembic migration, not here
     # PostgreSQL syntax: GENERATED ALWAYS AS (0.0) STORED
-    area_m2 = Column(
+    area_m2: Mapped[float | None] = mapped_column(
         Numeric(10, 2),
         nullable=True,
+        insert_default=None,
         comment="Auto-calculated area in m² (always 0 for POINT geometry, GENERATED column)",
     )
 

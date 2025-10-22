@@ -192,7 +192,7 @@ class StockBatch(Base):
     # Foreign key to current storage bin (CASCADE delete)
     current_storage_bin_id = Column(
         Integer,
-        ForeignKey("storage_bins.storage_bin_id", ondelete="CASCADE"),
+        ForeignKey("storage_bins.bin_id", ondelete="CASCADE"),
         nullable=False,
         index=True,
         comment="Foreign key to storage_bins for current location (CASCADE delete)",

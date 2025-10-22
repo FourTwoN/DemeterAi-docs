@@ -102,7 +102,7 @@ class StorageBin(Base):
         - confidence tracks segmentation quality (threshold: 0.7+)
 
     Attributes:
-        storage_bin_id: Primary key (auto-increment)
+        bin_id: Primary key (auto-increment)
         storage_location_id: Foreign key to parent storage location (CASCADE delete)
         storage_bin_type_id: Foreign key to bin type catalog (RESTRICT delete, NULLABLE)
         code: Unique bin code (format: WAREHOUSE-AREA-LOCATION-BIN, 4 parts, uppercase)
@@ -164,7 +164,7 @@ class StorageBin(Base):
     __tablename__ = "storage_bins"
 
     # Primary key
-    storage_bin_id = Column(
+    bin_id = Column(
         Integer,
         primary_key=True,
         autoincrement=True,
@@ -396,15 +396,15 @@ class StorageBin(Base):
         """String representation for debugging.
 
         Returns:
-            String with storage_bin_id, code, label, status, and storage_location_id
+            String with bin_id, code, label, status, and storage_location_id
 
         Example:
-            <StorageBin(storage_bin_id=1, code='INV01-NORTH-A1-SEG001', label='Segment 1',
+            <StorageBin(bin_id=1, code='INV01-NORTH-A1-SEG001', label='Segment 1',
              status='active', storage_location_id=1)>
         """
         return (
             f"<StorageBin("
-            f"storage_bin_id={self.storage_bin_id}, "
+            f"bin_id={self.bin_id}, "
             f"code='{self.code}', "
             f"label='{self.label}', "
             f"status='{self.status.value if self.status else None}', "

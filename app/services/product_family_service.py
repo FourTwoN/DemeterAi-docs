@@ -63,3 +63,17 @@ class ProductFamilyService:
         if not family_model:
             raise ValueError(f"ProductFamily {family_id} not found")
         await self.family_repo.delete(family_id)
+
+    # Convenience aliases for controller compatibility
+    async def get_by_category(self, category_id: int) -> list[ProductFamilyResponse]:
+        """Alias for get_families_by_category."""
+        return await self.get_families_by_category(category_id)
+
+    async def get_all(self, skip: int = 0, limit: int = 200) -> list[ProductFamilyResponse]:
+        """Alias for get_all_families with pagination."""
+        families = await self.family_repo.get_multi(skip=skip, limit=limit)
+        return [ProductFamilyResponse.from_model(f) for f in families]
+
+    async def create(self, request: ProductFamilyCreateRequest) -> ProductFamilyResponse:
+        """Alias for create_family."""
+        return await self.create_family(request)

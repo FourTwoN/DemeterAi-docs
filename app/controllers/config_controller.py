@@ -115,7 +115,7 @@ async def get_location_defaults(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to get location defaults.",
-        )
+        ) from e
 
 
 @router.post(
@@ -195,18 +195,18 @@ async def set_location_defaults(
 
     except ValidationException as e:
         logger.warning("Config validation failed", extra={"error": str(e)})
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)) from e
 
     except ResourceNotFoundException as e:
         logger.warning("Resource not found", extra={"error": str(e)})
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e)) from e
 
     except Exception as e:
         logger.error("Failed to set location defaults", extra={"error": str(e)}, exc_info=True)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to set location defaults.",
-        )
+        ) from e
 
 
 @router.get(
@@ -286,11 +286,11 @@ async def get_density_parameters(
 
     except ResourceNotFoundException as e:
         logger.warning("Resource not found", extra={"error": str(e)})
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e)) from e
 
     except Exception as e:
         logger.error("Failed to get density parameters", extra={"error": str(e)}, exc_info=True)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to get density parameters.",
-        )
+        ) from e

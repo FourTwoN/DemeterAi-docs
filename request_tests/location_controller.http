@@ -1,0 +1,126 @@
+###
+### DemeterAI v2.0 - Location Controller HTTP Tests
+### Base URL: http://localhost:8000
+### Controller: location_controller.py (C008-C013)
+###
+
+### Variables
+@baseUrl = http://localhost:8000
+@apiPrefix = /api/v1/locations
+
+###
+### C008: GET - List all warehouses (with pagination)
+###
+GET {{baseUrl}}{{apiPrefix}}/warehouses?skip=0&limit=10
+Content-Type: application/json
+
+###
+### C008: GET - List all warehouses (default pagination)
+###
+GET {{baseUrl}}{{apiPrefix}}/warehouses
+Content-Type: application/json
+
+###
+### C009: GET - Get warehouse areas (Warehouse ID: 1)
+###
+GET {{baseUrl}}{{apiPrefix}}/warehouses/1/areas
+Content-Type: application/json
+
+###
+### C009: GET - Get warehouse areas (Warehouse ID: 2)
+###
+GET {{baseUrl}}{{apiPrefix}}/warehouses/2/areas
+Content-Type: application/json
+
+###
+### C010: GET - Get storage locations for area (Area ID: 1)
+###
+GET {{baseUrl}}{{apiPrefix}}/areas/1/locations
+Content-Type: application/json
+
+###
+### C010: GET - Get storage locations for area (Area ID: 2)
+###
+GET {{baseUrl}}{{apiPrefix}}/areas/2/locations
+Content-Type: application/json
+
+###
+### C011: GET - Get storage bins for location (Location ID: 1)
+###
+GET {{baseUrl}}{{apiPrefix}}/locations/1/bins
+Content-Type: application/json
+
+###
+### C011: GET - Get storage bins for location (Location ID: 10)
+###
+GET {{baseUrl}}{{apiPrefix}}/locations/10/bins
+Content-Type: application/json
+
+###
+### C012: GET - Search by GPS coordinates
+### Example coordinates from Chile (roughly San Pedro de Atacama area)
+###
+GET {{baseUrl}}{{apiPrefix}}/search?longitude=-68.7035&latitude=-33.0416
+Content-Type: application/json
+
+###
+### C012: GET - Search by GPS coordinates (another example)
+###
+GET {{baseUrl}}{{apiPrefix}}/search?longitude=-68.7036&latitude=-33.0417
+Content-Type: application/json
+
+###
+### C013: POST - Validate location hierarchy (valid)
+###
+POST {{baseUrl}}{{apiPrefix}}/validate
+Content-Type: application/json
+
+{
+  "warehouse_id": 1,
+  "area_id": 1,
+  "location_id": 1,
+  "bin_id": null
+}
+
+###
+### C013: POST - Validate location hierarchy (with bin)
+###
+POST {{baseUrl}}{{apiPrefix}}/validate
+Content-Type: application/json
+
+{
+  "warehouse_id": 1,
+  "area_id": 1,
+  "location_id": 1,
+  "bin_id": 1
+}
+
+###
+### C013: POST - Validate location hierarchy (only warehouse)
+###
+POST {{baseUrl}}{{apiPrefix}}/validate
+Content-Type: application/json
+
+{
+  "warehouse_id": 1
+}
+
+###
+### Error Test: GET - Non-existent warehouse
+###
+GET {{baseUrl}}{{apiPrefix}}/warehouses/99999/areas
+Content-Type: application/json
+
+###
+### Error Test: GET - Non-existent area
+###
+GET {{baseUrl}}{{apiPrefix}}/areas/99999/locations
+Content-Type: application/json
+
+###
+### Error Test: GPS search with invalid coordinates
+###
+GET {{baseUrl}}{{apiPrefix}}/search?longitude=999&latitude=999
+Content-Type: application/json
+
+###

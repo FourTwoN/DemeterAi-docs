@@ -133,18 +133,18 @@ async def upload_photo_for_stock_count(
 
     except ValidationException as e:
         logger.warning("Photo upload validation failed", extra={"error": str(e)})
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)) from e
 
     except ResourceNotFoundException as e:
         logger.warning("GPS location not found", extra={"error": str(e)})
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e)) from e
 
     except Exception as e:
         logger.error("Photo upload failed", extra={"error": str(e)}, exc_info=True)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Photo upload failed. Please try again.",
-        )
+        ) from e
 
 
 @router.post(
@@ -215,28 +215,28 @@ async def create_manual_stock_initialization(
 
     except ValidationException as e:
         logger.warning("Manual stock validation failed", extra={"error": str(e)})
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)) from e
 
     except ResourceNotFoundException as e:
         logger.warning("Location config not found", extra={"error": str(e)})
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e)) from e
 
     except Exception as e:
         logger.error("Manual stock initialization failed", extra={"error": str(e)}, exc_info=True)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Manual stock initialization failed.",
-        )
+        ) from e
 
 
 @router.get(
     "/tasks/{task_id}",
-    response_model=dict,
+    response_model=dict[str, object],
     summary="Get Celery task status",
 )
 async def get_celery_task_status(
     task_id: UUID,
-) -> dict:
+) -> dict[str, object]:
     """Get Celery task status for photo processing (C003).
 
     Args:
@@ -281,7 +281,7 @@ async def get_celery_task_status(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Task status lookup failed.",
-        )
+        ) from e
 
 
 @router.post(
@@ -344,18 +344,18 @@ async def create_stock_movement(
 
     except ValidationException as e:
         logger.warning("Stock movement validation failed", extra={"error": str(e)})
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)) from e
 
     except ResourceNotFoundException as e:
         logger.warning("Batch not found", extra={"error": str(e)})
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e)) from e
 
     except Exception as e:
         logger.error("Stock movement creation failed", extra={"error": str(e)}, exc_info=True)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Stock movement creation failed.",
-        )
+        ) from e
 
 
 @router.get(
@@ -394,7 +394,7 @@ async def list_stock_batches(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to list batches.",
-        )
+        ) from e
 
 
 @router.get(
@@ -430,14 +430,14 @@ async def get_batch_details(
         return batch
 
     except ValueError as e:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e)) from e
 
     except Exception as e:
         logger.error("Failed to get batch", extra={"error": str(e)}, exc_info=True)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to get batch details.",
-        )
+        ) from e
 
 
 @router.get(
@@ -489,4 +489,4 @@ async def get_stock_movement_history(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to get movement history.",
-        )
+        ) from e

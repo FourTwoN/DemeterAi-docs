@@ -97,7 +97,7 @@ async def list_product_categories(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to list product categories.",
-        )
+        ) from e
 
 
 @router.post(
@@ -145,14 +145,14 @@ async def create_product_category(
 
     except ValidationException as e:
         logger.warning("Category validation failed", extra={"error": str(e)})
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)) from e
 
     except Exception as e:
         logger.error("Failed to create category", extra={"error": str(e)}, exc_info=True)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to create product category.",
-        )
+        ) from e
 
 
 # =============================================================================
@@ -208,14 +208,14 @@ async def list_product_families(
 
     except ResourceNotFoundException as e:
         logger.warning("Category not found", extra={"error": str(e)})
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e)) from e
 
     except Exception as e:
         logger.error("Failed to list families", extra={"error": str(e)}, exc_info=True)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to list product families.",
-        )
+        ) from e
 
 
 @router.post(
@@ -268,18 +268,18 @@ async def create_product_family(
 
     except ValidationException as e:
         logger.warning("Family validation failed", extra={"error": str(e)})
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)) from e
 
     except ResourceNotFoundException as e:
         logger.warning("Category not found", extra={"error": str(e)})
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e)) from e
 
     except Exception as e:
         logger.error("Failed to create family", extra={"error": str(e)}, exc_info=True)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to create product family.",
-        )
+        ) from e
 
 
 # =============================================================================
@@ -347,14 +347,14 @@ async def list_products(
 
     except ResourceNotFoundException as e:
         logger.warning("Resource not found", extra={"error": str(e)})
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e)) from e
 
     except Exception as e:
         logger.error("Failed to list products", extra={"error": str(e)}, exc_info=True)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to list products.",
-        )
+        ) from e
 
 
 @router.post(
@@ -432,18 +432,18 @@ async def create_product(
 
     except ValidationException as e:
         logger.warning("Product validation failed", extra={"error": str(e)})
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)) from e
 
     except ResourceNotFoundException as e:
         logger.warning("Resource not found", extra={"error": str(e)})
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e)) from e
 
     except Exception as e:
         logger.error("Failed to create product", extra={"error": str(e)}, exc_info=True)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to create product.",
-        )
+        ) from e
 
 
 @router.get(
@@ -498,4 +498,4 @@ async def get_product_by_sku(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to get product.",
-        )
+        ) from e

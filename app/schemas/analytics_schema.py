@@ -48,7 +48,7 @@ class InventoryReportResponse(BaseModel):
 class DailyPlantCountResponse(BaseModel):
     """Response schema for daily plant count analytics."""
 
-    date: date = Field(..., description="Date of the count")
+    count_date: date = Field(..., description="Date of the count", alias="date")
     total_plants: int = Field(..., description="Total plants in inventory on this date", ge=0)
     movements_in: int = Field(..., description="Plants moved in on this date", ge=0)
     movements_out: int = Field(..., description="Plants moved out on this date", ge=0)

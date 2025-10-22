@@ -1,0 +1,148 @@
+###
+### DemeterAI v2.0 - Analytics Controller HTTP Tests
+### Base URL: http://localhost:8000
+### Controller: analytics_controller.py (C024-C026)
+###
+
+### Variables
+@baseUrl = http://localhost:8000
+@apiPrefix = /api/v1/analytics
+
+###
+### C024: GET - Get inventory report (all warehouses)
+###
+GET {{baseUrl}}{{apiPrefix}}/inventory
+Content-Type: application/json
+
+###
+### C024: GET - Get inventory report filtered by warehouse
+###
+GET {{baseUrl}}{{apiPrefix}}/inventory?warehouse_id=1
+Content-Type: application/json
+
+###
+### C024: GET - Get inventory report filtered by product
+###
+GET {{baseUrl}}{{apiPrefix}}/inventory?product_id=1
+Content-Type: application/json
+
+###
+### C024: GET - Get inventory report with multiple filters
+###
+GET {{baseUrl}}{{apiPrefix}}/inventory?warehouse_id=1&product_id=1
+Content-Type: application/json
+
+###
+### C025: GET - Get daily plant count (last 30 days)
+###
+GET {{baseUrl}}{{apiPrefix}}/daily-counts?start_date=2025-09-20&end_date=2025-10-20
+Content-Type: application/json
+
+###
+### C025: GET - Get daily plant count (last 7 days)
+###
+GET {{baseUrl}}{{apiPrefix}}/daily-counts?start_date=2025-10-13&end_date=2025-10-20
+Content-Type: application/json
+
+###
+### C025: GET - Get daily plant count with warehouse filter
+###
+GET {{baseUrl}}{{apiPrefix}}/daily-counts?start_date=2025-10-01&end_date=2025-10-20&warehouse_id=1
+Content-Type: application/json
+
+###
+### C026: GET - Compare counts between periods
+###
+POST {{baseUrl}}{{apiPrefix}}/compare
+Content-Type: application/json
+
+{
+  "period1_start": "2025-09-01",
+  "period1_end": "2025-09-15",
+  "period2_start": "2025-09-16",
+  "period2_end": "2025-09-30",
+  "warehouse_id": 1
+}
+
+###
+### C026: POST - Compare counts for different warehouses
+###
+POST {{baseUrl}}{{apiPrefix}}/compare
+Content-Type: application/json
+
+{
+  "period1_start": "2025-10-01",
+  "period1_end": "2025-10-15",
+  "period2_start": "2025-10-01",
+  "period2_end": "2025-10-15",
+  "warehouse1_id": 1,
+  "warehouse2_id": 2
+}
+
+###
+### GET - Get movement analytics
+###
+GET {{baseUrl}}{{apiPrefix}}/movements/summary?start_date=2025-10-01&end_date=2025-10-20
+Content-Type: application/json
+
+###
+### GET - Get movement analytics by type
+###
+GET {{baseUrl}}{{apiPrefix}}/movements/by-type?start_date=2025-10-01&end_date=2025-10-20
+Content-Type: application/json
+
+###
+### GET - Get batch lifecycle analytics
+###
+GET {{baseUrl}}{{apiPrefix}}/batches/lifecycle?start_date=2025-10-01&end_date=2025-10-20
+Content-Type: application/json
+
+###
+### GET - Get warehouse utilization
+###
+GET {{baseUrl}}{{apiPrefix}}/warehouses/utilization
+Content-Type: application/json
+
+###
+### GET - Get warehouse utilization for specific warehouse
+###
+GET {{baseUrl}}{{apiPrefix}}/warehouses/1/utilization
+Content-Type: application/json
+
+###
+### GET - Get product performance metrics
+###
+GET {{baseUrl}}{{apiPrefix}}/products/performance?start_date=2025-10-01&end_date=2025-10-20
+Content-Type: application/json
+
+###
+### GET - Get ML detection accuracy metrics
+###
+GET {{baseUrl}}{{apiPrefix}}/ml/accuracy?start_date=2025-10-01&end_date=2025-10-20
+Content-Type: application/json
+
+###
+### GET - Export inventory report as CSV
+###
+GET {{baseUrl}}{{apiPrefix}}/inventory/export?format=csv&warehouse_id=1
+Accept: text/csv
+
+###
+### GET - Export daily counts as CSV
+###
+GET {{baseUrl}}{{apiPrefix}}/daily-counts/export?format=csv&start_date=2025-10-01&end_date=2025-10-20
+Accept: text/csv
+
+###
+### Error Test: GET - Invalid date range (end before start)
+###
+GET {{baseUrl}}{{apiPrefix}}/daily-counts?start_date=2025-10-20&end_date=2025-10-01
+Content-Type: application/json
+
+###
+### Error Test: GET - Non-existent warehouse filter
+###
+GET {{baseUrl}}{{apiPrefix}}/inventory?warehouse_id=99999
+Content-Type: application/json
+
+###

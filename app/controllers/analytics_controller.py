@@ -181,7 +181,7 @@ async def get_full_inventory_report(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to generate inventory report.",
-        )
+        ) from e
 
 
 @router.get(

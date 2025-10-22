@@ -293,7 +293,7 @@ class StockMovement(Base):
     # Optional bin references (CASCADE delete)
     source_bin_id = Column(
         Integer,
-        ForeignKey("storage_bins.storage_bin_id", ondelete="CASCADE"),
+        ForeignKey("storage_bins.bin_id", ondelete="CASCADE"),
         nullable=True,
         index=True,
         comment="Foreign key to storage_bins for source (CASCADE delete, NULLABLE)",
@@ -301,7 +301,7 @@ class StockMovement(Base):
 
     destination_bin_id = Column(
         Integer,
-        ForeignKey("storage_bins.storage_bin_id", ondelete="CASCADE"),
+        ForeignKey("storage_bins.bin_id", ondelete="CASCADE"),
         nullable=True,
         index=True,
         comment="Foreign key to storage_bins for destination (CASCADE delete, NULLABLE)",

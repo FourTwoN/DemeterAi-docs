@@ -1,0 +1,126 @@
+###
+### DemeterAI v2.0 - Product Controller HTTP Tests
+### Base URL: http://localhost:8000
+### Controller: product_controller.py (C014-C020)
+###
+
+### Variables
+@baseUrl = http://localhost:8000
+@apiPrefix = /api/v1/products
+
+###
+### C014: GET - List product categories
+###
+GET {{baseUrl}}{{apiPrefix}}/categories
+Content-Type: application/json
+
+###
+### C015: GET - Get product families by category (Category ID: 1 - Cactus)
+###
+GET {{baseUrl}}{{apiPrefix}}/categories/1/families
+Content-Type: application/json
+
+###
+### C015: GET - Get product families by category (Category ID: 2 - Succulents)
+###
+GET {{baseUrl}}{{apiPrefix}}/categories/2/families
+Content-Type: application/json
+
+###
+### C016: GET - List all products (with pagination)
+###
+GET {{baseUrl}}{{apiPrefix}}?skip=0&limit=20
+Content-Type: application/json
+
+###
+### C016: GET - List all products (default pagination)
+###
+GET {{baseUrl}}{{apiPrefix}}
+Content-Type: application/json
+
+###
+### C017: GET - Get product by ID (Product ID: 1)
+###
+GET {{baseUrl}}{{apiPrefix}}/1
+Content-Type: application/json
+
+###
+### C018: GET - Get products by family (Family ID: 1)
+###
+GET {{baseUrl}}{{apiPrefix}}/families/1/products
+Content-Type: application/json
+
+###
+### C019: GET - Get product sizes
+###
+GET {{baseUrl}}{{apiPrefix}}/sizes
+Content-Type: application/json
+
+###
+### C020: GET - Get product states
+###
+GET {{baseUrl}}{{apiPrefix}}/states
+Content-Type: application/json
+
+###
+### C020: GET - Get products by state (State: vegetative)
+###
+GET {{baseUrl}}{{apiPrefix}}/states/vegetative/products
+Content-Type: application/json
+
+###
+### POST - Create product category
+###
+POST {{baseUrl}}{{apiPrefix}}/categories
+Content-Type: application/json
+
+{
+  "name": "Test Category",
+  "description": "Test category for HTTP testing"
+}
+
+###
+### POST - Create product family
+###
+POST {{baseUrl}}{{apiPrefix}}/families
+Content-Type: application/json
+
+{
+  "category_id": 1,
+  "name": "Test Family",
+  "description": "Test family for HTTP testing"
+}
+
+###
+### POST - Create product
+###
+POST {{baseUrl}}{{apiPrefix}}
+Content-Type: application/json
+
+{
+  "family_id": 1,
+  "sku": "TEST-SKU-001",
+  "common_name": "Test Plant",
+  "scientific_name": "Testus plantus",
+  "description": "Test product for HTTP testing"
+}
+
+###
+### Error Test: GET - Non-existent category
+###
+GET {{baseUrl}}{{apiPrefix}}/categories/99999/families
+Content-Type: application/json
+
+###
+### Error Test: GET - Non-existent product
+###
+GET {{baseUrl}}{{apiPrefix}}/99999
+Content-Type: application/json
+
+###
+### Error Test: GET - Non-existent family
+###
+GET {{baseUrl}}{{apiPrefix}}/families/99999/products
+Content-Type: application/json
+
+###

@@ -143,7 +143,7 @@ services:
       # Auth0 configuration (override with .env)
       - AUTH0_DOMAIN=${AUTH0_DOMAIN:-}
       - AUTH0_API_AUDIENCE=${AUTH0_API_AUDIENCE:-}
-      - AUTH0_ALGORITHMS=RS256
+      - AUTH0_ALGORITHMS=${AUTH0_ALGORITHMS:-["RS256"]}
       # S3 configuration (override with .env)
       - AWS_REGION=${AWS_REGION:-us-east-1}
       - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID:-}

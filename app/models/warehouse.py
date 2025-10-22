@@ -173,15 +173,17 @@ class Warehouse(Base):
     centroid: Mapped[str | None] = mapped_column(
         Geometry("POINT", srid=4326),
         nullable=True,
+        insert_default=None,
         comment="Auto-calculated center point (database trigger)",
     )
 
     # Area calculation (GENERATED column - auto-calculated by PostgreSQL)
     # NOTE: This column is added via Alembic migration, not here
     # PostgreSQL syntax: GENERATED ALWAYS AS (ST_Area(geojson_coordinates::geography)) STORED
-    area_m2 = Column(
+    area_m2: Mapped[float | None] = mapped_column(
         Numeric(10, 2),
         nullable=True,
+        insert_default=None,
         comment="Auto-calculated area in m² (GENERATED column)",
     )
 

@@ -1,0 +1,152 @@
+###
+### DemeterAI v2.0 - Stock Controller HTTP Tests
+### Base URL: http://localhost:8000
+### Controller: stock_controller.py (C001-C007)
+###
+
+### Variables
+@baseUrl = http://localhost:8000
+@apiPrefix = /api/v1/stock
+
+###
+### C001: POST - Upload photo for ML processing
+### Note: Replace with actual image file path
+###
+POST {{baseUrl}}{{apiPrefix}}/photo
+Content-Type: multipart/form-data; boundary=----WebKitFormBoundary7MA4YWxkTrZu0gW
+
+------WebKitFormBoundary7MA4YWxkTrZu0gW
+Content-Disposition: form-data; name="file"; filename="test_image.jpg"
+Content-Type: image/jpeg
+
+< ./production_data/prueba_v1_nave_venta/IMG_20240927_105451.jpg
+------WebKitFormBoundary7MA4YWxkTrZu0gW
+Content-Disposition: form-data; name="storage_location_id"
+
+1
+------WebKitFormBoundary7MA4YWxkTrZu0gW--
+
+###
+### C002: GET - Get processing status (Task ID from photo upload response)
+###
+GET {{baseUrl}}{{apiPrefix}}/tasks/TASK-ID-HERE
+Content-Type: application/json
+
+###
+### C003: POST - Manual stock initialization
+###
+POST {{baseUrl}}{{apiPrefix}}/batches/init
+Content-Type: application/json
+
+{
+  "product_id": 1,
+  "current_storage_bin_id": 1,
+  "quantity": 100,
+  "acquisition_date": "2025-10-20",
+  "cost_per_unit": 1.50,
+  "notes": "Manual stock initialization for testing"
+}
+
+###
+### C004: GET - Get stock batch by ID (Batch ID: 1)
+###
+GET {{baseUrl}}{{apiPrefix}}/batches/1
+Content-Type: application/json
+
+###
+### C004: GET - List stock batches (with filters)
+###
+GET {{baseUrl}}{{apiPrefix}}/batches?skip=0&limit=20
+Content-Type: application/json
+
+###
+### C005: POST - Record stock movement
+###
+POST {{baseUrl}}{{apiPrefix}}/movements
+Content-Type: application/json
+
+{
+  "batch_id": 1,
+  "movement_type": "relocation",
+  "source_bin_id": 1,
+  "destination_bin_id": 2,
+  "quantity": 10,
+  "notes": "Moving plants to different location"
+}
+
+###
+### C005: POST - Record harvest movement
+###
+POST {{baseUrl}}{{apiPrefix}}/movements
+Content-Type: application/json
+
+{
+  "batch_id": 1,
+  "movement_type": "harvest",
+  "source_bin_id": 1,
+  "quantity": 5,
+  "notes": "Harvesting ready plants"
+}
+
+###
+### C006: GET - Get movement history for batch (Batch ID: 1)
+###
+GET {{baseUrl}}{{apiPrefix}}/batches/1/movements
+Content-Type: application/json
+
+###
+### C007: GET - Get current stock for location (Location ID: 1)
+###
+GET {{baseUrl}}{{apiPrefix}}/locations/1/stock
+Content-Type: application/json
+
+###
+### C007: GET - Get current stock for bin (Bin ID: 1)
+###
+GET {{baseUrl}}{{apiPrefix}}/bins/1/stock
+Content-Type: application/json
+
+###
+### GET - List all stock movements (with pagination)
+###
+GET {{baseUrl}}{{apiPrefix}}/movements?skip=0&limit=20
+Content-Type: application/json
+
+###
+### PUT - Update batch status
+###
+PUT {{baseUrl}}{{apiPrefix}}/batches/1/status
+Content-Type: application/json
+
+{
+  "status": "active"
+}
+
+###
+### Error Test: GET - Non-existent batch
+###
+GET {{baseUrl}}{{apiPrefix}}/batches/99999
+Content-Type: application/json
+
+###
+### Error Test: POST - Invalid movement (insufficient quantity)
+###
+POST {{baseUrl}}{{apiPrefix}}/movements
+Content-Type: application/json
+
+{
+  "batch_id": 1,
+  "movement_type": "relocation",
+  "source_bin_id": 1,
+  "destination_bin_id": 2,
+  "quantity": 999999,
+  "notes": "Invalid - quantity exceeds available stock"
+}
+
+###
+### Error Test: GET - Non-existent task
+###
+GET {{baseUrl}}{{apiPrefix}}/tasks/INVALID-TASK-ID
+Content-Type: application/json
+
+###

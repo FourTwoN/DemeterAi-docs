@@ -50,3 +50,30 @@ class DensityParameterService:
         if not model:
             raise ValueError("DensityParameter {id} not found")
         await self.repo.delete(id)
+
+    async def get_by_product_and_packaging(
+        self, product_id: int, packaging_catalog_id: int
+    ) -> DensityParameterResponse | None:
+        """Get density parameter for product and packaging combination."""
+        from sqlalchemy import select
+
+        from app.models.density_parameter import DensityParameter
+
+        stmt = select(DensityParameter).where(
+            (DensityParameter.product_id == product_id)
+            & (DensityParameter.packaging_catalog_id == packaging_catalog_id)
+        )
+        result = await self.repo.session.execute(stmt)
+        model = result.scalars().first()
+        return DensityParameterResponse.from_model(model) if model else None
+
+    async def get_by_product(self, product_id: int) -> list[DensityParameterResponse]:
+        """Get all density parameters for a product."""
+        from sqlalchemy import select
+
+        from app.models.density_parameter import DensityParameter
+
+        stmt = select(DensityParameter).where(DensityParameter.product_id == product_id)
+        result = await self.repo.session.execute(stmt)
+        models = result.scalars().all()
+        return [DensityParameterResponse.from_model(m) for m in models]

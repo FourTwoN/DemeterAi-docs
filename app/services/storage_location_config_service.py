@@ -52,3 +52,33 @@ class StorageLocationConfigService:
         if not model:
             raise ValueError("StorageLocationConfig {id} not found")
         await self.repo.delete(id)
+
+    async def get_by_location(self, location_id: int) -> StorageLocationConfigResponse | None:
+        """Get configuration for a specific location."""
+        # Query by storage_location_id
+        from sqlalchemy import select
+
+        from app.models.storage_location_config import StorageLocationConfig
+
+        stmt = select(StorageLocationConfig).where(
+            StorageLocationConfig.storage_location_id == location_id
+        )
+        result = await self.repo.session.execute(stmt)
+        model = result.scalars().first()
+        return StorageLocationConfigResponse.from_model(model) if model else None
+
+    async def create_or_update(
+        self, request: StorageLocationConfigCreateRequest
+    ) -> StorageLocationConfigResponse:
+        """Create or update configuration for a location."""
+        # Check if config exists for this location
+        existing = await self.get_by_location(request.storage_location_id)
+
+        if existing:
+            # Update existing
+            update_data = request.model_dump(exclude_unset=True)
+            updated_model = await self.repo.update(existing.storage_location_config_id, update_data)
+            return StorageLocationConfigResponse.from_model(updated_model)
+        else:
+            # Create new
+            return await self.create(request)

@@ -11,7 +11,8 @@
       "Bash(alembic current:*)",
       "Bash(pytest:*)",
       "Bash(alembic history:*)",
-      "Bash(psql:*)"
+      "Bash(psql:*)",
+      "Bash(docker compose:*)"
     ],
     "deny": [],
     "ask": []

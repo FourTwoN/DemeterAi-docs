@@ -1,0 +1,148 @@
+###
+### DemeterAI v2.0 - Configuration Controller HTTP Tests
+### Base URL: http://localhost:8000
+### Controller: config_controller.py (C021-C023)
+###
+
+### Variables
+@baseUrl = http://localhost:8000
+@apiPrefix = /api/v1/config
+
+###
+### C021: GET - Get storage location configuration (Location ID: 1)
+###
+GET {{baseUrl}}{{apiPrefix}}/locations/1
+Content-Type: application/json
+
+###
+### C021: POST - Create/Update storage location configuration
+###
+POST {{baseUrl}}{{apiPrefix}}/locations/1
+Content-Type: application/json
+
+{
+  "storage_location_id": 1,
+  "key": "max_capacity",
+  "value": "500",
+  "description": "Maximum plant capacity for this location"
+}
+
+###
+### C021: POST - Create configuration for photo capture settings
+###
+POST {{baseUrl}}{{apiPrefix}}/locations/1
+Content-Type: application/json
+
+{
+  "storage_location_id": 1,
+  "key": "photo_schedule",
+  "value": "08:00,14:00,18:00",
+  "description": "Daily photo capture times"
+}
+
+###
+### C021: POST - Create configuration for ML parameters
+###
+POST {{baseUrl}}{{apiPrefix}}/locations/1
+Content-Type: application/json
+
+{
+  "storage_location_id": 1,
+  "key": "ml_confidence_threshold",
+  "value": "0.75",
+  "description": "Minimum confidence for ML detections"
+}
+
+###
+### C022: GET - Get packaging catalog
+###
+GET {{baseUrl}}{{apiPrefix}}/packaging
+Content-Type: application/json
+
+###
+### C022: GET - Get packaging catalog with filters
+###
+GET {{baseUrl}}{{apiPrefix}}/packaging?type=pot&color=black
+Content-Type: application/json
+
+###
+### C022: GET - Get specific packaging item (ID: 1)
+###
+GET {{baseUrl}}{{apiPrefix}}/packaging/1
+Content-Type: application/json
+
+###
+### C023: GET - Get price list
+###
+GET {{baseUrl}}{{apiPrefix}}/prices
+Content-Type: application/json
+
+###
+### C023: GET - Get price list filtered by product
+###
+GET {{baseUrl}}{{apiPrefix}}/prices?product_id=1
+Content-Type: application/json
+
+###
+### C023: GET - Get price list filtered by packaging
+###
+GET {{baseUrl}}{{apiPrefix}}/prices?packaging_id=1
+Content-Type: application/json
+
+###
+### C023: GET - Get specific price (ID: 1)
+###
+GET {{baseUrl}}{{apiPrefix}}/prices/1
+Content-Type: application/json
+
+###
+### GET - Get density parameters
+###
+GET {{baseUrl}}{{apiPrefix}}/density-parameters
+Content-Type: application/json
+
+###
+### GET - Get density parameter for product (Product ID: 1)
+###
+GET {{baseUrl}}{{apiPrefix}}/density-parameters/product/1
+Content-Type: application/json
+
+###
+### POST - Create density parameter
+###
+POST {{baseUrl}}{{apiPrefix}}/density-parameters
+Content-Type: application/json
+
+{
+  "product_id": 1,
+  "packaging_id": 1,
+  "plants_per_sqm": 25.0,
+  "confidence_level": 0.85,
+  "notes": "Standard density for small pots"
+}
+
+###
+### DELETE - Delete location configuration (Config ID: 1)
+###
+DELETE {{baseUrl}}{{apiPrefix}}/locations/1/config/1
+Content-Type: application/json
+
+###
+### Error Test: GET - Non-existent location config
+###
+GET {{baseUrl}}{{apiPrefix}}/locations/99999
+Content-Type: application/json
+
+###
+### Error Test: GET - Non-existent packaging item
+###
+GET {{baseUrl}}{{apiPrefix}}/packaging/99999
+Content-Type: application/json
+
+###
+### Error Test: GET - Non-existent price
+###
+GET {{baseUrl}}{{apiPrefix}}/prices/99999
+Content-Type: application/json
+
+###

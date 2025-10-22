@@ -54,3 +54,13 @@ class ProductCategoryService:
         if not category_model:
             raise ValueError(f"ProductCategory {category_id} not found")
         await self.category_repo.delete(category_id)
+
+    # Convenience aliases for controller compatibility
+    async def get_all(self, skip: int = 0, limit: int = 100) -> list[ProductCategoryResponse]:
+        """Alias for get_all_categories with pagination."""
+        categories = await self.category_repo.get_multi(skip=skip, limit=limit)
+        return [ProductCategoryResponse.from_model(c) for c in categories]
+
+    async def create(self, request: ProductCategoryCreateRequest) -> ProductCategoryResponse:
+        """Alias for create_category."""
+        return await self.create_category(request)

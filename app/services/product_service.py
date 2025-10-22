@@ -250,3 +250,31 @@ class ProductService:
 
         # Delete via repository
         await self.product_repo.delete(product_id)
+
+    # Convenience aliases for controller compatibility
+    async def get_by_category_and_family(
+        self, category_id: int, family_id: int, limit: int = 100
+    ) -> list[ProductResponse]:
+        """Get products by category and family."""
+        # Query products filtered by family (family implies category)
+        products = await self.get_products_by_family(family_id, limit=limit)
+        # Additional category filter if needed (family already belongs to a category)
+        return products
+
+    async def get_by_family(self, family_id: int, limit: int = 100) -> list[ProductResponse]:
+        """Alias for get_products_by_family."""
+        return await self.get_products_by_family(family_id, limit=limit)
+
+    async def get_all(self, skip: int = 0, limit: int = 200) -> list[ProductResponse]:
+        """Alias for get_all_products with pagination."""
+        # Note: ProductRepository doesn't have skip param, so we'll slice results
+        products = await self.get_all_products(limit=limit + skip)
+        return products[skip:]
+
+    async def create(self, request: ProductCreateRequest) -> ProductResponse:
+        """Alias for create_product."""
+        return await self.create_product(request)
+
+    async def get_by_sku(self, sku: str) -> ProductResponse:
+        """Alias for get_product_by_sku."""
+        return await self.get_product_by_sku(sku)
