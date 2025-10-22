@@ -38,9 +38,11 @@ class ProductCategoryRepository(AsyncRepository[ProductCategory]):
         await self.session.refresh(category)
         return category
 
-    async def delete(self, id: Any) -> None:
+    async def delete(self, id: Any) -> bool:
         """Delete product category by ID (custom PK column name)."""
         category = await self.get(id)
         if category:
             await self.session.delete(category)
             await self.session.flush()
+            return True
+        return False

@@ -38,9 +38,11 @@ class ProductFamilyRepository(AsyncRepository[ProductFamily]):
         await self.session.refresh(family)
         return family
 
-    async def delete(self, id: Any) -> None:
+    async def delete(self, id: Any) -> bool:
         """Delete product family by ID (custom PK column name)."""
         family = await self.get(id)
         if family:
             await self.session.delete(family)
             await self.session.flush()
+            return True
+        return False
