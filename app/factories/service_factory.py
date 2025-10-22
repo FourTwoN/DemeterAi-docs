@@ -324,13 +324,13 @@ class ServiceFactory:
         """Get AnalyticsService instance.
 
         Dependencies:
-            - StockBatchRepository (for inventory queries)
-            - StockMovementRepository (for movement analytics)
+            - StockBatchService (for inventory queries)
+            - StockMovementService (for movement analytics)
         """
         if "analytics" not in self._services:
-            batch_repo = StockBatchRepository(self.session)
-            movement_repo = StockMovementRepository(self.session)
-            self._services["analytics"] = AnalyticsService(batch_repo, movement_repo)
+            batch_service = self.get_stock_batch_service()
+            movement_service = self.get_stock_movement_service()
+            self._services["analytics"] = AnalyticsService(batch_service, movement_service)
         return cast(AnalyticsService, self._services["analytics"])
 
     # =============================================================================

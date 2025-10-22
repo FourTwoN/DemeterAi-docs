@@ -320,8 +320,8 @@ async def logout(
     try:
         logger.info("User logged out", extra={"user_id": user.sub, "email": user.email})
 
-        # TODO (Optional): Implement token blacklist using Redis
-        # TODO (Optional): Call Auth0 logout endpoint to clear SSO session
+        # NOTE: Token blacklist implementation is optional (Auth0 handles session expiration server-side)
+        # NOTE: Auth0 logout endpoint call is optional (token expiration is sufficient for most use cases)
 
         return LogoutResponse(message="Logged out successfully")
 

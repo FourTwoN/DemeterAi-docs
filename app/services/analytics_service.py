@@ -4,7 +4,7 @@ Analytics Service - Business Logic for Inventory Analytics
 This service provides business intelligence and reporting capabilities
 for inventory management, including aggregated stock reports and metrics.
 
-Architecture: Service Layer (uses StockBatchRepository for data access)
+Architecture: Service Layer (uses Service→Service pattern for dependencies)
 """
 
 import csv
@@ -18,13 +18,13 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.stock_batch import StockBatch
 from app.models.stock_movement import StockMovement
-from app.repositories.stock_batch_repository import StockBatchRepository
-from app.repositories.stock_movement_repository import StockMovementRepository
 from app.schemas.analytics_schema import (
     DailyPlantCountResponse,
     DataExportResponse,
     InventoryReportResponse,
 )
+from app.services.stock_batch_service import StockBatchService
+from app.services.stock_movement_service import StockMovementService
 
 logger = logging.getLogger(__name__)
 
@@ -37,24 +37,24 @@ class AnalyticsService:
     about inventory levels, distribution, and trends.
 
     Architecture Pattern:
-    - Uses StockBatchRepository for database access
+    - Uses Service→Service pattern (StockBatchService, StockMovementService)
     - Returns Pydantic schemas (not SQLAlchemy models)
     - All methods are async
     - Comprehensive logging for audit trails
     """
 
     def __init__(
-        self, stock_batch_repo: StockBatchRepository, stock_movement_repo: StockMovementRepository
+        self, stock_batch_service: StockBatchService, stock_movement_service: StockMovementService
     ):
         """
         Initialize AnalyticsService with required dependencies.
 
         Args:
-            stock_batch_repo: Repository for stock batch data access
-            stock_movement_repo: Repository for stock movement data access
+            stock_batch_service: Service for stock batch operations
+            stock_movement_service: Service for stock movement operations
         """
-        self.stock_batch_repo = stock_batch_repo
-        self.stock_movement_repo = stock_movement_repo
+        self.stock_batch_service = stock_batch_service
+        self.stock_movement_service = stock_movement_service
         logger.info("AnalyticsService initialized")
 
     async def get_inventory_report(
@@ -102,8 +102,8 @@ class AnalyticsService:
             extra={"warehouse_id": warehouse_id, "product_id": product_id},
         )
 
-        # Access database session through repository
-        session: AsyncSession = self.stock_batch_repo.session
+        # Access database session through service (Service→Service pattern)
+        session: AsyncSession = self.stock_batch_service.repo.session
 
         # Build base query with aggregations
         stmt = select(
@@ -177,7 +177,7 @@ class AnalyticsService:
             },
         )
 
-        session: AsyncSession = self.stock_movement_repo.session
+        session: AsyncSession = self.stock_movement_service.repo.session
         results = []
 
         current_date = start_date
@@ -248,7 +248,7 @@ class AnalyticsService:
         """Export inventory data in specified format."""
         logger.info("Exporting data", extra={"format": export_format, "warehouse_id": warehouse_id})
 
-        session: AsyncSession = self.stock_batch_repo.session
+        session: AsyncSession = self.stock_batch_service.repo.session
 
         stmt = select(StockBatch)
         if warehouse_id:

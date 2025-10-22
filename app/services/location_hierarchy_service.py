@@ -94,7 +94,7 @@ class LocationHierarchyService:
         # Validate area
         if area_id:
             try:
-                area = await self.area_service.get_area_by_id(area_id)
+                area = await self.area_service.get_storage_area_by_id(area_id)
                 validated["area"] = area
 
                 # Check area belongs to warehouse if both provided
@@ -109,7 +109,7 @@ class LocationHierarchyService:
         # Validate location
         if location_id:
             try:
-                location = await self.location_service.get_location_by_id(location_id)
+                location = await self.location_service.get_storage_location_by_id(location_id)
                 validated["location"] = location
 
                 # Check location belongs to area if both provided
@@ -124,7 +124,7 @@ class LocationHierarchyService:
         # Validate bin
         if bin_id:
             try:
-                bin_entity = await self.bin_service.get_bin_by_id(bin_id)
+                bin_entity = await self.bin_service.get_storage_bin_by_id(bin_id)
                 validated["bin"] = bin_entity
 
                 # Check bin belongs to location if both provided

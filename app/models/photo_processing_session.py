@@ -396,13 +396,12 @@ class PhotoProcessingSession(Base):
     )
 
     # One-to-many: PhotoProcessingSession → StorageLocation (latest photo reference)
-    # TODO: Uncomment once circular FK is added to migration (storage_location.photo_session_id)
-    # storage_locations_latest: Mapped[list["StorageLocation"]] = relationship(
-    #     "StorageLocation",
-    #     back_populates="latest_photo_session",
-    #     foreign_keys="StorageLocation.photo_session_id",
-    #     doc="Storage locations using this as latest photo",
-    # )
+    storage_locations_latest: Mapped[list["StorageLocation"]] = relationship(
+        "StorageLocation",
+        back_populates="latest_photo_session",
+        foreign_keys="StorageLocation.photo_session_id",
+        doc="Storage locations using this as latest photo",
+    )
 
     # Table constraints
     __table_args__ = (
