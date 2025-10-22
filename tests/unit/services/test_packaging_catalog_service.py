@@ -18,7 +18,6 @@ See:
     - Schema: app/schemas/packaging_catalog_schema.py
 """
 
-from datetime import datetime
 from unittest.mock import AsyncMock, Mock
 
 import pytest
@@ -52,8 +51,8 @@ def packaging_catalog_service(mock_repo):
 def mock_packaging_catalog():
     """Create mock PackagingCatalog model instance."""
     catalog = Mock(spec=PackagingCatalog)
-    catalog.packaging_catalog_id = 1
-    catalog.code = "POT-PLASTIC-BLACK-10L"
+    catalog.id = 1
+    catalog.sku = "POT-PLASTIC-BLACK-10L"
     catalog.name = "10L Black Plastic Pot"
     catalog.packaging_type_id = 1
     catalog.packaging_material_id = 2
@@ -61,8 +60,6 @@ def mock_packaging_catalog():
     catalog.volume_liters = 10.0
     catalog.diameter_cm = 25.0
     catalog.height_cm = 20.0
-    catalog.created_at = datetime(2025, 10, 20, 14, 30, 0)
-    catalog.updated_at = None
     return catalog
 
 
@@ -76,7 +73,7 @@ async def test_create_success(packaging_catalog_service, mock_repo, mock_packagi
     """Test successful packaging catalog creation."""
     # Arrange
     request = PackagingCatalogCreateRequest(
-        code="POT-PLASTIC-BLACK-10L",
+        sku="POT-PLASTIC-BLACK-10L",
         name="10L Black Plastic Pot",
         packaging_type_id=1,
         packaging_material_id=2,
@@ -93,8 +90,8 @@ async def test_create_success(packaging_catalog_service, mock_repo, mock_packagi
 
     # Assert
     assert isinstance(response, PackagingCatalogResponse)
-    assert response.packaging_catalog_id == 1
-    assert response.code == "POT-PLASTIC-BLACK-10L"
+    assert response.id == 1
+    assert response.sku == "POT-PLASTIC-BLACK-10L"
     assert response.name == "10L Black Plastic Pot"
     assert response.packaging_type_id == 1
     assert response.packaging_material_id == 2
@@ -110,7 +107,7 @@ async def test_create_different_dimensions(packaging_catalog_service, mock_repo)
     """Test creating packaging catalog with different dimensions."""
     # Arrange
     request = PackagingCatalogCreateRequest(
-        code="POT-CERAMIC-WHITE-15L",
+        sku="POT-CERAMIC-WHITE-15L",
         name="15L White Ceramic Pot",
         packaging_type_id=1,
         packaging_material_id=3,
@@ -121,8 +118,8 @@ async def test_create_different_dimensions(packaging_catalog_service, mock_repo)
     )
 
     mock_catalog = Mock(spec=PackagingCatalog)
-    mock_catalog.packaging_catalog_id = 2
-    mock_catalog.code = "POT-CERAMIC-WHITE-15L"
+    mock_catalog.id = 2
+    mock_catalog.sku = "POT-CERAMIC-WHITE-15L"
     mock_catalog.name = "15L White Ceramic Pot"
     mock_catalog.packaging_type_id = 1
     mock_catalog.packaging_material_id = 3
@@ -130,8 +127,6 @@ async def test_create_different_dimensions(packaging_catalog_service, mock_repo)
     mock_catalog.volume_liters = 15.0
     mock_catalog.diameter_cm = 30.0
     mock_catalog.height_cm = 25.0
-    mock_catalog.created_at = datetime(2025, 10, 20, 15, 0, 0)
-    mock_catalog.updated_at = None
 
     mock_repo.create.return_value = mock_catalog
 
@@ -149,7 +144,7 @@ async def test_create_validates_positive_dimensions(packaging_catalog_service, m
     """Test that schema validates positive dimensions (gt=0)."""
     # Arrange - Schema should validate gt=0
     request = PackagingCatalogCreateRequest(
-        code="POT-TEST",
+        sku="POT-TEST",
         name="Test Pot",
         packaging_type_id=1,
         packaging_material_id=2,
@@ -160,8 +155,8 @@ async def test_create_validates_positive_dimensions(packaging_catalog_service, m
     )
 
     mock_catalog = Mock(spec=PackagingCatalog)
-    mock_catalog.packaging_catalog_id = 3
-    mock_catalog.code = "POT-TEST"
+    mock_catalog.id = 3
+    mock_catalog.sku = "POT-TEST"
     mock_catalog.name = "Test Pot"
     mock_catalog.packaging_type_id = 1
     mock_catalog.packaging_material_id = 2
@@ -169,8 +164,6 @@ async def test_create_validates_positive_dimensions(packaging_catalog_service, m
     mock_catalog.volume_liters = 5.0
     mock_catalog.diameter_cm = 15.0
     mock_catalog.height_cm = 10.0
-    mock_catalog.created_at = datetime(2025, 10, 20, 15, 30, 0)
-    mock_catalog.updated_at = None
 
     mock_repo.create.return_value = mock_catalog
 
@@ -198,8 +191,8 @@ async def test_get_by_id_success(packaging_catalog_service, mock_repo, mock_pack
     response = await packaging_catalog_service.get_by_id(1)
 
     # Assert
-    assert response.packaging_catalog_id == 1
-    assert response.code == "POT-PLASTIC-BLACK-10L"
+    assert response.id == 1
+    assert response.sku == "POT-PLASTIC-BLACK-10L"
     assert response.volume_liters == 10.0
     mock_repo.get.assert_called_once_with(1)
 
@@ -225,8 +218,8 @@ async def test_get_all_success(packaging_catalog_service, mock_repo):
     """Test getting all packaging catalogs."""
     # Arrange
     mock_cat1 = Mock(spec=PackagingCatalog)
-    mock_cat1.packaging_catalog_id = 1
-    mock_cat1.code = "POT-PLASTIC-BLACK-10L"
+    mock_cat1.id = 1
+    mock_cat1.sku = "POT-PLASTIC-BLACK-10L"
     mock_cat1.name = "10L Black Plastic Pot"
     mock_cat1.packaging_type_id = 1
     mock_cat1.packaging_material_id = 2
@@ -234,12 +227,10 @@ async def test_get_all_success(packaging_catalog_service, mock_repo):
     mock_cat1.volume_liters = 10.0
     mock_cat1.diameter_cm = 25.0
     mock_cat1.height_cm = 20.0
-    mock_cat1.created_at = datetime(2025, 10, 20, 14, 0, 0)
-    mock_cat1.updated_at = None
 
     mock_cat2 = Mock(spec=PackagingCatalog)
-    mock_cat2.packaging_catalog_id = 2
-    mock_cat2.code = "POT-CERAMIC-WHITE-15L"
+    mock_cat2.id = 2
+    mock_cat2.sku = "POT-CERAMIC-WHITE-15L"
     mock_cat2.name = "15L White Ceramic Pot"
     mock_cat2.packaging_type_id = 1
     mock_cat2.packaging_material_id = 3
@@ -247,8 +238,6 @@ async def test_get_all_success(packaging_catalog_service, mock_repo):
     mock_cat2.volume_liters = 15.0
     mock_cat2.diameter_cm = 30.0
     mock_cat2.height_cm = 25.0
-    mock_cat2.created_at = datetime(2025, 10, 20, 14, 30, 0)
-    mock_cat2.updated_at = None
 
     mock_repo.get_multi.return_value = [mock_cat1, mock_cat2]
 
@@ -257,8 +246,8 @@ async def test_get_all_success(packaging_catalog_service, mock_repo):
 
     # Assert
     assert len(response) == 2
-    assert response[0].code == "POT-PLASTIC-BLACK-10L"
-    assert response[1].code == "POT-CERAMIC-WHITE-15L"
+    assert response[0].sku == "POT-PLASTIC-BLACK-10L"
+    assert response[1].sku == "POT-CERAMIC-WHITE-15L"
     mock_repo.get_multi.assert_called_once_with(limit=100)
 
 
@@ -302,8 +291,8 @@ async def test_update_success(packaging_catalog_service, mock_repo, mock_packagi
     )
 
     updated_mock = Mock(spec=PackagingCatalog)
-    updated_mock.packaging_catalog_id = 1
-    updated_mock.code = "POT-PLASTIC-BLACK-10L"  # Code unchanged
+    updated_mock.id = 1
+    updated_mock.sku = "POT-PLASTIC-BLACK-10L"  # Code unchanged
     updated_mock.name = "Updated Pot Name"
     updated_mock.packaging_type_id = 1
     updated_mock.packaging_material_id = 2
@@ -311,8 +300,6 @@ async def test_update_success(packaging_catalog_service, mock_repo, mock_packagi
     updated_mock.volume_liters = 12.0
     updated_mock.diameter_cm = 28.0
     updated_mock.height_cm = 22.0
-    updated_mock.created_at = datetime(2025, 10, 20, 14, 30, 0)
-    updated_mock.updated_at = datetime(2025, 10, 20, 15, 0, 0)
 
     mock_repo.get.return_value = mock_packaging_catalog
     mock_repo.update.return_value = updated_mock
@@ -325,7 +312,6 @@ async def test_update_success(packaging_catalog_service, mock_repo, mock_packagi
     assert response.volume_liters == 12.0
     assert response.diameter_cm == 28.0
     assert response.height_cm == 22.0
-    assert response.updated_at is not None
     mock_repo.get.assert_called_once_with(1)
     mock_repo.update.assert_called_once()
 
@@ -351,8 +337,8 @@ async def test_update_partial_name_only(
     request = PackagingCatalogUpdateRequest(name="New Name Only")
 
     updated_mock = Mock(spec=PackagingCatalog)
-    updated_mock.packaging_catalog_id = 1
-    updated_mock.code = "POT-PLASTIC-BLACK-10L"
+    updated_mock.id = 1
+    updated_mock.sku = "POT-PLASTIC-BLACK-10L"
     updated_mock.name = "New Name Only"
     updated_mock.packaging_type_id = 1
     updated_mock.packaging_material_id = 2
@@ -360,8 +346,6 @@ async def test_update_partial_name_only(
     updated_mock.volume_liters = 10.0  # Unchanged
     updated_mock.diameter_cm = 25.0  # Unchanged
     updated_mock.height_cm = 20.0  # Unchanged
-    updated_mock.created_at = datetime(2025, 10, 20, 14, 30, 0)
-    updated_mock.updated_at = datetime(2025, 10, 20, 15, 0, 0)
 
     mock_repo.get.return_value = mock_packaging_catalog
     mock_repo.update.return_value = updated_mock
@@ -385,8 +369,8 @@ async def test_update_partial_dimensions_only(
     request = PackagingCatalogUpdateRequest(volume_liters=11.0, diameter_cm=26.0)
 
     updated_mock = Mock(spec=PackagingCatalog)
-    updated_mock.packaging_catalog_id = 1
-    updated_mock.code = "POT-PLASTIC-BLACK-10L"
+    updated_mock.id = 1
+    updated_mock.sku = "POT-PLASTIC-BLACK-10L"
     updated_mock.name = "10L Black Plastic Pot"  # Unchanged
     updated_mock.packaging_type_id = 1
     updated_mock.packaging_material_id = 2
@@ -394,8 +378,6 @@ async def test_update_partial_dimensions_only(
     updated_mock.volume_liters = 11.0
     updated_mock.diameter_cm = 26.0
     updated_mock.height_cm = 20.0  # Unchanged (not in request)
-    updated_mock.created_at = datetime(2025, 10, 20, 14, 30, 0)
-    updated_mock.updated_at = datetime(2025, 10, 20, 15, 0, 0)
 
     mock_repo.get.return_value = mock_packaging_catalog
     mock_repo.update.return_value = updated_mock

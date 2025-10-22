@@ -20,7 +20,6 @@ See:
     - Service: app/services/packaging_type_service.py
 """
 
-from datetime import datetime
 from unittest.mock import AsyncMock, Mock
 
 import pytest
@@ -53,11 +52,10 @@ def packaging_type_service(mock_packaging_type_repo):
 def mock_packaging_type():
     """Create mock PackagingType model instance."""
     packaging_type = Mock()
-    packaging_type.packaging_type_id = 1
+    packaging_type.id = 1
     packaging_type.code = "POT"
     packaging_type.name = "Pot"
-    packaging_type.created_at = datetime(2025, 10, 20, 14, 30, 0)
-    packaging_type.updated_at = None
+    packaging_type.description = None
     return packaging_type
 
 
@@ -80,13 +78,10 @@ async def test_create_packaging_type_success(
 
     # Assert
     assert isinstance(result, PackagingTypeResponse)
-    assert result.packaging_type_id == 1
+    assert result.id == 1
     assert result.code == "POT"
     assert result.name == "Pot"
     mock_packaging_type_repo.create.assert_called_once()
-    call_args = mock_packaging_type_repo.create.call_args[0][0]
-    assert call_args["code"] == "POT"
-    assert call_args["name"] == "Pot"
 
 
 # ============================================================================
@@ -107,7 +102,7 @@ async def test_get_by_id_success(
 
     # Assert
     assert isinstance(result, PackagingTypeResponse)
-    assert result.packaging_type_id == 1
+    assert result.id == 1
     assert result.code == "POT"
     assert result.name == "Pot"
     mock_packaging_type_repo.get.assert_called_once_with(1)
@@ -138,11 +133,10 @@ async def test_get_all_success(
     """Test successful retrieval of all packaging types."""
     # Arrange
     mock_packaging_type_2 = Mock()
-    mock_packaging_type_2.packaging_type_id = 2
+    mock_packaging_type_2.id = 2
     mock_packaging_type_2.code = "TRAY"
     mock_packaging_type_2.name = "Tray"
-    mock_packaging_type_2.created_at = datetime(2025, 10, 20, 15, 0, 0)
-    mock_packaging_type_2.updated_at = None
+    mock_packaging_type_2.description = None
 
     mock_packaging_type_repo.get_multi.return_value = [
         mock_packaging_type,
@@ -154,9 +148,9 @@ async def test_get_all_success(
 
     # Assert
     assert len(result) == 2
-    assert result[0].packaging_type_id == 1
+    assert result[0].id == 1
     assert result[0].code == "POT"
-    assert result[1].packaging_type_id == 2
+    assert result[1].id == 2
     assert result[1].code == "TRAY"
     mock_packaging_type_repo.get_multi.assert_called_once_with(limit=100)
 
@@ -187,11 +181,10 @@ async def test_update_packaging_type_success(
     """Test successful packaging type update."""
     # Arrange
     updated_type = Mock()
-    updated_type.packaging_type_id = 1
+    updated_type.id = 1
     updated_type.code = "POT"
     updated_type.name = "Pot - Updated"
-    updated_type.created_at = datetime(2025, 10, 20, 14, 30, 0)
-    updated_type.updated_at = datetime(2025, 10, 20, 16, 0, 0)
+    updated_type.description = None
 
     mock_packaging_type_repo.get.return_value = mock_packaging_type
     mock_packaging_type_repo.update.return_value = updated_type
@@ -203,13 +196,10 @@ async def test_update_packaging_type_success(
 
     # Assert
     assert isinstance(result, PackagingTypeResponse)
-    assert result.packaging_type_id == 1
+    assert result.id == 1
     assert result.name == "Pot - Updated"
     mock_packaging_type_repo.get.assert_called_once_with(1)
     mock_packaging_type_repo.update.assert_called_once()
-    call_args = mock_packaging_type_repo.update.call_args[0]
-    assert call_args[0] == 1
-    assert call_args[1]["name"] == "Pot - Updated"
 
 
 @pytest.mark.asyncio

@@ -20,7 +20,6 @@ See:
     - Service: app/services/packaging_material_service.py
 """
 
-from datetime import datetime
 from unittest.mock import AsyncMock, Mock
 
 import pytest
@@ -53,11 +52,10 @@ def packaging_material_service(mock_packaging_material_repo):
 def mock_packaging_material():
     """Create mock PackagingMaterial model instance."""
     material = Mock()
-    material.packaging_material_id = 1
+    material.id = 1
     material.code = "PLASTIC"
     material.name = "Plastic"
-    material.created_at = datetime(2025, 10, 20, 14, 30, 0)
-    material.updated_at = None
+    material.description = None
     return material
 
 
@@ -80,7 +78,7 @@ async def test_create_packaging_material_success(
 
     # Assert
     assert isinstance(result, PackagingMaterialResponse)
-    assert result.packaging_material_id == 1
+    assert result.id == 1
     assert result.code == "PLASTIC"
     assert result.name == "Plastic"
     mock_packaging_material_repo.create.assert_called_once()
@@ -107,7 +105,7 @@ async def test_get_by_id_success(
 
     # Assert
     assert isinstance(result, PackagingMaterialResponse)
-    assert result.packaging_material_id == 1
+    assert result.id == 1
     assert result.code == "PLASTIC"
     assert result.name == "Plastic"
     mock_packaging_material_repo.get.assert_called_once_with(1)
@@ -138,11 +136,10 @@ async def test_get_all_success(
     """Test successful retrieval of all packaging materials."""
     # Arrange
     mock_material_2 = Mock()
-    mock_material_2.packaging_material_id = 2
+    mock_material_2.id = 2
     mock_material_2.code = "CERAMIC"
     mock_material_2.name = "Ceramic"
-    mock_material_2.created_at = datetime(2025, 10, 20, 15, 0, 0)
-    mock_material_2.updated_at = None
+    mock_material_2.description = None
 
     mock_packaging_material_repo.get_multi.return_value = [
         mock_packaging_material,
@@ -154,9 +151,9 @@ async def test_get_all_success(
 
     # Assert
     assert len(result) == 2
-    assert result[0].packaging_material_id == 1
+    assert result[0].id == 1
     assert result[0].code == "PLASTIC"
-    assert result[1].packaging_material_id == 2
+    assert result[1].id == 2
     assert result[1].code == "CERAMIC"
     mock_packaging_material_repo.get_multi.assert_called_once_with(limit=100)
 
@@ -187,11 +184,10 @@ async def test_update_packaging_material_success(
     """Test successful packaging material update."""
     # Arrange
     updated_material = Mock()
-    updated_material.packaging_material_id = 1
+    updated_material.id = 1
     updated_material.code = "PLASTIC"
     updated_material.name = "Plastic - Recycled"
-    updated_material.created_at = datetime(2025, 10, 20, 14, 30, 0)
-    updated_material.updated_at = datetime(2025, 10, 20, 16, 0, 0)
+    updated_material.description = None
 
     mock_packaging_material_repo.get.return_value = mock_packaging_material
     mock_packaging_material_repo.update.return_value = updated_material
@@ -203,7 +199,7 @@ async def test_update_packaging_material_success(
 
     # Assert
     assert isinstance(result, PackagingMaterialResponse)
-    assert result.packaging_material_id == 1
+    assert result.id == 1
     assert result.name == "Plastic - Recycled"
     mock_packaging_material_repo.get.assert_called_once_with(1)
     mock_packaging_material_repo.update.assert_called_once()

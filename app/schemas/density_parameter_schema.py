@@ -1,6 +1,5 @@
 """Density Parameter Pydantic schemas."""
 
-from datetime import datetime
 from typing import TYPE_CHECKING
 
 from pydantic import BaseModel, ConfigDict, Field
@@ -37,7 +36,5 @@ class DensityParameterResponse(BaseModel):
     overlap_adjustment_factor: float
     avg_diameter_cm: float
     notes: str | None
-    created_at: datetime
-    updated_at: datetime | None
 
     model_config = ConfigDict(from_attributes=True)

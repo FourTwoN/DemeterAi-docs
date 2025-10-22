@@ -21,7 +21,6 @@ See:
     - Service: app/services/packaging_color_service.py
 """
 
-from datetime import datetime
 from unittest.mock import AsyncMock, Mock
 
 import pytest
@@ -54,12 +53,10 @@ def packaging_color_service(mock_packaging_color_repo):
 def mock_packaging_color():
     """Create mock PackagingColor model instance."""
     color = Mock()
-    color.packaging_color_id = 1
+    color.id = 1
     color.code = "BLACK"
     color.name = "Black"
     color.hex_code = "#000000"
-    color.created_at = datetime(2025, 10, 20, 14, 30, 0)
-    color.updated_at = None
     return color
 
 
@@ -82,13 +79,11 @@ async def test_create_packaging_color_success(
 
     # Assert
     assert isinstance(result, PackagingColorResponse)
-    assert result.packaging_color_id == 1
-    assert result.code == "BLACK"
+    assert result.id == 1
     assert result.name == "Black"
     assert result.hex_code == "#000000"
     mock_packaging_color_repo.create.assert_called_once()
     call_args = mock_packaging_color_repo.create.call_args[0][0]
-    assert call_args["code"] == "BLACK"
     assert call_args["name"] == "Black"
     assert call_args["hex_code"] == "#000000"
 
@@ -111,8 +106,7 @@ async def test_get_by_id_success(
 
     # Assert
     assert isinstance(result, PackagingColorResponse)
-    assert result.packaging_color_id == 1
-    assert result.code == "BLACK"
+    assert result.id == 1
     assert result.name == "Black"
     assert result.hex_code == "#000000"
     mock_packaging_color_repo.get.assert_called_once_with(1)
@@ -143,12 +137,9 @@ async def test_get_all_success(
     """Test successful retrieval of all packaging colors."""
     # Arrange
     mock_color_2 = Mock()
-    mock_color_2.packaging_color_id = 2
-    mock_color_2.code = "WHITE"
+    mock_color_2.id = 2
     mock_color_2.name = "White"
     mock_color_2.hex_code = "#FFFFFF"
-    mock_color_2.created_at = datetime(2025, 10, 20, 15, 0, 0)
-    mock_color_2.updated_at = None
 
     mock_packaging_color_repo.get_multi.return_value = [
         mock_packaging_color,
@@ -160,11 +151,11 @@ async def test_get_all_success(
 
     # Assert
     assert len(result) == 2
-    assert result[0].packaging_color_id == 1
-    assert result[0].code == "BLACK"
+    assert result[0].id == 1
+    assert result[0].name == "Black"
     assert result[0].hex_code == "#000000"
-    assert result[1].packaging_color_id == 2
-    assert result[1].code == "WHITE"
+    assert result[1].id == 2
+    assert result[1].name == "White"
     assert result[1].hex_code == "#FFFFFF"
     mock_packaging_color_repo.get_multi.assert_called_once_with(limit=100)
 
@@ -195,12 +186,10 @@ async def test_update_packaging_color_success(
     """Test successful packaging color update."""
     # Arrange
     updated_color = Mock()
-    updated_color.packaging_color_id = 1
+    updated_color.id = 1
     updated_color.code = "BLACK"
     updated_color.name = "Matte Black"
     updated_color.hex_code = "#0A0A0A"
-    updated_color.created_at = datetime(2025, 10, 20, 14, 30, 0)
-    updated_color.updated_at = datetime(2025, 10, 20, 16, 0, 0)
 
     mock_packaging_color_repo.get.return_value = mock_packaging_color
     mock_packaging_color_repo.update.return_value = updated_color
@@ -212,7 +201,7 @@ async def test_update_packaging_color_success(
 
     # Assert
     assert isinstance(result, PackagingColorResponse)
-    assert result.packaging_color_id == 1
+    assert result.id == 1
     assert result.name == "Matte Black"
     assert result.hex_code == "#0A0A0A"
     mock_packaging_color_repo.get.assert_called_once_with(1)

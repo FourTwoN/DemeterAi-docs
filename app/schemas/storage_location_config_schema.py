@@ -14,9 +14,10 @@ class StorageLocationConfigCreateRequest(BaseModel):
 
     storage_location_id: int
     product_id: int
-    packaging_catalog_id: int
-    product_state_id: int
-    expected_quantity: int = Field(..., ge=0)
+    packaging_catalog_id: int | None = None
+    expected_product_state_id: int
+    area_cm2: float = Field(..., gt=0)
+    notes: str | None = None
 
 
 class StorageLocationConfigUpdateRequest(BaseModel):
@@ -24,8 +25,9 @@ class StorageLocationConfigUpdateRequest(BaseModel):
 
     product_id: int | None = None
     packaging_catalog_id: int | None = None
-    product_state_id: int | None = None
-    expected_quantity: int | None = Field(None, ge=0)
+    expected_product_state_id: int | None = None
+    area_cm2: float | None = Field(None, gt=0)
+    notes: str | None = None
 
 
 class StorageLocationConfigResponse(BaseModel):

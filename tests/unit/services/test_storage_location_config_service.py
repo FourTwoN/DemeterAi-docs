@@ -52,12 +52,14 @@ def config_service(mock_repo):
 def mock_config():
     """Create mock StorageLocationConfig model instance."""
     config = Mock(spec=StorageLocationConfig)
-    config.storage_location_config_id = 1
+    config.id = 1
     config.storage_location_id = 100
     config.product_id = 45
     config.packaging_catalog_id = 12
-    config.product_state_id = 3
-    config.expected_quantity = 1500
+    config.expected_product_state_id = 3
+    config.area_cm2 = 5000.0
+    config.active = True
+    config.notes = None
     config.created_at = datetime(2025, 10, 20, 14, 30, 0)
     config.updated_at = None
     return config
@@ -72,12 +74,15 @@ def mock_config():
 async def test_create_success(config_service, mock_repo, mock_config):
     """Test successful storage location config creation."""
     # Arrange
+    # Update mock_config to match the request
+    mock_config.area_cm2 = 1500
+
     request = StorageLocationConfigCreateRequest(
         storage_location_id=100,
         product_id=45,
         packaging_catalog_id=12,
-        product_state_id=3,
-        expected_quantity=1500,
+        expected_product_state_id=3,
+        area_cm2=1500,
     )
 
     mock_repo.create.return_value = mock_config
@@ -87,34 +92,36 @@ async def test_create_success(config_service, mock_repo, mock_config):
 
     # Assert
     assert isinstance(response, StorageLocationConfigResponse)
-    assert response.storage_location_config_id == 1
+    assert response.id == 1
     assert response.storage_location_id == 100
     assert response.product_id == 45
     assert response.packaging_catalog_id == 12
-    assert response.product_state_id == 3
-    assert response.expected_quantity == 1500
+    assert response.expected_product_state_id == 3
+    assert response.area_cm2 == 1500
     mock_repo.create.assert_called_once()
 
 
 @pytest.mark.asyncio
-async def test_create_with_zero_quantity(config_service, mock_repo):
-    """Test creating config with zero expected quantity (valid per schema ge=0)."""
+async def test_create_with_positive_area(config_service, mock_repo):
+    """Test creating config with positive area (area_cm2 must be > 0 per schema)."""
     # Arrange
     request = StorageLocationConfigCreateRequest(
         storage_location_id=101,
         product_id=46,
         packaging_catalog_id=13,
-        product_state_id=3,
-        expected_quantity=0,  # Zero is valid (ge=0)
+        expected_product_state_id=3,
+        area_cm2=1200,  # Must be positive (gt=0)
     )
 
     mock_zero = Mock(spec=StorageLocationConfig)
-    mock_zero.storage_location_config_id = 2
+    mock_zero.id = 2
     mock_zero.storage_location_id = 101
     mock_zero.product_id = 46
     mock_zero.packaging_catalog_id = 13
-    mock_zero.product_state_id = 3
-    mock_zero.expected_quantity = 0
+    mock_zero.expected_product_state_id = 3
+    mock_zero.area_cm2 = 1200
+    mock_zero.active = True
+    mock_zero.notes = None
     mock_zero.created_at = datetime(2025, 10, 20, 15, 0, 0)
     mock_zero.updated_at = None
 
@@ -124,7 +131,7 @@ async def test_create_with_zero_quantity(config_service, mock_repo):
     response = await config_service.create(request)
 
     # Assert
-    assert response.expected_quantity == 0
+    assert response.area_cm2 == 1200
 
 
 @pytest.mark.asyncio
@@ -135,17 +142,19 @@ async def test_create_different_location(config_service, mock_repo):
         storage_location_id=200,
         product_id=50,
         packaging_catalog_id=15,
-        product_state_id=4,
-        expected_quantity=2000,
+        expected_product_state_id=4,
+        area_cm2=2000,
     )
 
     mock_config2 = Mock(spec=StorageLocationConfig)
-    mock_config2.storage_location_config_id = 3
+    mock_config2.id = 3
     mock_config2.storage_location_id = 200
     mock_config2.product_id = 50
     mock_config2.packaging_catalog_id = 15
-    mock_config2.product_state_id = 4
-    mock_config2.expected_quantity = 2000
+    mock_config2.expected_product_state_id = 4
+    mock_config2.area_cm2 = 2000
+    mock_config2.active = True
+    mock_config2.notes = None
     mock_config2.created_at = datetime(2025, 10, 20, 15, 30, 0)
     mock_config2.updated_at = None
 
@@ -156,7 +165,7 @@ async def test_create_different_location(config_service, mock_repo):
 
     # Assert
     assert response.storage_location_id == 200
-    assert response.expected_quantity == 2000
+    assert response.area_cm2 == 2000
 
 
 # ============================================================================
@@ -168,16 +177,18 @@ async def test_create_different_location(config_service, mock_repo):
 async def test_get_by_id_success(config_service, mock_repo, mock_config):
     """Test getting storage location config by ID successfully."""
     # Arrange
+    # Update mock_config to match expected values
+    mock_config.area_cm2 = 1500
     mock_repo.get.return_value = mock_config
 
     # Act
     response = await config_service.get_by_id(1)
 
     # Assert
-    assert response.storage_location_config_id == 1
+    assert response.id == 1
     assert response.storage_location_id == 100
     assert response.product_id == 45
-    assert response.expected_quantity == 1500
+    assert response.area_cm2 == 1500
     mock_repo.get.assert_called_once_with(1)
 
 
@@ -202,22 +213,26 @@ async def test_get_all_success(config_service, mock_repo):
     """Test getting all storage location configs."""
     # Arrange
     mock_config1 = Mock(spec=StorageLocationConfig)
-    mock_config1.storage_location_config_id = 1
+    mock_config1.id = 1
     mock_config1.storage_location_id = 100
     mock_config1.product_id = 45
     mock_config1.packaging_catalog_id = 12
-    mock_config1.product_state_id = 3
-    mock_config1.expected_quantity = 1500
+    mock_config1.expected_product_state_id = 3
+    mock_config1.area_cm2 = 1500
+    mock_config1.active = True
+    mock_config1.notes = None
     mock_config1.created_at = datetime(2025, 10, 20, 14, 0, 0)
     mock_config1.updated_at = None
 
     mock_config2 = Mock(spec=StorageLocationConfig)
-    mock_config2.storage_location_config_id = 2
+    mock_config2.id = 2
     mock_config2.storage_location_id = 101
     mock_config2.product_id = 46
     mock_config2.packaging_catalog_id = 13
-    mock_config2.product_state_id = 3
-    mock_config2.expected_quantity = 2000
+    mock_config2.expected_product_state_id = 3
+    mock_config2.area_cm2 = 2000
+    mock_config2.active = True
+    mock_config2.notes = None
     mock_config2.created_at = datetime(2025, 10, 20, 14, 30, 0)
     mock_config2.updated_at = None
 
@@ -269,16 +284,18 @@ async def test_update_success(config_service, mock_repo, mock_config):
     """Test updating storage location config successfully."""
     # Arrange
     request = StorageLocationConfigUpdateRequest(
-        product_id=47, packaging_catalog_id=14, expected_quantity=1800
+        product_id=47, packaging_catalog_id=14, area_cm2=1800
     )
 
     updated_mock = Mock(spec=StorageLocationConfig)
-    updated_mock.storage_location_config_id = 1
+    updated_mock.id = 1
     updated_mock.storage_location_id = 100  # Unchanged
     updated_mock.product_id = 47
     updated_mock.packaging_catalog_id = 14
-    updated_mock.product_state_id = 3  # Unchanged
-    updated_mock.expected_quantity = 1800
+    updated_mock.expected_product_state_id = 3  # Unchanged
+    updated_mock.area_cm2 = 1800
+    updated_mock.active = True
+    updated_mock.notes = None
     updated_mock.created_at = datetime(2025, 10, 20, 14, 30, 0)
     updated_mock.updated_at = datetime(2025, 10, 20, 15, 0, 0)
 
@@ -291,7 +308,7 @@ async def test_update_success(config_service, mock_repo, mock_config):
     # Assert
     assert response.product_id == 47
     assert response.packaging_catalog_id == 14
-    assert response.expected_quantity == 1800
+    assert response.area_cm2 == 1800
     assert response.updated_at is not None
     mock_repo.get.assert_called_once_with(1)
     mock_repo.update.assert_called_once()
@@ -316,12 +333,14 @@ async def test_update_partial_product_only(config_service, mock_repo, mock_confi
     request = StorageLocationConfigUpdateRequest(product_id=48)
 
     updated_mock = Mock(spec=StorageLocationConfig)
-    updated_mock.storage_location_config_id = 1
+    updated_mock.id = 1
     updated_mock.storage_location_id = 100
     updated_mock.product_id = 48
     updated_mock.packaging_catalog_id = 12  # Unchanged
-    updated_mock.product_state_id = 3  # Unchanged
-    updated_mock.expected_quantity = 1500  # Unchanged
+    updated_mock.expected_product_state_id = 3  # Unchanged
+    updated_mock.area_cm2 = 1500  # Unchanged
+    updated_mock.active = True
+    updated_mock.notes = None
     updated_mock.created_at = datetime(2025, 10, 20, 14, 30, 0)
     updated_mock.updated_at = datetime(2025, 10, 20, 15, 0, 0)
 
@@ -334,24 +353,26 @@ async def test_update_partial_product_only(config_service, mock_repo, mock_confi
     # Assert
     assert response.product_id == 48
     assert response.packaging_catalog_id == 12  # Unchanged
-    assert response.expected_quantity == 1500  # Unchanged
+    assert response.area_cm2 == 1500  # Unchanged
     call_args = mock_repo.update.call_args
     assert "product_id" in call_args[0][1]
 
 
 @pytest.mark.asyncio
 async def test_update_partial_quantity_only(config_service, mock_repo, mock_config):
-    """Test partial update (only expected_quantity, others unchanged)."""
+    """Test partial update (only area_cm2, others unchanged)."""
     # Arrange
-    request = StorageLocationConfigUpdateRequest(expected_quantity=2500)
+    request = StorageLocationConfigUpdateRequest(area_cm2=2500)
 
     updated_mock = Mock(spec=StorageLocationConfig)
-    updated_mock.storage_location_config_id = 1
+    updated_mock.id = 1
     updated_mock.storage_location_id = 100
     updated_mock.product_id = 45  # Unchanged
     updated_mock.packaging_catalog_id = 12  # Unchanged
-    updated_mock.product_state_id = 3  # Unchanged
-    updated_mock.expected_quantity = 2500
+    updated_mock.expected_product_state_id = 3  # Unchanged
+    updated_mock.area_cm2 = 2500
+    updated_mock.active = True
+    updated_mock.notes = None
     updated_mock.created_at = datetime(2025, 10, 20, 14, 30, 0)
     updated_mock.updated_at = datetime(2025, 10, 20, 15, 0, 0)
 
@@ -363,9 +384,9 @@ async def test_update_partial_quantity_only(config_service, mock_repo, mock_conf
 
     # Assert
     assert response.product_id == 45  # Unchanged
-    assert response.expected_quantity == 2500
+    assert response.area_cm2 == 2500
     call_args = mock_repo.update.call_args
-    assert "expected_quantity" in call_args[0][1]
+    assert "area_cm2" in call_args[0][1]
 
 
 @pytest.mark.asyncio
@@ -373,16 +394,18 @@ async def test_update_partial_multiple_fields(config_service, mock_repo, mock_co
     """Test partial update with multiple fields."""
     # Arrange
     request = StorageLocationConfigUpdateRequest(
-        packaging_catalog_id=15, product_state_id=4, expected_quantity=3000
+        packaging_catalog_id=15, expected_product_state_id=4, area_cm2=3000
     )
 
     updated_mock = Mock(spec=StorageLocationConfig)
-    updated_mock.storage_location_config_id = 1
+    updated_mock.id = 1
     updated_mock.storage_location_id = 100
     updated_mock.product_id = 45  # Unchanged
     updated_mock.packaging_catalog_id = 15
-    updated_mock.product_state_id = 4
-    updated_mock.expected_quantity = 3000
+    updated_mock.expected_product_state_id = 4
+    updated_mock.area_cm2 = 3000
+    updated_mock.active = True
+    updated_mock.notes = None
     updated_mock.created_at = datetime(2025, 10, 20, 14, 30, 0)
     updated_mock.updated_at = datetime(2025, 10, 20, 15, 0, 0)
 
@@ -395,13 +418,13 @@ async def test_update_partial_multiple_fields(config_service, mock_repo, mock_co
     # Assert
     assert response.product_id == 45  # Unchanged
     assert response.packaging_catalog_id == 15
-    assert response.product_state_id == 4
-    assert response.expected_quantity == 3000
+    assert response.expected_product_state_id == 4
+    assert response.area_cm2 == 3000
     call_args = mock_repo.update.call_args
     update_data = call_args[0][1]
     assert "packaging_catalog_id" in update_data
-    assert "product_state_id" in update_data
-    assert "expected_quantity" in update_data
+    assert "expected_product_state_id" in update_data
+    assert "area_cm2" in update_data
 
 
 # ============================================================================

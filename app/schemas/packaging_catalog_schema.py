@@ -11,14 +11,14 @@ if TYPE_CHECKING:
 class PackagingCatalogCreateRequest(BaseModel):
     """Request schema for creating packaging catalog."""
 
-    code: str = Field(..., min_length=1, max_length=50)
+    sku: str = Field(..., min_length=6, max_length=50)
     name: str = Field(..., min_length=1, max_length=200)
     packaging_type_id: int
     packaging_material_id: int
     packaging_color_id: int
-    volume_liters: float = Field(..., gt=0)
-    diameter_cm: float = Field(..., gt=0)
-    height_cm: float = Field(..., gt=0)
+    volume_liters: float | None = Field(None, gt=0)
+    diameter_cm: float | None = Field(None, gt=0)
+    height_cm: float | None = Field(None, gt=0)
 
 
 class PackagingCatalogUpdateRequest(BaseModel):
