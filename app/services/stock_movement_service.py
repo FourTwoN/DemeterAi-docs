@@ -35,3 +35,8 @@ class StockMovementService:
         result = await self.movement_repo.session.execute(query)
         movements = result.scalars().all()
         return [StockMovementResponse.model_validate(m) for m in movements]
+
+    async def get_multi(self, skip: int = 0, limit: int = 100) -> list[StockMovementResponse]:
+        """Get multiple stock movements with pagination."""
+        movements = await self.movement_repo.get_multi(skip=skip, limit=limit)
+        return [StockMovementResponse.model_validate(m) for m in movements]

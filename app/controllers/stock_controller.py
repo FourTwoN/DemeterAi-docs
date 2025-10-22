@@ -386,10 +386,9 @@ async def list_stock_batches(
     try:
         logger.info("Listing stock batches", extra={"skip": skip, "limit": limit})
 
-        # TODO: Implement get_multi method in StockBatchService
-        # For now, return empty list
-        logger.warning("StockBatchService.get_multi not yet implemented")
-        return []
+        batch_service = factory.get_stock_batch_service()
+        batches = await batch_service.get_multi(skip=skip, limit=limit)
+        return batches
 
     except Exception as e:
         logger.error("Failed to list batches", extra={"error": str(e)}, exc_info=True)
@@ -427,15 +426,12 @@ async def get_batch_details(
     try:
         logger.info("Getting batch details", extra={"batch_id": batch_id})
 
-        # TODO: Implement get_by_id method in StockBatchService
-        # For now, raise 404
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Batch {batch_id} not found (method not yet implemented)",
-        )
+        batch_service = factory.get_stock_batch_service()
+        batch = await batch_service.get_by_id(batch_id)
+        return batch
 
-    except HTTPException:
-        raise
+    except ValueError as e:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
 
     except Exception as e:
         logger.error("Failed to get batch", extra={"error": str(e)}, exc_info=True)
@@ -485,9 +481,7 @@ async def get_stock_movement_history(
         if batch_id:
             movements = await service.get_movements_by_batch(batch_id)
         else:
-            # TODO: Implement get_multi method
-            logger.warning("StockMovementService.get_multi not yet implemented")
-            movements = []
+            movements = await service.get_multi(skip=skip, limit=limit)
 
         return movements
 

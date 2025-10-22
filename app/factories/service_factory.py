@@ -325,10 +325,12 @@ class ServiceFactory:
 
         Dependencies:
             - StockBatchRepository (for inventory queries)
+            - StockMovementRepository (for movement analytics)
         """
         if "analytics" not in self._services:
             batch_repo = StockBatchRepository(self.session)
-            self._services["analytics"] = AnalyticsService(batch_repo)
+            movement_repo = StockMovementRepository(self.session)
+            self._services["analytics"] = AnalyticsService(batch_repo, movement_repo)
         return cast(AnalyticsService, self._services["analytics"])
 
     # =============================================================================

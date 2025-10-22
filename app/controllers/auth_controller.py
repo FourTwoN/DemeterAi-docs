@@ -257,38 +257,14 @@ async def login(
     try:
         logger.info("Login attempt", extra={"email": request.email})
 
-        # TODO: Integrate with Auth0 OAuth2 token endpoint
-        # For now, return demo response indicating Auth0 integration is needed
-
-        # In production, this will be replaced with:
-        # 1. Call Auth0 OAuth2 token endpoint: POST https://{domain}/oauth/token
-        # 2. Request body: {
-        #     "grant_type": "password",
-        #     "username": request.email,
-        #     "password": request.password,
-        #     "audience": settings.AUTH0_API_AUDIENCE,
-        #     "client_id": settings.AUTH0_CLIENT_ID,
-        #     "client_secret": settings.AUTH0_CLIENT_SECRET,
-        #     "scope": "openid profile email"
-        # }
-        # 3. Parse response: {"access_token": "...", "expires_in": 86400}
-
-        # Demo response (development only)
-        demo_token = (
-            "DEMO_TOKEN_AUTH0_INTEGRATION_PENDING_"
-            "Use_Auth0_dashboard_to_generate_real_tokens_"
-            "or_configure_AUTH0_CLIENT_ID_and_AUTH0_CLIENT_SECRET"
-        )
-
-        logger.warning(
-            "Login endpoint called but Auth0 integration pending - returning demo token",
-            extra={"email": request.email},
-        )
-
-        return LoginResponse(
-            access_token=demo_token,
-            token_type="bearer",
-            expires_in=86400,  # 24 hours
+        raise HTTPException(
+            status_code=status.HTTP_501_NOT_IMPLEMENTED,
+            detail=(
+                "Auth0 integration not configured. "
+                "Please configure AUTH0_DOMAIN, AUTH0_CLIENT_ID, and AUTH0_CLIENT_SECRET "
+                "in your environment variables, then implement Auth0 OAuth2 token flow. "
+                "See app/core/AUTH_USAGE_GUIDE.md for integration instructions."
+            ),
         )
 
     except UnauthorizedException as e:

@@ -32,3 +32,12 @@ class StockBatchService:
         """Update current quantity for a batch."""
         updated = await self.batch_repo.update(batch_id, {"quantity_current": new_quantity})
         return StockBatchResponse.model_validate(updated)
+
+    async def get_multi(self, skip: int = 0, limit: int = 100) -> list[StockBatchResponse]:
+        """Get multiple stock batches with pagination."""
+        batches = await self.batch_repo.get_multi(skip=skip, limit=limit)
+        return [StockBatchResponse.model_validate(batch) for batch in batches]
+
+    async def get_by_id(self, batch_id: int) -> StockBatchResponse:
+        """Get stock batch by ID. Alias for get_batch_by_id for consistency."""
+        return await self.get_batch_by_id(batch_id)

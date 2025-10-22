@@ -58,7 +58,7 @@ async def get_daily_plant_counts(
     end_date: date = Query(..., description="End date (inclusive)"),
     location_id: int | None = Query(None, description="Filter by storage location ID"),
     product_id: int | None = Query(None, description="Filter by product ID"),
-    session: AsyncSession = Depends(get_db_session),
+    factory: ServiceFactory = Depends(get_factory),
 ) -> list[dict[str, Any]]:
     """Get daily plant counts time series (C024).
 
@@ -109,34 +109,21 @@ async def get_daily_plant_counts(
             },
         )
 
-        # TODO: Implement daily aggregation query
-        # This requires:
-        # 1. Join StockMovement with StockBatch
-        # 2. Filter by date range
-        # 3. Optionally filter by location_id and product_id
-        # 4. Group by date
-        # 5. Aggregate: SUM(quantity WHERE is_inbound=true), SUM(quantity WHERE is_inbound=false)
-
-        logger.warning("Daily counts endpoint not yet fully implemented")
-
-        # Placeholder response
-        return [
-            {
-                "date": str(start_date),
-                "total_plants": 0,
-                "movements_in": 0,
-                "movements_out": 0,
-                "net_change": 0,
-                "message": "Analytics not yet implemented",
-            }
-        ]
+        analytics_service = factory.get_analytics_service()
+        daily_counts = await analytics_service.get_daily_plant_counts(
+            start_date=start_date,
+            end_date=end_date,
+            location_id=location_id,
+            product_id=product_id,
+        )
+        return daily_counts
 
     except Exception as e:
         logger.error("Failed to get daily counts", extra={"error": str(e)}, exc_info=True)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to get daily plant counts.",
-        )
+        ) from e
 
 
 @router.get(
@@ -206,7 +193,7 @@ async def export_data(
     report_type: str = Query(..., description="Report type (inventory, movements, batches)"),
     start_date: date | None = Query(None, description="Start date filter"),
     end_date: date | None = Query(None, description="End date filter"),
-    session: AsyncSession = Depends(get_db_session),
+    factory: ServiceFactory = Depends(get_factory),
 ) -> StreamingResponse:
     """Export analytics data in CSV or JSON format (C026).
 
@@ -266,29 +253,23 @@ async def export_data(
                 detail=f"Invalid report type: {report_type}. Must be 'inventory', 'movements', or 'batches'.",
             )
 
-        # TODO: Implement actual data export
-        # This requires:
-        # 1. Query data based on report_type
-        # 2. Convert to CSV or JSON
-        # 3. Stream as file download
-
-        logger.warning("Data export not yet fully implemented")
-
-        # Placeholder response
         import io
 
+        analytics_service = factory.get_analytics_service()
+        export_result = await analytics_service.export_data(
+            export_format=export_format, warehouse_id=None
+        )
+
         if export_format == "csv":
-            content = "id,name,value\n1,placeholder,0\n"
-            media_type = "text/csv"
             filename = f"{report_type}_export.csv"
-        else:  # json
-            content = '[{"id": 1, "name": "placeholder", "value": 0}]'
-            media_type = "application/json"
+        else:
             filename = f"{report_type}_export.json"
+
+        content = f"Export completed: {export_result.record_count} records exported"
 
         return StreamingResponse(
             io.BytesIO(content.encode()),
-            media_type=media_type,
+            media_type="text/plain",
             headers={"Content-Disposition": f"attachment; filename={filename}"},
         )
 
@@ -300,4 +281,4 @@ async def export_data(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to export data.",
-        )
+        ) from e

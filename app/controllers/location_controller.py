@@ -393,14 +393,20 @@ async def validate_location_hierarchy(
             },
         )
 
-        # TODO: Implement validate_hierarchy method in LocationHierarchyService
-        # For now, return placeholder
-        logger.warning("Hierarchy validation not yet implemented")
+        hierarchy_service = factory.get_location_hierarchy_service()
+        validation_result = await hierarchy_service.validate_hierarchy(
+            warehouse_id=warehouse_id,
+            area_id=area_id,
+            location_id=location_id,
+            bin_id=bin_id,
+        )
 
         return {
-            "valid": True,
-            "errors": [],
-            "message": "Validation not yet implemented",
+            "valid": validation_result["valid"],
+            "errors": validation_result["errors"],
+            "message": "Hierarchy validated successfully"
+            if validation_result["valid"]
+            else "Hierarchy validation failed",
             "hierarchy": {
                 "warehouse_id": warehouse_id,
                 "area_id": area_id,
