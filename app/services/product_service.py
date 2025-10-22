@@ -9,6 +9,7 @@ This service handles product management with:
 
 from sqlalchemy import select
 
+from app.core.exceptions import NotFoundException
 from app.repositories.product_repository import ProductRepository
 from app.schemas.product_schema import (
     ProductCreateRequest,
@@ -133,11 +134,11 @@ class ProductService:
             ProductResponse
 
         Raises:
-            ValueError: If product not found
+            NotFoundException: If product not found
         """
         product_model = await self.product_repo.get(product_id)
         if not product_model:
-            raise ValueError(f"Product {product_id} not found")
+            raise NotFoundException(resource="Product", identifier=product_id)
         return ProductResponse.from_model(product_model)
 
     async def get_product_by_sku(self, sku: str) -> ProductResponse:
@@ -158,7 +159,7 @@ class ProductService:
         product_model = result.scalar_one_or_none()
 
         if not product_model:
-            raise ValueError(f"Product with SKU '{sku}' not found")
+            raise NotFoundException(resource="Product", identifier=f"SKU:{sku}")
 
         return ProductResponse.from_model(product_model)
 
@@ -215,12 +216,12 @@ class ProductService:
             Updated ProductResponse
 
         Raises:
-            ValueError: If product not found
+            NotFoundException: If product not found
         """
         # Verify product exists
         product_model = await self.product_repo.get(product_id)
         if not product_model:
-            raise ValueError(f"Product {product_id} not found")
+            raise NotFoundException(resource="Product", identifier=product_id)
 
         # Update only provided fields
         update_data = request.model_dump(exclude_unset=True)
@@ -241,12 +242,12 @@ class ProductService:
             product_id: Product ID to delete
 
         Raises:
-            ValueError: If product not found
+            NotFoundException: If product not found
         """
         # Verify product exists
         product_model = await self.product_repo.get(product_id)
         if not product_model:
-            raise ValueError(f"Product {product_id} not found")
+            raise NotFoundException(resource="Product", identifier=product_id)
 
         # Delete via repository
         await self.product_repo.delete(product_id)
