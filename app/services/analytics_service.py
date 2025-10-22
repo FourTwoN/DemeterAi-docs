@@ -108,7 +108,7 @@ class AnalyticsService:
         # Build base query with aggregations
         stmt = select(
             func.count(StockBatch.id).label("total_batches"),
-            func.coalesce(func.sum(StockBatch.quantity), 0).label("total_plants"),
+            func.coalesce(func.sum(StockBatch.quantity_current), 0).label("total_plants"),
         )
 
         # Apply filters if provided
