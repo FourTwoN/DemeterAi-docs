@@ -2,7 +2,9 @@
 
 ## Purpose
 
-This diagram shows the **detailed implementation flow** for AI-powered analytics, where users can ask natural language questions and receive automated insights, visualizations, and SQL analysis through LLM integration.
+This diagram shows the **detailed implementation flow** for AI-powered analytics, where users can
+ask natural language questions and receive automated insights, visualizations, and SQL analysis
+through LLM integration.
 
 ## Scope
 
@@ -27,6 +29,7 @@ The complete AI analytics flow including:
 ### The Problem
 
 Traditional UI filters have limitations:
+
 - Can't express complex analytical questions
 - Limited to predefined aggregations
 - Requires SQL knowledge for advanced queries
@@ -35,12 +38,14 @@ Traditional UI filters have limitations:
 ### The Solution
 
 Allow users to ask questions like:
+
 - "Show me mortality rate comparison between nave 1 and nave 2"
 - "Which storage areas have the highest product concentration?"
 - "Generate a heatmap of cactus distribution across all warehouses"
 - "Find correlations between quality score and storage location characteristics"
 
 The AI:
+
 1. Understands the intent
 2. Knows the database schema
 3. Generates appropriate SQL
@@ -104,27 +109,27 @@ The AI:
 ### Security Layers
 
 1. **Read-Only Database User**
-   - Dedicated PostgreSQL user with SELECT-only privileges
-   - No DDL, DML (except SELECT), or admin operations
-   - Connection string isolation
+    - Dedicated PostgreSQL user with SELECT-only privileges
+    - No DDL, DML (except SELECT), or admin operations
+    - Connection string isolation
 
 2. **SQL Query Validation**
-   - Whitelist: Only SELECT statements
-   - Blacklist: No DROP, DELETE, UPDATE, INSERT, ALTER, GRANT, etc.
-   - Regex patterns for dangerous operations
-   - AST parsing for deep validation
+    - Whitelist: Only SELECT statements
+    - Blacklist: No DROP, DELETE, UPDATE, INSERT, ALTER, GRANT, etc.
+    - Regex patterns for dangerous operations
+    - AST parsing for deep validation
 
 3. **Execution Sandboxing**
-   - Query timeout: 30 seconds
-   - Result row limit: 10,000 rows
-   - Memory limit for Python sandbox
-   - No file system access
-   - No network access (except to database)
+    - Query timeout: 30 seconds
+    - Result row limit: 10,000 rows
+    - Memory limit for Python sandbox
+    - No file system access
+    - No network access (except to database)
 
 4. **Rate Limiting**
-   - Max 10 queries per user per minute
-   - Max 100 queries per user per hour
-   - Max 1,000 queries per user per day
+    - Max 10 queries per user per minute
+    - Max 100 queries per user per hour
+    - Max 1,000 queries per user per day
 
 ## Database Schema Exposure
 
@@ -598,11 +603,11 @@ await redis.setex(cache_key, 3600, response.json())
 
 ### Cost Management
 
-| Component | Cost | Optimization |
-|-----------|------|--------------|
+| Component       | Cost                      | Optimization                                           |
+|-----------------|---------------------------|--------------------------------------------------------|
 | OpenAI API call | ~$0.01 per query (GPT-4o) | Cache responses, use cheaper models for simple queries |
-| Database query | Minimal | Use materialized views, optimize queries |
-| Visualization | Minimal | Reuse common chart templates |
+| Database query  | Minimal                   | Use materialized views, optimize queries               |
+| Visualization   | Minimal                   | Reuse common chart templates                           |
 
 **Estimated cost**: $1-5 per 100 queries
 

@@ -1,6 +1,7 @@
 # S036: StorageLocationConfigService
 
 ## Metadata
+
 - **Epic**: [epic-004-services.md](../../02_epics/epic-004-services.md)
 - **Sprint**: Sprint-05
 - **Status**: `backlog`
@@ -8,20 +9,24 @@
 - **Complexity**: L (5 story points)
 - **Area**: `services/config`
 - **Dependencies**:
-  - Blocks: [S007, S018, C032]
-  - Blocked by: [R036, S003, S021, S027]
+    - Blocks: [S007, S018, C032]
+    - Blocked by: [R036, S003, S021, S027]
 
 ## Description
 
-**What**: Service for storage_location_configs management (expected product/packaging configuration for manual initialization validation).
+**What**: Service for storage_location_configs management (expected product/packaging configuration
+for manual initialization validation).
 
-**Why**: CRITICAL for manual stock initialization. Validates that user input matches expected configuration.
+**Why**: CRITICAL for manual stock initialization. Validates that user input matches expected
+configuration.
 
-**Context**: Application Layer. Called by S007 (StockMovementService) to validate manual init. Calls S003 (location), S021 (product), S027 (packaging).
+**Context**: Application Layer. Called by S007 (StockMovementService) to validate manual init. Calls
+S003 (location), S021 (product), S027 (packaging).
 
 ## Acceptance Criteria
 
 - [ ] **AC1**: Create config with validation (location, product, packaging must exist):
+
 ```python
 class StorageLocationConfigService:
     def __init__(
@@ -71,20 +76,24 @@ class StorageLocationConfigService:
 - [ ] **AC5**: Unit tests ≥90% coverage (CRITICAL service)
 
 ## Technical Notes
+
 - CRITICAL for manual initialization workflow
 - One config per location (unique constraint)
 - Used by S007 to validate manual stock init
 
 ## Handover Briefing
 
-**Context**: CRITICAL SERVICE for manual initialization. Validates user input against expected configuration.
+**Context**: CRITICAL SERVICE for manual initialization. Validates user input against expected
+configuration.
 
 **Key decisions**:
+
 - One config per location (1:1 relationship)
 - Validation via services (NOT repositories)
 - Config mandatory for manual init (no config = manual init fails)
 
 ## Time Tracking
+
 - **Estimated**: 5 story points (~10 hours)
 
 ---

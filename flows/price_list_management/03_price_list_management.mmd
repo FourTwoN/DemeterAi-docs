@@ -13,545 +13,544 @@ config:
   layout: elk
 ---
 flowchart TB
-    %% ═══════════════════════════════════════════════════════════════════════
-    %% DEMETERDOCS - PRICE LIST MANAGEMENT
-    %% ═══════════════════════════════════════════════════════════════════════
-    %% Purpose: Detailed implementation of price list entry management
-    %% Scope: CRUD operations combining packaging + category with pricing
-    %% Detail: Complete validation, calculation, and constraint handling
-    %% Updated: 2025-10-08 | Version: 1.0 | Mermaid v11.3.0+
-    %% ═══════════════════════════════════════════════════════════════════════
+%% ═══════════════════════════════════════════════════════════════════════
+%% DEMETERDOCS - PRICE LIST MANAGEMENT
+%% ═══════════════════════════════════════════════════════════════════════
+%% Purpose: Detailed implementation of price list entry management
+%% Scope: CRUD operations combining packaging + category with pricing
+%% Detail: Complete validation, calculation, and constraint handling
+%% Updated: 2025-10-08 | Version: 1.0 | Mermaid v11.3.0+
+%% ═══════════════════════════════════════════════════════════════════════
 
-    %% ═══════════════════════════════════════════════════════════════════════
-    %% ENTRY POINT
-    %% ═══════════════════════════════════════════════════════════════════════
-
+%% ═══════════════════════════════════════════════════════════════════════
+%% ENTRY POINT
+%% ═══════════════════════════════════════════════════════════════════════
     START@{ shape: stadium, label: "💰 Admin: Manage
-    Price List
-    Role: admin only" }
+Price List
+Role: admin only" }
 
-    SELECT_OP@{ shape: diamond, label: "Operation?" }
+SELECT_OP@{ shape: diamond, label: "Operation?" }
 
-    %% ═══════════════════════════════════════════════════════════════════════
-    %% CREATE FLOW
-    %% ═══════════════════════════════════════════════════════════════════════
+%% ═══════════════════════════════════════════════════════════════════════
+%% CREATE FLOW
+%% ═══════════════════════════════════════════════════════════════════════
 
-    subgraph CREATE_FLOW["➕ CREATE PRICE LIST ENTRY"]
-        direction TB
-
-        CREATE_SELECT_PKG@{ shape: rect, label: "📦 Select Packaging
-        Choose from catalog:
-        • Maceta R7 Black
-        • Maceta R10 White
-        • Maceta R12 Black
-        • etc." }
-
-        CREATE_SELECT_CAT@{ shape: rect, label: "🌵 Select Category
-        Choose product category:
-        • Cactus
-        • Suculenta
-        • Injerto" }
-
-        CREATE_CHECK_COMBO@{ shape: cyl, label: "Check Combination
-        SELECT * FROM price_list
-        WHERE packaging_id = $1
-        AND category_id = $2
-
-        ⏱️ 30ms" }
-
-        CREATE_COMBO_EXISTS@{ shape: diamond, label: "Combo Exists?" }
-
-        CREATE_COMBO_ERROR@{ shape: rect, label: "❌ Error
-        409 Conflict:
-        Price entry already exists
-        for this combination
-
-        Edit existing entry" }
-
-        CREATE_FORM@{ shape: rect, label: "📝 Price Entry Form
-        Required:
-        • Wholesale unit price ($)
-        • Retail unit price ($)
-        • Units per storage box
-
-        Optional:
-        • SKU (auto-generated)
-        • Observations
-        • Availability
-        • Discount factor (%)" }
-
-        CREATE_VALIDATE@{ shape: rect, label: "✅ Validate Input
-        • Prices > 0
-        • Retail >= Wholesale
-        • Units per box > 0
-        • Discount 0-100%
-        • Availability enum valid" }
-
-        CREATE_VALID@{ shape: diamond, label: "Valid?" }
-
-        CREATE_VALIDATION_ERROR@{ shape: rect, label: "❌ Validation Error
-        Show specific errors:
-        • Which field failed
-        • Why it failed
-        • How to fix" }
-
-        CREATE_GEN_SKU@{ shape: rect, label: "🏷️ Generate SKU
-        If not provided:
-
-        Pattern:
-        {CAT_CODE}-{PKG_SKU}
-
-        Example:
-        CACT-MAC-R7-BLK" }
-
-        CREATE_CHECK_SKU@{ shape: cyl, label: "Check SKU Unique
-        SELECT * FROM price_list
-        WHERE SKU = $1
-
-        ⏱️ 20ms" }
-
-        CREATE_SKU_EXISTS@{ shape: diamond, label: "SKU Exists?" }
-
-        CREATE_SKU_ERROR@{ shape: rect, label: "❌ SKU Error
-        409 Conflict:
-        SKU already exists
-
-        Generate different SKU" }
-
-        CREATE_CALC@{ shape: rect, label: "🧮 Calculations
-        Convert $ to cents:
-        wholesale_cents = $ × 100
-        retail_cents = $ × 100
-
-        Calculate total per box:
-        total = unit_price × units
-
-        Examples:
-        $5.00 → 500 cents
-        $8.00 → 800 cents
-        500 × 50 = 25000 ($250)" }
-
-        CREATE_INSERT@{ shape: cyl, label: "💾 Insert Record
-        INSERT INTO price_list
-        VALUES (
-          packaging_id,
-          category_id,
-          wholesale_cents,
-          retail_cents,
-          SKU,
-          units_per_box,
-          total_per_box,
-          observations,
-          availability,
-          discount_factor
-        )
-        RETURNING *
-
-        ⏱️ 50ms" }
-
-        CREATE_AUDIT@{ shape: rect, label: "📋 Audit Log
-        Log creation:
-        • User ID
-        • SKU created
-        • Prices set
-        • Timestamp" }
-
-        CREATE_SUCCESS@{ shape: rect, label: "✅ Success
-        201 Created
-        Return:
-        • Full price entry
-        • Calculated values
-        • Display prices ($)" }
-    end
-
-    %% ═══════════════════════════════════════════════════════════════════════
-    %% READ FLOW
-    %% ═══════════════════════════════════════════════════════════════════════
-
-    subgraph READ_FLOW["📋 READ / LIST PRICE LIST"]
-        direction TB
-
-        READ_FILTERS@{ shape: rect, label: "🔍 Apply Filters
-        Optional:
-        • Category
-        • Packaging type
-        • Availability status
-        • Price range (min/max)
-        • Search SKU
-        • Page, Page size" }
-
-        READ_QUERY@{ shape: cyl, label: "📊 Query Database
-        SELECT
-        pl.*,
-        pc.name as packaging,
-        pc.sku as pkg_sku,
-        pcat.name as category
-        FROM price_list pl
-        JOIN packaging_catalog pc
-        JOIN product_categories pcat
-        WHERE (filters)
-        ORDER BY category, packaging
-        LIMIT 50 OFFSET $n
-
-        ⏱️ 150-200ms" }
-
-        READ_FORMAT@{ shape: rect, label: "💵 Format Response
-        Convert cents to dollars:
-        $5.00 = 500 / 100
-
-        Format display:
-        • Packaging: R7 Black
-        • Category: Cactus
-        • Wholesale: $5.00
-        • Retail: $8.00
-        • Per box: $250.00" }
-
-        READ_CACHE@{ shape: rect, label: "💾 Cache Results
-        Redis key:
-        price_list:{filters}:{page}
-
-        TTL: 10 minutes
-
-        Invalidate on changes" }
-
-        READ_RESPONSE@{ shape: rect, label: "✅ Return List
-        200 OK
-        Items: [...]
-        Total: N
-        Page: X
-        Pages: Y" }
-    end
-
-    %% ═══════════════════════════════════════════════════════════════════════
-    %% UPDATE FLOW
-    %% ═══════════════════════════════════════════════════════════════════════
-
-    subgraph UPDATE_FLOW["✏️ UPDATE PRICE LIST ENTRY"]
-        direction TB
-
-        UPDATE_SELECT@{ shape: rect, label: "🎯 Select Entry
-        By ID or SKU
-        Load current values" }
-
-        UPDATE_CHECK@{ shape: cyl, label: "Check Exists
-        SELECT * FROM price_list
-        WHERE id = $1
-
-        ⏱️ 30ms" }
-
-        UPDATE_EXISTS@{ shape: diamond, label: "Exists?" }
-
-        UPDATE_NOT_FOUND@{ shape: rect, label: "❌ Not Found
-        404 Not Found:
-        Price entry does not exist" }
-
-        UPDATE_FORM@{ shape: rect, label: "📝 Update Form
-        Show current values
-        Allow editing:
-        • Wholesale price
-        • Retail price
-        • Units per box
-        • SKU
-        • Availability
-        • Discount factor
-        • Observations
-
-        Note: Cannot change
-        packaging or category" }
-
-        UPDATE_VALIDATE@{ shape: rect, label: "✅ Validate Changes
-        • Prices > 0 (if changed)
-        • Retail >= Wholesale
-        • Units > 0 (if changed)
-        • Discount 0-100%
-        • SKU unique (if changed)" }
-
-        UPDATE_VALID@{ shape: diamond, label: "Valid?" }
-
-        UPDATE_ERROR@{ shape: rect, label: "❌ Validation Error
-        Show errors and
-        current values" }
-
-        UPDATE_RECALC@{ shape: rect, label: "🧮 Recalculate
-        If price or units changed:
-
-        new_total_per_box =
-        new_unit_price × new_units
-
-        Update updated_at" }
-
-        UPDATE_EXECUTE@{ shape: cyl, label: "💾 Update Record
-        UPDATE price_list
-        SET
-          wholesale_price = $1,
-          retail_price = $2,
-          units_per_box = $3,
-          total_per_box = $4,
-          SKU = $5,
-          availability = $6,
-          discount_factor = $7,
-          observations = $8,
-          updated_at = NOW()
-        WHERE id = $9
-        RETURNING *
-
-        ⏱️ 60ms" }
-
-        UPDATE_AUDIT@{ shape: rect, label: "📋 Audit Log
-        Log changes:
-        • Old values
-        • New values
-        • User ID
-        • Timestamp" }
-
-        UPDATE_CACHE_CLEAR@{ shape: rect, label: "🗑️ Clear Cache
-        Invalidate:
-        • Price list queries
-        • Specific entry cache
-        • Related aggregations" }
-
-        UPDATE_SUCCESS@{ shape: rect, label: "✅ Success
-        200 OK
-        Return:
-        • Updated entry
-        • Changes applied count" }
-    end
-
-    %% ═══════════════════════════════════════════════════════════════════════
-    %% DELETE FLOW
-    %% ═══════════════════════════════════════════════════════════════════════
-
-    subgraph DELETE_FLOW["🗑️ DELETE PRICE LIST ENTRY"]
-        direction TB
-
-        DELETE_SELECT@{ shape: rect, label: "🎯 Select Entry
-        By ID or SKU
-        Request deletion" }
-
-        DELETE_CHECK@{ shape: cyl, label: "Check Exists
-        SELECT * FROM price_list
-        WHERE id = $1
-
-        ⏱️ 30ms" }
-
-        DELETE_EXISTS@{ shape: diamond, label: "Exists?" }
-
-        DELETE_NOT_FOUND@{ shape: rect, label: "❌ Not Found
-        404 Not Found:
-        Entry does not exist" }
-
-        DELETE_CHECK_REFS@{ shape: cyl, label: "🔍 Check References
-        SELECT COUNT(*)
-        FROM quotes
-        WHERE price_list_id = $1
-
-        SELECT COUNT(*)
-        FROM order_items
-        WHERE price_list_id = $1
-
-        ⏱️ 50ms" }
-
-        DELETE_HAS_REFS@{ shape: diamond, label: "Has References?" }
-
-        DELETE_CONFIRM_SOFT@{ shape: rect, label: "⚠️ Has References
-        Entry used in:
-        • X quotes
-        • Y orders
-
-        Options:
-        [Cancel]
-        [Mark as Discontinued]" }
-
-        DELETE_ACTION@{ shape: diamond, label: "Action?" }
-
-        DELETE_CANCEL@{ shape: rect, label: "🚫 Cancelled
-        No changes made" }
-
-        DELETE_SOFT@{ shape: cyl, label: "📝 Soft Delete
-        UPDATE price_list
-        SET
-          availability = 'discontinued',
-          updated_at = NOW()
-        WHERE id = $1
-
-        ⏱️ 40ms" }
-
-        DELETE_CONFIRM_HARD@{ shape: rect, label: "⚠️ Confirm Deletion
-        Permanently delete:
-        {SKU} {packaging} + {category}
-
-        This cannot be undone.
-
-        Confirm?" }
-
-        DELETE_CONFIRMED@{ shape: diamond, label: "Confirmed?" }
-
-        DELETE_EXECUTE@{ shape: cyl, label: "💥 Hard Delete
-        DELETE FROM price_list
-        WHERE id = $1
-        RETURNING id, SKU
-
-        ⏱️ 40ms" }
-
-        DELETE_AUDIT@{ shape: rect, label: "📋 Audit Log
-        Log deletion:
-        • User ID
-        • Deleted SKU
-        • Deletion type
-        • Timestamp" }
-
-        DELETE_CACHE_CLEAR@{ shape: rect, label: "🗑️ Clear Cache
-        Invalidate all
-        price list caches" }
-
-        DELETE_SUCCESS@{ shape: rect, label: "✅ Success
-        200 OK
-        Entry deleted/discontinued" }
-    end
-
-    %% ═══════════════════════════════════════════════════════════════════════
-    %% END STATE
-    %% ═══════════════════════════════════════════════════════════════════════
-
-    END_STATE@{ shape: stadium, label: "🏁 Operation Complete
-    Return to price list view" }
-
-    %% ═══════════════════════════════════════════════════════════════════════
-    %% CONNECTIONS - MAIN FLOW
-    %% ═══════════════════════════════════════════════════════════════════════
-
-    START --> SELECT_OP
-
-    SELECT_OP -->|Create| CREATE_SELECT_PKG
-    SELECT_OP -->|List/View| READ_FILTERS
-    SELECT_OP -->|Update| UPDATE_SELECT
-    SELECT_OP -->|Delete| DELETE_SELECT
+subgraph CREATE_FLOW["➕ CREATE PRICE LIST ENTRY"]
+direction TB
+
+CREATE_SELECT_PKG@{ shape: rect, label: "📦 Select Packaging
+Choose from catalog:
+• Maceta R7 Black
+• Maceta R10 White
+• Maceta R12 Black
+• etc." }
+
+CREATE_SELECT_CAT@{ shape: rect, label: "🌵 Select Category
+Choose product category:
+• Cactus
+• Suculenta
+• Injerto" }
+
+CREATE_CHECK_COMBO@{ shape: cyl, label: "Check Combination
+SELECT * FROM price_list
+WHERE packaging_id = $1
+AND category_id = $2
+
+⏱️ 30ms" }
+
+CREATE_COMBO_EXISTS@{ shape: diamond, label: "Combo Exists?" }
+
+CREATE_COMBO_ERROR@{ shape: rect, label: "❌ Error
+409 Conflict:
+Price entry already exists
+for this combination
+
+Edit existing entry" }
+
+CREATE_FORM@{ shape: rect, label: "📝 Price Entry Form
+Required:
+• Wholesale unit price ($)
+• Retail unit price ($)
+• Units per storage box
+
+Optional:
+• SKU (auto-generated)
+• Observations
+• Availability
+• Discount factor (%)" }
+
+CREATE_VALIDATE@{ shape: rect, label: "✅ Validate Input
+• Prices > 0
+• Retail >= Wholesale
+• Units per box > 0
+• Discount 0-100%
+• Availability enum valid" }
+
+CREATE_VALID@{ shape: diamond, label: "Valid?" }
+
+CREATE_VALIDATION_ERROR@{ shape: rect, label: "❌ Validation Error
+Show specific errors:
+• Which field failed
+• Why it failed
+• How to fix" }
+
+CREATE_GEN_SKU@{ shape: rect, label: "🏷️ Generate SKU
+If not provided:
+
+Pattern:
+{CAT_CODE}-{PKG_SKU}
+
+Example:
+CACT-MAC-R7-BLK" }
+
+CREATE_CHECK_SKU@{ shape: cyl, label: "Check SKU Unique
+SELECT * FROM price_list
+WHERE SKU = $1
+
+⏱️ 20ms" }
+
+CREATE_SKU_EXISTS@{ shape: diamond, label: "SKU Exists?" }
+
+CREATE_SKU_ERROR@{ shape: rect, label: "❌ SKU Error
+409 Conflict:
+SKU already exists
+
+Generate different SKU" }
+
+CREATE_CALC@{ shape: rect, label: "🧮 Calculations
+Convert $ to cents:
+wholesale_cents = $ × 100
+retail_cents = $ × 100
+
+Calculate total per box:
+total = unit_price × units
+
+Examples:
+$5.00 → 500 cents
+$8.00 → 800 cents
+500 × 50 = 25000 ($250)" }
+
+CREATE_INSERT@{ shape: cyl, label: "💾 Insert Record
+INSERT INTO price_list
+VALUES (
+packaging_id,
+category_id,
+wholesale_cents,
+retail_cents,
+SKU,
+units_per_box,
+total_per_box,
+observations,
+availability,
+discount_factor
+)
+RETURNING *
+
+⏱️ 50ms" }
+
+CREATE_AUDIT@{ shape: rect, label: "📋 Audit Log
+Log creation:
+• User ID
+• SKU created
+• Prices set
+• Timestamp" }
+
+CREATE_SUCCESS@{ shape: rect, label: "✅ Success
+201 Created
+Return:
+• Full price entry
+• Calculated values
+• Display prices ($)" }
+end
+
+%% ═══════════════════════════════════════════════════════════════════════
+%% READ FLOW
+%% ═══════════════════════════════════════════════════════════════════════
+
+subgraph READ_FLOW["📋 READ / LIST PRICE LIST"]
+direction TB
+
+READ_FILTERS@{ shape: rect, label: "🔍 Apply Filters
+Optional:
+• Category
+• Packaging type
+• Availability status
+• Price range (min/max)
+• Search SKU
+• Page, Page size" }
+
+READ_QUERY@{ shape: cyl, label: "📊 Query Database
+SELECT
+pl.*,
+pc.name as packaging,
+pc.sku as pkg_sku,
+pcat.name as category
+FROM price_list pl
+JOIN packaging_catalog pc
+JOIN product_categories pcat
+WHERE (filters)
+ORDER BY category, packaging
+LIMIT 50 OFFSET $n
+
+⏱️ 150-200ms" }
+
+READ_FORMAT@{ shape: rect, label: "💵 Format Response
+Convert cents to dollars:
+$5.00 = 500 / 100
+
+Format display:
+• Packaging: R7 Black
+• Category: Cactus
+• Wholesale: $5.00
+• Retail: $8.00
+• Per box: $250.00" }
+
+READ_CACHE@{ shape: rect, label: "💾 Cache Results
+Redis key:
+price_list:{filters}:{page}
+
+TTL: 10 minutes
+
+Invalidate on changes" }
+
+READ_RESPONSE@{ shape: rect, label: "✅ Return List
+200 OK
+Items: [...]
+Total: N
+Page: X
+Pages: Y" }
+end
+
+%% ═══════════════════════════════════════════════════════════════════════
+%% UPDATE FLOW
+%% ═══════════════════════════════════════════════════════════════════════
+
+subgraph UPDATE_FLOW["✏️ UPDATE PRICE LIST ENTRY"]
+direction TB
+
+UPDATE_SELECT@{ shape: rect, label: "🎯 Select Entry
+By ID or SKU
+Load current values" }
+
+UPDATE_CHECK@{ shape: cyl, label: "Check Exists
+SELECT * FROM price_list
+WHERE id = $1
+
+⏱️ 30ms" }
+
+UPDATE_EXISTS@{ shape: diamond, label: "Exists?" }
+
+UPDATE_NOT_FOUND@{ shape: rect, label: "❌ Not Found
+404 Not Found:
+Price entry does not exist" }
+
+UPDATE_FORM@{ shape: rect, label: "📝 Update Form
+Show current values
+Allow editing:
+• Wholesale price
+• Retail price
+• Units per box
+• SKU
+• Availability
+• Discount factor
+• Observations
+
+Note: Cannot change
+packaging or category" }
+
+UPDATE_VALIDATE@{ shape: rect, label: "✅ Validate Changes
+• Prices > 0 (if changed)
+• Retail >= Wholesale
+• Units > 0 (if changed)
+• Discount 0-100%
+• SKU unique (if changed)" }
+
+UPDATE_VALID@{ shape: diamond, label: "Valid?" }
+
+UPDATE_ERROR@{ shape: rect, label: "❌ Validation Error
+Show errors and
+current values" }
+
+UPDATE_RECALC@{ shape: rect, label: "🧮 Recalculate
+If price or units changed:
+
+new_total_per_box =
+new_unit_price × new_units
+
+Update updated_at" }
+
+UPDATE_EXECUTE@{ shape: cyl, label: "💾 Update Record
+UPDATE price_list
+SET
+wholesale_price = $1,
+retail_price = $2,
+units_per_box = $3,
+total_per_box = $4,
+SKU = $5,
+availability = $6,
+discount_factor = $7,
+observations = $8,
+updated_at = NOW()
+WHERE id = $9
+RETURNING *
+
+⏱️ 60ms" }
+
+UPDATE_AUDIT@{ shape: rect, label: "📋 Audit Log
+Log changes:
+• Old values
+• New values
+• User ID
+• Timestamp" }
+
+UPDATE_CACHE_CLEAR@{ shape: rect, label: "🗑️ Clear Cache
+Invalidate:
+• Price list queries
+• Specific entry cache
+• Related aggregations" }
+
+UPDATE_SUCCESS@{ shape: rect, label: "✅ Success
+200 OK
+Return:
+• Updated entry
+• Changes applied count" }
+end
+
+%% ═══════════════════════════════════════════════════════════════════════
+%% DELETE FLOW
+%% ═══════════════════════════════════════════════════════════════════════
+
+subgraph DELETE_FLOW["🗑️ DELETE PRICE LIST ENTRY"]
+direction TB
+
+DELETE_SELECT@{ shape: rect, label: "🎯 Select Entry
+By ID or SKU
+Request deletion" }
+
+DELETE_CHECK@{ shape: cyl, label: "Check Exists
+SELECT * FROM price_list
+WHERE id = $1
+
+⏱️ 30ms" }
+
+DELETE_EXISTS@{ shape: diamond, label: "Exists?" }
+
+DELETE_NOT_FOUND@{ shape: rect, label: "❌ Not Found
+404 Not Found:
+Entry does not exist" }
+
+DELETE_CHECK_REFS@{ shape: cyl, label: "🔍 Check References
+SELECT COUNT(*)
+FROM quotes
+WHERE price_list_id = $1
+
+SELECT COUNT(*)
+FROM order_items
+WHERE price_list_id = $1
+
+⏱️ 50ms" }
+
+DELETE_HAS_REFS@{ shape: diamond, label: "Has References?" }
+
+DELETE_CONFIRM_SOFT@{ shape: rect, label: "⚠️ Has References
+Entry used in:
+• X quotes
+• Y orders
+
+Options:
+[Cancel]
+[Mark as Discontinued]" }
+
+DELETE_ACTION@{ shape: diamond, label: "Action?" }
+
+DELETE_CANCEL@{ shape: rect, label: "🚫 Cancelled
+No changes made" }
+
+DELETE_SOFT@{ shape: cyl, label: "📝 Soft Delete
+UPDATE price_list
+SET
+availability = 'discontinued',
+updated_at = NOW()
+WHERE id = $1
+
+⏱️ 40ms" }
+
+DELETE_CONFIRM_HARD@{ shape: rect, label: "⚠️ Confirm Deletion
+Permanently delete:
+{SKU} {packaging} + {category}
+
+This cannot be undone.
+
+Confirm?" }
+
+DELETE_CONFIRMED@{ shape: diamond, label: "Confirmed?" }
+
+DELETE_EXECUTE@{ shape: cyl, label: "💥 Hard Delete
+DELETE FROM price_list
+WHERE id = $1
+RETURNING id, SKU
+
+⏱️ 40ms" }
+
+DELETE_AUDIT@{ shape: rect, label: "📋 Audit Log
+Log deletion:
+• User ID
+• Deleted SKU
+• Deletion type
+• Timestamp" }
+
+DELETE_CACHE_CLEAR@{ shape: rect, label: "🗑️ Clear Cache
+Invalidate all
+price list caches" }
+
+DELETE_SUCCESS@{ shape: rect, label: "✅ Success
+200 OK
+Entry deleted/discontinued" }
+end
+
+%% ═══════════════════════════════════════════════════════════════════════
+%% END STATE
+%% ═══════════════════════════════════════════════════════════════════════
+
+END_STATE@{ shape: stadium, label: "🏁 Operation Complete
+Return to price list view" }
+
+%% ═══════════════════════════════════════════════════════════════════════
+%% CONNECTIONS - MAIN FLOW
+%% ═══════════════════════════════════════════════════════════════════════
+
+START --> SELECT_OP
+
+SELECT_OP -->|Create|CREATE_SELECT_PKG
+SELECT_OP -->|List/View|READ_FILTERS
+SELECT_OP -->|Update|UPDATE_SELECT
+SELECT_OP -->|Delete|DELETE_SELECT
 
-    %% ═══════════════════════════════════════════════════════════════════════
-    %% CONNECTIONS - CREATE FLOW
-    %% ═══════════════════════════════════════════════════════════════════════
+%% ═══════════════════════════════════════════════════════════════════════
+%% CONNECTIONS - CREATE FLOW
+%% ═══════════════════════════════════════════════════════════════════════
 
-    CREATE_SELECT_PKG --> CREATE_SELECT_CAT
-    CREATE_SELECT_CAT --> CREATE_CHECK_COMBO
+CREATE_SELECT_PKG --> CREATE_SELECT_CAT
+CREATE_SELECT_CAT --> CREATE_CHECK_COMBO
 
-    CREATE_CHECK_COMBO --> CREATE_COMBO_EXISTS
+CREATE_CHECK_COMBO --> CREATE_COMBO_EXISTS
 
-    CREATE_COMBO_EXISTS -->|Yes| CREATE_COMBO_ERROR
-    CREATE_COMBO_EXISTS -->|No| CREATE_FORM
+CREATE_COMBO_EXISTS -->|Yes|CREATE_COMBO_ERROR
+CREATE_COMBO_EXISTS -->|No|CREATE_FORM
 
-    CREATE_COMBO_ERROR --> CREATE_SELECT_PKG
+CREATE_COMBO_ERROR --> CREATE_SELECT_PKG
 
-    CREATE_FORM --> CREATE_VALIDATE
-    CREATE_VALIDATE --> CREATE_VALID
+CREATE_FORM --> CREATE_VALIDATE
+CREATE_VALIDATE --> CREATE_VALID
 
-    CREATE_VALID -->|No| CREATE_VALIDATION_ERROR
-    CREATE_VALID -->|Yes| CREATE_GEN_SKU
+CREATE_VALID -->|No|CREATE_VALIDATION_ERROR
+CREATE_VALID -->|Yes|CREATE_GEN_SKU
 
-    CREATE_VALIDATION_ERROR --> CREATE_FORM
-
-    CREATE_GEN_SKU --> CREATE_CHECK_SKU
-    CREATE_CHECK_SKU --> CREATE_SKU_EXISTS
+CREATE_VALIDATION_ERROR --> CREATE_FORM
+
+CREATE_GEN_SKU --> CREATE_CHECK_SKU
+CREATE_CHECK_SKU --> CREATE_SKU_EXISTS
 
-    CREATE_SKU_EXISTS -->|Yes| CREATE_SKU_ERROR
-    CREATE_SKU_EXISTS -->|No| CREATE_CALC
+CREATE_SKU_EXISTS -->|Yes| CREATE_SKU_ERROR
+CREATE_SKU_EXISTS -->|No|CREATE_CALC
 
-    CREATE_SKU_ERROR --> CREATE_GEN_SKU
+CREATE_SKU_ERROR --> CREATE_GEN_SKU
 
-    CREATE_CALC --> CREATE_INSERT
-    CREATE_INSERT --> CREATE_AUDIT
-    CREATE_AUDIT --> CREATE_SUCCESS
-    CREATE_SUCCESS --> END_STATE
+CREATE_CALC --> CREATE_INSERT
+CREATE_INSERT --> CREATE_AUDIT
+CREATE_AUDIT --> CREATE_SUCCESS
+CREATE_SUCCESS --> END_STATE
 
-    %% ═══════════════════════════════════════════════════════════════════════
-    %% CONNECTIONS - READ FLOW
-    %% ═══════════════════════════════════════════════════════════════════════
+%% ═══════════════════════════════════════════════════════════════════════
+%% CONNECTIONS - READ FLOW
+%% ═══════════════════════════════════════════════════════════════════════
 
-    READ_FILTERS --> READ_QUERY
-    READ_QUERY --> READ_FORMAT
-    READ_FORMAT --> READ_CACHE
-    READ_CACHE --> READ_RESPONSE
-    READ_RESPONSE --> END_STATE
+READ_FILTERS --> READ_QUERY
+READ_QUERY --> READ_FORMAT
+READ_FORMAT --> READ_CACHE
+READ_CACHE --> READ_RESPONSE
+READ_RESPONSE --> END_STATE
 
-    %% ═══════════════════════════════════════════════════════════════════════
-    %% CONNECTIONS - UPDATE FLOW
-    %% ═══════════════════════════════════════════════════════════════════════
+%% ═══════════════════════════════════════════════════════════════════════
+%% CONNECTIONS - UPDATE FLOW
+%% ═══════════════════════════════════════════════════════════════════════
 
-    UPDATE_SELECT --> UPDATE_CHECK
-    UPDATE_CHECK --> UPDATE_EXISTS
+UPDATE_SELECT --> UPDATE_CHECK
+UPDATE_CHECK --> UPDATE_EXISTS
 
-    UPDATE_EXISTS -->|No| UPDATE_NOT_FOUND
-    UPDATE_EXISTS -->|Yes| UPDATE_FORM
+UPDATE_EXISTS -->|No|UPDATE_NOT_FOUND
+UPDATE_EXISTS -->|Yes|UPDATE_FORM
 
-    UPDATE_NOT_FOUND --> END_STATE
+UPDATE_NOT_FOUND --> END_STATE
 
-    UPDATE_FORM --> UPDATE_VALIDATE
-    UPDATE_VALIDATE --> UPDATE_VALID
+UPDATE_FORM --> UPDATE_VALIDATE
+UPDATE_VALIDATE --> UPDATE_VALID
 
-    UPDATE_VALID -->|No| UPDATE_ERROR
-    UPDATE_VALID -->|Yes| UPDATE_RECALC
+UPDATE_VALID -->|No|UPDATE_ERROR
+UPDATE_VALID -->|Yes|UPDATE_RECALC
 
-    UPDATE_ERROR --> UPDATE_FORM
+UPDATE_ERROR --> UPDATE_FORM
 
-    UPDATE_RECALC --> UPDATE_EXECUTE
-    UPDATE_EXECUTE --> UPDATE_AUDIT
-    UPDATE_AUDIT --> UPDATE_CACHE_CLEAR
-    UPDATE_CACHE_CLEAR --> UPDATE_SUCCESS
-    UPDATE_SUCCESS --> END_STATE
+UPDATE_RECALC --> UPDATE_EXECUTE
+UPDATE_EXECUTE --> UPDATE_AUDIT
+UPDATE_AUDIT --> UPDATE_CACHE_CLEAR
+UPDATE_CACHE_CLEAR --> UPDATE_SUCCESS
+UPDATE_SUCCESS --> END_STATE
 
-    %% ═══════════════════════════════════════════════════════════════════════
-    %% CONNECTIONS - DELETE FLOW
-    %% ═══════════════════════════════════════════════════════════════════════
+%% ═══════════════════════════════════════════════════════════════════════
+%% CONNECTIONS - DELETE FLOW
+%% ═══════════════════════════════════════════════════════════════════════
 
-    DELETE_SELECT --> DELETE_CHECK
-    DELETE_CHECK --> DELETE_EXISTS
+DELETE_SELECT --> DELETE_CHECK
+DELETE_CHECK --> DELETE_EXISTS
 
-    DELETE_EXISTS -->|No| DELETE_NOT_FOUND
-    DELETE_EXISTS -->|Yes| DELETE_CHECK_REFS
+DELETE_EXISTS -->|No|DELETE_NOT_FOUND
+DELETE_EXISTS -->|Yes|DELETE_CHECK_REFS
 
-    DELETE_NOT_FOUND --> END_STATE
+DELETE_NOT_FOUND --> END_STATE
 
-    DELETE_CHECK_REFS --> DELETE_HAS_REFS
+DELETE_CHECK_REFS --> DELETE_HAS_REFS
 
-    DELETE_HAS_REFS -->|Yes| DELETE_CONFIRM_SOFT
-    DELETE_HAS_REFS -->|No| DELETE_CONFIRM_HARD
+DELETE_HAS_REFS -->|Yes|DELETE_CONFIRM_SOFT
+DELETE_HAS_REFS -->|No| DELETE_CONFIRM_HARD
 
-    DELETE_CONFIRM_SOFT --> DELETE_ACTION
+DELETE_CONFIRM_SOFT --> DELETE_ACTION
 
-    DELETE_ACTION -->|Cancel| DELETE_CANCEL
-    DELETE_ACTION -->|Discontinue| DELETE_SOFT
+DELETE_ACTION -->|Cancel|DELETE_CANCEL
+DELETE_ACTION -->|Discontinue| DELETE_SOFT
 
-    DELETE_CANCEL --> END_STATE
+DELETE_CANCEL --> END_STATE
 
-    DELETE_SOFT --> DELETE_AUDIT
+DELETE_SOFT --> DELETE_AUDIT
 
-    DELETE_CONFIRM_HARD --> DELETE_CONFIRMED
+DELETE_CONFIRM_HARD --> DELETE_CONFIRMED
 
-    DELETE_CONFIRMED -->|No| DELETE_CANCEL
-    DELETE_CONFIRMED -->|Yes| DELETE_EXECUTE
+DELETE_CONFIRMED -->|No|DELETE_CANCEL
+DELETE_CONFIRMED -->|Yes| DELETE_EXECUTE
 
-    DELETE_EXECUTE --> DELETE_AUDIT
+DELETE_EXECUTE --> DELETE_AUDIT
 
-    DELETE_AUDIT --> DELETE_CACHE_CLEAR
-    DELETE_CACHE_CLEAR --> DELETE_SUCCESS
-    DELETE_SUCCESS --> END_STATE
+DELETE_AUDIT --> DELETE_CACHE_CLEAR
+DELETE_CACHE_CLEAR --> DELETE_SUCCESS
+DELETE_SUCCESS --> END_STATE
 
-    %% ═══════════════════════════════════════════════════════════════════════
-    %% STYLING
-    %% ═══════════════════════════════════════════════════════════════════════
+%% ═══════════════════════════════════════════════════════════════════════
+%% STYLING
+%% ═══════════════════════════════════════════════════════════════════════
 
-    classDef createStyle fill:#E8F5E9,stroke:#2E7D32,stroke-width:2px
-    classDef readStyle fill:#E3F2FD,stroke:#1565C0,stroke-width:2px
-    classDef updateStyle fill:#FFF3E0,stroke:#EF6C00,stroke-width:2px
-    classDef deleteStyle fill:#FFEBEE,stroke:#C62828,stroke-width:2px
-    classDef errorStyle fill:#FFCDD2,stroke:#B71C1C,stroke-width:3px
-    classDef successStyle fill:#C8E6C9,stroke:#388E3C,stroke-width:2px
+classDef createStyle fill: #E8F5E9, stroke: #2E7D32, stroke-width: 2px
+classDef readStyle fill: #E3F2FD, stroke: #1565C0, stroke-width: 2px
+classDef updateStyle fill: #FFF3E0, stroke: #EF6C00, stroke-width: 2px
+classDef deleteStyle fill: #FFEBEE, stroke: #C62828, stroke-width: 2px
+classDef errorStyle fill: #FFCDD2, stroke: #B71C1C, stroke-width: 3px
+classDef successStyle fill: #C8E6C9, stroke: #388E3C, stroke-width: 2px
 
-    class CREATE_SELECT_PKG,CREATE_SELECT_CAT,CREATE_CHECK_COMBO,CREATE_FORM,CREATE_VALIDATE,CREATE_GEN_SKU,CREATE_CHECK_SKU,CREATE_CALC,CREATE_INSERT,CREATE_AUDIT createStyle
-    class CREATE_SUCCESS,UPDATE_SUCCESS,DELETE_SUCCESS successStyle
-    class CREATE_COMBO_ERROR,CREATE_VALIDATION_ERROR,CREATE_SKU_ERROR,UPDATE_NOT_FOUND,UPDATE_ERROR,DELETE_NOT_FOUND,DELETE_CANCEL errorStyle
+class CREATE_SELECT_PKG, CREATE_SELECT_CAT,CREATE_CHECK_COMBO, CREATE_FORM, CREATE_VALIDATE, CREATE_GEN_SKU, CREATE_CHECK_SKU, CREATE_CALC, CREATE_INSERT, CREATE_AUDIT createStyle
+class CREATE_SUCCESS, UPDATE_SUCCESS, DELETE_SUCCESS successStyle
+class CREATE_COMBO_ERROR, CREATE_VALIDATION_ERROR,CREATE_SKU_ERROR, UPDATE_NOT_FOUND, UPDATE_ERROR, DELETE_NOT_FOUND, DELETE_CANCEL errorStyle
 
-    class READ_FILTERS,READ_QUERY,READ_FORMAT,READ_CACHE,READ_RESPONSE readStyle
+class READ_FILTERS, READ_QUERY,READ_FORMAT, READ_CACHE, READ_RESPONSE readStyle
 
-    class UPDATE_SELECT,UPDATE_CHECK,UPDATE_FORM,UPDATE_VALIDATE,UPDATE_RECALC,UPDATE_EXECUTE,UPDATE_AUDIT,UPDATE_CACHE_CLEAR updateStyle
+class UPDATE_SELECT,UPDATE_CHECK,UPDATE_FORM, UPDATE_VALIDATE, UPDATE_RECALC, UPDATE_EXECUTE, UPDATE_AUDIT, UPDATE_CACHE_CLEAR updateStyle
 
-    class DELETE_SELECT,DELETE_CHECK,DELETE_CHECK_REFS,DELETE_CONFIRM_SOFT,DELETE_CONFIRM_HARD,DELETE_SOFT,DELETE_EXECUTE,DELETE_AUDIT,DELETE_CACHE_CLEAR deleteStyle
+class DELETE_SELECT, DELETE_CHECK,DELETE_CHECK_REFS, DELETE_CONFIRM_SOFT, DELETE_CONFIRM_HARD, DELETE_SOFT, DELETE_EXECUTE, DELETE_AUDIT, DELETE_CACHE_CLEAR deleteStyle

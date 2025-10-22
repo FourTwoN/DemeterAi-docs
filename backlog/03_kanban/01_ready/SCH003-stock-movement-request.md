@@ -1,6 +1,7 @@
 # [SCH003] StockMovementRequest Schema
 
 ## Metadata
+
 - **Epic**: epic-003-backend-implementation.md
 - **Sprint**: Sprint-02
 - **Status**: `backlog`
@@ -62,6 +63,7 @@ Request schema for stock movements (plantado, muerte, trasplante).
 **Coverage Target**: ≥85%
 
 ## Time Tracking
+
 - **Estimated**: 1 story point
 
 ---

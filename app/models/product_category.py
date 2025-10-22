@@ -243,10 +243,4 @@ class ProductCategory(Base):
         Example:
             <ProductCategory(id=1, code='CACTUS', name='Cactus')>
         """
-        return (
-            f"<ProductCategory("
-            f"id={self.id}, "
-            f"code='{self.code}', "
-            f"name='{self.name}'"
-            f")>"
-        )
+        return f"<ProductCategory(id={self.id}, code='{self.code}', name='{self.name}')>"

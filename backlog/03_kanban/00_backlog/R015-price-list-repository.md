@@ -1,6 +1,7 @@
 # R015: Price List Repository
 
 ## Metadata
+
 - **Epic**: [epic-003-repositories.md](../../02_epics/epic-003-repositories.md)
 - **Sprint**: Sprint-01
 - **Status**: `backlog`
@@ -9,26 +10,32 @@
 - **Area**: `repositories`
 - **Assignee**: TBD
 - **Dependencies**:
-  - Blocks: [S012]
-  - Blocked by: [F006, F007, DB027, R014, R006]
+    - Blocks: [S012]
+    - Blocked by: [F006, F007, DB027, R014, R006]
 
 ## Related Documentation
-- **Engineering Plan**: [../../engineering_plan/backend/repository_layer.md](../../engineering_plan/backend/repository_layer.md)
+
+- **Engineering Plan
+  **: [../../engineering_plan/backend/repository_layer.md](../../engineering_plan/backend/repository_layer.md)
 - **Database ERD**: [../../database/database.mmd](../../database/database.mmd#L131-L144)
 
 ## Description
 
-**What**: Implement repository class for `price_list` table with CRUD operations, SKU lookup, and pricing queries.
+**What**: Implement repository class for `price_list` table with CRUD operations, SKU lookup, and
+pricing queries.
 
-**Why**: Price list defines wholesale/retail prices for product/packaging combinations. Repository provides fast price lookup for sales calculations and catalog display.
+**Why**: Price list defines wholesale/retail prices for product/packaging combinations. Repository
+provides fast price lookup for sales calculations and catalog display.
 
-**Context**: Pricing data for monthly reconciliation and sales. Links product categories and packaging catalog. Updated periodically by admin.
+**Context**: Pricing data for monthly reconciliation and sales. Links product categories and
+packaging catalog. Updated periodically by admin.
 
 ## Acceptance Criteria
 
 - [ ] **AC1**: `PriceListRepository` class inherits from `AsyncRepository[PriceList]`
 - [ ] **AC2**: Implements `get_by_sku(sku: str)` method for fast price lookup
-- [ ] **AC3**: Implements `get_by_category_and_packaging(category_id: int, packaging_id: int)` for pricing matrix
+- [ ] **AC3**: Implements `get_by_category_and_packaging(category_id: int, packaging_id: int)` for
+  pricing matrix
 - [ ] **AC4**: Implements `get_available_products()` filtering by availability
 - [ ] **AC5**: Includes eager loading for packaging_catalog and product_category
 - [ ] **AC6**: Query performance: SKU lookup <10ms, pricing matrix <30ms
@@ -156,6 +163,7 @@ class PriceListRepository(AsyncRepository[PriceList]):
 ## Testing Requirements
 
 **Unit Tests**:
+
 ```python
 @pytest.mark.asyncio
 async def test_price_list_repo_by_sku(db_session, sample_price_list):
@@ -205,6 +213,7 @@ async def test_price_list_repo_pricing_matrix(db_session, full_price_list):
 **Coverage Target**: ≥85%
 
 ### Performance Expectations
+
 - SKU lookup: <10ms (indexed sku column)
 - Category+packaging lookup: <15ms (composite index)
 - Pricing matrix: <30ms for full catalog
@@ -213,12 +222,13 @@ async def test_price_list_repo_pricing_matrix(db_session, full_price_list):
 ## Handover Briefing
 
 **For the next developer:**
+
 - **Context**: Pricing data for sales and monthly reconciliation. Updated periodically by admin
 - **Key decisions**:
-  - SKU format: "{CATEGORY}-{PACKAGING}" (e.g., "CACT-10CM")
-  - Wholesale vs retail pricing tracked separately
-  - Availability field indicates stock status (nullable)
-  - discount_factor for promotions/seasonal pricing
+    - SKU format: "{CATEGORY}-{PACKAGING}" (e.g., "CACT-10CM")
+    - Wholesale vs retail pricing tracked separately
+    - Availability field indicates stock status (nullable)
+    - discount_factor for promotions/seasonal pricing
 - **Next steps**: Service layer uses this for sales calculations
 
 ## Definition of Done Checklist
@@ -232,6 +242,7 @@ async def test_price_list_repo_pricing_matrix(db_session, full_price_list):
 - [ ] PR reviewed (2+ approvals)
 
 ## Time Tracking
+
 - **Estimated**: 3 story points (~6 hours)
 - **Actual**: TBD
 

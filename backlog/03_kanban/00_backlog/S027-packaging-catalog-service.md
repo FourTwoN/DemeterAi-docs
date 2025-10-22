@@ -1,6 +1,7 @@
 # S027: PackagingCatalogService
 
 ## Metadata
+
 - **Epic**: [epic-004-services.md](../../02_epics/epic-004-services.md)
 - **Sprint**: Sprint-05
 - **Status**: `backlog`
@@ -9,8 +10,8 @@
 - **Area**: `services/catalog`
 - **Assignee**: TBD
 - **Dependencies**:
-  - Blocks: [S036, C024]
-  - Blocked by: [R027, S024, S025, S026]
+    - Blocks: [S036, C024]
+    - Blocked by: [R027, S024, S025, S026]
 
 ## Description
 
@@ -29,10 +30,12 @@
 - [ ] **AC5**: Unit tests ≥85% coverage
 
 ## Technical Notes
+
 - SKU format: MACETA-PLASTICO-NEGRO-10CM
 - Dimensions included in SKU for uniqueness
 
 ## Time Tracking
+
 - **Estimated**: 3 story points (~6 hours)
 
 ---

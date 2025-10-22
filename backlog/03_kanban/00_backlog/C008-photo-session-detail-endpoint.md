@@ -1,6 +1,7 @@
 # [C008] Photo Session Detail - GET /api/photos/sessions/{id}
 
 ## Metadata
+
 - **Epic**: epic-003-backend-implementation.md
 - **Sprint**: Sprint-03
 - **Status**: `backlog`
@@ -11,7 +12,8 @@
 
 ## Description
 
-Retrieve detailed information for a single photo processing session including detections, estimations, and processing status.
+Retrieve detailed information for a single photo processing session including detections,
+estimations, and processing status.
 
 ## Acceptance Criteria
 
@@ -35,6 +37,7 @@ async def get_photo_session(
 **Coverage Target**: ≥85%
 
 ## Time Tracking
+
 - **Estimated**: 1 story point
 
 ---

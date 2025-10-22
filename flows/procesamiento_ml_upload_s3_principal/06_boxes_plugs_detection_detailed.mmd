@@ -6,568 +6,567 @@ version: "1.0.0"
 mermaid_version: "v11.3.0+"
 description: "Ultra-detailed subflow: Electrical infrastructure detection (boxes, plugs, meters) for agricultural field auditing"
 parent_diagram: "01_complete_pipeline_v4.mmd"
-related_diagrams: ["04_ml_parent_segmentation_detailed.mmd", "05_sahi_detection_child_detailed.mmd"]
+related_diagrams: [ "04_ml_parent_segmentation_detailed.mmd", "05_sahi_detection_child_detailed.mmd" ]
 ---
 
 flowchart TD
-    %% =================================================================
-    %% DIAGRAM 06: BOXES & ELECTRICAL PLUGS DETECTION
-    %% =================================================================
-    %%
-    %% PURPOSE:
-    %% Alternative detection path for electrical infrastructure auditing.
-    %% Counts boxes, plugs, meters, and junction boxes in agricultural fields.
-    %%
-    %% USE CASE:
-    %% - Electrical infrastructure inventory
-    %% - Field safety audits
-    %% - Maintenance planning
-    %%
-    %% SCOPE: Single Celery child task spawned by ML parent (diagram 04)
-    %% INPUT: image_id_pk (UUID), detection_type ('boxes' | 'plugs')
-    %% OUTPUT: count of detected infrastructure elements with locations
-    %%
-    %% KEY DIFFERENCES FROM PLANT DETECTION (diagram 05):
-    %% - Simpler algorithm (no band-based estimation)
-    %% - Different YOLO model (infrastructure-specific)
-    %% - Higher confidence threshold (0.6 vs 0.45)
-    %% - Exact counts (no density correction)
-    %%
-    %% PERFORMANCE TARGET: ~5-10s per image (fewer objects)
-    %% =================================================================
-
+%% =================================================================
+%% DIAGRAM 06: BOXES & ELECTRICAL PLUGS DETECTION
+%% =================================================================
+%%
+%% PURPOSE:
+%% Alternative detection path for electrical infrastructure auditing.
+%% Counts boxes, plugs, meters, and junction boxes in agricultural fields.
+%%
+%% USE CASE:
+%% - Electrical infrastructure inventory
+%% - Field safety audits
+%% - Maintenance planning
+%%
+%% SCOPE: Single Celery child task spawned by ML parent (diagram 04)
+%% INPUT: image_id_pk (UUID), detection_type ('boxes' | 'plugs')
+%% OUTPUT: count of detected infrastructure elements with locations
+%%
+%% KEY DIFFERENCES FROM PLANT DETECTION (diagram 05):
+%% - Simpler algorithm (no band-based estimation)
+%% - Different YOLO model (infrastructure-specific)
+%% - Higher confidence threshold (0.6 vs 0.45)
+%% - Exact counts (no density correction)
+%%
+%% PERFORMANCE TARGET: ~5-10s per image (fewer objects)
+%% =================================================================
     START@{ shape: stadium, label: "🚀 Boxes/Plugs Detection Task
-    Celery Worker: gpu_pool
-    Queue: infrastructure_queue
-    Concurrency: solo (1 per GPU)
-    ⏱️ Target: 5-10s per image" }
-
-    %% =================================================================
-    %% SECTION 1: TASK INITIALIZATION & MODEL SELECTION
-    %% =================================================================
-
-    START --> TASK_INIT
-
-    TASK_INIT@{ shape: subproc, label: "📦 Task Initialization
-    Function: detect_infrastructure(image_id_pk, detection_type)
-
-    Input Parameters:
-    - image_id_pk: UUID (Primary Key)
-    - detection_type: str ('boxes' | 'plugs' | 'meters' | 'all')
-
-    Detection Classes Mapping:
-    {
-        'boxes': ['electrical_box', 'junction_box', 'control_panel'],
-        'plugs': ['wall_plug', 'industrial_plug', 'outlet'],
-        'meters': ['electric_meter', 'smart_meter'],
-        'all': [... all classes ...]
-    }
-
-    ⏱️ ~1ms initialization" }
-
-    TASK_INIT --> GET_MODEL
-
-    GET_MODEL@{ shape: subproc, label: "🧠 Get Infrastructure Model (Singleton)
-
-    Python Code:
-    worker_id = os.getpid() % num_gpus
-    model_key = f'yolo_v11_infrastructure_{worker_id}'
-
-    if model_key not in model_cache:
-        # Different model than plant detection!
-        model = YOLO('yolo11x-infrastructure.pt')  # X-large for precision
-        model.to(f'cuda:{worker_id}')
-        model.fuse()
-        model_cache[model_key] = model
-
-    model = model_cache[model_key]
-
-    Model Differences:
-    - Plant model: yolo11m (medium, optimized for speed)
-    - Infrastructure model: yolo11x (extra-large, optimized for precision)
-
-    Classes Trained On:
-    - electrical_box (class 0)
-    - junction_box (class 1)
-    - control_panel (class 2)
-    - wall_plug (class 3)
-    - industrial_plug (class 4)
-    - outlet (class 5)
-    - electric_meter (class 6)
-    - smart_meter (class 7)
-
-    ⏱️ First call: ~4s (larger model)
-    ⏱️ Cached calls: ~0.1ms
-    ♻️ Singleton per GPU worker" }
-
-    GET_MODEL --> LOAD_IMAGE_DATA
-
-    LOAD_IMAGE_DATA@{ shape: cyl, label: "🗄️ SELECT Image Data
-
-    Query:
-    SELECT
-        s3_url,
-        width_px,
-        height_px,
-        gps_latitude,
-        gps_longitude,
-        field_id,
-        uploaded_at
-    FROM s3_images
-    WHERE id = image_id_pk
-
-    Result Example:
-    {
-        's3_url': 's3://demeter-images/field123/img_456.avif',
-        'width_px': 4000,
-        'height_px': 3000,
-        'gps_latitude': -34.5678,
-        'gps_longitude': -58.1234,
-        'field_id': UUID('...'),
-        'uploaded_at': '2025-10-08 10:30:00'
-    }
-
-    ⏱️ ~2ms (indexed query)" }
-
-    LOAD_IMAGE_DATA --> DOWNLOAD_S3
-
-    %% =================================================================
-    %% SECTION 2: IMAGE DOWNLOAD & PREPROCESSING
-    %% =================================================================
-
-    DOWNLOAD_S3@{ shape: subproc, label: "📥 Download Image from S3
-
-    Python Code:
-    s3_client.download_fileobj(
-        Bucket=AWS_BUCKET,
-        Key=s3_url,
-        Fileobj=buffer
-    )
-
-    img = Image.open(buffer)
-    img_array = np.array(img)
-
-    # Preprocessing for infrastructure detection
-    # (Different from plant detection - no normalization needed)
-
-    Optimization:
-    - Stream to memory (no disk I/O)
-    - Direct NumPy conversion
-    - No image resizing (preserve detail)
-
-    ⏱️ ~500ms-2s (depends on size)
-    ⚡ I/O-bound" }
-
-    DOWNLOAD_S3 --> CHECK_USE_SAHI
-
-    CHECK_USE_SAHI@{ shape: diamond, label: "Image > 3000px
-    OR
-    detection_type
-    == 'all'?" }
-
-    CHECK_USE_SAHI -->|Yes| INIT_SAHI
-    CHECK_USE_SAHI -->|No| DIRECT_YOLO
-
-    %% =================================================================
-    %% SECTION 3A: SAHI PATH (Large Images or Full Scan)
-    %% =================================================================
-
-    INIT_SAHI@{ shape: subproc, label: "✂️ Initialize SAHI Slicing
-
-    from sahi import AutoDetectionModel
-    from sahi.predict import get_sliced_prediction
-
-    detection_model = AutoDetectionModel.from_pretrained(
-        model_type='yolov8',
-        model=model,
-        confidence_threshold=0.6,  # Higher than plants (0.45)
-        device=f'cuda:{worker_id}'
-    )
-
-    Configuration (Different from plant detection):
-    - slice_height: 800  # Larger slices (infrastructure bigger than plants)
-    - slice_width: 800
-    - overlap_height_ratio: 0.3  # More overlap (30% vs 20%)
-    - overlap_width_ratio: 0.3
-    - postprocess_type: 'NMS'
-    - postprocess_match_threshold: 0.4  # Stricter NMS
-
-    WHY DIFFERENT:
-    - Infrastructure objects are larger → bigger slices
-    - Fewer objects → can afford more overlap
-    - Higher confidence threshold → reduce false positives
-
-    ⏱️ ~10ms initialization" }
-
-    INIT_SAHI --> SAHI_SLICE
-
-    SAHI_SLICE@{ shape: subproc, label: "🔪 Perform Sliced Prediction
-
-    Python Code:
-    result = get_sliced_prediction(
-        img_array,
-        detection_model,
-        slice_height=800,
-        slice_width=800,
-        overlap_height_ratio=0.3,
-        overlap_width_ratio=0.3,
-        verbose=0
-    )
-
-    Example: 4000x3000 image
-    → ~20 slices (5 cols × 4 rows)
-    → Each slice: ~80ms inference (larger model)
-    → Total: ~1.6s for all slices
-
-    ⏱️ ~1-4s (fewer slices than plant detection)
-    🔥 GPU-intensive" }
+Celery Worker: gpu_pool
+Queue: infrastructure_queue
+Concurrency: solo (1 per GPU)
+⏱️ Target: 5-10s per image" }
+
+%% =================================================================
+%% SECTION 1: TASK INITIALIZATION & MODEL SELECTION
+%% =================================================================
+
+START --> TASK_INIT
+
+TASK_INIT@{ shape: subproc, label: "📦 Task Initialization
+Function: detect_infrastructure(image_id_pk, detection_type)
+
+Input Parameters:
+- image_id_pk: UUID (Primary Key)
+- detection_type: str ('boxes' | 'plugs' | 'meters' | 'all')
+
+Detection Classes Mapping:
+{
+'boxes': ['electrical_box', 'junction_box', 'control_panel'],
+'plugs': ['wall_plug', 'industrial_plug', 'outlet'],
+'meters': ['electric_meter', 'smart_meter'],
+'all': [... all classes ...]
+}
+
+⏱️ ~1ms initialization" }
+
+TASK_INIT --> GET_MODEL
+
+GET_MODEL@{ shape: subproc, label: "🧠 Get Infrastructure Model (Singleton)
+
+Python Code:
+worker_id = os.getpid() % num_gpus
+model_key = f'yolo_v11_infrastructure_{worker_id}'
+
+if model_key not in model_cache:
+# Different model than plant detection!
+model = YOLO('yolo11x-infrastructure.pt') # X-large for precision
+model.to(f'cuda:{worker_id}')
+model.fuse()
+model_cache[model_key] = model
+
+model = model_cache[model_key]
+
+Model Differences:
+- Plant model: yolo11m (medium, optimized for speed)
+- Infrastructure model: yolo11x (extra-large, optimized for precision)
+
+Classes Trained On:
+- electrical_box (class 0)
+- junction_box (class 1)
+- control_panel (class 2)
+- wall_plug (class 3)
+- industrial_plug (class 4)
+- outlet (class 5)
+- electric_meter (class 6)
+- smart_meter (class 7)
+
+⏱️ First call: ~4s (larger model)
+⏱️ Cached calls: ~0.1ms
+♻️ Singleton per GPU worker" }
+
+GET_MODEL --> LOAD_IMAGE_DATA
+
+LOAD_IMAGE_DATA@{ shape: cyl, label: "🗄️ SELECT Image Data
+
+Query:
+SELECT
+s3_url,
+width_px,
+height_px,
+gps_latitude,
+gps_longitude,
+field_id,
+uploaded_at
+FROM s3_images
+WHERE id = image_id_pk
+
+Result Example:
+{
+'s3_url': 's3://demeter-images/field123/img_456.avif',
+'width_px': 4000,
+'height_px': 3000,
+'gps_latitude': -34.5678,
+'gps_longitude': -58.1234,
+'field_id': UUID('...'),
+'uploaded_at': '2025-10-08 10:30:00'
+}
+
+⏱️ ~2ms (indexed query)" }
+
+LOAD_IMAGE_DATA --> DOWNLOAD_S3
+
+%% =================================================================
+%% SECTION 2: IMAGE DOWNLOAD & PREPROCESSING
+%% =================================================================
+
+DOWNLOAD_S3@{ shape: subproc, label: "📥 Download Image from S3
+
+Python Code:
+s3_client.download_fileobj(
+Bucket=AWS_BUCKET,
+Key=s3_url,
+Fileobj=buffer
+)
+
+img = Image.open(buffer)
+img_array = np.array(img)
+
+# Preprocessing for infrastructure detection
+# (Different from plant detection - no normalization needed)
+
+Optimization:
+- Stream to memory (no disk I/O)
+- Direct NumPy conversion
+- No image resizing (preserve detail)
+
+⏱️ ~500ms-2s (depends on size)
+⚡ I/O-bound" }
+
+DOWNLOAD_S3 --> CHECK_USE_SAHI
+
+CHECK_USE_SAHI@{ shape: diamond, label: "Image > 3000px
+OR
+detection_type
+== 'all'?" }
+
+CHECK_USE_SAHI -->|Yes|INIT_SAHI
+CHECK_USE_SAHI -->|No|DIRECT_YOLO
+
+%% =================================================================
+%% SECTION 3A: SAHI PATH (Large Images or Full Scan)
+%% =================================================================
+
+INIT_SAHI@{ shape: subproc, label: "✂️ Initialize SAHI Slicing
+
+from sahi import AutoDetectionModel
+from sahi.predict import get_sliced_prediction
+
+detection_model = AutoDetectionModel.from_pretrained(
+model_type='yolov8',
+model=model,
+confidence_threshold=0.6, # Higher than plants (0.45)
+device=f'cuda:{worker_id}'
+)
+
+Configuration (Different from plant detection):
+- slice_height: 800 # Larger slices (infrastructure bigger than plants)
+- slice_width: 800
+- overlap_height_ratio: 0.3 # More overlap (30% vs 20%)
+- overlap_width_ratio: 0.3
+- postprocess_type: 'NMS'
+- postprocess_match_threshold: 0.4 # Stricter NMS
+
+WHY DIFFERENT:
+- Infrastructure objects are larger → bigger slices
+- Fewer objects → can afford more overlap
+- Higher confidence threshold → reduce false positives
+
+⏱️ ~10ms initialization" }
+
+INIT_SAHI --> SAHI_SLICE
+
+SAHI_SLICE@{ shape: subproc, label: "🔪 Perform Sliced Prediction
+
+Python Code:
+result = get_sliced_prediction(
+img_array,
+detection_model,
+slice_height=800,
+slice_width=800,
+overlap_height_ratio=0.3,
+overlap_width_ratio=0.3,
+verbose=0
+)
+
+Example: 4000x3000 image
+→ ~20 slices (5 cols × 4 rows)
+→ Each slice: ~80ms inference (larger model)
+→ Total: ~1.6s for all slices
+
+⏱️ ~1-4s (fewer slices than plant detection)
+🔥 GPU-intensive" }
 
-    SAHI_SLICE --> EXTRACT_DETECTIONS
-
-    %% =================================================================
-    %% SECTION 3B: DIRECT YOLO PATH (Small Images)
-    %% =================================================================
-
-    DIRECT_YOLO@{ shape: subproc, label: "🎯 Direct YOLO Detection
-
-    Python Code:
-    results = model.predict(
-        img_array,
-        conf=0.6,  # Higher confidence than plants
-        iou=0.4,   # Stricter IOU threshold
-        verbose=False
-    )
-
-    # Extract bounding boxes
-    detections = []
-    for box in results[0].boxes:
-        class_id = int(box.cls)
-        class_name = model.names[class_id]
-
-        detections.append({
-            'bbox': box.xyxy[0].cpu().numpy(),
-            'confidence': float(box.conf),
-            'class_id': class_id,
-            'class_name': class_name
-        })
-
-    ⏱️ ~100-300ms (larger model, fewer objects)
-    ⚡ Single-pass detection" }
-
-    DIRECT_YOLO --> EXTRACT_DETECTIONS
-
-    %% =================================================================
-    %% SECTION 4: DETECTION PROCESSING & FILTERING
-    %% =================================================================
-
-    EXTRACT_DETECTIONS@{ shape: subproc, label: "📊 Extract & Filter Detections
+SAHI_SLICE --> EXTRACT_DETECTIONS
+
+%% =================================================================
+%% SECTION 3B: DIRECT YOLO PATH (Small Images)
+%% =================================================================
+
+DIRECT_YOLO@{ shape: subproc, label: "🎯 Direct YOLO Detection
+
+Python Code:
+results = model.predict(
+img_array,
+conf=0.6, # Higher confidence than plants
+iou=0.4, # Stricter IOU threshold
+verbose=False
+)
+
+# Extract bounding boxes
+detections = []
+for box in results[0].boxes:
+class_id = int(box.cls)
+class_name = model.names[class_id]
+
+detections.append({
+'bbox': box.xyxy[0].cpu().numpy(),
+'confidence': float(box.conf),
+'class_id': class_id,
+'class_name': class_name
+})
+
+⏱️ ~100-300ms (larger model, fewer objects)
+⚡ Single-pass detection" }
+
+DIRECT_YOLO --> EXTRACT_DETECTIONS
+
+%% =================================================================
+%% SECTION 4: DETECTION PROCESSING & FILTERING
+%% =================================================================
+
+EXTRACT_DETECTIONS@{ shape: subproc, label: "📊 Extract & Filter Detections
 
-    Python Code:
-    target_classes = get_target_classes(detection_type)
+Python Code:
+target_classes = get_target_classes(detection_type)
 
-    filtered_detections = []
-    for pred in result.object_prediction_list:
-        if (pred.score.value >= 0.6 and
-            pred.category.name in target_classes):
+filtered_detections = []
+for pred in result.object_prediction_list:
+if (pred.score.value >= 0.6 and
+pred.category.name in target_classes):
 
-            filtered_detections.append({
-                'bbox': pred.bbox.to_xyxy(),
-                'confidence': pred.score.value,
-                'class_name': pred.category.name,
-                'class_id': pred.category.id,
-                'area_px': pred.bbox.area
-            })
-
-    Filtering Rules:
-    - confidence >= 0.6 (stricter than plants)
-    - class_name in target_classes
-    - area_px >= 500 (minimum size - infrastructure is large)
-    - bbox aspect_ratio < 5 (reject elongated false positives)
-
-    ⏱️ ~5-15ms (fewer objects)
-    ⚡ Simple list filtering" }
-
-    EXTRACT_DETECTIONS --> CHECK_DETECTIONS
-
-    CHECK_DETECTIONS@{ shape: diamond, label: "Detections > 0?" }
-
-    CHECK_DETECTIONS -->|No| NO_DETECTIONS_FOUND
-    CHECK_DETECTIONS -->|Yes| CALCULATE_GPS_LOCATIONS
-
-    NO_DETECTIONS_FOUND@{ shape: subproc, label: "⚠️ No Infrastructure Found
-
-    This is NORMAL for many agricultural fields
-    (unlike no plant detections which is unusual)
-
-    Action: Return empty result
-    {
-        'status': 'success',
-        'count': 0,
-        'detections': [],
-        'warning': None  # Not a warning, just empty field
-    }
-
-    ⏱️ ~1ms" }
-
-    NO_DETECTIONS_FOUND --> SAVE_RESULTS
-
-    %% =================================================================
-    %% SECTION 5: GPS GEOLOCATION (PostGIS)
-    %% =================================================================
-
-    CALCULATE_GPS_LOCATIONS@{ shape: subproc, label: "🌍 Calculate GPS per Detection
-
-    IMPORTANT: Each detection gets its own GPS coordinates!
-
-    Python Code:
-    # Get field boundaries from PostGIS
-    field_polygon = db.execute(
-        'SELECT ST_AsGeoJSON(geom) FROM fields WHERE id = :field_id',
-        {'field_id': field_id}
-    ).scalar()
-
-    # Calculate GPS for each detection
-    for detection in filtered_detections:
-        # Get pixel coordinates (center of bbox)
-        bbox = detection['bbox']
-        center_x = (bbox[0] + bbox[2]) / 2
-        center_y = (bbox[1] + bbox[3]) / 2
-
-        # Convert pixel → GPS using image metadata
-        # Assumes image covers entire field (standard practice)
-        lat_offset = (center_y / img_height) * field_lat_span
-        lon_offset = (center_x / img_width) * field_lon_span
-
-        gps_lat = field_min_lat + lat_offset
-        gps_lon = field_min_lon + lon_offset
-
-        detection['gps_latitude'] = gps_lat
-        detection['gps_longitude'] = gps_lon
-
-    USE CASE:
-    - Show exact location of each electrical box on map
-    - Navigate maintenance crew to specific plug
-    - Generate work orders with GPS coordinates
-
-    ⏱️ ~10-20ms (depends on detection count)
-    ⚡ Simple math (no PostGIS query per detection)" }
-
-    CALCULATE_GPS_LOCATIONS --> GROUP_BY_CLASS
-
-    %% =================================================================
-    %% SECTION 6: RESULTS AGGREGATION
-    %% =================================================================
-
-    GROUP_BY_CLASS@{ shape: subproc, label: "📊 Group Detections by Class
-
-    Python Code:
-    from collections import defaultdict
-
-    grouped = defaultdict(list)
-    for detection in filtered_detections:
-        grouped[detection['class_name']].append(detection)
-
-    # Calculate statistics per class
-    results_by_class = {}
-    for class_name, detections in grouped.items():
-        results_by_class[class_name] = {
-            'count': len(detections),
-            'avg_confidence': np.mean([d['confidence'] for d in detections]),
-            'locations': [
-                {
-                    'gps': (d['gps_latitude'], d['gps_longitude']),
-                    'bbox': d['bbox'].tolist(),
-                    'confidence': d['confidence']
-                }
-                for d in detections
-            ]
-        }
-
-    Example Result:
-    {
-        'electrical_box': {
-            'count': 3,
-            'avg_confidence': 0.82,
-            'locations': [
-                {'gps': (-34.5678, -58.1234), 'bbox': [...], 'confidence': 0.85},
-                {'gps': (-34.5679, -58.1235), 'bbox': [...], 'confidence': 0.78},
-                {'gps': (-34.5680, -58.1236), 'bbox': [...], 'confidence': 0.83}
-            ]
-        },
-        'industrial_plug': {
-            'count': 1,
-            'avg_confidence': 0.91,
-            'locations': [...]
-        }
-    }
-
-    ⏱️ ~2-5ms (groupby operation)" }
-
-    GROUP_BY_CLASS --> GENERATE_SUMMARY
-
-    GENERATE_SUMMARY@{ shape: subproc, label: "📝 Generate Detection Summary
-
-    Python Code:
-    total_count = sum(data['count'] for data in results_by_class.values())
-    overall_confidence = np.mean([
-        d['confidence']
-        for detections in filtered_detections
-    ])
-
-    summary = {
-        'total_count': total_count,
-        'overall_confidence': overall_confidence,
-        'by_class': results_by_class,
-        'detection_type': detection_type,
-        'processing_time_s': time.time() - start_time,
-        'sahi_used': sahi_was_used,
-        'image_coverage_m2': field_area_m2
-    }
-
-    Confidence Band (simpler than plant detection):
-    if overall_confidence >= 0.75:
-        confidence_band = 'HIGH'
-    elif overall_confidence >= 0.6:
-        confidence_band = 'MEDIUM'
-    else:
-        confidence_band = 'LOW'  # Unusual with 0.6 threshold
-
-    ⏱️ ~1ms" }
-
-    GENERATE_SUMMARY --> SAVE_RESULTS
-
-    %% =================================================================
-    %% SECTION 7: SAVE TO DATABASE
-    %% =================================================================
-
-    SAVE_RESULTS@{ shape: subproc, label: "💾 Prepare Database Records
-
-    Python Code:
-    # One record per detection (not bulk like plants)
-    # Infrastructure detections are few → individual INSERTs acceptable
-    infrastructure_records = []
-    for detection in filtered_detections:
-        record = {
-            'id': uuid.uuid4(),
-            'image_id': image_id_pk,
-            'class_name': detection['class_name'],
-            'class_id': detection['class_id'],
-            'bbox': detection['bbox'].tolist(),
-            'confidence': detection['confidence'],
-            'gps_latitude': detection['gps_latitude'],
-            'gps_longitude': detection['gps_longitude'],
-            'created_at': datetime.utcnow()
-        }
-        infrastructure_records.append(record)
-
-    ⏱️ ~1-3ms" }
-
-    SAVE_RESULTS --> INSERT_DETECTIONS
-
-    INSERT_DETECTIONS@{ shape: cyl, label: "🗄️ INSERT Infrastructure Detections
-
-    Query:
-    INSERT INTO infrastructure_detections
-        (id, image_id, class_name, class_id, bbox, confidence,
-         gps_latitude, gps_longitude, created_at)
-    VALUES
-        (:id, :image_id, :class_name, :class_id, :bbox, :confidence,
-         :gps_latitude, :gps_longitude, :created_at)
-
-    Note: Individual INSERTs acceptable (few objects)
-    Typical: 1-5 infrastructure objects per image
-    vs 50-200 plants per image
-
-    Alternative (if many detections):
-    session.bulk_insert_mappings(
-        InfrastructureDetection,
-        infrastructure_records
-    )
-
-    ⏱️ ~5-15ms (few INSERTs)" }
-
-    INSERT_DETECTIONS --> INSERT_SUMMARY
-
-    INSERT_SUMMARY@{ shape: cyl, label: "🗄️ INSERT Detection Summary
-
-    Query:
-    INSERT INTO infrastructure_summaries
-        (image_id, total_count, overall_confidence, by_class,
-         processing_time_s, sahi_used, confidence_band)
-    VALUES
-        (:image_id, :total_count, :overall_confidence, :by_class,
-         :processing_time_s, :sahi_used, :confidence_band)
-
-    ⏱️ ~3ms" }
-
-    INSERT_SUMMARY --> UPDATE_IMAGE_STATUS
-
-    UPDATE_IMAGE_STATUS@{ shape: cyl, label: "🗄️ UPDATE Image Status
-
-    Query:
-    UPDATE s3_images
-    SET
-        infrastructure_status = 'completed',
-        infrastructure_completed_at = NOW(),
-        infrastructure_count = :total_count
-    WHERE id = :image_id_pk
-
-    ⏱️ ~3ms (indexed UPDATE)" }
-
-    UPDATE_IMAGE_STATUS --> RETURN_RESULT
-
-    %% =================================================================
-    %% SECTION 8: RETURN TO PARENT
-    %% =================================================================
-
-    RETURN_RESULT@{ shape: subproc, label: "📤 Return Result to Parent
-
-    Python Code:
-    return {
-        'image_id': str(image_id_pk),
-        'status': 'success',
-        'total_count': total_count,
-        'confidence_band': confidence_band,
-        'by_class': results_by_class,
-        'processing_time': processing_time,
-        'sahi_used': sahi_was_used
-    }
-
-    This result goes to:
-    - Celery Chord callback (if part of batch)
-    - Direct response (if single image)
-
-    ⏱️ ~1ms" }
-
-    RETURN_RESULT --> END
-
-    END@{ shape: stadium, label: "✅ Task Complete
-
-    Total Time: 5-10s
-    Breakdown:
-    - Model load: 0.1ms (cached)
-    - S3 download: 1s
-    - SAHI/YOLO: 2-4s
-    - GPS calculation: 15ms
-    - DB save: 10ms
-    - GPU inference: 70% of time
-
-    Success Criteria:
-    ✓ Infrastructure counted
-    ✓ GPS locations calculated
-    ✓ Results persisted
-    ✓ Parent notified" }
-
-    %% =================================================================
-    %% STYLING
-    %% =================================================================
-
-    classDef criticalNode fill:#ff6b6b,stroke:#c92a2a,stroke-width:3px,color:#fff
-    classDef gpuNode fill:#9775fa,stroke:#5f3dc4,stroke-width:2px,color:#fff
-    classDef dbNode fill:#4dabf7,stroke:#1971c2,stroke-width:2px,color:#fff
-    classDef gpsNode fill:#51cf66,stroke:#2f9e44,stroke-width:2px,color:#000
-
-    class SAHI_SLICE,GET_MODEL criticalNode
-    class DIRECT_YOLO gpuNode
-    class LOAD_IMAGE_DATA,INSERT_DETECTIONS,INSERT_SUMMARY,UPDATE_IMAGE_STATUS dbNode
-    class CALCULATE_GPS_LOCATIONS gpsNode
+filtered_detections.append({
+'bbox': pred.bbox.to_xyxy(),
+'confidence': pred.score.value,
+'class_name': pred.category.name,
+'class_id': pred.category.id,
+'area_px': pred.bbox.area
+})
+
+Filtering Rules:
+- confidence >= 0.6 (stricter than plants)
+- class_name in target_classes
+- area_px >= 500 (minimum size - infrastructure is large)
+- bbox aspect_ratio < 5 (reject elongated false positives)
+
+⏱️ ~5-15ms (fewer objects)
+⚡ Simple list filtering" }
+
+EXTRACT_DETECTIONS --> CHECK_DETECTIONS
+
+CHECK_DETECTIONS@{ shape: diamond, label: "Detections > 0?" }
+
+CHECK_DETECTIONS -->|No|NO_DETECTIONS_FOUND
+CHECK_DETECTIONS -->|Yes|CALCULATE_GPS_LOCATIONS
+
+NO_DETECTIONS_FOUND@{ shape: subproc, label: "⚠️ No Infrastructure Found
+
+This is NORMAL for many agricultural fields
+(unlike no plant detections which is unusual)
+
+Action: Return empty result
+{
+'status': 'success',
+'count': 0,
+'detections': [],
+'warning': None # Not a warning, just empty field
+}
+
+⏱️ ~1ms" }
+
+NO_DETECTIONS_FOUND --> SAVE_RESULTS
+
+%% =================================================================
+%% SECTION 5: GPS GEOLOCATION (PostGIS)
+%% =================================================================
+
+CALCULATE_GPS_LOCATIONS@{ shape: subproc, label: "🌍 Calculate GPS per Detection
+
+IMPORTANT: Each detection gets its own GPS coordinates!
+
+Python Code:
+# Get field boundaries from PostGIS
+field_polygon = db.execute(
+'SELECT ST_AsGeoJSON(geom) FROM fields WHERE id = :field_id',
+{'field_id': field_id}
+).scalar()
+
+# Calculate GPS for each detection
+for detection in filtered_detections:
+# Get pixel coordinates (center of bbox)
+bbox = detection['bbox']
+center_x = (bbox[0] + bbox[2]) / 2
+center_y = (bbox[1] + bbox[3]) / 2
+
+# Convert pixel → GPS using image metadata
+# Assumes image covers entire field (standard practice)
+lat_offset = (center_y / img_height) * field_lat_span
+lon_offset = (center_x / img_width) * field_lon_span
+
+gps_lat = field_min_lat + lat_offset
+gps_lon = field_min_lon + lon_offset
+
+detection['gps_latitude'] = gps_lat
+detection['gps_longitude'] = gps_lon
+
+USE CASE:
+- Show exact location of each electrical box on map
+- Navigate maintenance crew to specific plug
+- Generate work orders with GPS coordinates
+
+⏱️ ~10-20ms (depends on detection count)
+⚡ Simple math (no PostGIS query per detection)" }
+
+CALCULATE_GPS_LOCATIONS --> GROUP_BY_CLASS
+
+%% =================================================================
+%% SECTION 6: RESULTS AGGREGATION
+%% =================================================================
+
+GROUP_BY_CLASS@{ shape: subproc, label: "📊 Group Detections by Class
+
+Python Code:
+from collections import defaultdict
+
+grouped = defaultdict(list)
+for detection in filtered_detections:
+grouped[detection['class_name']].append(detection)
+
+# Calculate statistics per class
+results_by_class = {}
+for class_name, detections in grouped.items():
+results_by_class[class_name] = {
+'count': len(detections),
+'avg_confidence': np.mean([d['confidence'] for d in detections]),
+'locations': [
+{
+'gps': (d['gps_latitude'], d['gps_longitude']),
+'bbox': d['bbox'].tolist(),
+'confidence': d['confidence']
+}
+for d in detections
+]
+}
+
+Example Result:
+{
+'electrical_box': {
+'count': 3,
+'avg_confidence': 0.82,
+'locations': [
+{'gps': (-34.5678, -58.1234), 'bbox': [...], 'confidence': 0.85},
+{'gps': (-34.5679, -58.1235), 'bbox': [...], 'confidence': 0.78},
+{'gps': (-34.5680, -58.1236), 'bbox': [...], 'confidence': 0.83}
+]
+},
+'industrial_plug': {
+'count': 1,
+'avg_confidence': 0.91,
+'locations': [...]
+}
+}
+
+⏱️ ~2-5ms (groupby operation)" }
+
+GROUP_BY_CLASS --> GENERATE_SUMMARY
+
+GENERATE_SUMMARY@{ shape: subproc, label: "📝 Generate Detection Summary
+
+Python Code:
+total_count = sum(data['count'] for data in results_by_class.values())
+overall_confidence = np.mean([
+d['confidence']
+for detections in filtered_detections
+])
+
+summary = {
+'total_count': total_count,
+'overall_confidence': overall_confidence,
+'by_class': results_by_class,
+'detection_type': detection_type,
+'processing_time_s': time.time() - start_time,
+'sahi_used': sahi_was_used,
+'image_coverage_m2': field_area_m2
+}
+
+Confidence Band (simpler than plant detection):
+if overall_confidence >= 0.75:
+confidence_band = 'HIGH'
+elif overall_confidence >= 0.6:
+confidence_band = 'MEDIUM'
+else:
+confidence_band = 'LOW' # Unusual with 0.6 threshold
+
+⏱️ ~1ms" }
+
+GENERATE_SUMMARY --> SAVE_RESULTS
+
+%% =================================================================
+%% SECTION 7: SAVE TO DATABASE
+%% =================================================================
+
+SAVE_RESULTS@{ shape: subproc, label: "💾 Prepare Database Records
+
+Python Code:
+# One record per detection (not bulk like plants)
+# Infrastructure detections are few → individual INSERTs acceptable
+infrastructure_records = []
+for detection in filtered_detections:
+record = {
+'id': uuid.uuid4(),
+'image_id': image_id_pk,
+'class_name': detection['class_name'],
+'class_id': detection['class_id'],
+'bbox': detection['bbox'].tolist(),
+'confidence': detection['confidence'],
+'gps_latitude': detection['gps_latitude'],
+'gps_longitude': detection['gps_longitude'],
+'created_at': datetime.utcnow()
+}
+infrastructure_records.append(record)
+
+⏱️ ~1-3ms" }
+
+SAVE_RESULTS --> INSERT_DETECTIONS
+
+INSERT_DETECTIONS@{ shape: cyl, label: "🗄️ INSERT Infrastructure Detections
+
+Query:
+INSERT INTO infrastructure_detections
+(id, image_id, class_name, class_id, bbox, confidence,
+gps_latitude, gps_longitude, created_at)
+VALUES
+(:id, :image_id, :class_name, :class_id, :bbox, :confidence,
+:gps_latitude, :gps_longitude, :created_at)
+
+Note: Individual INSERTs acceptable (few objects)
+Typical: 1-5 infrastructure objects per image
+vs 50-200 plants per image
+
+Alternative (if many detections):
+session.bulk_insert_mappings(
+InfrastructureDetection,
+infrastructure_records
+)
+
+⏱️ ~5-15ms (few INSERTs)" }
+
+INSERT_DETECTIONS --> INSERT_SUMMARY
+
+INSERT_SUMMARY@{ shape: cyl, label: "🗄️ INSERT Detection Summary
+
+Query:
+INSERT INTO infrastructure_summaries
+(image_id, total_count, overall_confidence, by_class,
+processing_time_s, sahi_used, confidence_band)
+VALUES
+(:image_id, :total_count, :overall_confidence, :by_class,
+:processing_time_s, :sahi_used, :confidence_band)
+
+⏱️ ~3ms" }
+
+INSERT_SUMMARY --> UPDATE_IMAGE_STATUS
+
+UPDATE_IMAGE_STATUS@{ shape: cyl, label: "🗄️ UPDATE Image Status
+
+Query:
+UPDATE s3_images
+SET
+infrastructure_status = 'completed',
+infrastructure_completed_at = NOW(),
+infrastructure_count = :total_count
+WHERE id = :image_id_pk
+
+⏱️ ~3ms (indexed UPDATE)" }
+
+UPDATE_IMAGE_STATUS --> RETURN_RESULT
+
+%% =================================================================
+%% SECTION 8: RETURN TO PARENT
+%% =================================================================
+
+RETURN_RESULT@{ shape: subproc, label: "📤 Return Result to Parent
+
+Python Code:
+return {
+'image_id': str(image_id_pk),
+'status': 'success',
+'total_count': total_count,
+'confidence_band': confidence_band,
+'by_class': results_by_class,
+'processing_time': processing_time,
+'sahi_used': sahi_was_used
+}
+
+This result goes to:
+- Celery Chord callback (if part of batch)
+- Direct response (if single image)
+
+⏱️ ~1ms" }
+
+RETURN_RESULT --> END
+
+END@{ shape: stadium, label: "✅ Task Complete
+
+Total Time: 5-10s
+Breakdown:
+- Model load: 0.1ms (cached)
+- S3 download: 1s
+- SAHI/YOLO: 2-4s
+- GPS calculation: 15ms
+- DB save: 10ms
+- GPU inference: 70% of time
+
+Success Criteria:
+✓ Infrastructure counted
+✓ GPS locations calculated
+✓ Results persisted
+✓ Parent notified" }
+
+%% =================================================================
+%% STYLING
+%% =================================================================
+
+classDef criticalNode fill: #ff6b6b, stroke: #c92a2a,stroke-width: 3px, color: #fff
+classDef gpuNode fill: #9775fa, stroke: #5f3dc4, stroke-width:2px, color: #fff
+classDef dbNode fill:#4dabf7, stroke: #1971c2, stroke-width: 2px,color: #fff
+classDef gpsNode fill: #51cf66,stroke: #2f9e44, stroke-width: 2px, color:#000
+
+class SAHI_SLICE, GET_MODEL criticalNode
+class DIRECT_YOLO gpuNode
+class LOAD_IMAGE_DATA, INSERT_DETECTIONS,INSERT_SUMMARY, UPDATE_IMAGE_STATUS dbNode
+class CALCULATE_GPS_LOCATIONS gpsNode

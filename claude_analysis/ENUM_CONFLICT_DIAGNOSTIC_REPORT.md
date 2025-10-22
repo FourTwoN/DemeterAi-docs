@@ -1,4 +1,5 @@
 # ENUM Conflict Diagnostic Report - DemeterAI
+
 **Date**: 2025-10-21
 **Database**: demeterai_test (PostgreSQL 18 + PostGIS 3.6)
 **Issue**: Type "warehouse_type_enum" already exists (prevents migration)
@@ -8,6 +9,7 @@
 ## Executive Summary
 
 **ROOT CAUSE**: The database has **partial migration state** from previous runs. Specifically:
+
 - Migration `8807863f7d8c` is recorded in `alembic_version` table
 - But migration `2f68e3f132f5` (warehouses table) was **partially applied**
 - The `warehouses` table exists **WITHOUT** the `warehouse_type` ENUM column
@@ -20,12 +22,14 @@
 ## 1. Current Database State
 
 ### Alembic Version
+
 ```
 Current migration: 8807863f7d8c (add location_relationships table)
 Expected next: 9f8e7d6c5b4a (create remaining tables)
 ```
 
 ### Existing ENUM Types (2 total)
+
 ```sql
 -- Only 2 ENUMs exist in the database
 1. relationshiptypeenum
@@ -40,6 +44,7 @@ Expected next: 9f8e7d6c5b4a (create remaining tables)
 ```
 
 ### Existing Tables (14 total)
+
 ```
 1. alembic_version
 2. location_relationships
@@ -58,6 +63,7 @@ Expected next: 9f8e7d6c5b4a (create remaining tables)
 ```
 
 ### Warehouses Table Schema (Current)
+
 ```sql
 -- PROBLEM: Missing warehouse_type column!
 warehouses {
@@ -75,6 +81,7 @@ warehouses {
 ```
 
 ### Expected Schema (from database.mmd)
+
 ```sql
 warehouses {
     id: INT PRIMARY KEY
@@ -97,26 +104,31 @@ warehouses {
 ### From Migration Files
 
 **Migration: 2f68e3f132f5 (warehouses)**
+
 ```python
 sa.Enum('greenhouse', 'shadehouse', 'open_field', 'tunnel', name='warehouse_type_enum')
 ```
 
 **Migration: 742a3bebd3a8 (storage_areas)**
+
 ```python
 sa.Enum('N', 'S', 'E', 'W', 'C', name='position_enum')
 ```
 
 **Migration: 2wh7p3r9bm6t (storage_bin_types)**
+
 ```python
 sa.Enum('plug', 'seedling_tray', 'box', 'segment', 'pot', name='bin_category_enum')
 ```
 
 **Migration: 1wgcfiexamud (storage_bins)**
+
 ```python
 sa.Enum('active', 'maintenance', 'retired', name='storage_bin_status_enum')
 ```
 
 **Migration: 440n457t9cnp (s3_images)**
+
 ```python
 sa.Enum('image/jpeg', 'image/png', name='content_type_enum')
 sa.Enum('web', 'mobile', 'api', name='upload_source_enum')
@@ -124,16 +136,19 @@ sa.Enum('uploaded', 'processing', 'ready', 'failed', name='processing_status_enu
 ```
 
 **Migration: 6kp8m3q9n5rt (users)** ✅ EXISTS
+
 ```python
 sa.Enum('admin', 'supervisor', 'worker', 'viewer', name='user_role_enum')
 ```
 
 **Migration: 8807863f7d8c (location_relationships)** ✅ EXISTS
+
 ```python
 sa.Enum('contains', 'adjacent_to', name='relationshiptypeenum')
 ```
 
 **Migration: 9f8e7d6c5b4a (remaining tables)**
+
 ```python
 sa.Enum('pending', 'processing', 'completed', 'failed', name='sessionstatusenum')
 sa.Enum('reference', 'growth_stage', 'quality_check', 'monthly_sample', name='sampletypeenum')
@@ -153,22 +168,22 @@ sa.Enum('band_estimation', 'density_estimation', 'grid_analysis', name='calculat
 ### What Happened?
 
 1. **Partial Migration Run**:
-   - Someone ran `alembic upgrade head`
-   - Migration `2f68e3f132f5` (warehouses) started executing
-   - It created the `warehouses` table
-   - **BUT** it failed before creating the ENUM or adding the column
-   - SQLAlchemy's `checkfirst=False` (default) causes duplicate ENUM error
+    - Someone ran `alembic upgrade head`
+    - Migration `2f68e3f132f5` (warehouses) started executing
+    - It created the `warehouses` table
+    - **BUT** it failed before creating the ENUM or adding the column
+    - SQLAlchemy's `checkfirst=False` (default) causes duplicate ENUM error
 
 2. **State Mismatch**:
-   - `alembic_version` says: "I'm at 8807863f7d8c"
-   - Actual database has: warehouses table from `2f68e3f132f5` (next migration)
-   - **Alembic doesn't know the table exists**
+    - `alembic_version` says: "I'm at 8807863f7d8c"
+    - Actual database has: warehouses table from `2f68e3f132f5` (next migration)
+    - **Alembic doesn't know the table exists**
 
 3. **Re-run Attempt**:
-   - Alembic tries to run from the beginning
-   - Tries to create `warehouse_type_enum` again
-   - PostgreSQL says: "type already exists" (even though it doesn't!)
-   - **Actually**: Some ENUMs exist in cache, others in failed state
+    - Alembic tries to run from the beginning
+    - Tries to create `warehouse_type_enum` again
+    - PostgreSQL says: "type already exists" (even though it doesn't!)
+    - **Actually**: Some ENUMs exist in cache, others in failed state
 
 ### Why the Error?
 
@@ -182,7 +197,9 @@ sa.Enum('greenhouse', 'shadehouse', 'open_field', 'tunnel', name='warehouse_type
 # 3. Migration fails, but table already created
 ```
 
-**Key Issue**: SQLAlchemy Enum creates the PostgreSQL TYPE **before** creating the table. If migration fails mid-way:
+**Key Issue**: SQLAlchemy Enum creates the PostgreSQL TYPE **before** creating the table. If
+migration fails mid-way:
+
 - TYPE might be created
 - Column might not be added
 - Table exists in inconsistent state
@@ -193,29 +210,29 @@ sa.Enum('greenhouse', 'shadehouse', 'open_field', 'tunnel', name='warehouse_type
 
 ### Expected ENUMs (15 total)
 
-| ENUM Name | Migration | Status | Values |
-|-----------|-----------|--------|--------|
-| warehouse_type_enum | 2f68e3f132f5 | ❌ MISSING | greenhouse, shadehouse, open_field, tunnel |
-| position_enum | 742a3bebd3a8 | ❌ MISSING | N, S, E, W, C |
-| bin_category_enum | 2wh7p3r9bm6t | ❌ MISSING | plug, seedling_tray, box, segment, pot |
-| storage_bin_status_enum | 1wgcfiexamud | ❌ MISSING | active, maintenance, retired |
-| content_type_enum | 440n457t9cnp | ❌ MISSING | image/jpeg, image/png |
-| upload_source_enum | 440n457t9cnp | ❌ MISSING | web, mobile, api |
-| processing_status_enum | 440n457t9cnp | ❌ MISSING | uploaded, processing, ready, failed |
-| user_role_enum | 6kp8m3q9n5rt | ✅ EXISTS | admin, supervisor, worker, viewer |
-| relationshiptypeenum | 8807863f7d8c | ✅ EXISTS | contains, adjacent_to |
-| sessionstatusenum | 9f8e7d6c5b4a | ❌ MISSING | pending, processing, completed, failed |
-| sampletypeenum | 9f8e7d6c5b4a | ❌ MISSING | reference, growth_stage, quality_check, monthly_sample |
-| movementtypeenum | 9f8e7d6c5b4a | ❌ MISSING | plantar, sembrar, transplante, muerte, ventas, foto, ajuste, manual_init |
-| sourcetypeenum | 9f8e7d6c5b4a | ❌ MISSING | manual, ia |
-| calculationmethodenum | 9f8e7d6c5b4a | ❌ MISSING | band_estimation, density_estimation, grid_analysis |
+| ENUM Name               | Migration    | Status    | Values                                                                   |
+|-------------------------|--------------|-----------|--------------------------------------------------------------------------|
+| warehouse_type_enum     | 2f68e3f132f5 | ❌ MISSING | greenhouse, shadehouse, open_field, tunnel                               |
+| position_enum           | 742a3bebd3a8 | ❌ MISSING | N, S, E, W, C                                                            |
+| bin_category_enum       | 2wh7p3r9bm6t | ❌ MISSING | plug, seedling_tray, box, segment, pot                                   |
+| storage_bin_status_enum | 1wgcfiexamud | ❌ MISSING | active, maintenance, retired                                             |
+| content_type_enum       | 440n457t9cnp | ❌ MISSING | image/jpeg, image/png                                                    |
+| upload_source_enum      | 440n457t9cnp | ❌ MISSING | web, mobile, api                                                         |
+| processing_status_enum  | 440n457t9cnp | ❌ MISSING | uploaded, processing, ready, failed                                      |
+| user_role_enum          | 6kp8m3q9n5rt | ✅ EXISTS  | admin, supervisor, worker, viewer                                        |
+| relationshiptypeenum    | 8807863f7d8c | ✅ EXISTS  | contains, adjacent_to                                                    |
+| sessionstatusenum       | 9f8e7d6c5b4a | ❌ MISSING | pending, processing, completed, failed                                   |
+| sampletypeenum          | 9f8e7d6c5b4a | ❌ MISSING | reference, growth_stage, quality_check, monthly_sample                   |
+| movementtypeenum        | 9f8e7d6c5b4a | ❌ MISSING | plantar, sembrar, transplante, muerte, ventas, foto, ajuste, manual_init |
+| sourcetypeenum          | 9f8e7d6c5b4a | ❌ MISSING | manual, ia                                                               |
+| calculationmethodenum   | 9f8e7d6c5b4a | ❌ MISSING | band_estimation, density_estimation, grid_analysis                       |
 
 ### Actual ENUMs (2 total)
 
-| ENUM Name | Values |
-|-----------|--------|
-| relationshiptypeenum | contains, adjacent_to |
-| user_role_enum | admin, supervisor, worker, viewer |
+| ENUM Name            | Values                            |
+|----------------------|-----------------------------------|
+| relationshiptypeenum | contains, adjacent_to             |
+| user_role_enum       | admin, supervisor, worker, viewer |
 
 ---
 
@@ -224,14 +241,17 @@ sa.Enum('greenhouse', 'shadehouse', 'open_field', 'tunnel', name='warehouse_type
 ### Option 1: Clean Database Recreation (RECOMMENDED) ✅
 
 **Pros**:
+
 - Clean slate, no corruption
 - Ensures all migrations run correctly
 - Fast (no data to preserve in test DB)
 
 **Cons**:
+
 - Loses any test data (acceptable for test DB)
 
 **Steps**:
+
 ```bash
 # 1. Drop and recreate test database
 docker compose down db_test
@@ -255,15 +275,18 @@ docker exec demeterai-db-test psql -U demeter_test -d demeterai_test -c "SELECT 
 ### Option 2: Fix Warehouse Table Manually (RISKY) ⚠️
 
 **Pros**:
+
 - Preserves existing data
 - Faster than full recreation
 
 **Cons**:
+
 - Manual intervention required
 - Risk of missing other inconsistencies
 - Doesn't fix root cause
 
 **Steps**:
+
 ```sql
 -- 1. Create missing ENUM
 CREATE TYPE warehouse_type_enum AS ENUM ('greenhouse', 'shadehouse', 'open_field', 'tunnel');
@@ -279,6 +302,7 @@ UPDATE alembic_version SET version_num = '2f68e3f132f5';
 ```
 
 **Then run**:
+
 ```bash
 alembic upgrade head
 ```
@@ -290,6 +314,7 @@ alembic upgrade head
 **Use case**: When database is in production with data to preserve
 
 **Steps**:
+
 ```bash
 # 1. Manually fix all inconsistencies (see Option 2)
 
@@ -310,6 +335,7 @@ alembic current
 **Purpose**: Prevent future conflicts
 
 **Change in all migration files**:
+
 ```python
 # OLD (causes conflicts)
 sa.Enum('greenhouse', 'shadehouse', 'open_field', 'tunnel', name='warehouse_type_enum')
@@ -384,6 +410,7 @@ pytest tests/unit/models/test_warehouse.py -v
 **Proposed Task**: `DB029-fix-enum-idempotency.md`
 
 **Content**:
+
 ```markdown
 # [DB029] Fix ENUM Idempotency in Migrations
 
@@ -415,10 +442,12 @@ sa.Column('my_col', enum_type, nullable=False)
 ```
 
 ## Acceptance Criteria
+
 - [ ] All 15 ENUMs use checkfirst=True
 - [ ] Migrations are idempotent (can run multiple times)
 - [ ] Tests pass after drop/recreate
 - [ ] Documentation updated
+
 ```
 
 ---

@@ -1,6 +1,7 @@
 # [TEST006] API Endpoint Tests
 
 ## Metadata
+
 - **Epic**: epic-012-testing
 - **Sprint**: Sprint-03
 - **Priority**: `high`
@@ -8,9 +9,12 @@
 - **Dependencies**: Blocked by [TEST001, TEST002]
 
 ## Description
-Comprehensive tests for all API endpoints: authentication, stock management, photo upload, analytics. Cover happy path and error cases.
+
+Comprehensive tests for all API endpoints: authentication, stock management, photo upload,
+analytics. Cover happy path and error cases.
 
 ## Acceptance Criteria
+
 - [ ] Test all endpoints (GET, POST, PUT, DELETE)
 - [ ] Test authentication required (401 without token)
 - [ ] Test authorization (403 for insufficient role)
@@ -20,6 +24,7 @@ Comprehensive tests for all API endpoints: authentication, stock management, pho
 - [ ] Coverage >90% for controllers
 
 ## Implementation
+
 ```python
 class TestAuthEndpoints:
     def test_login_success(self, client):
@@ -54,6 +59,7 @@ class TestStockEndpoints(AuthenticatedTestCase):
 ```
 
 ## Testing
+
 - Run: `pytest tests/api/`
 - Verify all endpoints covered
 - Verify error cases handled

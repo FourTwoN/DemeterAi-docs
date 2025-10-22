@@ -13,220 +13,219 @@ config:
   layout: elk
 ---
 flowchart TB
-    %% ═══════════════════════════════════════════════════════════════════════
-    %% DEMETERDOCS - ANALYTICS SYSTEM OVERVIEW
-    %% ═══════════════════════════════════════════════════════════════════════
-    %% Purpose: Executive-level view of analytics and reporting system
-    %% Scope: Complete flow from user query to exported reports
-    %% Detail: High-level only - See subflows for implementation
-    %% Updated: 2025-10-08 | Version: 1.0 | Mermaid v11.3.0+
-    %% ═══════════════════════════════════════════════════════════════════════
+%% ═══════════════════════════════════════════════════════════════════════
+%% DEMETERDOCS - ANALYTICS SYSTEM OVERVIEW
+%% ═══════════════════════════════════════════════════════════════════════
+%% Purpose: Executive-level view of analytics and reporting system
+%% Scope: Complete flow from user query to exported reports
+%% Detail: High-level only - See subflows for implementation
+%% Updated: 2025-10-08 | Version: 1.0 | Mermaid v11.3.0+
+%% ═══════════════════════════════════════════════════════════════════════
 
-    %% ═══════════════════════════════════════════════════════════════════════
-    %% LAYER 1: USER ENTRY POINT
-    %% ═══════════════════════════════════════════════════════════════════════
-
+%% ═══════════════════════════════════════════════════════════════════════
+%% LAYER 1: USER ENTRY POINT
+%% ═══════════════════════════════════════════════════════════════════════
     START@{ shape: stadium, label: "📊 User Accesses Analytics
-    Web Dashboard
-    Role: admin|supervisor|viewer" }
+Web Dashboard
+Role: admin|supervisor|viewer" }
 
-    %% ═══════════════════════════════════════════════════════════════════════
-    %% LAYER 2: ANALYSIS TYPE SELECTION
-    %% ═══════════════════════════════════════════════════════════════════════
+%% ═══════════════════════════════════════════════════════════════════════
+%% LAYER 2: ANALYSIS TYPE SELECTION
+%% ═══════════════════════════════════════════════════════════════════════
 
-    SELECT_TYPE@{ shape: diamond, label: "Select Analysis Type?" }
+SELECT_TYPE@{ shape: diamond, label: "Select Analysis Type?" }
 
-    %% ═══════════════════════════════════════════════════════════════════════
-    %% PATH 1: MANUAL FILTERING
-    %% ═══════════════════════════════════════════════════════════════════════
-    %% Detail: See 01_manual_filters_query.mmd
+%% ═══════════════════════════════════════════════════════════════════════
+%% PATH 1: MANUAL FILTERING
+%% ═══════════════════════════════════════════════════════════════════════
+%% Detail: See 01_manual_filters_query.mmd
 
-    subgraph MANUAL_PATH["📋 MANUAL FILTERING PATH"]
-        direction TB
+subgraph MANUAL_PATH["📋 MANUAL FILTERING PATH"]
+direction TB
 
-        MANUAL_UI@{ shape: rect, label: "Filter Selection UI
-        • Warehouse
-        • Storage Area/Location
-        • Product (family/category)
-        • Packaging
-        • Date Range
-        • State" }
+MANUAL_UI@{ shape: rect, label: "Filter Selection UI
+• Warehouse
+• Storage Area/Location
+• Product (family/category)
+• Packaging
+• Date Range
+• State" }
 
-        MANUAL_QUERY@{ shape: cyl, label: "Build SQL Query
-        Joins:
-        • warehouses
-        • storage_locations
-        • stock_batches
-        • stock_movements
-        ⏱️ < 500ms" }
+MANUAL_QUERY@{ shape: cyl, label: "Build SQL Query
+Joins:
+• warehouses
+• storage_locations
+• stock_batches
+• stock_movements
+⏱️ < 500ms" }
 
-        MANUAL_VIZ@{ shape: rect, label: "Generate Visualizations
-        • Bar charts
-        • Line graphs
-        • Pie charts
-        • Tables
-        Frontend: Chart.js" }
-    end
+MANUAL_VIZ@{ shape: rect, label: "Generate Visualizations
+• Bar charts
+• Line graphs
+• Pie charts
+• Tables
+Frontend: Chart.js" }
+end
 
-    %% ═══════════════════════════════════════════════════════════════════════
-    %% PATH 2: SALES VS STOCK COMPARISON
-    %% ═══════════════════════════════════════════════════════════════════════
-    %% Detail: See 02_sales_vs_stock_comparison.mmd
+%% ═══════════════════════════════════════════════════════════════════════
+%% PATH 2: SALES VS STOCK COMPARISON
+%% ═══════════════════════════════════════════════════════════════════════
+%% Detail: See 02_sales_vs_stock_comparison.mmd
 
-    subgraph SALES_PATH["💰 SALES COMPARISON PATH"]
-        direction TB
+subgraph SALES_PATH["💰 SALES COMPARISON PATH"]
+direction TB
 
-        UPLOAD_CSV@{ shape: subproc, label: "📄 Upload Sales CSV
-        Format:
-        product, packaging, quantity
-        Multiple months supported" }
+UPLOAD_CSV@{ shape: subproc, label: "📄 Upload Sales CSV
+Format:
+product, packaging, quantity
+Multiple months supported" }
 
-        PARSE_CSV@{ shape: rect, label: "Parse CSV Files
-        Validate:
-        • Product exists
-        • Packaging exists
-        • Quantity valid" }
+PARSE_CSV@{ shape: rect, label: "Parse CSV Files
+Validate:
+• Product exists
+• Packaging exists
+• Quantity valid" }
 
-        QUERY_STOCK@{ shape: cyl, label: "Query Latest Active Stock
-        SELECT from:
-        • stock_batches (current)
-        • stock_movements
-        WHERE active = true" }
+QUERY_STOCK@{ shape: cyl, label: "Query Latest Active Stock
+SELECT from:
+• stock_batches (current)
+• stock_movements
+WHERE active = true" }
 
-        CALC_DIFF@{ shape: rect, label: "Calculate Variance
-        estimated_stock =
-        current_stock - sales
+CALC_DIFF@{ shape: rect, label: "Calculate Variance
+estimated_stock =
+current_stock - sales
 
-        Generate report" }
+Generate report" }
 
-        SALES_VIZ@{ shape: rect, label: "Sales vs Stock Report
-        • Comparison tables
-        • Variance charts
-        • Alerts for discrepancies" }
-    end
+SALES_VIZ@{ shape: rect, label: "Sales vs Stock Report
+• Comparison tables
+• Variance charts
+• Alerts for discrepancies" }
+end
 
-    %% ═══════════════════════════════════════════════════════════════════════
-    %% PATH 3: AI-POWERED ANALYTICS
-    %% ═══════════════════════════════════════════════════════════════════════
-    %% Detail: See 03_ai_powered_analytics.mmd
+%% ═══════════════════════════════════════════════════════════════════════
+%% PATH 3: AI-POWERED ANALYTICS
+%% ═══════════════════════════════════════════════════════════════════════
+%% Detail: See 03_ai_powered_analytics.mmd
 
-    subgraph AI_PATH["🤖 AI-POWERED ANALYTICS PATH"]
-        direction TB
+subgraph AI_PATH["🤖 AI-POWERED ANALYTICS PATH"]
+direction TB
 
-        AI_INPUT@{ shape: rect, label: "💬 Natural Language Query
-        Example:
-        'Show mortality by cantero'
-        'Compare nave 1 vs 2'" }
+AI_INPUT@{ shape: rect, label: "💬 Natural Language Query
+Example:
+'Show mortality by cantero'
+'Compare nave 1 vs 2'" }
 
-        AI_LLM@{ shape: subproc, label: "🧠 LLM Processing
-        OpenAI-compatible API
-        + Database schema
-        + Prompt engineering
-        ⏱️ 2-5s" }
+AI_LLM@{ shape: subproc, label: "🧠 LLM Processing
+OpenAI-compatible API
++ Database schema
++ Prompt engineering
+⏱️ 2-5s" }
 
-        AI_QUERY@{ shape: cyl, label: "Generate & Execute SQL
-        Read-only user
-        Query validation
-        Timeout: 30s" }
+AI_QUERY@{ shape: cyl, label: "Generate & Execute SQL
+Read-only user
+Query validation
+Timeout: 30s" }
 
-        AI_CODE@{ shape: rect, label: "🐍 Python Chart Generation
-        Libraries:
-        • matplotlib
-        • seaborn
-        Output: SVG or data" }
+AI_CODE@{ shape: rect, label: "🐍 Python Chart Generation
+Libraries:
+• matplotlib
+• seaborn
+Output: SVG or data" }
 
-        AI_VIZ@{ shape: rect, label: "AI-Generated Insights
-        • Custom charts
-        • Recommendations
-        • Discovered patterns" }
-    end
+AI_VIZ@{ shape: rect, label: "AI-Generated Insights
+• Custom charts
+• Recommendations
+• Discovered patterns" }
+end
 
-    %% ═══════════════════════════════════════════════════════════════════════
-    %% LAYER 3: EXPORT & DELIVERY
-    %% ═══════════════════════════════════════════════════════════════════════
-    %% Detail: See 04_data_export.mmd
+%% ═══════════════════════════════════════════════════════════════════════
+%% LAYER 3: EXPORT & DELIVERY
+%% ═══════════════════════════════════════════════════════════════════════
+%% Detail: See 04_data_export.mmd
 
-    CONSOLIDATE@{ shape: rect, label: "📊 Consolidate Results
-    Aggregate all visualizations
-    Add metadata
-    Format for display" }
+CONSOLIDATE@{ shape: rect, label: "📊 Consolidate Results
+Aggregate all visualizations
+Add metadata
+Format for display" }
 
-    DISPLAY@{ shape: rect, label: "🖥️ Display in Dashboard
-    Interactive charts
-    Drill-down capability
-    Refresh options" }
+DISPLAY@{ shape: rect, label: "🖥️ Display in Dashboard
+Interactive charts
+Drill-down capability
+Refresh options" }
 
-    EXPORT_OPTION@{ shape: diamond, label: "Export Data?" }
+EXPORT_OPTION@{ shape: diamond, label: "Export Data?" }
 
-    EXPORT_FORMAT@{ shape: diamond, label: "Select Format?" }
+EXPORT_FORMAT@{ shape: diamond, label: "Select Format?" }
 
-    EXPORT_EXCEL@{ shape: rect, label: "📗 Export to Excel
-    • Formatted sheets
-    • Embedded charts
-    • Styling
-    Library: openpyxl" }
+EXPORT_EXCEL@{ shape: rect, label: "📗 Export to Excel
+• Formatted sheets
+• Embedded charts
+• Styling
+Library: openpyxl" }
 
-    EXPORT_CSV@{ shape: rect, label: "📄 Export to CSV
-    Raw data
-    UTF-8 encoding
-    Comma delimited" }
+EXPORT_CSV@{ shape: rect, label: "📄 Export to CSV
+Raw data
+UTF-8 encoding
+Comma delimited" }
 
-    DOWNLOAD@{ shape: stadium, label: "⬇️ Download File
-    Browser download
-    Filename: analytics_YYYYMMDD" }
+DOWNLOAD@{ shape: stadium, label: "⬇️ Download File
+Browser download
+Filename: analytics_YYYYMMDD" }
 
-    %% ═══════════════════════════════════════════════════════════════════════
-    %% CONNECTIONS
-    %% ═══════════════════════════════════════════════════════════════════════
+%% ═══════════════════════════════════════════════════════════════════════
+%% CONNECTIONS
+%% ═══════════════════════════════════════════════════════════════════════
 
-    START --> SELECT_TYPE
+START --> SELECT_TYPE
 
-    SELECT_TYPE -->|Manual Filters| MANUAL_UI
-    SELECT_TYPE -->|Sales Comparison| UPLOAD_CSV
-    SELECT_TYPE -->|AI Analytics| AI_INPUT
+SELECT_TYPE -->|Manual Filters| MANUAL_UI
+SELECT_TYPE -->|Sales Comparison|UPLOAD_CSV
+SELECT_TYPE -->|AI Analytics|AI_INPUT
 
-    %% Manual path
-    MANUAL_UI --> MANUAL_QUERY
-    MANUAL_QUERY --> MANUAL_VIZ
-    MANUAL_VIZ --> CONSOLIDATE
+%% Manual path
+MANUAL_UI --> MANUAL_QUERY
+MANUAL_QUERY --> MANUAL_VIZ
+MANUAL_VIZ --> CONSOLIDATE
 
-    %% Sales path
-    UPLOAD_CSV --> PARSE_CSV
-    PARSE_CSV --> QUERY_STOCK
-    QUERY_STOCK --> CALC_DIFF
-    CALC_DIFF --> SALES_VIZ
-    SALES_VIZ --> CONSOLIDATE
+%% Sales path
+UPLOAD_CSV --> PARSE_CSV
+PARSE_CSV --> QUERY_STOCK
+QUERY_STOCK --> CALC_DIFF
+CALC_DIFF --> SALES_VIZ
+SALES_VIZ --> CONSOLIDATE
 
-    %% AI path
-    AI_INPUT --> AI_LLM
-    AI_LLM --> AI_QUERY
-    AI_QUERY --> AI_CODE
-    AI_CODE --> AI_VIZ
-    AI_VIZ --> CONSOLIDATE
+%% AI path
+AI_INPUT --> AI_LLM
+AI_LLM --> AI_QUERY
+AI_QUERY --> AI_CODE
+AI_CODE --> AI_VIZ
+AI_VIZ --> CONSOLIDATE
 
-    %% Display and export
-    CONSOLIDATE --> DISPLAY
-    DISPLAY --> EXPORT_OPTION
+%% Display and export
+CONSOLIDATE --> DISPLAY
+DISPLAY --> EXPORT_OPTION
 
-    EXPORT_OPTION -->|No| DISPLAY
-    EXPORT_OPTION -->|Yes| EXPORT_FORMAT
+EXPORT_OPTION -->|No|DISPLAY
+EXPORT_OPTION -->|Yes|EXPORT_FORMAT
 
-    EXPORT_FORMAT -->|Excel| EXPORT_EXCEL
-    EXPORT_FORMAT -->|CSV| EXPORT_CSV
+EXPORT_FORMAT -->|Excel|EXPORT_EXCEL
+EXPORT_FORMAT -->|CSV|EXPORT_CSV
 
-    EXPORT_EXCEL --> DOWNLOAD
-    EXPORT_CSV --> DOWNLOAD
+EXPORT_EXCEL --> DOWNLOAD
+EXPORT_CSV --> DOWNLOAD
 
-    %% ═══════════════════════════════════════════════════════════════════════
-    %% STYLING
-    %% ═══════════════════════════════════════════════════════════════════════
+%% ═══════════════════════════════════════════════════════════════════════
+%% STYLING
+%% ═══════════════════════════════════════════════════════════════════════
 
-    classDef manualStyle fill:#E3F2FD,stroke:#1976D2,stroke-width:2px
-    classDef salesStyle fill:#F3E5F5,stroke:#7B1FA2,stroke-width:2px
-    classDef aiStyle fill:#FFF3E0,stroke:#F57C00,stroke-width:2px
-    classDef exportStyle fill:#E8F5E9,stroke:#388E3C,stroke-width:2px
+classDef manualStyle fill: #E3F2FD, stroke: #1976D2,stroke-width: 2px
+classDef salesStyle fill: #F3E5F5,stroke: #7B1FA2, stroke-width: 2px
+classDef aiStyle fill: #FFF3E0, stroke: #F57C00, stroke-width:2px
+classDef exportStyle fill: #E8F5E9, stroke:#388E3C, stroke-width: 2px
 
-    class MANUAL_UI,MANUAL_QUERY,MANUAL_VIZ manualStyle
-    class UPLOAD_CSV,PARSE_CSV,QUERY_STOCK,CALC_DIFF,SALES_VIZ salesStyle
-    class AI_INPUT,AI_LLM,AI_QUERY,AI_CODE,AI_VIZ aiStyle
-    class EXPORT_EXCEL,EXPORT_CSV,DOWNLOAD exportStyle
+class MANUAL_UI,MANUAL_QUERY, MANUAL_VIZ manualStyle
+class UPLOAD_CSV, PARSE_CSV,QUERY_STOCK, CALC_DIFF, SALES_VIZ salesStyle
+class AI_INPUT, AI_LLM, AI_QUERY,AI_CODE, AI_VIZ aiStyle
+class EXPORT_EXCEL, EXPORT_CSV, DOWNLOAD exportStyle

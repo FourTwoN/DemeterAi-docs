@@ -1,6 +1,7 @@
 # S004: StorageBinService
 
 ## Metadata
+
 - **Epic**: [epic-004-services.md](../../02_epics/epic-004-services.md)
 - **Sprint**: Sprint-02
 - **Status**: `backlog`
@@ -9,20 +10,26 @@
 - **Area**: `services/location`
 - **Assignee**: TBD
 - **Dependencies**:
-  - Blocks: [S006, C004]
-  - Blocked by: [R004, S003, S005]
+    - Blocks: [S006, C004]
+    - Blocked by: [R004, S003, S005]
 
 ## Related Documentation
-- **Engineering Plan**: [../../engineering_plan/backend/service_layer.md](../../engineering_plan/backend/service_layer.md)
+
+- **Engineering Plan
+  **: [../../engineering_plan/backend/service_layer.md](../../engineering_plan/backend/service_layer.md)
 - **Database ERD**: [../../database/database.mmd](../../database/database.mmd)
 
 ## Description
 
-**What**: Implement `StorageBinService` for storage bin business logic (level 4 of hierarchy - finest granularity).
+**What**: Implement `StorageBinService` for storage bin business logic (level 4 of hierarchy -
+finest granularity).
 
-**Why**: Storage bins are the **lowest level** of the 4-tier hierarchy (warehouse → area → location → **bin**). Bins represent individual trays, pots, or containers within a location. Service validates bin types and manages bin-level stock tracking.
+**Why**: Storage bins are the **lowest level** of the 4-tier hierarchy (warehouse → area →
+location → **bin**). Bins represent individual trays, pots, or containers within a location. Service
+validates bin types and manages bin-level stock tracking.
 
-**Context**: Clean Architecture Application Layer. StorageBinService calls StorageLocationService for parent validation and StorageBinTypeService for bin type metadata.
+**Context**: Clean Architecture Application Layer. StorageBinService calls StorageLocationService
+for parent validation and StorageBinTypeService for bin type metadata.
 
 ## Acceptance Criteria
 
@@ -247,13 +254,16 @@
 ## Technical Implementation Notes
 
 ### Architecture
+
 - **Layer**: Application (Service)
-- **Dependencies**: R004 (StorageBinRepository), S003 (StorageLocationService), S005 (StorageBinTypeService)
+- **Dependencies**: R004 (StorageBinRepository), S003 (StorageLocationService), S005 (
+  StorageBinTypeService)
 - **Design Pattern**: Service-to-service communication for cross-domain validation
 
 ### Code Hints
 
 **Bulk insert optimization:**
+
 ```python
 # In repository layer - use bulk_insert_mappings
 async def bulk_create(self, bins: List[dict]) -> List[StorageBin]:
@@ -271,6 +281,7 @@ async def bulk_create(self, bins: List[dict]) -> List[StorageBin]:
 ### Testing Requirements
 
 **Unit Tests**:
+
 ```python
 @pytest.mark.asyncio
 async def test_create_bin_with_parent_validation():
@@ -320,6 +331,7 @@ async def test_bulk_create_bins():
 **Coverage Target**: ≥85%
 
 ### Performance Expectations
+
 - `create_storage_bin`: <30ms
 - `bulk_create_bins` (100 bins): <500ms (use bulk_insert_mappings)
 - `get_bins_by_location`: <50ms for 100 bins
@@ -328,15 +340,18 @@ async def test_bulk_create_bins():
 
 **For the next developer:**
 
-**Context**: StorageBinService manages the **finest granularity** in the location hierarchy. Bins represent individual trays/pots/containers.
+**Context**: StorageBinService manages the **finest granularity** in the location hierarchy. Bins
+represent individual trays/pots/containers.
 
 **Key decisions made**:
+
 1. **Bulk creation support**: Common to create 50-100 bins per location at once
 2. **Sequential code generation**: AUTO-001, AUTO-002... for bulk operations
 3. **Position tracking**: Row/column/shelf for physical bin arrangement
 4. **Bin type integration**: Links to StorageBinTypeService for capacity calculations
 
 **Next steps**:
+
 - S005: StorageBinTypeService (bin metadata like tray dimensions)
 - S006: LocationHierarchyService (aggregates all 4 levels)
 
@@ -349,6 +364,7 @@ async def test_bulk_create_bins():
 - [ ] PR reviewed (2+ approvals)
 
 ## Time Tracking
+
 - **Estimated**: 3 story points (~6 hours)
 - **Actual**: TBD
 

@@ -1,6 +1,7 @@
 # [C010] Delete Photo - DELETE /api/photos/{id}
 
 ## Metadata
+
 - **Epic**: epic-003-backend-implementation.md
 - **Sprint**: Sprint-03
 - **Status**: `backlog`
@@ -35,6 +36,7 @@ async def delete_photo(
 **Coverage Target**: ≥80%
 
 ## Time Tracking
+
 - **Estimated**: 2 story points
 
 ---

@@ -2,7 +2,8 @@
 
 ## Purpose
 
-Shows the detailed flow for updating an existing storage location configuration, which modifies the current active config and impacts current stock metadata without affecting historical records.
+Shows the detailed flow for updating an existing storage location configuration, which modifies the
+current active config and impacts current stock metadata without affecting historical records.
 
 ## Scope
 
@@ -14,6 +15,7 @@ Shows the detailed flow for updating an existing storage location configuration,
 ## What It Represents
 
 Complete UPDATE flow including:
+
 1. Form validation
 2. Business rule checks
 3. Database update (single transaction)
@@ -23,6 +25,7 @@ Complete UPDATE flow including:
 ## When to Use UPDATE
 
 **Use UPDATE when**:
+
 - Pot color changed
 - Pot size adjusted (same plants)
 - Product state changed (growth progression)
@@ -150,12 +153,12 @@ async def update_storage_location_config(
 
 ## Performance
 
-| Operation | Time | Notes |
-|-----------|------|-------|
-| Validation queries | ~50ms | 3-4 SELECT queries |
-| UPDATE execution | ~20ms | Single row update |
-| Audit log insert | ~10ms | Async if possible |
-| Total | **~80ms** | Very fast |
+| Operation          | Time      | Notes              |
+|--------------------|-----------|--------------------|
+| Validation queries | ~50ms     | 3-4 SELECT queries |
+| UPDATE execution   | ~20ms     | Single row update  |
+| Audit log insert   | ~10ms     | Async if possible  |
+| Total              | **~80ms** | Very fast          |
 
 ---
 

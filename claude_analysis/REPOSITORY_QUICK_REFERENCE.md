@@ -8,14 +8,14 @@
 
 ## Overview
 
-| Aspect | Value |
-|--------|-------|
+| Aspect             | Value                        |
+|--------------------|------------------------------|
 | Total Repositories | 27 (26 specialized + 1 base) |
-| Base Class | AsyncRepository[T] |
-| Model Coverage | 26/27 (96.3%) |
-| Inheritance | 100% compliant |
-| Pattern Violations | 0 |
-| Audit Score | A+ (95/100) |
+| Base Class         | AsyncRepository[T]           |
+| Model Coverage     | 26/27 (96.3%)                |
+| Inheritance        | 100% compliant               |
+| Pattern Violations | 0                            |
+| Audit Score        | A+ (95/100)                  |
 
 ---
 
@@ -45,12 +45,15 @@ await repo.delete(id)           # Delete record
 ## Repository List by Category
 
 ### ML Pipeline (4)
+
 - `DetectionRepository` - Custom: `get_by_session`, `bulk_create`
 - `EstimationRepository` - Custom: `get_by_session`, `get_by_calculation_method`, `bulk_create`
 - `ClassificationRepository` - Base CRUD only
-- `PhotoProcessingSessionRepository` - Custom: `get_by_session_id`, `get_by_storage_location`, `get_by_status`, `get_by_date_range`
+- `PhotoProcessingSessionRepository` - Custom: `get_by_session_id`, `get_by_storage_location`,
+  `get_by_status`, `get_by_date_range`
 
 ### Warehouse Hierarchy (5)
+
 - `WarehouseRepository` - Custom: `get_by_code`, `get_by_gps_point`, `get_active_warehouses`
 - `StorageAreaRepository` - Base CRUD only
 - `StorageLocationRepository` - Base CRUD only
@@ -58,6 +61,7 @@ await repo.delete(id)           # Delete record
 - `StorageBinTypeRepository` - Base CRUD only
 
 ### Product Management (8)
+
 - `ProductRepository` - Base CRUD only
 - `ProductCategoryRepository` - Base CRUD only
 - `ProductFamilyRepository` - Base CRUD only
@@ -68,16 +72,19 @@ await repo.delete(id)           # Delete record
 - `PriceListRepository` - Base CRUD only
 
 ### Stock Management (2)
+
 - `StockBatchRepository` - Base CRUD only
 - `StockMovementRepository` - Base CRUD only
 
 ### Packaging (4)
+
 - `PackagingTypeRepository` - Base CRUD only
 - `PackagingColorRepository` - Base CRUD only
 - `PackagingMaterialRepository` - Base CRUD only
 - `PackagingCatalogRepository` - Base CRUD only
 
 ### Configuration (3)
+
 - `StorageLocationConfigRepository` - Base CRUD only
 - `DensityParameterRepository` - Base CRUD only
 - `UserRepository` - Base CRUD only
@@ -87,6 +94,7 @@ await repo.delete(id)           # Delete record
 ## Common Usage Patterns
 
 ### Pattern 1: Get all records with pagination
+
 ```python
 from app.repositories import ProductRepository
 
@@ -94,6 +102,7 @@ products = await product_repo.get_multi(skip=0, limit=50)
 ```
 
 ### Pattern 2: Filter records
+
 ```python
 # Get active warehouses
 warehouses = await warehouse_repo.get_multi(active=True)
@@ -103,6 +112,7 @@ products = await product_repo.get_multi(product_category_id=5)
 ```
 
 ### Pattern 3: Create record
+
 ```python
 new_product = await product_repo.create({
     "code": "PROD-001",
@@ -112,6 +122,7 @@ new_product = await product_repo.create({
 ```
 
 ### Pattern 4: Update record
+
 ```python
 updated = await product_repo.update(123, {
     "name": "Premium Tomato",
@@ -120,11 +131,13 @@ updated = await product_repo.update(123, {
 ```
 
 ### Pattern 5: Delete record
+
 ```python
 deleted = await product_repo.delete(123)  # Returns True/False
 ```
 
 ### Pattern 6: Custom query (when available)
+
 ```python
 warehouse = await warehouse_repo.get_by_code("GH-001")
 warehouse = await warehouse_repo.get_by_gps_point(-70.648, -33.449)
@@ -135,6 +148,7 @@ warehouse = await warehouse_repo.get_by_gps_point(-70.648, -33.449)
 ## Service Integration (Sprint 03)
 
 ### Correct Pattern
+
 ```python
 from app.repositories import ProductRepository
 from app.services import CategoryService
@@ -150,6 +164,7 @@ class ProductService:
 ```
 
 ### INCORRECT Pattern (DO NOT USE)
+
 ```python
 class ProductService:
     def __init__(
@@ -216,11 +231,13 @@ class ProductRepository(AsyncRepository[Product]):
 ## Testing
 
 ### Unit Tests (Mock DB)
+
 ```bash
 pytest tests/unit/repositories -v
 ```
 
 ### Integration Tests (Real DB)
+
 ```bash
 pytest tests/integration/repositories -v
 ```
@@ -230,17 +247,22 @@ pytest tests/integration/repositories -v
 ## Common Errors & Solutions
 
 ### Error: "Repository not found for model X"
+
 **Solution**: Check if repository exists in `app/repositories/`
 
 ### Error: "Cannot import repository"
+
 **Solution**: Verify import path:
+
 ```python
 from app.repositories.product_repository import ProductRepository
 # NOT: from app.repositories import ProductRepository.ProductRepository
 ```
 
 ### Error: "Method not found on repository"
+
 **Solution**: Check if it's a custom method. If not, use base method:
+
 ```python
 # WRONG if method_name is not custom
 result = await repo.method_name()
@@ -284,7 +306,8 @@ result = await repo.get_multi(skip=0, limit=100)
 - **Full Audit Report**: `/home/lucasg/proyectos/DemeterDocs/REPOSITORY_LAYER_AUDIT_REPORT.md`
 - **Executive Summary**: `/home/lucasg/proyectos/DemeterDocs/REPOSITORY_AUDIT_EXECUTIVE_SUMMARY.txt`
 - **Database Schema**: `/home/lucasg/proyectos/DemeterDocs/database/database.mmd`
-- **Architecture Guide**: `/home/lucasg/proyectos/DemeterDocs/engineering_plan/03_architecture_overview.md`
+- **Architecture Guide**:
+  `/home/lucasg/proyectos/DemeterDocs/engineering_plan/03_architecture_overview.md`
 
 ---
 

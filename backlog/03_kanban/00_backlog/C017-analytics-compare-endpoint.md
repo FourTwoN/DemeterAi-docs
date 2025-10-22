@@ -1,6 +1,7 @@
 # [C017] Month-over-Month Comparison - POST /api/analytics/compare
 
 ## Metadata
+
 - **Epic**: epic-003-backend-implementation.md
 - **Sprint**: Sprint-05
 - **Status**: `backlog`
@@ -40,6 +41,7 @@ async def compare_periods(
 **Coverage Target**: ≥80%
 
 ## Time Tracking
+
 - **Estimated**: 2 story points
 
 ---

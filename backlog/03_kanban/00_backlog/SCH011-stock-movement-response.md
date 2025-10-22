@@ -1,6 +1,7 @@
 # [SCH011] StockMovementResponse Schema
 
 ## Metadata
+
 - **Epic**: epic-003-backend-implementation.md
 - **Sprint**: Sprint-02
 - **Status**: `backlog`

@@ -8,7 +8,8 @@
 
 ## Overview
 
-This document captures **critical issues** discovered during Sprint 02 that must NEVER happen again. These issues caused 70/386 tests to fail silently and nearly derailed the project.
+This document captures **critical issues** discovered during Sprint 02 that must NEVER happen again.
+These issues caused 70/386 tests to fail silently and nearly derailed the project.
 
 **Purpose**: Ensure every agent understands what went wrong and how to prevent it.
 
@@ -68,6 +69,7 @@ async def test_create_movement(db_session):
 ### Prevention Rules
 
 **Rule 1: Always Run Pytest**
+
 ```bash
 # MANDATORY: Actually run tests
 pytest tests/ -v
@@ -80,6 +82,7 @@ fi
 ```
 
 **Rule 2: Use Real Database for Integration Tests**
+
 ```python
 # ✅ Integration tests use real PostgreSQL
 @pytest.mark.asyncio
@@ -90,6 +93,7 @@ async def test_workflow(db_session):  # Real database session
 ```
 
 **Rule 3: Verify Test Results in Task Files**
+
 ```markdown
 ## Testing Expert Report
 Status: COMPLETE
@@ -104,6 +108,7 @@ $ echo $?
 
 - Unit tests: ✅ 12/12 passed (exit code 0)
 - Integration tests: ✅ 5/5 passed (exit code 0)
+
 ```
 
 **Rule 4: Quality Gate Must Verify**
@@ -151,6 +156,7 @@ class WarehouseService:
 ```
 
 **Error**:
+
 ```
 AttributeError: 'Warehouse' object has no attribute 'storage_areas'
 ```
@@ -180,6 +186,7 @@ class WarehouseService:
 ### Prevention Rules
 
 **Rule 1: Read Before Writing**
+
 ```bash
 # BEFORE implementing service
 cat app/models/warehouse.py
@@ -188,6 +195,7 @@ grep "relationship" app/models/*.py
 ```
 
 **Rule 2: Verify Imports**
+
 ```bash
 # BEFORE claiming completion
 python -c "from app.services.warehouse_service import WarehouseService"
@@ -201,6 +209,7 @@ fi
 ```
 
 **Rule 3: Consult ERD First**
+
 ```bash
 # ALWAYS check database/database.mmd before implementing
 cat database/database.mmd | grep -A 20 "warehouses"
@@ -245,6 +254,7 @@ class StockMovement(Base):
 ```
 
 **Error**:
+
 ```sql
 psql: ERROR: column "id" is of type uuid but expression is of type integer
 ```
@@ -271,6 +281,7 @@ class StockMovement(Base):
 ### Prevention Rules
 
 **Rule 1: ERD is Source of Truth**
+
 ```bash
 # BEFORE implementing model
 cat database/database.mmd | grep -A 50 "table_name"
@@ -283,6 +294,7 @@ cat database/database.mmd | grep -A 50 "table_name"
 ```
 
 **Rule 2: Compare Model with ERD**
+
 ```bash
 # AFTER implementing model
 diff <(grep "class StockMovement" app/models/stock_movement.py) \
@@ -292,6 +304,7 @@ diff <(grep "class StockMovement" app/models/stock_movement.py) \
 ```
 
 **Rule 3: Test Migrations**
+
 ```bash
 # BEFORE claiming completion
 alembic upgrade head
@@ -359,6 +372,7 @@ async def test_create_movement_config_not_found():
 ### Prevention Rules
 
 **Rule 1: Test All Code Paths**
+
 ```python
 # For every method, test:
 # 1. Happy path (success)
@@ -368,6 +382,7 @@ async def test_create_movement_config_not_found():
 ```
 
 **Rule 2: Verify Coverage Details**
+
 ```bash
 # Run with --cov-report=term-missing
 pytest --cov=app.services.example --cov-report=term-missing
@@ -381,6 +396,7 @@ pytest --cov=app.services.example --cov-report=term-missing
 ```
 
 **Rule 3: Coverage Must Be ≥80%**
+
 ```bash
 COVERAGE=$(pytest --cov=app.services.example --cov-report=term | grep TOTAL | awk '{print $4}' | sed 's/%//')
 
@@ -446,6 +462,7 @@ class StockMovementService:
 ### Prevention Rules
 
 **Rule 1: Service→Service Communication ONLY**
+
 ```python
 # ✅ Allowed:
 # - Service → Own Repository
@@ -456,6 +473,7 @@ class StockMovementService:
 ```
 
 **Rule 2: Code Review Must Verify**
+
 ```bash
 # Check for repository violations
 grep -n "Repository" app/services/stock_movement_service.py | grep -v "self.repo"
@@ -464,6 +482,7 @@ grep -n "Repository" app/services/stock_movement_service.py | grep -v "self.repo
 ```
 
 **Rule 3: Team Leader Rejects Violations**
+
 ```markdown
 ## Team Leader Code Review
 Status: ❌ REJECTED
@@ -482,6 +501,7 @@ Action: Python Expert - refactor to use ConfigService
 **Before ANY task moves to `05_done/`, verify ALL gates**:
 
 ### Gate 1: Code Review
+
 - [ ] Service→Service pattern enforced
 - [ ] No direct repository access (except self.repo)
 - [ ] All methods have type hints
@@ -489,6 +509,7 @@ Action: Python Expert - refactor to use ConfigService
 - [ ] Docstrings present
 
 ### Gate 2: Tests Actually Run
+
 ```bash
 pytest tests/ -v
 EXIT_CODE=$?
@@ -496,18 +517,21 @@ EXIT_CODE=$?
 ```
 
 ### Gate 3: Coverage ≥80%
+
 ```bash
 COVERAGE=$(pytest --cov=app.services.example --cov-report=term | grep TOTAL | awk '{print $4}' | sed 's/%//')
 [ $COVERAGE -ge 80 ] || exit 1
 ```
 
 ### Gate 4: No Hallucinations
+
 ```bash
 python -c "from app.services.example import ExampleService"
 [ $? -eq 0 ] || exit 1
 ```
 
 ### Gate 5: Schema Match
+
 ```bash
 # Compare model with ERD
 grep "class Example" app/models/example.py
@@ -558,4 +582,5 @@ grep "example_table" database/database.mmd
 ---
 
 **Last Updated**: 2025-10-20
-**Never Forget**: Sprint 02 taught us that tests must ACTUALLY pass, code must ACTUALLY work, and quality gates exist for a reason.
+**Never Forget**: Sprint 02 taught us that tests must ACTUALLY pass, code must ACTUALLY work, and
+quality gates exist for a reason.

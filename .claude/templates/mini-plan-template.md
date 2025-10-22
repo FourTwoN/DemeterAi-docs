@@ -7,27 +7,33 @@
 ## Team Leader Mini-Plan (YYYY-MM-DD HH:MM)
 
 ### Task Overview
+
 - **Card**: [CARD-ID] - [Title]
 - **Epic**: [epic-XXX] ([Epic Name])
 - **Priority**: [CRITICAL ⚡⚡ | HIGH | MEDIUM | LOW]
 - **Complexity**: [X] points ([S/M/L/XL])
 
 ### Architecture
+
 **Layer**: [Controller | Service | Repository | Model | Test]
 **Pattern**: [Clean Architecture principle - describe]
 **Dependencies**:
+
 - Own repository: [RepositoryName] ([REPO-CARD-ID])
 - Other services: [Service1Name] ([SERVICE1-ID]), [Service2Name] ([SERVICE2-ID])
 - **NEVER**: Direct access to other repositories ❌
 
 ### Files to Create/Modify
+
 - [ ] `app/[layer]/[filename].py` (~[X] lines)
 - [ ] `tests/unit/[layer]/test_[filename].py` (~[Y] lines)
 - [ ] `tests/integration/test_[name]_api.py` (~[Z] lines)
 - [ ] `[other files if needed]`
 
 ### Database Access
+
 **Tables involved**:
+
 - `[table1]` (primary - [brief description])
 - `[table2]` (via [ServiceName], NOT direct repo)
 - `[table3]` (via [ServiceName], NOT direct repo)
@@ -37,31 +43,32 @@
 ### Implementation Strategy
 
 1. **Python Expert**: Implement [ClassName]
-   - Use template: backlog/04_templates/starter-code/[template].py
-   - Follow Service→Service pattern (NEVER Service→OtherRepo)
-   - Key methods:
-     - `[method1_name]([params])`: [description]
-     - `[method2_name]([params])`: [description]
-   - Business logic:
-     - Validation: [validation1, validation2]
-     - Exceptions: [Exception1Name, Exception2Name]
-   - Async methods with type hints
+    - Use template: backlog/04_templates/starter-code/[template].py
+    - Follow Service→Service pattern (NEVER Service→OtherRepo)
+    - Key methods:
+        - `[method1_name]([params])`: [description]
+        - `[method2_name]([params])`: [description]
+    - Business logic:
+        - Validation: [validation1, validation2]
+        - Exceptions: [Exception1Name, Exception2Name]
+    - Async methods with type hints
 
 2. **Testing Expert**: Write tests **IN PARALLEL**
-   - Unit tests: Mock dependencies ([Service1, Service2, etc.])
-   - Integration tests: Real testing DB
-   - Target: ≥80% coverage
-   - Test scenarios:
-     - [Scenario 1: description]
-     - [Scenario 2: description]
-     - [Scenario 3: edge case]
+    - Unit tests: Mock dependencies ([Service1, Service2, etc.])
+    - Integration tests: Real testing DB
+    - Target: ≥80% coverage
+    - Test scenarios:
+        - [Scenario 1: description]
+        - [Scenario 2: description]
+        - [Scenario 3: edge case]
 
 3. **Database Expert**: On-call for schema questions
-   - Clarify [table1] relationships
-   - Explain [specific_column] usage
-   - Advise on [query_pattern] optimization
+    - Clarify [table1] relationships
+    - Explain [specific_column] usage
+    - Advise on [query_pattern] optimization
 
 ### Acceptance Criteria (from task card)
+
 - [ ] [Criterion 1: specific testable requirement]
 - [ ] [Criterion 2: specific testable requirement]
 - [ ] [Criterion 3: specific testable requirement]
@@ -72,12 +79,14 @@
 - [ ] No direct repository access (except self.repo)
 
 ### Performance Expectations
+
 - [Operation 1]: <[X]ms
 - [Operation 2]: <[Y]ms
 - Full workflow (with DB): <[Z]ms
 - Tests: All passing, no warnings
 
 ### Next Steps
+
 1. Move task to `02_in-progress/`
 2. Spawn Python Expert + Testing Expert (parallel)
 3. Monitor progress (agents update task file every 30 min)

@@ -9,7 +9,8 @@
 
 ## Executive Summary
 
-Sprint 04 has implemented the **Controllers (HTTP API) Layer** with **26 endpoints** across **5 controller modules**. The implementation follows FastAPI patterns with:
+Sprint 04 has implemented the **Controllers (HTTP API) Layer** with **26 endpoints** across **5
+controller modules**. The implementation follows FastAPI patterns with:
 
 - ✅ All 5 controllers defined and routers registered in main.py
 - ✅ 26 endpoints covering stock, location, product, config, and analytics domains
@@ -26,14 +27,14 @@ Sprint 04 has implemented the **Controllers (HTTP API) Layer** with **26 endpoin
 
 ### Controllers Overview
 
-| Controller | File | Lines | Endpoints | Status |
-|------------|------|-------|-----------|--------|
-| Stock | stock_controller.py | 562 | C001-C007 (7) | ✅ COMPLETE |
-| Location | location_controller.py | 484 | C008-C013 (6) | ✅ COMPLETE |
-| Product | product_controller.py | 526 | C014-C020 (7) | ✅ COMPLETE |
-| Config | config_controller.py | 309 | C021-C023 (3) | ✅ COMPLETE |
-| Analytics | analytics_controller.py | 306 | C024-C026 (3) | ⚠️ PARTIAL |
-| **TOTAL** | - | **2,214** | **26** | - |
+| Controller | File                    | Lines     | Endpoints     | Status     |
+|------------|-------------------------|-----------|---------------|------------|
+| Stock      | stock_controller.py     | 562       | C001-C007 (7) | ✅ COMPLETE |
+| Location   | location_controller.py  | 484       | C008-C013 (6) | ✅ COMPLETE |
+| Product    | product_controller.py   | 526       | C014-C020 (7) | ✅ COMPLETE |
+| Config     | config_controller.py    | 309       | C021-C023 (3) | ✅ COMPLETE |
+| Analytics  | analytics_controller.py | 306       | C024-C026 (3) | ⚠️ PARTIAL |
+| **TOTAL**  | -                       | **2,214** | **26**        | -          |
 
 ### Endpoint Coverage
 
@@ -87,6 +88,7 @@ Analytics (C024-C026):
 **Pattern Violation**: Controllers should ONLY depend on Services, NEVER directly on Repositories.
 
 **Current Implementation** (WRONG):
+
 ```python
 # ❌ WRONG - analytics_controller.py:28-30
 from app.repositories.stock_batch_repository import StockBatchRepository
@@ -97,6 +99,7 @@ def get_analytics_service(session):
 ```
 
 **What Should Be** (CORRECT):
+
 ```python
 # ✅ CORRECT - Use repository indirectly via service factory
 def get_analytics_service(session):
@@ -106,23 +109,28 @@ def get_analytics_service(session):
 ```
 
 **Files with Repository Imports** (15 occurrences):
+
 1. analytics_controller.py - Line 28
 2. config_controller.py - Lines 25-28
 3. location_controller.py - Multiple lines
 4. product_controller.py - Multiple lines
 5. stock_controller.py - Multiple lines
 
-**Impact**: Creates tight coupling to repositories, making it harder to refactor data access patterns in the future.
+**Impact**: Creates tight coupling to repositories, making it harder to refactor data access
+patterns in the future.
 
-**Fix Required**: Restructure dependency injection to avoid direct repository imports in controllers. Use factory functions or a DI container.
+**Fix Required**: Restructure dependency injection to avoid direct repository imports in
+controllers. Use factory functions or a DI container.
 
 ---
 
 ### VIOLATION #2: Mixed Concerns in Dependency Injection
 
-**Issue**: Controllers are building complex service dependency graphs instead of delegating to a DI container.
+**Issue**: Controllers are building complex service dependency graphs instead of delegating to a DI
+container.
 
 **Current** (stock_controller.py:105-122):
+
 ```python
 def get_batch_lifecycle_service(session: AsyncSession = Depends(get_db_session)):
     batch_repo = StockBatchRepository(session)
@@ -136,9 +144,11 @@ def get_batch_lifecycle_service(session: AsyncSession = Depends(get_db_session))
     return BatchLifecycleService(batch_service, movement_service, config_service)
 ```
 
-**Problem**: Too much manual wiring. Each controller has similar dependency graphs that could be centralized.
+**Problem**: Too much manual wiring. Each controller has similar dependency graphs that could be
+centralized.
 
-**Solution**: Create a dependency injection module (e.g., `app/di/container.py`) to manage all service instantiation.
+**Solution**: Create a dependency injection module (e.g., `app/di/container.py`) to manage all
+service instantiation.
 
 ---
 
@@ -148,20 +158,21 @@ def get_batch_lifecycle_service(session: AsyncSession = Depends(get_db_session))
 
 **Total Schema Files**: 26 ✅
 
-| Category | Schemas | Status |
-|----------|---------|--------|
-| Stock | 4 (batch, movement, photo, session) | ✅ Complete |
-| Location | 4 (warehouse, area, location, bin, bin_type) | ✅ Complete |
-| Product | 7 (category, family, product, size, state, sample) | ✅ Complete |
-| Config | 2 (location_config, density_param) | ✅ Complete |
-| Packaging | 4 (type, material, color, catalog) | ✅ Complete |
-| ML Pipeline | 3 (detection, estimation, classification) | ✅ Complete |
-| Analytics | 1 (inventory_report) | ✅ Complete |
-| **TOTAL** | **26** | **✅** |
+| Category    | Schemas                                            | Status     |
+|-------------|----------------------------------------------------|------------|
+| Stock       | 4 (batch, movement, photo, session)                | ✅ Complete |
+| Location    | 4 (warehouse, area, location, bin, bin_type)       | ✅ Complete |
+| Product     | 7 (category, family, product, size, state, sample) | ✅ Complete |
+| Config      | 2 (location_config, density_param)                 | ✅ Complete |
+| Packaging   | 4 (type, material, color, catalog)                 | ✅ Complete |
+| ML Pipeline | 3 (detection, estimation, classification)          | ✅ Complete |
+| Analytics   | 1 (inventory_report)                               | ✅ Complete |
+| **TOTAL**   | **26**                                             | **✅**      |
 
 ### Validation Patterns
 
 **Good Practices Found**:
+
 - ✅ Pydantic Field() with constraints (gt=0, min_length, max_length)
 - ✅ field_validator for custom validation logic
 - ✅ ConfigDict(from_attributes=True) for SQLAlchemy integration
@@ -169,6 +180,7 @@ def get_batch_lifecycle_service(session: AsyncSession = Depends(get_db_session))
 - ✅ Docstrings on request/response classes
 
 **Examples**:
+
 ```python
 # ✅ GOOD: Strong validation in schemas
 class ManualStockInitRequest(BaseModel):
@@ -190,19 +202,20 @@ class ManualStockInitRequest(BaseModel):
 
 **Total DI Functions**: 55 (across 5 controllers)
 
-| Controller | DI Functions | Services Injected |
-|------------|--------------|-------------------|
-| stock_controller.py | 14 | 4 |
-| location_controller.py | 16 | 5 |
-| product_controller.py | 13 | 3 |
-| config_controller.py | 7 | 2 |
-| analytics_controller.py | 5 | 1 |
+| Controller              | DI Functions | Services Injected |
+|-------------------------|--------------|-------------------|
+| stock_controller.py     | 14           | 4                 |
+| location_controller.py  | 16           | 5                 |
+| product_controller.py   | 13           | 3                 |
+| config_controller.py    | 7            | 2                 |
+| analytics_controller.py | 5            | 1                 |
 
 ### Issue: Repository vs Service Distinction
 
 **Problem**: Not all DI functions properly abstract repositories.
 
 Example (config_controller.py:47-52):
+
 ```python
 def get_storage_location_config_service(session):
     config_repo = StorageLocationConfigRepository(session)
@@ -211,6 +224,7 @@ def get_storage_location_config_service(session):
 ```
 
 **Correct Approach**:
+
 ```python
 def get_storage_location_config_service(session):
     # ✅ Factory should be in a separate module
@@ -243,6 +257,7 @@ app.include_router(analytics_router)
 ```
 
 **Features**:
+
 - ✅ All 5 routers imported and registered
 - ✅ Correlation ID middleware configured (lines 26-71)
 - ✅ Exception handlers for AppBaseException and generic Exception (lines 79-158)
@@ -250,6 +265,7 @@ app.include_router(analytics_router)
 - ✅ Proper error response formatting with correlation IDs
 
 **Issues**:
+
 - ⚠️ CORS not configured (only enabled if needed for frontend)
 - ⚠️ No request timeout configuration
 - ⚠️ No rate limiting middleware
@@ -279,12 +295,14 @@ async def app_exception_handler(request: Request, exc: AppBaseException):
 ```
 
 **Strengths**:
+
 - ✅ Consistent error response format
 - ✅ Correlation ID included in all errors
 - ✅ Security: Technical details only in DEBUG mode
 - ✅ All custom exceptions inherit from AppBaseException
 
 **Controllers Exception Handling** (12 occurrences):
+
 ```python
 try:
     # ... endpoint logic
@@ -305,28 +323,30 @@ except Exception as e:
 
 ### Test Files Found
 
-| Test File | Status |
-|-----------|--------|
-| test_api_health.py | ✅ 3 tests (health endpoint) |
-| test_product_service.py | ✅ Integration tests |
-| test_warehouse_service_integration.py | ✅ Integration tests |
-| test_product_category_service.py | ✅ Integration tests |
-| test_s3_image_service.py | ✅ Integration tests |
-| test_product_family_db.py | ✅ DB tests |
-| test_celery_redis.py | ✅ Celery tests |
+| Test File                             | Status                      |
+|---------------------------------------|-----------------------------|
+| test_api_health.py                    | ✅ 3 tests (health endpoint) |
+| test_product_service.py               | ✅ Integration tests         |
+| test_warehouse_service_integration.py | ✅ Integration tests         |
+| test_product_category_service.py      | ✅ Integration tests         |
+| test_s3_image_service.py              | ✅ Integration tests         |
+| test_product_family_db.py             | ✅ DB tests                  |
+| test_celery_redis.py                  | ✅ Celery tests              |
 
 ### Coverage Issues
 
 **Problem**: No endpoint-specific tests for the 26 controllers.
 
 **Missing**:
+
 - [ ] tests/integration/test_stock_controller.py - Tests for C001-C007
 - [ ] tests/integration/test_location_controller.py - Tests for C008-C013
 - [ ] tests/integration/test_product_controller.py - Tests for C014-C020
 - [ ] tests/integration/test_config_controller.py - Tests for C021-C023
 - [ ] tests/integration/test_analytics_controller.py - Tests for C024-C026
 
-**Current Test Database Issue**: Tests fail due to database schema creation errors. This must be fixed before running endpoint tests.
+**Current Test Database Issue**: Tests fail due to database schema creation errors. This must be
+fixed before running endpoint tests.
 
 ---
 
@@ -430,11 +450,13 @@ except Exception as e:
 ## 11. IMMEDIATE FIXES REQUIRED (Before Moving to Sprint 05)
 
 ### Priority 1: CRITICAL Architecture Fix
+
 - [ ] Remove all direct repository imports from controllers
 - [ ] Create `app/di/factory.py` for centralized service instantiation
 - [ ] Update all controllers to use factory instead of manual wiring
 
 ### Priority 2: Complete Placeholder Endpoints
+
 - [ ] Implement C003: Celery task status (depends on CEL005)
 - [ ] Implement C005: List stock batches (add get_multi to service)
 - [ ] Implement C006: Get batch details (add get_by_id to service)
@@ -444,6 +466,7 @@ except Exception as e:
 - [ ] Implement C026: Data export (CSV/JSON)
 
 ### Priority 3: Add Integration Tests
+
 - [ ] Create test_stock_controller.py (7 tests)
 - [ ] Create test_location_controller.py (6 tests)
 - [ ] Create test_product_controller.py (7 tests)
@@ -451,6 +474,7 @@ except Exception as e:
 - [ ] Create test_analytics_controller.py (3 tests)
 
 ### Priority 4: Fix Test Database
+
 - [ ] Debug database creation errors in test setup
 - [ ] Run full test suite with coverage
 - [ ] Verify ≥80% coverage for controllers
@@ -484,16 +508,16 @@ except Exception as e:
    ```
 
 3. **Endpoint Naming Convention**
-   - All endpoints should follow REST conventions
-   - Use POST for creation, GET for retrieval, PUT for updates, DELETE for removal
+    - All endpoints should follow REST conventions
+    - Use POST for creation, GET for retrieval, PUT for updates, DELETE for removal
 
 4. **Rate Limiting**
-   - Add `python-slowapi` for rate limiting
-   - Implement rate limiting on write operations
+    - Add `python-slowapi` for rate limiting
+    - Implement rate limiting on write operations
 
 5. **Request Validation Middleware**
-   - Add automatic request body size validation
-   - Add automatic timeout handling
+    - Add automatic request body size validation
+    - Add automatic timeout handling
 
 ---
 
@@ -501,16 +525,16 @@ except Exception as e:
 
 ### Sprint 04 Status: ⚠️ CONDITIONAL - NEEDS FIXES
 
-| Component | Status | Notes |
-|-----------|--------|-------|
-| Controllers | ✅ 100% | All 5 controllers implemented |
-| Endpoints | ⚠️ 69% | 18/26 fully functional, 7 placeholders |
-| Schemas | ✅ 100% | 26 schemas with proper validation |
-| Exception Handling | ✅ 100% | Consistent error responses |
-| Logging | ✅ 100% | All endpoints have logging |
-| DI Pattern | ❌ VIOLATION | Repositories imported in controllers |
-| Tests | ❌ 0% | No controller integration tests |
-| DB Tests | ❌ ERROR | Database setup issues |
+| Component          | Status      | Notes                                  |
+|--------------------|-------------|----------------------------------------|
+| Controllers        | ✅ 100%      | All 5 controllers implemented          |
+| Endpoints          | ⚠️ 69%      | 18/26 fully functional, 7 placeholders |
+| Schemas            | ✅ 100%      | 26 schemas with proper validation      |
+| Exception Handling | ✅ 100%      | Consistent error responses             |
+| Logging            | ✅ 100%      | All endpoints have logging             |
+| DI Pattern         | ❌ VIOLATION | Repositories imported in controllers   |
+| Tests              | ❌ 0%        | No controller integration tests        |
+| DB Tests           | ❌ ERROR     | Database setup issues                  |
 
 ### Blockers for Sprint 05
 

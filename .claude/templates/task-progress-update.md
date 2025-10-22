@@ -9,24 +9,29 @@
 **Status**: [in-progress | review | testing | done | blocked]
 
 ### Work Completed
+
 - [Bullet point 1]
 - [Bullet point 2]
 - [Bullet point 3]
 
 ### In Progress
+
 - [ ] [Item currently being worked on]
 - [ ] [Another ongoing item]
 
 ### Next Steps
+
 - [Next action 1]
 - [Next action 2]
 - [Next action 3]
 
 ### Blockers (if any)
+
 - [Blocker 1: description + who can unblock]
 - [Blocker 2: description + what's needed]
 
 ### ETA
+
 [Estimated time to completion: X hours/days]
 
 ---
@@ -125,10 +130,10 @@ Ready for completion in 15 minutes
 
 1. **Copy template** to your working document
 2. **Replace placeholders**:
-   - Agent Name
-   - Date and time
-   - Status
-   - All bullet points with actual progress
+    - Agent Name
+    - Date and time
+    - Status
+    - All bullet points with actual progress
 3. **Append to task file**:
    ```bash
    cat >> backlog/03_kanban/02_in-progress/S001-*.md <<EOF

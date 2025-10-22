@@ -1,6 +1,7 @@
 # [DEP011] CI/CD Pipeline (GitHub Actions)
 
 ## Metadata
+
 - **Epic**: epic-011-deployment
 - **Sprint**: Sprint-03
 - **Priority**: `high`
@@ -8,28 +9,32 @@
 - **Dependencies**: Blocked by [F008, F009, DEP001]
 
 ## Description
+
 Implement complete CI/CD pipeline: lint, test, build, deploy on every commit to main.
 
 ## Acceptance Criteria
+
 - [ ] **CI (Continuous Integration)**:
-  - Lint with Ruff on every commit
-  - Run pytest on every commit
-  - Build Docker image
-  - Push to Docker registry
+    - Lint with Ruff on every commit
+    - Run pytest on every commit
+    - Build Docker image
+    - Push to Docker registry
 
 - [ ] **CD (Continuous Deployment)**:
-  - Run database migrations
-  - Deploy to staging (on merge to develop)
-  - Deploy to production (on merge to main)
-  - Rollback on failure
+    - Run database migrations
+    - Deploy to staging (on merge to develop)
+    - Deploy to production (on merge to main)
+    - Rollback on failure
 
 - [ ] **Quality gates**:
-  - Tests must pass (>80% coverage)
-  - No lint errors
-  - Security scan (Trivy for Docker images)
+    - Tests must pass (>80% coverage)
+    - No lint errors
+    - Security scan (Trivy for Docker images)
 
 ## Implementation
+
 **.github/workflows/ci.yml:**
+
 ```yaml
 name: CI
 
@@ -94,6 +99,7 @@ jobs:
 ```
 
 **.github/workflows/deploy.yml:**
+
 ```yaml
 name: Deploy
 
@@ -119,6 +125,7 @@ jobs:
 ```
 
 ## Testing
+
 - Create PR → verify CI runs
 - Merge PR → verify deploy runs
 - Check production logs

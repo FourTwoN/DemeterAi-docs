@@ -71,18 +71,43 @@
         "app/services/storage_bin_type_service.py"
       ],
       "modules_low_coverage": [
-        {"file": "app/services/warehouse_service.py", "coverage": 17},
-        {"file": "app/services/storage_area_service.py", "coverage": 16},
-        {"file": "app/services/storage_location_service.py", "coverage": 18}
+        {
+          "file": "app/services/warehouse_service.py",
+          "coverage": 17
+        },
+        {
+          "file": "app/services/storage_area_service.py",
+          "coverage": 16
+        },
+        {
+          "file": "app/services/storage_location_service.py",
+          "coverage": 18
+        }
       ],
       "fix": "Add integration tests for uncovered services"
     }
   ],
   "successes": {
-    "core_infrastructure": {"passed": 68, "total": 68, "rate": 100},
-    "celery_redis": {"passed": 14, "total": 14, "rate": 100},
-    "db_session": {"passed": 18, "total": 18, "rate": 100},
-    "ml_processing": {"passed": 11, "total": 27, "rate": 41}
+    "core_infrastructure": {
+      "passed": 68,
+      "total": 68,
+      "rate": 100
+    },
+    "celery_redis": {
+      "passed": 14,
+      "total": 14,
+      "rate": 100
+    },
+    "db_session": {
+      "passed": 18,
+      "total": 18,
+      "rate": 100
+    },
+    "ml_processing": {
+      "passed": 11,
+      "total": 27,
+      "rate": 41
+    }
   },
   "errors_by_file": {
     "test_product_size.py": 33,

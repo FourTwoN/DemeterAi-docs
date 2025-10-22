@@ -7,16 +7,20 @@
 
 ## Purpose
 
-This diagram documents the **photo gallery view** that allows users to browse all uploaded photos across all sessions, filter by various criteria, and navigate to detailed views. This is the primary interface for viewing photo processing results.
+This diagram documents the **photo gallery view** that allows users to browse all uploaded photos
+across all sessions, filter by various criteria, and navigate to detailed views. This is the primary
+interface for viewing photo processing results.
 
 ## Scope
 
 **Input:**
+
 - User authentication token
 - Optional filters (date range, warehouse, status)
 - Pagination parameters (page, per_page)
 
 **Output:**
+
 - Thumbnail grid of all photos
 - Filter controls
 - Pagination controls
@@ -24,6 +28,7 @@ This diagram documents the **photo gallery view** that allows users to browse al
 - Navigation to detail views
 
 **Performance Target:**
+
 - Initial load: < 300ms
 - Thumbnail loading: < 50ms per image (S3 presigned URLs)
 - Filter application: < 200ms
@@ -34,6 +39,7 @@ This diagram documents the **photo gallery view** that allows users to browse al
 ### Why Gallery View?
 
 **Problem:** Users need to:
+
 - See all processed photos at a glance
 - Identify failed/warning photos quickly
 - Navigate to detailed views
@@ -44,6 +50,7 @@ This diagram documents the **photo gallery view** that allows users to browse al
 ### Gallery Features
 
 **Core features:**
+
 1. **Thumbnail grid**: Fast loading with S3 presigned URLs
 2. **Advanced filters**: Date, warehouse, status
 3. **Status badges**: Visual indicators for success/warning/error
@@ -56,6 +63,7 @@ This diagram documents the **photo gallery view** that allows users to browse al
 ### 1. Gallery Page Layout (lines 120-220)
 
 **React/TypeScript component structure:**
+
 ```tsx
 interface Photo {
     image_id: string
@@ -178,6 +186,7 @@ function PhotoGalleryPage() {
 ### 2. Filter Controls (lines 260-380)
 
 **Filter UI component:**
+
 ```tsx
 interface FilterControlsProps {
     filters: GalleryFilters
@@ -289,6 +298,7 @@ function FilterControls({ filters, onFiltersChange }: FilterControlsProps) {
 ### 3. Photo Grid Component (lines 420-540)
 
 **Thumbnail grid with lazy loading:**
+
 ```tsx
 interface PhotoGridProps {
     photos: Photo[]
@@ -392,6 +402,7 @@ function PhotoCard({
 ```
 
 **CSS for responsive grid:**
+
 ```css
 .photo-grid {
     display: grid;
@@ -445,6 +456,7 @@ function PhotoCard({
 ### 4. Status Badge Component (lines 580-660)
 
 **Visual status indicators:**
+
 ```tsx
 function StatusBadge({
     status,
@@ -499,6 +511,7 @@ function StatusBadge({
 ```
 
 **Special handling for warning states:**
+
 ```tsx
 function WarningBadge({ errorDetails }: { errorDetails: string }) {
     // Parse error type
@@ -537,6 +550,7 @@ function WarningBadge({ errorDetails }: { errorDetails: string }) {
 ### 5. Backend: Gallery Endpoint (lines 700-860)
 
 **FastAPI implementation:**
+
 ```python
 from typing import List, Optional
 from fastapi import APIRouter, Depends, Query
@@ -709,6 +723,7 @@ async def get_photo_gallery(
 ```
 
 **Performance optimizations:**
+
 ```sql
 -- Required indexes for fast query
 CREATE INDEX idx_s3_images_user_created ON s3_images(uploaded_by_user_id, created_at DESC);
@@ -721,6 +736,7 @@ CREATE INDEX idx_storage_location_warehouse ON storage_locations(warehouse_id);
 ### 6. Pagination Controls (lines 900-980)
 
 **Pagination UI:**
+
 ```tsx
 function PaginationControls({
     pagination,
@@ -823,6 +839,7 @@ function calculatePageRange(
 ### 7. Batch Operations (lines 1020-1100)
 
 **Delete multiple photos:**
+
 ```tsx
 async function deletePhotos(imageIds: string[]) {
     // Show confirmation dialog
@@ -866,6 +883,7 @@ async function deletePhotos(imageIds: string[]) {
 ```
 
 **Backend batch delete endpoint:**
+
 ```python
 @router.post('/photos/batch-delete')
 async def batch_delete_photos(
@@ -908,18 +926,19 @@ async def batch_delete_photos(
 
 **Gallery load timing (for 50 photos per page):**
 
-| Phase | Time | Details |
-|-------|------|---------|
-| **Database query** | 50-100ms | With proper indexes |
-| **S3 presigned URLs** | 50 × 2ms = 100ms | 50 URLs × 2 operations |
-| **JSON serialization** | 20ms | Serialize response |
-| **Network transfer** | 50-100ms | ~150KB payload |
-| **Frontend parsing** | 10ms | Parse JSON |
-| **Initial render** | 50ms | React rendering |
-| **Thumbnail loading** | 1-2s | Lazy loading (staggered) |
-| **Total (excluding thumbnails)** | ~300-350ms | User sees grid immediately |
+| Phase                            | Time             | Details                    |
+|----------------------------------|------------------|----------------------------|
+| **Database query**               | 50-100ms         | With proper indexes        |
+| **S3 presigned URLs**            | 50 × 2ms = 100ms | 50 URLs × 2 operations     |
+| **JSON serialization**           | 20ms             | Serialize response         |
+| **Network transfer**             | 50-100ms         | ~150KB payload             |
+| **Frontend parsing**             | 10ms             | Parse JSON                 |
+| **Initial render**               | 50ms             | React rendering            |
+| **Thumbnail loading**            | 1-2s             | Lazy loading (staggered)   |
+| **Total (excluding thumbnails)** | ~300-350ms       | User sees grid immediately |
 
 **Thumbnail optimization:**
+
 - **Size**: 300×300px JPEG (quality 80%) ≈ 30KB each
 - **Total**: 50 × 30KB = 1.5MB per page
 - **Loading**: Lazy (native `loading="lazy"` attribute)
@@ -932,6 +951,7 @@ async def batch_delete_photos(
 **Scenario:** User has no uploaded photos
 
 **UI:**
+
 ```tsx
 if (photos.length === 0 && !loading) {
     return (
@@ -953,6 +973,7 @@ if (photos.length === 0 && !loading) {
 **Scenario:** AWS credentials invalid, S3 unavailable
 
 **Fallback:**
+
 ```python
 try:
     thumbnail_url = s3_client.generate_presigned_url(...)
@@ -967,6 +988,7 @@ except Exception as e:
 **Scenario:** S3 image deleted, URL expired
 
 **UI:**
+
 ```tsx
 <img
     src={photo.thumbnail_url}
@@ -987,13 +1009,14 @@ except Exception as e:
 
 ## Version History
 
-| Version | Date | Changes |
-|---------|------|---------|
-| 1.0.0 | 2025-10-08 | Initial gallery view subflow |
+| Version | Date       | Changes                      |
+|---------|------------|------------------------------|
+| 1.0.0   | 2025-10-08 | Initial gallery view subflow |
 
 ---
 
 **Notes:**
+
 - Gallery shows ALL photos (not just current session)
 - Thumbnail URLs cached for 1 hour (reduce API calls)
 - Lazy loading critical for performance (50+ images)

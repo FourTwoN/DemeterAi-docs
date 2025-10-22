@@ -10,7 +10,8 @@
 
 ## Goal
 
-Establish production-ready development environment and foundational infrastructure enabling backend development with zero blockers in Sprint 01.
+Establish production-ready development environment and foundational infrastructure enabling backend
+development with zero blockers in Sprint 01.
 
 ---
 
@@ -28,11 +29,13 @@ Establish production-ready development environment and foundational infrastructu
 ## Cards List (12 cards, 65 points)
 
 ### Project Setup (10 points)
+
 - **F001**: Project directory structure + pyproject.toml (5pts)
 - **F002**: Virtual environment + dependencies (3pts)
 - **F003**: Git setup (pre-commit hooks, .gitignore) (2pts)
 
 ### Core Infrastructure (25 points)
+
 - **F004**: Base logging configuration (structured JSON, correlation IDs) (5pts)
 - **F005**: Base exception taxonomy (AppBaseException + 10 subclasses) (5pts)
 - **F006**: Database connection manager (async session, pooling) (5pts)
@@ -40,11 +43,13 @@ Establish production-ready development environment and foundational infrastructu
 - **F009**: pytest configuration (test fixtures, test DB) (5pts)
 
 ### Quality Tooling (7 points)
+
 - **F008**: Ruff configuration (linting + formatting) (3pts)
 - **F010**: mypy configuration (type checking) (2pts)
 - **F003**: Pre-commit hooks (integrated) (2pts)
 
 ### Containerization (13 points)
+
 - **F011**: Dockerfile (multi-stage build, Python 3.12-slim) (8pts)
 - **F012**: docker-compose.yml (PostgreSQL 18, Redis 7, API, workers) (5pts)
 
@@ -60,6 +65,7 @@ Establish production-ready development environment and foundational infrastructu
 ## Technical Approach
 
 **Directory Structure**:
+
 ```
 app/
 ├── core/          # F004, F005
@@ -73,6 +79,7 @@ app/
 ```
 
 **Key Patterns**:
+
 - Async-first (AsyncSession, async def)
 - Modern Python packaging (pyproject.toml)
 - Quality gates (Ruff, pytest, mypy, pre-commit)

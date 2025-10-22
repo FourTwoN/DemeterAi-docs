@@ -1,6 +1,7 @@
 # [TEST003] Factory Pattern for Models (FactoryBoy)
 
 ## Metadata
+
 - **Epic**: epic-012-testing
 - **Sprint**: Sprint-02
 - **Priority**: `medium`
@@ -8,9 +9,12 @@
 - **Dependencies**: Blocked by [TEST001]
 
 ## Description
-Implement FactoryBoy factories for all models: easy test data generation, realistic fake data, override fields as needed.
+
+Implement FactoryBoy factories for all models: easy test data generation, realistic fake data,
+override fields as needed.
 
 ## Acceptance Criteria
+
 - [ ] Factory for each model (User, Warehouse, Product, etc.)
 - [ ] Faker integration (realistic names, emails, GPS)
 - [ ] SubFactory for relationships (Product → ProductFamily)
@@ -18,6 +22,7 @@ Implement FactoryBoy factories for all models: easy test data generation, realis
 - [ ] Can override any field in tests
 
 ## Implementation
+
 ```python
 import factory
 from factory.faker import Faker
@@ -54,6 +59,7 @@ class ProductFactory(factory.alchemy.SQLAlchemyModelFactory):
 ```
 
 **Usage in tests:**
+
 ```python
 def test_create_user(db_session):
     user = UserFactory.create(email="custom@example.com", role="admin")
@@ -62,6 +68,7 @@ def test_create_user(db_session):
 ```
 
 ## Testing
+
 - Test factories create valid model instances
 - Test factories respect field overrides
 - Test SubFactory creates related objects

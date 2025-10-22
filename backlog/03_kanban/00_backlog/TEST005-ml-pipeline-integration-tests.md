@@ -1,6 +1,7 @@
 # [TEST005] ML Pipeline Integration Tests
 
 ## Metadata
+
 - **Epic**: epic-012-testing
 - **Sprint**: Sprint-05
 - **Priority**: `high`
@@ -8,9 +9,12 @@
 - **Dependencies**: Blocked by [ML009, TEST001, TEST002]
 
 ## Description
-End-to-end tests for ML pipeline using sample photos: segmentation → detection → estimation → batch creation.
+
+End-to-end tests for ML pipeline using sample photos: segmentation → detection → estimation → batch
+creation.
 
 ## Acceptance Criteria
+
 - [ ] Sample test photos in `tests/fixtures/photos/`
 - [ ] Test full pipeline with real photo
 - [ ] Test with known ground truth (verify counts)
@@ -19,7 +23,9 @@ End-to-end tests for ML pipeline using sample photos: segmentation → detection
 - [ ] Test async Celery task execution (or mock)
 
 ## Implementation
+
 **tests/integration/test_ml_pipeline.py:**
+
 ```python
 @pytest.mark.asyncio
 async def test_ml_pipeline_full_workflow(db_session, test_photo):
@@ -59,6 +65,7 @@ def test_ml_pipeline_ground_truth(photo_file, expected_count):
 ```
 
 ## Testing
+
 - Run tests with GPU (if available)
 - Run tests with CPU fallback
 - Verify timing (GPU faster than CPU)

@@ -1,6 +1,7 @@
 # R011: Packaging Type Repository
 
 ## Metadata
+
 - **Epic**: [epic-003-repositories.md](../../02_epics/epic-003-repositories.md)
 - **Sprint**: Sprint-01
 - **Status**: `backlog`
@@ -9,18 +10,21 @@
 - **Area**: `repositories`
 - **Assignee**: TBD
 - **Dependencies**:
-  - Blocks: [R014, S010]
-  - Blocked by: [F006, F007, DB020]
+    - Blocks: [R014, S010]
+    - Blocked by: [F006, F007, DB020]
 
 ## Related Documentation
-- **Engineering Plan**: [../../engineering_plan/backend/repository_layer.md](../../engineering_plan/backend/repository_layer.md)
+
+- **Engineering Plan
+  **: [../../engineering_plan/backend/repository_layer.md](../../engineering_plan/backend/repository_layer.md)
 - **Database ERD**: [../../database/database.mmd](../../database/database.mmd#L114-L119)
 
 ## Description
 
 **What**: Implement repository class for `packaging_types` table with CRUD operations.
 
-**Why**: Packaging types define container categories (maceta, bolsa, bandeja). Repository provides lookup for packaging catalog and ML classification.
+**Why**: Packaging types define container categories (maceta, bolsa, bandeja). Repository provides
+lookup for packaging catalog and ML classification.
 
 **Context**: Master data for packaging categories. Used to organize packaging_catalog entries.
 
@@ -67,6 +71,7 @@ class PackagingTypeRepository(AsyncRepository[PackagingType]):
 - [ ] PR reviewed (2+ approvals)
 
 ## Time Tracking
+
 - **Estimated**: 1 story point (~2 hours)
 - **Actual**: TBD
 

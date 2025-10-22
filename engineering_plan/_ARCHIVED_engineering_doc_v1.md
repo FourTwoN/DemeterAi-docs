@@ -2,7 +2,11 @@
 
 ## 1\. Context and Project Objective
 
-This application aims to automate the counting of cacti and succulents in a cultivation of over 600,000 plants using Machine Learning. Currently, stock tracking is performed manually and infrequently. The proposed solution allows users to input photos of the cultivation, process them with detection and segmentation models (YOLO v11), and obtain accurate counts organized by geographic location.
+This application aims to automate the counting of cacti and succulents in a cultivation of over
+600,000 plants using Machine Learning. Currently, stock tracking is performed manually and
+infrequently. The proposed solution allows users to input photos of the cultivation, process them
+with detection and segmentation models (YOLO v11), and obtain accurate counts organized by
+geographic location.
 
 ### Main Technologies
 
@@ -25,9 +29,9 @@ This application aims to automate the counting of cacti and succulents in a cult
 
 config:
 
-  theme: redux-dark-color
+theme: redux-dark-color
 
-  layout: elk
+layout: elk
 
 \---
 
@@ -775,7 +779,8 @@ Storage bins represent different container types where cacti/succulents can be:
 3. **Segments**: Cacti planted in pots in rectangular grid form, ready for sale
 4. **Boxes**: Boxes with cacti already in pots (different from seedling trays), ready for sale
 
-Storage bins are defined by their `storage_bin_type`, which specifies the category (plug, seedling\_tray, box, segment, pot).
+Storage bins are defined by their `storage_bin_type`, which specifies the category (plug,
+seedling\_tray, box, segment, pot).
 
 ### 2.3. Data Flow in the Database for ML path
 
@@ -814,26 +819,34 @@ Photo → PhotoProcessingSession → Detections \+ Estimations → StockMovement
 
 Manual Input → StockMovement → StockBatch
 
-Manual Input can be INGRESS or EGRESS. Egress may be for death, sell, transplant (plant grew too big) and other.
+Manual Input can be INGRESS or EGRESS. Egress may be for death, sell, transplant (plant grew too
+big) and other.
 
 DATA FLOW MES A MES:
 
-1\. Cada foto a final de mes se marca como el inicio del stock de ese mes, ese stock puede sufrir variaciones por:
+1\. Cada foto a final de mes se marca como el inicio del stock de ese mes, ese stock puede sufrir
+variaciones por:
 
 \- Muertes (resta) (plug, almacigo, cajones y segmento)
 \- Plantado (suma) (cajones y segmentos)
-\- Trasplante (resta en un claro, suma en otro): plug \-\> almacigo \-\> cajon/segmento (tamano chico) \-\> cajon/segmento (tamano mediano) \-\> cajon/segmento (tamano grande)
+\- Trasplante (resta en un claro, suma en otro): plug \-\> almacigo \-\> cajon/segmento (tamano
+chico) \-\> cajon/segmento (tamano mediano) \-\> cajon/segmento (tamano grande)
 
-2\. AHORA, a final del siguiente MES se toma otra foto y si faltan PLANTAS se consideran VENTAS (solo para cajon/segmento). ADEMAS, puede haber una especie de validacion externa gracias a ventas de parte de CLIENTE (CSV lo mas probable) donde indica cantidad, clasificacion, tipo\_maceta \+ color PERO DATOS GEOGRAFICOS NO
+2\. AHORA, a final del siguiente MES se toma otra foto y si faltan PLANTAS se consideran VENTAS (
+solo para cajon/segmento). ADEMAS, puede haber una especie de validacion externa gracias a ventas de
+parte de CLIENTE (CSV lo mas probable) donde indica cantidad, clasificacion, tipo\_maceta \+ color
+PERO DATOS GEOGRAFICOS NO
 
-CON esa siguiente foto se hace ese calculo e inicia EL SIGUIENTE historial y se reinicia de nuevo el proceso 1
+CON esa siguiente foto se hace ese calculo e inicia EL SIGUIENTE historial y se reinicia de nuevo el
+proceso 1
 
 2.4. Complementary Tables
 
 - **Users**: Administrators or workers
 - **Products**: Catalog of cactus/succulent species
 - **PackagingCatalog**: Types of packaging with their prices
-- **StorageLocationConfig**: Information loaded by administrator about what is planted in each storage location
+- **StorageLocationConfig**: Information loaded by administrator about what is planted in each
+  storage location
 
 ### 2.5. PostgreSQL Considerations
 
@@ -868,61 +881,61 @@ Repositories are the **only layer** that directly accesses the database. They ha
 
 /repositories
 
-  /models          \# SQLAlchemy models (exact database representation)
+/models \# SQLAlchemy models (exact database representation)
 
-  base\_repo.py     \# Base repository with common definitions
+base\_repo.py \# Base repository with common definitions
 
-  warehouse\_repo.py
+warehouse\_repo.py
 
-  storage\_area\_repo.py
+storage\_area\_repo.py
 
-  storage\_location\_repo.py
+storage\_location\_repo.py
 
-  storage\_bin\_repo.py
+storage\_bin\_repo.py
 
-  storage\_bin\_type\_repo.py
+storage\_bin\_type\_repo.py
 
-  photo\_processing\_session\_repo.py
+photo\_processing\_session\_repo.py
 
-  stock\_movement\_repo.py
+stock\_movement\_repo.py
 
-  stock\_batch\_repo.py
+stock\_batch\_repo.py
 
-  product\_repo.py
+product\_repo.py
 
-  product\_category\_repo.py
+product\_category\_repo.py
 
-  product\_family\_repo.py
+product\_family\_repo.py
 
-  packaging\_catalog\_repo.py
+packaging\_catalog\_repo.py
 
-  packaging\_type\_repo.py
+packaging\_type\_repo.py
 
-  packaging\_material\_repo.py
+packaging\_material\_repo.py
 
-  packaging\_color\_repo.py
+packaging\_color\_repo.py
 
-  storage\_location\_config\_repo.py
+storage\_location\_config\_repo.py
 
-  density\_parameters\_repo.py
+density\_parameters\_repo.py
 
-  user\_repo.py
+user\_repo.py
 
-  detection\_repo.py
+detection\_repo.py
 
-  estimation\_repo.py
+estimation\_repo.py
 
-  product\_state\_repo.py
+product\_state\_repo.py
 
-  product\_size\_repo.py
+product\_size\_repo.py
 
 ### 3.4. Design Principles
 
 - **Single Responsibility**: Each repository handles one main entity
 - **Reuse**: Repositories can call other repositories to avoid duplication
 - **Simplicity vs. Completeness**:
-  - Simple tables (like Products) don't need super-repositories
-  - Complex tables (like StockBatch, StockMovement) need robust methods
+    - Simple tables (like Products) don't need super-repositories
+    - Complex tables (like StockBatch, StockMovement) need robust methods
 - **Base Repo**: Contains basic CRUD operations, others inherit and extend
 - **Models**: Must be identical to the database structure
 
@@ -940,7 +953,8 @@ Repositories are the **only layer** that directly accesses the database. They ha
 
 ### 4.1. Responsibility
 
-Services are the **middle layer** between controllers and repositories. They coordinate business logic.
+Services are the **middle layer** between controllers and repositories. They coordinate business
+logic.
 
 ### 4.2. Main Functions
 
@@ -966,33 +980,31 @@ Service A → Repository B directly (must call Service B)
 
 /services
 
-  base\_service.py
+base\_service.py
 
-  warehouse\_service.py
+warehouse\_service.py
 
-  storage\_area\_service.py
+storage\_area\_service.py
 
-  storage\_location\_service.py
+storage\_location\_service.py
 
-  storage\_bin\_service.py
+storage\_bin\_service.py
 
-  photo\_processing\_session\_service.py
+photo\_processing\_session\_service.py
 
-  stock\_movement\_service.py
+stock\_movement\_service.py
 
-  stock\_batch\_service.py
+stock\_batch\_service.py
 
-  product\_service.py
+product\_service.py
 
-  packaging\_catalog\_service.py
+packaging\_catalog\_service.py
 
-  storage\_location\_config\_service.py
+storage\_location\_config\_service.py
 
-  user\_service.py
+user\_service.py
 
-
-
-  /ml\_processing           \# Machine Learning Pipeline
+/ml\_processing \# Machine Learning Pipeline
 
     pipeline\_coordinator.py    \# Main pipeline orchestrator
 
@@ -1023,7 +1035,8 @@ Each service should have at least:
 
 ### 5.1. Integration with API
 
-**CRITICAL**: The pipeline is NOT separated from the REST API. It's an integral part of the system and must:
+**CRITICAL**: The pipeline is NOT separated from the REST API. It's an integral part of the system
+and must:
 
 - Use the same services
 - Use the same repositories
@@ -1056,9 +1069,11 @@ Each service should have at least:
 4. **Creation of detection mask**: Form uniform and smooth mask with all bounding boxes
 5. **Subtraction**: Segment mask \- Detection mask \= Remaining area
 6. **Remaining area estimation**:
-   - Apply OTSU with HSV to eliminate empty soil
-   - Calculate pixels of remaining area
-   - Estimate number of plants according to pot size (e.g., 5-7cm square pots). Pot size may be obtained through close by detections or configuration saved in database table density\_parameters
+    - Apply OTSU with HSV to eliminate empty soil
+    - Calculate pixels of remaining area
+    - Estimate number of plants according to pot size (e.g., 5-7cm square pots). Pot size may be
+      obtained through close by detections or configuration saved in database table
+      density\_parameters
 
 #### Step 3B: Box Processing
 
@@ -1074,16 +1089,17 @@ Each service should have at least:
 
 1. Get StorageLocationConfig from identified storage location
 2. Extract: product, packaging, price
-3. If configuration doesn't exist: save anyway with relation to storage location (will be updated later with DB trigger)
+3. If configuration doesn't exist: save anyway with relation to storage location (will be updated
+   later with DB trigger)
 
 #### Step 5: Final Image Generation
 
 Create image with visualizations:
 
 - **Detections**: Transparent circles (80% opacity) at the center of each bounding box
-  - Use nice colors (not generic vibrant YOLO colors)
-  - Allow seeing the cactus underneath
-  - Occupy 80% of original bounding box
+    - Use nice colors (not generic vibrant YOLO colors)
+    - Allow seeing the cactus underneath
+    - Occupy 80% of original bounding box
 - **Estimated area**: Smooth and transparent mask with different color
 - Save both original image and image with visualizations
 
@@ -1181,7 +1197,7 @@ Get all warehouses with their geographic coordinates.
 
 \[
 
-  {
+{
 
     "id": 1,
 
@@ -1191,7 +1207,7 @@ Get all warehouses with their geographic coordinates.
 
     "coordinates": \[\[lat1, lon1\], \[lat2, lon2\], \[lat3, lon3\], \[lat4, lon4\]\]
 
-  }
+}
 
 \]
 
@@ -1203,9 +1219,9 @@ Get storage areas of a warehouse with their storage locations and preview inform
 
 {
 
-  "warehouse\_id": 1,
+"warehouse\_id": 1,
 
-  "storage\_areas": \[
+"storage\_areas": \[
 
     {
 
@@ -1247,7 +1263,7 @@ Get storage areas of a warehouse with their storage locations and preview inform
 
     }
 
-  \]
+\]
 
 }
 
@@ -1271,9 +1287,9 @@ Get detail of the last detection of a storage location.
 
 {
 
-  "storage\_location\_id": 1,
+"storage\_location\_id": 1,
 
-  "last\_detection": {
+"last\_detection": {
 
     "date": "2025-01-15T10:30:00",
 
@@ -1299,7 +1315,7 @@ Get detail of the last detection of a storage location.
 
     "estimated\_price": 24000.50
 
-  }
+}
 
 }
 
@@ -1311,9 +1327,9 @@ Get complete detection history of a storage location.
 
 {
 
-  "storage\_location\_id": 1,
+"storage\_location\_id": 1,
 
-  "history": \[
+"history": \[
 
     {
 
@@ -1363,7 +1379,7 @@ Get complete detection history of a storage location.
 
     }
 
-  \]
+\]
 
 }
 
@@ -1381,9 +1397,9 @@ Create or update configuration of one or multiple storage locations.
 
 {
 
-  "storage\_location\_ids": \[1, 2, 3, 4, 5\],
+"storage\_location\_ids": \[1, 2, 3, 4, 5\],
 
-  "configuration": {
+"configuration": {
 
     "product\_id": 10,
 
@@ -1391,7 +1407,7 @@ Create or update configuration of one or multiple storage locations.
 
     "notes": "Planted in January 2025"
 
-  }
+}
 
 }
 
@@ -1432,15 +1448,15 @@ multipart/form-data
 
 {
 
-  "processing\_id": 123,
+"processing\_id": 123,
 
-  "storage\_location\_id": 5,
+"storage\_location\_id": 5,
 
-  "result": {
+"result": {
 
     // Same format as /api/storage-locations/{storage\_location\_id}/detail
 
-  }
+}
 
 }
 
@@ -1454,11 +1470,11 @@ multipart/form-data
 
 {
 
-  "task\_ids": \["task-uuid-1", "task-uuid-2", "task-uuid-3"\],
+"task\_ids": \["task-uuid-1", "task-uuid-2", "task-uuid-3"\],
 
-  "total\_photos": 3,
+"total\_photos": 3,
 
-  "message": "Processing initiated. Check status with /api/stock/tasks/status"
+"message": "Processing initiated. Check status with /api/stock/tasks/status"
 
 }
 
@@ -1474,7 +1490,7 @@ Query status of Celery async tasks.
 
 {
 
-  "tasks": \[
+"tasks": \[
 
     {
 
@@ -1516,7 +1532,7 @@ Query status of Celery async tasks.
 
     }
 
-  \]
+\]
 
 }
 
@@ -1528,15 +1544,15 @@ Manual stock input by workers.
 
 {
 
-  "storage\_location\_id": 5,
+"storage\_location\_id": 5,
 
-  "product\_id": 10,
+"product\_id": 10,
 
-  "packaging\_id": 5,
+"packaging\_id": 5,
 
-  "quantity": 200,
+"quantity": 200,
 
-  "notes": "Planted today"
+"notes": "Planted today"
 
 }
 
@@ -1552,7 +1568,7 @@ Generate customized report with filters.
 
 {
 
-  "filters": {
+"filters": {
 
     "warehouse\_ids": \[1, 2\],
 
@@ -1570,11 +1586,12 @@ Generate customized report with filters.
 
     "input\_type": "photo"  // "photo" | "manual" | "both"
 
-  },
+},
 
-  "grouping": "by\_storage\_location",  // "by\_warehouse" | "by\_storage\_area" | "by\_storage\_location" | "by\_product" | "by\_packaging"
+"grouping": "by\_storage\_location", // "by\_warehouse" | "by\_storage\_area" | "
+by\_storage\_location" | "by\_product" | "by\_packaging"
 
-  "metrics": \["total\_plants", "total\_price", "plants\_per\_square\_meter"\]
+"metrics": \["total\_plants", "total\_price", "plants\_per\_square\_meter"\]
 
 }
 
@@ -1582,11 +1599,11 @@ Generate customized report with filters.
 
 {
 
-  "report\_id": "rep-uuid-1",
+"report\_id": "rep-uuid-1",
 
-  "generated\_date": "2025-01-20T15:30:00",
+"generated\_date": "2025-01-20T15:30:00",
 
-  "summary": {
+"summary": {
 
     "total\_plants": 45000,
 
@@ -1596,9 +1613,9 @@ Generate customized report with filters.
 
     "storage\_locations\_included": 120
 
-  },
+},
 
-  "data": \[
+"data": \[
 
     {
 
@@ -1612,7 +1629,7 @@ Generate customized report with filters.
 
     }
 
-  \]
+\]
 
 }
 
@@ -1644,7 +1661,8 @@ Detect storage locations with high proportion of empty containers.
 
 Reserved endpoint for future generative AI queries.
 
-**Note**: Leave this endpoint defined but without implementation. Will be for prompt system that generates charts and reports on-the-fly.
+**Note**: Leave this endpoint defined but without implementation. Will be for prompt system that
+generates charts and reports on-the-fly.
 
 ### 6.6. User and Authentication Endpoints
 
@@ -1660,11 +1678,11 @@ Login.
 
 {
 
-  "access\_token": "jwt-token",
+"access\_token": "jwt-token",
 
-  "token\_type": "bearer",
+"token\_type": "bearer",
 
-  "user": {
+"user": {
 
     "id": 1,
 
@@ -1672,7 +1690,7 @@ Login.
 
     "role": "admin"  // "admin" | "worker"
 
-  }
+}
 
 }
 
@@ -1698,13 +1716,13 @@ Verify API status.
 
 {
 
-  "status": "healthy",
+"status": "healthy",
 
-  "database": "connected",
+"database": "connected",
 
-  "celery": "running",
+"celery": "running",
 
-  "version": "1.0.0"
+"version": "1.0.0"
 
 }
 
@@ -1721,18 +1739,18 @@ Verify API status.
 
 1. **Single photo**: Synchronous processing, immediate response
 2. **Multiple photos**:
-   - Create Celery tasks
-   - Return task IDs
-   - Frontend queries status periodically
-   - Each task processes one complete photo (entire pipeline)
+    - Create Celery tasks
+    - Return task IDs
+    - Frontend queries status periodically
+    - Each task processes one complete photo (entire pipeline)
 
 ### 7.3. State Persistence
 
 - States saved in Redis (Celery default): This updates the frontend
 - **Additional**: Save states in PostgreSQL database for:
-  - Traceability
-  - Recovery after crashes
-  - Historical queries
+    - Traceability
+    - Recovery after crashes
+    - Historical queries
 
 ### 7.4. Internal Progress
 
@@ -1753,12 +1771,13 @@ task.update\_state(
 - Tasks should be idempotent when possible
 - Configurable retries
 - If server crashes, on restart it should be able to:
-  - Resume pending tasks
-  - Not reprocess completed tasks
+    - Resume pending tasks
+    - Not reprocess completed tasks
 
 ### 7.6. Code Reuse
 
-**CRITICAL**: The same services and repositories used in synchronous endpoints must be used in Celery tasks. Do not create duplicate code for async processing.
+**CRITICAL**: The same services and repositories used in synchronous endpoints must be used in
+Celery tasks. Do not create duplicate code for async processing.
 
 ---
 
@@ -1774,25 +1793,25 @@ task.update\_state(
 
 /schemas
 
-  warehouse\_schema.py
+warehouse\_schema.py
 
-  storage\_area\_schema.py
+storage\_area\_schema.py
 
-  storage\_location\_schema.py
+storage\_location\_schema.py
 
-  storage\_bin\_schema.py
+storage\_bin\_schema.py
 
-  photo\_processing\_session\_schema.py
+photo\_processing\_session\_schema.py
 
-  stock\_movement\_schema.py
+stock\_movement\_schema.py
 
-  stock\_batch\_schema.py
+stock\_batch\_schema.py
 
-  configuration\_schema.py
+configuration\_schema.py
 
-  user\_schema.py
+user\_schema.py
 
-  analytics\_schema.py
+analytics\_schema.py
 
 ### 8.3. Conventions
 
@@ -1816,35 +1835,35 @@ SQLAlchemy Model (from repository) → Pydantic Schema (for controller)
 
 /config
 
-  config.yaml           \# General configurations
+config.yaml \# General configurations
 
-  .env                  \# Secrets (don't commit)
+.env \# Secrets (don't commit)
 
-  config\_loader.py      \# Python class that reads configurations
+config\_loader.py \# Python class that reads configurations
 
 ### 9.2. config.yaml Structure
 
 app:
 
-  name: "Cactus Counting System"
+name: "Cactus Counting System"
 
-  version: "1.0.0"
+version: "1.0.0"
 
-  debug: true
+debug: true
 
 database:
 
-  pool\_size: 10
+pool\_size: 10
 
-  max\_overflow: 20
+max\_overflow: 20
 
 ml:
 
-  sahi\_tile\_size: 512
+sahi\_tile\_size: 512
 
-  detection\_confidence: 0.5
+detection\_confidence: 0.5
 
-  visualization\_colors:
+visualization\_colors:
 
     detections: "\#4CAF50"
 
@@ -1852,9 +1871,9 @@ ml:
 
 celery:
 
-  broker\_url: "redis://redis:6379/0"
+broker\_url: "redis://redis:6379/0"
 
-  result\_backend: "redis://redis:6379/0"
+result\_backend: "redis://redis:6379/0"
 
 ### 9.3. Environment Variables (.env)
 
@@ -1894,7 +1913,8 @@ class MLConfig(Config):
 
     \# Only ML configurations
 
-**Principle**: Import only the necessary configuration in each module, don't import the entire general config.
+**Principle**: Import only the necessary configuration in each module, don't import the entire
+general config.
 
 ---
 
@@ -1904,13 +1924,13 @@ class MLConfig(Config):
 
 /exceptions
 
-  base\_exception.py
+base\_exception.py
 
-  repository\_exceptions.py
+repository\_exceptions.py
 
-  service\_exceptions.py
+service\_exceptions.py
 
-  ml\_exceptions.py
+ml\_exceptions.py
 
 ### 10.2. Structure
 
@@ -1968,9 +1988,9 @@ async def app\_exception\_handler(request, exc: AppBaseException):
 
 - **Don't chain try-catch**: Avoid nested try-catch in multiple layers
 - **Capture at the right level**:
-  - Repositories: DB exceptions
-  - Services: Business logic exceptions
-  - Controllers: Rarely (global handler takes care)
+    - Repositories: DB exceptions
+    - Services: Business logic exceptions
+    - Controllers: Rarely (global handler takes care)
 - **User message vs. technical message**: Clearly separate
 - **Automatic logging**: Each exception should be logged
 
@@ -1982,9 +2002,9 @@ async def app\_exception\_handler(request, exc: AppBaseException):
 
 /logging
 
-  logger\_config.py      \# Main configuration
+logger\_config.py \# Main configuration
 
-  formatters.py         \# Custom formatters
+formatters.py \# Custom formatters
 
 ### 11.2. Logging Levels
 
@@ -2096,7 +2116,7 @@ Test-driven development (TDD when appropriate):
 
 /tests
 
-  /unit
+/unit
 
     /repositories
 
@@ -2122,7 +2142,7 @@ Test-driven development (TDD when appropriate):
 
 /tests
 
-  /integration
+/integration
 
     test\_complete\_photo\_pipeline.py
 
@@ -2136,7 +2156,7 @@ Include in project:
 
 /tests
 
-  /fixtures
+/fixtures
 
     /photos
 
@@ -2178,7 +2198,7 @@ pytest \--cov=app \--cov-report=html
 
 /project-cactus-counting
 
-  /app
+/app
 
     \_\_init\_\_.py
 
@@ -2334,9 +2354,7 @@ pytest \--cov=app \--cov-report=html
 
       date\_utils.py
 
-
-
-  /tests
+/tests
 
     /unit
 
@@ -2352,9 +2370,7 @@ pytest \--cov=app \--cov-report=html
 
       /photos
 
-
-
-  /docs
+/docs
 
     architecture.md
 
@@ -2362,9 +2378,7 @@ pytest \--cov=app \--cov-report=html
 
     ml\_pipeline.md
 
-
-
-  /planning
+/planning
 
     phases.md                \# Development phases
 
@@ -2378,29 +2392,25 @@ pytest \--cov=app \--cov-report=html
 
     todo.md                  \# Pending tasks list
 
-
-
-  /scripts
+/scripts
 
     init\_db.py
 
     seed\_data.py
 
+.env.example
 
+.gitignore
 
-  .env.example
+Dockerfile
 
-  .gitignore
+docker-compose.yml
 
-  Dockerfile
+requirements.txt
 
-  docker-compose.yml
+pytest.ini
 
-  requirements.txt
-
-  pytest.ini
-
-  README.md
+README.md
 
 ---
 
@@ -2408,7 +2418,8 @@ pytest \--cov=app \--cov-report=html
 
 ### 14.1. Language
 
-- **All code**: English (variables, functions, classes, comments, database entities, endpoints, schemas, logs)
+- **All code**: English (variables, functions, classes, comments, database entities, endpoints,
+  schemas, logs)
 
 ### 14.2. Variable Names
 
@@ -2501,15 +2512,13 @@ ruff format .
 
 /media
 
-  /original\_photos
+/original\_photos
 
     /{year}/{month}/{day}
 
       location\_{storage\_location\_id}\_{timestamp}.jpg
 
-
-
-  /visualized\_photos
+/visualized\_photos
 
     /{year}/{month}/{day}
 
@@ -2613,7 +2622,7 @@ version: '3.8'
 
 services:
 
-  api:
+api:
 
     build: .
 
@@ -2641,7 +2650,7 @@ services:
 
     command: uvicorn app.main:app \--host 0.0.0.0 \--port 8000 \--reload
 
-  celery\_worker:
+celery\_worker:
 
     build: .
 
@@ -2665,7 +2674,7 @@ services:
 
     command: celery \-A app.celery\_app.celery\_config worker \--loglevel=info
 
-  db:
+db:
 
     image: postgis/postgis:15-3.3
 
@@ -2685,7 +2694,7 @@ services:
 
       \- "5432:5432"
 
-  redis:
+redis:
 
     image: redis:7-alpine
 
@@ -2695,7 +2704,7 @@ services:
 
 volumes:
 
-  postgres\_data:
+postgres\_data:
 
 ### 16.3. .dockerignore
 
@@ -2737,7 +2746,14 @@ htmlcov/
 
 - [ ] Create SQLAlchemy models for all tables
 - [ ] Implement BaseRepository
-- [ ] Implement specific repositories: \- \[ \] WarehouseRepo \- \[ \] StorageAreaRepo \- \[ \] StorageLocationRepo \- \[ \] StorageBinRepo \- \[ \] StorageBinTypeRepo \- \[ \] PhotoProcessingSessionRepo \- \[ \] StockMovementRepo \- \[ \] StockBatchRepo \- \[ \] ProductRepo \- \[ \] ProductCategoryRepo \- \[ \] ProductFamilyRepo \- \[ \] PackagingCatalogRepo \- \[ \] PackagingTypeRepo \- \[ \] PackagingMaterialRepo \- \[ \] PackagingColorRepo \- \[ \] StorageLocationConfigRepo \- \[ \] DensityParametersRepo \- \[ \] UserRepo \- \[ \] DetectionRepo \- \[ \] EstimationRepo \- \[ \] ProductStateRepo \- \[ \] ProductSizeRepo
+- [ ] Implement specific repositories: \- \[ \] WarehouseRepo \- \[ \] StorageAreaRepo \- \[ \]
+  StorageLocationRepo \- \[ \] StorageBinRepo \- \[ \] StorageBinTypeRepo \- \[ \]
+  PhotoProcessingSessionRepo \- \[ \] StockMovementRepo \- \[ \] StockBatchRepo \- \[ \]
+  ProductRepo \- \[ \] ProductCategoryRepo \- \[ \] ProductFamilyRepo \- \[ \]
+  PackagingCatalogRepo \- \[ \] PackagingTypeRepo \- \[ \] PackagingMaterialRepo \- \[ \]
+  PackagingColorRepo \- \[ \] StorageLocationConfigRepo \- \[ \] DensityParametersRepo \- \[ \]
+  UserRepo \- \[ \] DetectionRepo \- \[ \] EstimationRepo \- \[ \] ProductStateRepo \- \[ \]
+  ProductSizeRepo
 - [ ] Unit tests for each repository
 - [ ] Document in `/planning/phase_1_repos.md`
 - [ ] Commit: "feat: implement all repositories and models"
@@ -2745,14 +2761,17 @@ htmlcov/
 ### Phase 2: Base Services
 
 - [ ] Create BaseService
-- [ ] Implement services for simple entities: \- \[ \] ProductService \- \[ \] PackagingCatalogService \- \[ \] WarehouseService \- \[ \] StorageAreaService \- \[ \] StorageLocationService
+- [ ] Implement services for simple entities: \- \[ \] ProductService \- \[ \]
+  PackagingCatalogService \- \[ \] WarehouseService \- \[ \] StorageAreaService \- \[ \]
+  StorageLocationService
 - [ ] Unit tests with mocks
 - [ ] Document in `/planning/phase_2_base_services.md`
 - [ ] Commit: "feat: implement base services"
 
 ### Phase 3: Complex Services
 
-- [ ] Implement business logic services: \- \[ \] PhotoProcessingSessionService \- \[ \] StockMovementService \- \[ \] StockBatchService \- \[ \] StorageLocationConfigService
+- [ ] Implement business logic services: \- \[ \] PhotoProcessingSessionService \- \[ \]
+  StockMovementService \- \[ \] StockBatchService \- \[ \] StorageLocationConfigService
 - [ ] Unit tests
 - [ ] Document in `/planning/phase_3_complex_services.md`
 - [ ] Commit: "feat: implement complex business services"
@@ -2934,7 +2953,7 @@ chore: maintenance tasks
 
 main
 
-  └── develop
+└── develop
 
        ├── feature/phase-1-repositories
 
@@ -2984,7 +3003,8 @@ numpy==1.26.3
 
 pillow==10.2.0
 [Turn on screen reader support](https://docs.google.com/document/d/1SF9Bx50syPbm_VcH_Wt0sYwgebb4jyGDb6tYdYtlsWo/edit?tab=t.0#)
-To enable screen reader support, press Ctrl+Alt+Z To learn about keyboard shortcuts, press Ctrl+slash
+To enable screen reader support, press Ctrl+Alt+Z To learn about keyboard shortcuts, press
+Ctrl+slash
 Banner hidden
 Show side panel
 
@@ -3137,7 +3157,9 @@ Before considering the system ready for production:
 
 ## Conclusion
 
-This engineering document is the complete guide for the development of the Automated Cactus and Succulent Counting System. It covers from database architecture to deployment with Docker, including all necessary technical aspects.
+This engineering document is the complete guide for the development of the Automated Cactus and
+Succulent Counting System. It covers from database architecture to deployment with Docker, including
+all necessary technical aspects.
 
 **Key principles to remember**:
 
@@ -3152,4 +3174,5 @@ This engineering document is the complete guide for the development of the Autom
 9. Well-handled exceptions and logs
 10. Simplicity over complexity
 
-Any developer who reads this document should be able to understand the complete system and continue development following the established phases.
+Any developer who reads this document should be able to understand the complete system and continue
+development following the established phases.

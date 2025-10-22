@@ -9,7 +9,8 @@
 
 ## Overview
 
-This guide provides proven patterns, anti-patterns, and best practices for testing the SAHI Detection Service effectively.
+This guide provides proven patterns, anti-patterns, and best practices for testing the SAHI
+Detection Service effectively.
 
 ---
 
@@ -56,6 +57,7 @@ Unit Tests (30+ tests, 70% coverage)
 ```
 
 **Why this ratio?**
+
 - **Unit tests**: Fast feedback, easy debugging, high coverage
 - **Integration tests**: Validate real-world behavior, catch integration issues
 
@@ -421,6 +423,7 @@ pytest tests/unit/services/ml_processing/test_sahi_detection_service.py \
 ### ✅ DO: Focus on Critical Paths
 
 **Priority coverage targets:**
+
 1. **100%**: Core detection logic (`detect_in_segmento`)
 2. **100%**: Error handling (all exception paths)
 3. **100%**: Coordinate mapping logic

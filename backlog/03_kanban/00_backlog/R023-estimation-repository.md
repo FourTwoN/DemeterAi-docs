@@ -1,6 +1,7 @@
 # R023: Estimation Repository (with asyncpg COPY Bulk Insert)
 
 ## Metadata
+
 - **Epic**: [epic-003-repositories.md](../../02_epics/epic-003-repositories.md)
 - **Sprint**: Sprint-02
 - **Status**: `backlog`
@@ -9,28 +10,38 @@
 - **Area**: `repositories`
 - **Assignee**: TBD
 - **Dependencies**:
-  - Blocks: [ML009, S020]
-  - Blocked by: [F006, F007, DB014, R019, R024]
+    - Blocks: [ML009, S020]
+    - Blocked by: [F006, F007, DB014, R019, R024]
 
 ## Related Documentation
-- **Engineering Plan**: [../../engineering_plan/backend/repository_layer.md](../../engineering_plan/backend/repository_layer.md)
+
+- **Engineering Plan
+  **: [../../engineering_plan/backend/repository_layer.md](../../engineering_plan/backend/repository_layer.md)
 - **Database ERD**: [../../database/database.mmd](../../database/database.mmd#L277-L289)
 
 ## Description
 
-**What**: Implement repository class for `estimations` table (partitioned by created_at) with CRUD operations and **asyncpg COPY bulk insert** for ML pipeline performance.
+**What**: Implement repository class for `estimations` table (partitioned by created_at) with CRUD
+operations and **asyncpg COPY bulk insert** for ML pipeline performance.
 
-**Why**: Estimations store vegetation area-based plant counts (100s per photo). **ORM insert is too slow**. asyncpg COPY enables **<50ms bulk insert** for 500+ estimations. CRITICAL for band-estimation ML pipeline.
+**Why**: Estimations store vegetation area-based plant counts (100s per photo). **ORM insert is too
+slow**. asyncpg COPY enables **<50ms bulk insert** for 500+ estimations. CRITICAL for
+band-estimation ML pipeline.
 
-**Context**: Partitioned table (daily partitions). Each photo generates 50-500 estimations (one per segment). Bulk insert required for performance. Complements detections (individual plants vs. vegetation areas).
+**Context**: Partitioned table (daily partitions). Each photo generates 50-500 estimations (one per
+segment). Bulk insert required for performance. Complements detections (individual plants vs.
+vegetation areas).
 
 ## Acceptance Criteria
 
 - [ ] **AC1**: `EstimationRepository` class inherits from `AsyncRepository[Estimation]`
 - [ ] **AC2**: Implements `get_by_session_id(session_id: int)` for photo estimations
-- [ ] **AC3**: **CRITICAL**: Implements `bulk_insert_with_copy(estimations: List[dict])` using asyncpg COPY
-- [ ] **AC4**: Implements `get_by_calculation_method(session_id: int, method: str)` for method filtering
-- [ ] **AC5**: Implements `get_high_confidence_estimations(session_id: int, threshold: float)` for filtering
+- [ ] **AC3**: **CRITICAL**: Implements `bulk_insert_with_copy(estimations: List[dict])` using
+  asyncpg COPY
+- [ ] **AC4**: Implements `get_by_calculation_method(session_id: int, method: str)` for method
+  filtering
+- [ ] **AC5**: Implements `get_high_confidence_estimations(session_id: int, threshold: float)` for
+  filtering
 - [ ] **AC6**: Handles partitioned table queries (created_at partitions)
 - [ ] **AC7**: Performance: bulk insert <50ms for 500 estimations, session query <30ms
 
@@ -125,6 +136,7 @@ async def get_high_confidence_estimations(
 ## Testing Requirements
 
 **Performance Benchmarks**:
+
 - **CRITICAL**: Bulk insert 500 estimations: <50ms (asyncpg COPY) vs 1-3s (ORM insert)
 - get_by_session_id: <30ms for 500 estimations (with partition pruning)
 - get_by_calculation_method: <20ms (filtered query)
@@ -132,14 +144,16 @@ async def get_high_confidence_estimations(
 ## Handover Briefing
 
 **For the next developer:**
-- **Context**: Same asyncpg COPY pattern as R022 (DetectionRepository). Critical for band-estimation pipeline performance.
+
+- **Context**: Same asyncpg COPY pattern as R022 (DetectionRepository). Critical for band-estimation
+  pipeline performance.
 - **Critical decisions**:
-  - calculation_method enum: band_estimation | density_estimation | grid_analysis
-  - estimation_confidence default 0.70 (lower than detection confidence due to indirect counting)
-  - vegetation_polygon is JSONB (GeoJSON format)
+    - calculation_method enum: band_estimation | density_estimation | grid_analysis
+    - estimation_confidence default 0.70 (lower than detection confidence due to indirect counting)
+    - vegetation_polygon is JSONB (GeoJSON format)
 - **Performance targets**:
-  - 500 estimations: <50ms bulk insert
-  - Band-estimation photo: <15s total (including YOLO + band analysis)
+    - 500 estimations: <50ms bulk insert
+    - Band-estimation photo: <15s total (including YOLO + band analysis)
 
 ## Definition of Done Checklist
 
@@ -152,6 +166,7 @@ async def get_high_confidence_estimations(
 - [ ] PR reviewed (2+ approvals)
 
 ## Time Tracking
+
 - **Estimated**: 8 story points (~16 hours)
 - **Actual**: TBD
 

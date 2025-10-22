@@ -4,10 +4,12 @@
 
 **Task**: Write comprehensive tests for ProductCategory model
 **Files**:
+
 - `/home/lucasg/proyectos/DemeterDocs/tests/unit/models/test_product_category.py`
 - `/home/lucasg/proyectos/DemeterDocs/tests/integration/models/test_product_category.py`
 
 **Template**:
+
 - `/home/lucasg/proyectos/DemeterDocs/tests/unit/models/test_product_state.py`
 - `/home/lucasg/proyectos/DemeterDocs/tests/integration/models/test_product_state.py`
 
@@ -155,6 +157,7 @@ def test_partial_name_search(session):
 ## Coverage Targets
 
 ### Unit Tests:
+
 - **Code validation**: 100% (8 tests)
 - **CRUD operations**: 100% (3 tests)
 - **Field constraints**: 100% (3 tests)
@@ -163,6 +166,7 @@ def test_partial_name_search(session):
 - **Overall**: ≥75%
 
 ### Integration Tests:
+
 - **Seed data**: 100% (2 tests)
 - **DB constraints**: 100% (2 tests)
 - **Queries**: 100% (4 tests)
@@ -230,6 +234,7 @@ pytest tests/ -k "product_category" -v
 ## Report Back When Complete
 
 Update this file with:
+
 ```markdown
 ## Testing Expert Completion Report (YYYY-MM-DD HH:MM)
 
@@ -263,14 +268,17 @@ Update this file with:
 ## Coordination Notes
 
 **Python Expert will provide**:
+
 - Model signature (for import)
 - Migration file (for integration tests)
 
 **You can start immediately**:
+
 - Unit tests (model structure known from spec)
 - Integration test structure (seed data known)
 
 **Sync point** (after 20 minutes):
+
 - Python Expert completes model → You verify import works
 - Python Expert runs migration → You verify seed data loaded
 
@@ -281,57 +289,65 @@ Update this file with:
 **Status**: COMPLETE (unit tests), PARTIAL (integration tests need PostgreSQL)
 
 **Files Created**:
+
 - tests/unit/models/test_product_category.py (155 lines, 15 tests)
 - tests/integration/models/test_product_category.py (155 lines, 7 tests)
 
 **Test Results**:
+
 - Unit tests: 15/15 PASSED (100%)
-- Integration tests: 7/7 ERROR (require PostgreSQL, SQLite in-memory doesn't support FK refs to non-existent tables)
+- Integration tests: 7/7 ERROR (require PostgreSQL, SQLite in-memory doesn't support FK refs to
+  non-existent tables)
 - Unit coverage: 100% on ProductCategory model
 
 **Coverage Details**:
+
 - Code validation: 100% (10 tests)
 - Field constraints: 100% (3 tests)
 - __repr__ method: 100% (2 tests)
 
 **Unit Test Categories**:
+
 1. Code Validation (10 tests):
-   - Valid uppercase codes
-   - Auto-uppercase (lowercase → UPPERCASE)
-   - Empty code raises ValueError
-   - Hyphens raise ValueError
-   - Spaces raise ValueError
-   - Too short (<3 chars) raises ValueError
-   - Too long (>50 chars) raises ValueError
-   - Underscores valid
-   - Numbers valid
-   - Mixed case uppercased
+    - Valid uppercase codes
+    - Auto-uppercase (lowercase → UPPERCASE)
+    - Empty code raises ValueError
+    - Hyphens raise ValueError
+    - Spaces raise ValueError
+    - Too short (<3 chars) raises ValueError
+    - Too long (>50 chars) raises ValueError
+    - Underscores valid
+    - Numbers valid
+    - Mixed case uppercased
 
 2. Field Constraints (3 tests):
-   - All fields assignable
-   - Description nullable
-   - Create with all fields
+    - All fields assignable
+    - Description nullable
+    - Create with all fields
 
 3. __repr__ Method (2 tests):
-   - Format verification
-   - Works without ID (before persistence)
+    - Format verification
+    - Works without ID (before persistence)
 
 **Integration Test Categories** (7 tests, need PostgreSQL):
+
 1. Database Persistence (7 tests):
-   - Create and persist
-   - Code uniqueness (IntegrityError)
-   - Query by code
-   - Update category
-   - Delete category
-   - ORDER BY name
-   - COUNT query
+    - Create and persist
+    - Code uniqueness (IntegrityError)
+    - Query by code
+    - Update category
+    - Delete category
+    - ORDER BY name
+    - COUNT query
 
 **Known Issues**:
+
 - Integration tests blocked by missing FK tables (photo_processing_sessions, etc.)
 - Integration tests require PostgreSQL with full migration history
 - SQLite in-memory doesn't support cross-table FK references for non-existent tables
 
 **Recommendation**:
+
 - Unit tests are PRODUCTION READY (15/15 passing, 100% coverage)
 - Integration tests need PostgreSQL test database (deferred to F012-Docker setup)
 

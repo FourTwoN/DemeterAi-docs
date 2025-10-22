@@ -1,6 +1,7 @@
 # [SCH017] PriceListResponse Schema
 
 ## Metadata
+
 - **Epic**: epic-003-backend-implementation.md
 - **Sprint**: Sprint-06
 - **Status**: `backlog`

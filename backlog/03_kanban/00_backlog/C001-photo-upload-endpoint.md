@@ -1,6 +1,7 @@
 # [C001] Photo Upload Endpoint - POST /api/stock/photo
 
 ## Metadata
+
 - **Epic**: epic-003-backend-implementation.md
 - **Sprint**: Sprint-02 (Week 5-6)
 - **Status**: `backlog`
@@ -9,10 +10,11 @@
 - **Area**: `backend/controllers`
 - **Assignee**: TBD
 - **Dependencies**:
-  - Blocks: [SCH002, CEL005]
-  - Blocked by: [SVC001-photo-service, SVC002-s3-service, DB007-stock-movements-model]
+    - Blocks: [SCH002, CEL005]
+    - Blocked by: [SVC001-photo-service, SVC002-s3-service, DB007-stock-movements-model]
 
 ## Related Documentation
+
 - **Engineering Plan**: ../../engineering_plan/api/README.md
 - **Controller Layer**: ../../engineering_plan/03_architecture_overview.md
 - **Flow Diagram**: ../../flows/procesamiento_ml_upload_s3_principal/README.md
@@ -20,9 +22,11 @@
 
 ## Description
 
-Create the **primary stock initialization endpoint** that accepts photo uploads and dispatches ML processing pipeline via Celery.
+Create the **primary stock initialization endpoint** that accepts photo uploads and dispatches ML
+processing pipeline via Celery.
 
 **What**: FastAPI endpoint for multipart photo upload:
+
 - Accepts JPEG/PNG/AVIF images up to 20MB
 - Extracts EXIF metadata (GPS, timestamp, camera)
 - Validates user authentication
@@ -30,12 +34,15 @@ Create the **primary stock initialization endpoint** that accepts photo uploads 
 - Returns HTTP 202 (Accepted) with task_id for polling
 
 **Why**:
+
 - **Primary initialization**: Photo-based stock counting is the main workflow
 - **Async processing**: ML inference takes 5-10 mins (CPU), needs background task
 - **User experience**: Immediate response, poll for status later
 - **Traceability**: task_id allows tracking pipeline progress
 
-**Context**: This endpoint triggers the 8-step ML pipeline (localization → segmentation → detection → estimation → aggregation → batch creation → visualization → finalization). It's the entry point for 95%+ stock initializations.
+**Context**: This endpoint triggers the 8-step ML pipeline (localization → segmentation →
+detection → estimation → aggregation → batch creation → visualization → finalization). It's the
+entry point for 95%+ stock initializations.
 
 ## Acceptance Criteria
 
@@ -141,33 +148,34 @@ Create the **primary stock initialization endpoint** that accepts photo uploads 
   ```
 
 - [ ] **AC2**: File validation includes:
-  - Content type check (JPEG/PNG/AVIF only)
-  - Size limit (20MB max)
-  - Filename sanitization (prevent path traversal)
+    - Content type check (JPEG/PNG/AVIF only)
+    - Size limit (20MB max)
+    - Filename sanitization (prevent path traversal)
 
 - [ ] **AC3**: EXIF metadata extraction delegated to service layer
 
 - [ ] **AC4**: Error handling for:
-  - Invalid file type → HTTP 400
-  - File too large → HTTP 413
-  - S3 upload failure → HTTP 500 (with retry logic in service)
-  - Missing authentication → HTTP 401
+    - Invalid file type → HTTP 400
+    - File too large → HTTP 413
+    - S3 upload failure → HTTP 500 (with retry logic in service)
+    - Missing authentication → HTTP 401
 
 - [ ] **AC5**: OpenAPI documentation complete with:
-  - Request example (multipart form)
-  - Response schema
-  - Error responses (400, 401, 413, 500)
-  - Processing time estimates
+    - Request example (multipart form)
+    - Response schema
+    - Error responses (400, 401, 413, 500)
+    - Processing time estimates
 
 - [ ] **AC6**: Logging includes:
-  - User ID
-  - Filename and size
-  - Task ID dispatched
-  - Any errors with stack traces
+    - User ID
+    - Filename and size
+    - Task ID dispatched
+    - Any errors with stack traces
 
 ## Technical Implementation Notes
 
 ### Architecture
+
 - Layer: Controller (Presentation)
 - Dependencies: PhotoService, S3Service, Auth dependency
 - Design pattern: Thin controller, business logic in service
@@ -175,6 +183,7 @@ Create the **primary stock initialization endpoint** that accepts photo uploads 
 ### Code Hints
 
 **File upload handling (FastAPI):**
+
 ```python
 from fastapi import UploadFile, File
 
@@ -197,6 +206,7 @@ async def upload_photo(
 ```
 
 **File size validation:**
+
 ```python
 # Method 1: Read entire file (small files)
 contents = await file.read()
@@ -210,6 +220,7 @@ file.file.seek(0)
 ```
 
 **Multipart form example (OpenAPI):**
+
 ```python
 from fastapi.openapi.models import Example
 
@@ -235,6 +246,7 @@ from fastapi.openapi.models import Example
 ### Testing Requirements
 
 **Unit Tests** (`tests/controllers/test_stock_controller.py`):
+
 ```python
 import pytest
 from fastapi.testclient import TestClient
@@ -292,6 +304,7 @@ def test_upload_unauthenticated():
 ```
 
 **Integration Tests** (`tests/integration/test_photo_upload_flow.py`):
+
 ```python
 @pytest.mark.asyncio
 async def test_photo_upload_end_to_end(db_session, test_user, real_photo_file):
@@ -322,6 +335,7 @@ async def test_photo_upload_end_to_end(db_session, test_user, real_photo_file):
 **Coverage Target**: ≥85%
 
 ### Performance Expectations
+
 - File upload (20MB): <3s (network + S3 upload)
 - Response time: <500ms (async dispatch, no waiting for ML)
 - Celery task dispatch: <50ms
@@ -331,9 +345,11 @@ async def test_photo_upload_end_to_end(db_session, test_user, real_photo_file):
 
 **For the next developer:**
 
-**Context**: This is the **main entry point** for stock initialization. 95%+ of users will use this photo-based method instead of manual entry.
+**Context**: This is the **main entry point** for stock initialization. 95%+ of users will use this
+photo-based method instead of manual entry.
 
 **Key decisions made**:
+
 1. **HTTP 202 (Accepted)**: Immediate response, poll for status (async pattern)
 2. **20MB limit**: Balances high-res photos vs server memory
 3. **Multipart form-data**: Standard for file uploads, works with all HTTP clients
@@ -342,17 +358,20 @@ async def test_photo_upload_end_to_end(db_session, test_user, real_photo_file):
 6. **Auth required**: Only authenticated users can upload (prevents abuse)
 
 **Known limitations**:
+
 - No streaming upload (file loaded into memory) - acceptable for 20MB limit
 - No progress updates during upload (browser handles this)
 - Task polling required (no WebSocket push notifications yet)
 
 **Next steps after this card**:
+
 - C007: GET /api/stock/tasks/status (task polling endpoint)
 - SCH002: PhotoUploadRequest/Response schemas
 - SVC001: PhotoService.create_photo_session implementation
 - CEL005: ml_parent_task Celery task
 
 **Questions to validate**:
+
 - Is multipart/form-data correctly handled? (Test with Postman/curl)
 - Does file size validation work? (Upload 21MB file, expect HTTP 413)
 - Is task_id returned immediately? (Response <500ms)
@@ -373,6 +392,7 @@ async def test_photo_upload_end_to_end(db_session, test_user, real_photo_file):
 - [ ] No linting errors (`ruff check`)
 
 ## Time Tracking
+
 - **Estimated**: 3 story points
 - **Actual**: TBD
 - **Started**: TBD

@@ -10,24 +10,29 @@
 
 ## Task Overview
 
-Optimize existing Dockerfile and docker-compose.yml for production readiness with health checks, proper restart policies, and environment variable management.
+Optimize existing Dockerfile and docker-compose.yml for production readiness with health checks,
+proper restart policies, and environment variable management.
 
 ---
 
 ## Current State Analysis
 
 **Existing Files**:
+
 - `/home/lucasg/proyectos/DemeterDocs/Dockerfile` - Multi-stage build already implemented
-- `/home/lucasg/proyectos/DemeterDocs/docker-compose.yml` - Services defined (db, db_test, redis, api)
+- `/home/lucasg/proyectos/DemeterDocs/docker-compose.yml` - Services defined (db, db_test, redis,
+  api)
 - `/home/lucasg/proyectos/DemeterDocs/.env.example` - Environment template exists
 
 **Already Implemented**:
+
 - Multi-stage Dockerfile with Python 3.12
 - Health checks for API (curl -f http://localhost:8000/health)
 - Health checks for db, db_test, redis
 - Non-root user (appuser)
 
 **Missing**:
+
 - Celery workers (currently commented out - need to verify Celery app exists)
 - Production-specific docker-compose.prod.yml
 - Optimized image size verification (<500MB target)
@@ -41,10 +46,12 @@ Optimize existing Dockerfile and docker-compose.yml for production readiness wit
 **Pattern**: Docker multi-stage build + Docker Compose orchestration
 
 **Dependencies**:
+
 - Existing: Dockerfile, docker-compose.yml, .env.example
 - New: docker-compose.prod.yml (production config)
 
 **Files to Create/Modify**:
+
 - [ ] `docker-compose.prod.yml` (create - production configuration)
 - [ ] `.dockerignore` (verify/update - exclude test files, __pycache__)
 - [ ] `Dockerfile` (minor updates - verify size optimization)
@@ -67,6 +74,7 @@ ls /home/lucasg/proyectos/DemeterDocs/app/celery_app.py
 ### Phase 2: Create docker-compose.prod.yml
 
 **Production-specific changes**:
+
 - Remove `--reload` from uvicorn command
 - Add resource limits (memory, CPU)
 - Add log rotation configuration
@@ -75,6 +83,7 @@ ls /home/lucasg/proyectos/DemeterDocs/app/celery_app.py
 - Enable Celery workers if app exists
 
 **Template**:
+
 ```yaml
 services:
   api:
@@ -193,6 +202,7 @@ docker-compose -f docker-compose.prod.yml down
 
 **Blocked By**: None (foundational task)
 **Blocks**:
+
 - Mini-Plan B (OpenTelemetry - needs container running)
 - Mini-Plan C (Auth0 - needs API running)
 - Mini-Plan D (Prometheus - needs metrics endpoint)

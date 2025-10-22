@@ -1,6 +1,7 @@
 # [SCH010] GPSLookupRequest Schema
 
 ## Metadata
+
 - **Epic**: epic-003-backend-implementation.md
 - **Sprint**: Sprint-04
 - **Status**: `backlog`

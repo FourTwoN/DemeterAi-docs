@@ -1,6 +1,7 @@
 # S040: SystemConfigService
 
 ## Metadata
+
 - **Epic**: [epic-004-services.md](../../02_epics/epic-004-services.md)
 - **Sprint**: Sprint-07
 - **Status**: `backlog`
@@ -8,8 +9,8 @@
 - **Complexity**: S (2 story points)
 - **Area**: `services/config`
 - **Dependencies**:
-  - Blocks: [C036]
-  - Blocked by: None
+    - Blocks: [C036]
+    - Blocked by: None
 
 ## Description
 
@@ -27,10 +28,12 @@
 - [ ] **AC4**: Unit tests ≥80% coverage
 
 ## Technical Notes
+
 - Key-value store pattern
 - Type-safe config access (Pydantic validation)
 
 ## Time Tracking
+
 - **Estimated**: 2 story points (~4 hours)
 
 ---

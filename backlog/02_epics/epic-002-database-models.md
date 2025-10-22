@@ -10,7 +10,8 @@
 
 ## Goal
 
-Create all 28 SQLAlchemy models matching the database ERD exactly, with complete Alembic migrations and partitioning setup for high-volume tables.
+Create all 28 SQLAlchemy models matching the database ERD exactly, with complete Alembic migrations
+and partitioning setup for high-volume tables.
 
 ---
 
@@ -27,6 +28,7 @@ Create all 28 SQLAlchemy models matching the database ERD exactly, with complete
 ## Cards List (35 cards, 40 points)
 
 ### Location Hierarchy Models (6 points)
+
 - **DB001**: Warehouses model (1pt)
 - **DB002**: StorageAreas model (1pt)
 - **DB003**: StorageLocations model (1pt)
@@ -35,18 +37,21 @@ Create all 28 SQLAlchemy models matching the database ERD exactly, with complete
 - **DB006**: Location relationships & geospatial (1pt)
 
 ### Stock Management Models (6 points)
+
 - **DB007**: StockMovements model (2pts)
 - **DB008**: StockBatches model (2pts)
 - **DB009**: Movement types enum (1pt)
 - **DB010**: Batch status enum (1pt)
 
 ### Photo Processing Models (8 points)
+
 - **DB011**: S3Images model (UUID primary key) (2pts)
 - **DB012**: PhotoProcessingSessions model (2pts)
 - **DB013**: Detections model (partitioned) (2pts)
 - **DB014**: Estimations model (partitioned) (2pts)
 
 ### Product Catalog Models (10 points)
+
 - **DB015**: ProductCategories model (1pt)
 - **DB016**: ProductFamilies model (1pt)
 - **DB017**: Products model (2pts)
@@ -58,17 +63,21 @@ Create all 28 SQLAlchemy models matching the database ERD exactly, with complete
 - **DB023**: PackagingCatalog model (1pt)
 
 ### Configuration Models (4 points)
+
 - **DB024**: StorageLocationConfig model (2pts)
 - **DB025**: DensityParameters model (2pts)
 
 ### Classification & Pricing (3 points)
+
 - **DB026**: Classifications model (1pt)
 - **DB027**: PriceList model (2pts)
 
 ### Users (1 point)
+
 - **DB028**: Users model (1pt)
 
 ### Alembic Migrations (7 points)
+
 - **DB029**: Initial schema migration (all tables) (2pts)
 - **DB030**: Indexes migration (SP-GiST, B-tree) (2pts)
 - **DB031**: Partitioning setup (detections, estimations) (2pts)

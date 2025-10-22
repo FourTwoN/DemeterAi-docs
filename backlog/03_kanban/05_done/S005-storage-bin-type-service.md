@@ -1,6 +1,7 @@
 # S005: StorageBinTypeService
 
 ## Metadata
+
 - **Epic**: [epic-004-services.md](../../02_epics/epic-004-services.md)
 - **Sprint**: Sprint-02
 - **Status**: `backlog`
@@ -9,20 +10,25 @@
 - **Area**: `services/location`
 - **Assignee**: TBD
 - **Dependencies**:
-  - Blocks: [S004, C005]
-  - Blocked by: [R005]
+    - Blocks: [S004, C005]
+    - Blocked by: [R005]
 
 ## Related Documentation
-- **Engineering Plan**: [../../engineering_plan/backend/service_layer.md](../../engineering_plan/backend/service_layer.md)
+
+- **Engineering Plan
+  **: [../../engineering_plan/backend/service_layer.md](../../engineering_plan/backend/service_layer.md)
 - **Database ERD**: [../../database/database.mmd](../../database/database.mmd)
 
 ## Description
 
-**What**: Implement `StorageBinTypeService` for bin type catalog management (tray types, pot types, container dimensions).
+**What**: Implement `StorageBinTypeService` for bin type catalog management (tray types, pot types,
+container dimensions).
 
-**Why**: Storage bin types define standardized container dimensions (width, length, height) used for capacity calculations. This is a simple CRUD service with no complex business logic.
+**Why**: Storage bin types define standardized container dimensions (width, length, height) used for
+capacity calculations. This is a simple CRUD service with no complex business logic.
 
-**Context**: Clean Architecture Application Layer. Simple catalog service - no inter-service dependencies. Used by StorageBinService to validate bin types.
+**Context**: Clean Architecture Application Layer. Simple catalog service - no inter-service
+dependencies. Used by StorageBinService to validate bin types.
 
 ## Acceptance Criteria
 
@@ -113,6 +119,7 @@
 ## Technical Implementation Notes
 
 ### Architecture
+
 - **Layer**: Application (Service)
 - **Dependencies**: R005 (StorageBinTypeRepository)
 - **Design Pattern**: Simple CRUD service (catalog management)
@@ -120,6 +127,7 @@
 ### Testing Requirements
 
 **Unit Tests**:
+
 ```python
 @pytest.mark.asyncio
 async def test_create_bin_type():
@@ -158,6 +166,7 @@ async def test_volume_calculation():
 **Coverage Target**: ≥80%
 
 ### Performance Expectations
+
 - `create_bin_type`: <20ms
 - `get_all_bin_types`: <30ms for 20 types
 
@@ -166,6 +175,7 @@ async def test_volume_calculation():
 **Context**: Simple catalog service. No complex business logic.
 
 **Key decisions**:
+
 - Volume auto-calculated in schema transformation
 - Used by StorageBinService for bin metadata
 
@@ -179,6 +189,7 @@ async def test_volume_calculation():
 - [ ] PR reviewed (2+ approvals)
 
 ## Time Tracking
+
 - **Estimated**: 1 story point (~2 hours)
 - **Actual**: TBD
 

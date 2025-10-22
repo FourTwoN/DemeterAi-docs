@@ -1,6 +1,7 @@
 # R006: Product Category Repository
 
 ## Metadata
+
 - **Epic**: [epic-003-repositories.md](../../02_epics/epic-003-repositories.md)
 - **Sprint**: Sprint-01
 - **Status**: `backlog`
@@ -9,38 +10,47 @@
 - **Area**: `repositories`
 - **Assignee**: TBD
 - **Dependencies**:
-  - Blocks: [R007, S005]
-  - Blocked by: [F006, F007, DB015]
+    - Blocks: [R007, S005]
+    - Blocked by: [F006, F007, DB015]
 
 ## Related Documentation
-- **Engineering Plan**: [../../engineering_plan/backend/repository_layer.md](../../engineering_plan/backend/repository_layer.md)
+
+- **Engineering Plan
+  **: [../../engineering_plan/backend/repository_layer.md](../../engineering_plan/backend/repository_layer.md)
 - **Database ERD**: [../../database/database.mmd](../../database/database.mmd#L75-L80)
-- **Architecture**: [../../engineering_plan/03_architecture_overview.md](../../engineering_plan/03_architecture_overview.md)
+- **Architecture
+  **: [../../engineering_plan/03_architecture_overview.md](../../engineering_plan/03_architecture_overview.md)
 
 ## Description
 
-**What**: Implement repository class for `product_categories` table with CRUD operations and hierarchy navigation.
+**What**: Implement repository class for `product_categories` table with CRUD operations and
+hierarchy navigation.
 
-**Why**: Product categories group plant families (e.g., Cactaceae, Crassulaceae). Repository provides lookup by code and navigation to child families for catalog browsing and analytics.
+**Why**: Product categories group plant families (e.g., Cactaceae, Crassulaceae). Repository
+provides lookup by code and navigation to child families for catalog browsing and analytics.
 
-**Context**: Top level of 3-tier product hierarchy (category → family → product). Master data table for plant taxonomy organization.
+**Context**: Top level of 3-tier product hierarchy (category → family → product). Master data table
+for plant taxonomy organization.
 
 ## Acceptance Criteria
 
 - [ ] **AC1**: `ProductCategoryRepository` class inherits from `AsyncRepository[ProductCategory]`
 - [ ] **AC2**: Implements `get_by_code(code: str)` method with unique constraint validation
-- [ ] **AC3**: Implements `get_with_families(category_id: int)` with eager loading of product_families
+- [ ] **AC3**: Implements `get_with_families(category_id: int)` with eager loading of
+  product_families
 - [ ] **AC4**: Implements `get_all_active()` for catalog/analytics dropdown lists
 - [ ] **AC5**: Query performance: <10ms for all queries (small master data table)
 
 ## Technical Implementation Notes
 
 ### Architecture
+
 - **Layer**: Infrastructure (Repository)
 - **Dependencies**: F006 (Database connection), DB015 (ProductCategory model)
 - **Design Pattern**: Repository pattern, inherits AsyncRepository
 
 ### Code Hints
+
 ```python
 from typing import Optional, List
 from sqlalchemy import select
@@ -115,6 +125,7 @@ class ProductCategoryRepository(AsyncRepository[ProductCategory]):
 ### Testing Requirements
 
 **Unit Tests**:
+
 ```python
 @pytest.mark.asyncio
 async def test_product_category_repo_get_by_code(db_session, sample_category):
@@ -163,6 +174,7 @@ async def test_product_category_repo_statistics(db_session, category_with_produc
 **Coverage Target**: ≥85%
 
 ### Performance Expectations
+
 - All queries: <10ms (small master data table)
 - get_with_families: <20ms with eager loading
 - get_category_statistics: <30ms (aggregation queries)
@@ -170,19 +182,20 @@ async def test_product_category_repo_statistics(db_session, category_with_produc
 ## Handover Briefing
 
 **For the next developer:**
+
 - **Context**: Top level of product hierarchy. Used for catalog organization and analytics grouping
 - **Key decisions**:
-  - Code is uppercase alphanumeric (e.g., CACT, CRAS, SUCC)
-  - Name is human-readable (e.g., "Cactaceae", "Crassulaceae")
-  - Description provides botanical context
-  - Master data (rarely changes, good candidate for caching)
+    - Code is uppercase alphanumeric (e.g., CACT, CRAS, SUCC)
+    - Name is human-readable (e.g., "Cactaceae", "Crassulaceae")
+    - Description provides botanical context
+    - Master data (rarely changes, good candidate for caching)
 - **Known limitations**:
-  - No active/inactive flag (assumes all categories always active)
-  - No sorting order field (uses alphabetical by name)
+    - No active/inactive flag (assumes all categories always active)
+    - No sorting order field (uses alphabetical by name)
 - **Next steps**: R007 (ProductFamilyRepository) links to this
 - **Questions to validate**:
-  - Should categories be cached in Redis for performance?
-  - Do we need audit timestamps (created_at, updated_at)?
+    - Should categories be cached in Redis for performance?
+    - Do we need audit timestamps (created_at, updated_at)?
 
 ## Definition of Done Checklist
 
@@ -197,6 +210,7 @@ async def test_product_category_repo_statistics(db_session, category_with_produc
 - [ ] Performance benchmarks documented
 
 ## Time Tracking
+
 - **Estimated**: 1 story point (~2 hours)
 - **Actual**: TBD
 - **Started**: TBD

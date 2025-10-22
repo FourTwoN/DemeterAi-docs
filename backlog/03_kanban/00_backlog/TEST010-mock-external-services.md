@@ -1,6 +1,7 @@
 # [TEST010] Mock External Services (S3, Redis)
 
 ## Metadata
+
 - **Epic**: epic-012-testing
 - **Sprint**: Sprint-02
 - **Priority**: `high`
@@ -8,9 +9,12 @@
 - **Dependencies**: Blocks [TEST009]
 
 ## Description
-Mock external services for testing: S3 (moto), Redis (fakeredis). Tests run without real AWS or Redis.
+
+Mock external services for testing: S3 (moto), Redis (fakeredis). Tests run without real AWS or
+Redis.
 
 ## Acceptance Criteria
+
 - [ ] Mock S3 with moto library
 - [ ] Mock Redis with fakeredis
 - [ ] Tests run without AWS credentials
@@ -18,6 +22,7 @@ Mock external services for testing: S3 (moto), Redis (fakeredis). Tests run with
 - [ ] Mock supports all operations used in code
 
 ## Implementation
+
 ```python
 import pytest
 from moto import mock_s3
@@ -63,6 +68,7 @@ def test_redis_cache(mock_redis_client):
 ```
 
 ## Testing
+
 - Verify mocks work like real services
 - Test all S3 operations used (upload, download, delete)
 - Test all Redis operations (set, get, delete, expire)

@@ -10,7 +10,8 @@
 
 ## Goal
 
-Implement photo upload workflow with batch upload support, processing status tracking, gallery view, and error recovery mechanisms.
+Implement photo upload workflow with batch upload support, processing status tracking, gallery view,
+and error recovery mechanisms.
 
 ---
 
@@ -28,18 +29,21 @@ Implement photo upload workflow with batch upload support, processing status tra
 ## Cards List (8 cards, 40 points)
 
 ### Upload Workflow (20 points)
+
 - **PHOTO001**: Batch photo upload endpoint (8pts)
 - **PHOTO002**: Multipart file handling (3pts)
 - **PHOTO003**: EXIF metadata extraction (5pts)
 - **PHOTO004**: S3 upload with progress tracking (4pts)
 
 ### Status & Monitoring (12 points)
+
 - **PHOTO005**: Task status polling endpoint (3pts)
 - **PHOTO006**: Processing status updates (3pts)
 - **PHOTO007**: Error recovery & retry (4pts)
 - **PHOTO008**: Upload history view (2pts)
 
 ### Gallery (8 points)
+
 - **PHOTO009**: Gallery list endpoint (3pts)
 - **PHOTO010**: Thumbnail generation (AVIF 400×400) (3pts)
 - **PHOTO011**: Photo detail view (2pts)
@@ -56,6 +60,7 @@ Implement photo upload workflow with batch upload support, processing status tra
 ## Technical Approach
 
 **Batch Upload Flow**:
+
 ```
 Client uploads 10 photos (multipart/form-data)
    ↓

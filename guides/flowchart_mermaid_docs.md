@@ -4,7 +4,9 @@ title: Flowcharts Syntax
 
 # Flowcharts - Basic Syntax
 
-Flowcharts are composed of **nodes** (geometric shapes) and **edges** (arrows or lines). The Mermaid code defines how nodes and edges are made and accommodates different arrow types, multi-directional arrows, and any linking to and from subgraphs.
+Flowcharts are composed of **nodes** (geometric shapes) and **edges** (arrows or lines). The Mermaid
+code defines how nodes and edges are made and accommodates different arrow types, multi-directional
+arrows, and any linking to and from subgraphs.
 
 ```warning
 If you are using the word "end" in a Flowchart node, capitalize the entire word or any of the letters (e.g., "End" or "END"), or apply this [workaround](https://github.com/mermaid-js/mermaid/issues/1444#issuecomment-639528897). Typing "end" in all lowercase letters will break the Flowchart.
@@ -38,8 +40,10 @@ Instead of `flowchart` one can also use `graph`.
 
 ### A node with text
 
-It is also possible to set text in the box that differs from the id. If this is done several times, it is the last text
-found for the node that will be used. Also if you define edges for the node later on, you can omit text definitions. The
+It is also possible to set text in the box that differs from the id. If this is done several times,
+it is the last text
+found for the node that will be used. Also if you define edges for the node later on, you can omit
+text definitions. The
 one previously defined will be used when rendering the box.
 
 ```mermaid-example
@@ -147,7 +151,8 @@ flowchart LR
     id1>This is the text in the box]
 ```
 
-Currently only the shape above is possible and not its mirror. _This might change with future releases._
+Currently only the shape above is possible and not its mirror. _This might change with future
+releases._
 
 ### A node (rhombus)
 
@@ -200,11 +205,14 @@ flowchart TD
 
 ## Expanded Node Shapes in Mermaid Flowcharts (v11.3.0+)
 
-Mermaid introduces 30 new shapes to enhance the flexibility and precision of flowchart creation. These new shapes provide more options to represent processes, decisions, events, data storage visually, and other elements within your flowcharts, improving clarity and semantic meaning.
+Mermaid introduces 30 new shapes to enhance the flexibility and precision of flowchart creation.
+These new shapes provide more options to represent processes, decisions, events, data storage
+visually, and other elements within your flowcharts, improving clarity and semantic meaning.
 
 New Syntax for Shape Definition
 
-Mermaid now supports a general syntax for defining shape types to accommodate the growing number of shapes. This syntax allows you to assign specific shapes to nodes using a clear and flexible format:
+Mermaid now supports a general syntax for defining shape types to accommodate the growing number of
+shapes. This syntax allows you to assign specific shapes to nodes using a clear and flexible format:
 
 ```
 A@{ shape: rect }
@@ -214,7 +222,8 @@ This syntax creates a node A as a rectangle. It renders in the same way as `A["A
 
 ### Complete List of New Shapes
 
-Below is a comprehensive list of the newly introduced shapes and their corresponding semantic meanings, short names, and aliases:
+Below is a comprehensive list of the newly introduced shapes and their corresponding semantic
+meanings, short names, and aliases:
 
 <!--@include: virtual:shapesTable -->
 
@@ -548,11 +557,15 @@ flowchart TD
 
 ## Special shapes in Mermaid Flowcharts (v11.3.0+)
 
-Mermaid also introduces 2 special shapes to enhance your flowcharts: **icon** and **image**. These shapes allow you to include icons and images directly within your flowcharts, providing more visual context and clarity.
+Mermaid also introduces 2 special shapes to enhance your flowcharts: **icon** and **image**. These
+shapes allow you to include icons and images directly within your flowcharts, providing more visual
+context and clarity.
 
 ### Icon Shape
 
-You can use the `icon` shape to include an icon in your flowchart. To use icons, you need to register the icon pack first. Follow the instructions to [add custom icons](../config/icons.md). The syntax for defining an icon shape is as follows:
+You can use the `icon` shape to include an icon in your flowchart. To use icons, you need to
+register the icon pack first. Follow the instructions to [add custom icons](../config/icons.md). The
+syntax for defining an icon shape is as follows:
 
 ```mermaid-example
 flowchart TD
@@ -562,19 +575,23 @@ flowchart TD
 #### Parameters
 
 - **icon**: The name of the icon from the registered icon pack.
-- **form**: Specifies the background shape of the icon. If not defined there will be no background to icon. Options include:
-  - `square`
-  - `circle`
-  - `rounded`
-- **label**: The text label associated with the icon. This can be any string. If not defined, no label will be displayed.
-- **pos**: The position of the label. If not defined label will default to bottom of icon. Possible values are:
-  - `t`
-  - `b`
+- **form**: Specifies the background shape of the icon. If not defined there will be no background
+  to icon. Options include:
+    - `square`
+    - `circle`
+    - `rounded`
+- **label**: The text label associated with the icon. This can be any string. If not defined, no
+  label will be displayed.
+- **pos**: The position of the label. If not defined label will default to bottom of icon. Possible
+  values are:
+    - `t`
+    - `b`
 - **h**: The height of the icon. If not defined this will default to 48 which is minimum.
 
 ### Image Shape
 
-You can use the `image` shape to include an image in your flowchart. The syntax for defining an image shape is as follows:
+You can use the `image` shape to include an image in your flowchart. The syntax for defining an
+image shape is as follows:
 
 ```
 flowchart TD
@@ -584,17 +601,24 @@ flowchart TD
 #### Parameters
 
 - **img**: The URL of the image to be displayed.
-- **label**: The text label associated with the image. This can be any string. If not defined, no label will be displayed.
-- **pos**: The position of the label. If not defined, the label will default to the bottom of the image. Possible values are:
-  - `t`
-  - `b`
-- **w**: The width of the image. If not defined, this will default to the natural width of the image.
-- **h**: The height of the image. If not defined, this will default to the natural height of the image.
-- **constraint**: Determines if the image should constrain the node size. This setting also ensures the image maintains its original aspect ratio, adjusting the width (`w`) accordingly to the height (`h`). If not defined, this will default to `off` Possible values are:
-  - `on`
-  - `off`
+- **label**: The text label associated with the image. This can be any string. If not defined, no
+  label will be displayed.
+- **pos**: The position of the label. If not defined, the label will default to the bottom of the
+  image. Possible values are:
+    - `t`
+    - `b`
+- **w**: The width of the image. If not defined, this will default to the natural width of the
+  image.
+- **h**: The height of the image. If not defined, this will default to the natural height of the
+  image.
+- **constraint**: Determines if the image should constrain the node size. This setting also ensures
+  the image maintains its original aspect ratio, adjusting the width (`w`) accordingly to the
+  height (`h`). If not defined, this will default to `off` Possible values are:
+    - `on`
+    - `off`
 
-If you want to resize an image, but keep the same aspect ratio, set `h`, and set `constraint: on` to constrain the aspect ratio. E.g.
+If you want to resize an image, but keep the same aspect ratio, set `h`, and set `constraint: on` to
+constrain the aspect ratio. E.g.
 
 ```mermaid
 flowchart TD
@@ -604,7 +628,8 @@ flowchart TD
 
 ## Links between nodes
 
-Nodes can be connected with links/edges. It is possible to have different types of links or attach a text string to a link.
+Nodes can be connected with links/edges. It is possible to have different types of links or attach a
+text string to a link.
 
 ### A link with arrow head
 
@@ -678,7 +703,8 @@ flowchart LR
 
 ### An invisible link
 
-This can be a useful tool in some instances where you want to alter the default positioning of a node.
+This can be a useful tool in some instances where you want to alter the default positioning of a
+node.
 
 ```mermaid-example
 flowchart LR
@@ -723,22 +749,27 @@ flowchart TB
 
 ### Attaching an ID to Edges
 
-Mermaid now supports assigning IDs to edges, similar to how IDs and metadata can be attached to nodes. This feature lays the groundwork for more advanced styling, classes, and animation capabilities on edges.
+Mermaid now supports assigning IDs to edges, similar to how IDs and metadata can be attached to
+nodes. This feature lays the groundwork for more advanced styling, classes, and animation
+capabilities on edges.
 
 **Syntax:**
 
-To give an edge an ID, prepend the edge syntax with the ID followed by an `@` character. For example:
+To give an edge an ID, prepend the edge syntax with the ID followed by an `@` character. For
+example:
 
 ```mermaid
 flowchart LR
   A e1@--> B
 ```
 
-In this example, `e1` is the ID of the edge connecting `A` to `B`. You can then use this ID in later definitions or style statements, just like with nodes.
+In this example, `e1` is the ID of the edge connecting `A` to `B`. You can then use this ID in later
+definitions or style statements, just like with nodes.
 
 ### Turning an Animation On
 
-Once you have assigned an ID to an edge, you can turn on animations for that edge by defining the edge’s properties:
+Once you have assigned an ID to an edge, you can turn on animations for that edge by defining the
+edge’s properties:
 
 ```mermaid
 flowchart LR
@@ -750,7 +781,8 @@ This tells Mermaid that the edge `e1` should be animated.
 
 ### Selecting Type of Animation
 
-In the initial version, two animation speeds are supported: `fast` and `slow`. Selecting a specific animation type is a shorthand for enabling animation and setting the animation speed in one go.
+In the initial version, two animation speeds are supported: `fast` and `slow`. Selecting a specific
+animation type is a shorthand for enabling animation and setting the animation speed in one go.
 
 **Examples:**
 
@@ -764,7 +796,8 @@ This is equivalent to `{ animate: true, animation: fast }`.
 
 ### Using classDef Statements for Animations
 
-You can also animate edges by assigning a class to them and then defining animation properties in a `classDef` statement. For example:
+You can also animate edges by assigning a class to them and then defining animation properties in a
+`classDef` statement. For example:
 
 ```mermaid
 flowchart LR
@@ -780,7 +813,8 @@ In this snippet:
 - `class e1 animate` applies the `animate` class to the edge `e1`.
 
 **Note on Escaping Commas:**
-When setting the `stroke-dasharray` property, remember to escape commas as `\,` since commas are used as delimiters in Mermaid’s style definitions.
+When setting the `stroke-dasharray` property, remember to escape commas as `\,` since commas are
+used as delimiters in Mermaid’s style definitions.
 
 ## New arrow types
 
@@ -854,7 +888,7 @@ For dotted or thick links, the characters to add are equals signs or dots,
 as summed up in the following table:
 
 | Length            |   1    |    2    |    3     |
-| ----------------- | :----: | :-----: | :------: |
+|-------------------|:------:|:-------:|:--------:|
 | Normal            | `---`  | `----`  | `-----`  |
 | Normal with arrow | `-->`  | `--->`  | `---->`  |
 | Thick             | `===`  | `====`  | `=====`  |
@@ -864,7 +898,8 @@ as summed up in the following table:
 
 ## Special characters that break syntax
 
-It is possible to put text within quotes in order to render more troublesome characters. As in the example below:
+It is possible to put text within quotes in order to render more troublesome characters. As in the
+example below:
 
 ```mermaid-example
 flowchart LR
@@ -880,7 +915,8 @@ It is possible to escape characters using the syntax exemplified here.
         A["A double quote:#quot;"] --> B["A dec char:#9829;"]
 ```
 
-Numbers given are base 10, so `#` can be encoded as `#35;`. It is also supported to use HTML character names.
+Numbers given are base 10, so `#` can be encoded as `#35;`. It is also supported to use HTML
+character names.
 
 ## Subgraphs
 
@@ -918,7 +954,8 @@ flowchart TB
 
 ### flowcharts
 
-With the graphtype flowchart it is also possible to set edges to and from subgraphs as in the flowchart below.
+With the graphtype flowchart it is also possible to set edges to and from subgraphs as in the
+flowchart below.
 
 ```mermaid-example
 flowchart TB
@@ -939,7 +976,8 @@ flowchart TB
 
 ### Direction in subgraphs
 
-With the graphtype flowcharts you can use the direction statement to set the direction which the subgraph will render like in this example.
+With the graphtype flowcharts you can use the direction statement to set the direction which the
+subgraph will render like in this example.
 
 ```mermaid-example
 flowchart LR
@@ -960,7 +998,8 @@ flowchart LR
 
 #### Limitation
 
-If any of a subgraph's nodes are linked to the outside, subgraph direction will be ignored. Instead the subgraph will inherit the direction of the parent graph:
+If any of a subgraph's nodes are linked to the outside, subgraph direction will be ignored. Instead
+the subgraph will inherit the direction of the parent graph:
 
 ```mermaid-example
 flowchart LR
@@ -983,7 +1022,9 @@ flowchart LR
 
 ## Markdown Strings
 
-The "Markdown Strings" feature enhances flowcharts and mind maps by offering a more versatile string type, which supports text formatting options such as bold and italics, and automatically wraps text within labels.
+The "Markdown Strings" feature enhances flowcharts and mind maps by offering a more versatile string
+type, which supports text formatting options such as bold and italics, and automatically wraps text
+within labels.
 
 ```mermaid-example
 ---
@@ -1006,7 +1047,9 @@ Formatting:
 
 - For bold text, use double asterisks (`**`) before and after the text.
 - For italics, use single asterisks (`*`) before and after the text.
-- With traditional strings, you needed to add `<br>` tags for text to wrap in nodes. However, markdown strings automatically wrap text when it becomes too long and allows you to start a new line by simply using a newline character instead of a `<br>` tag.
+- With traditional strings, you needed to add `<br>` tags for text to wrap in nodes. However,
+  markdown strings automatically wrap text when it becomes too long and allows you to start a new
+  line by simply using a newline character instead of a `<br>` tag.
 
 This feature is applicable to node labels, edge labels, and subgraph labels.
 
@@ -1022,7 +1065,8 @@ graph LR
 
 ## Interaction
 
-It is possible to bind a click event to a node, the click can lead to either a javascript callback or to a link which will be opened in a new browser tab.
+It is possible to bind a click event to a node, the click can lead to either a javascript callback
+or to a link which will be opened in a new browser tab.
 
 ```note
 This functionality is disabled when using `securityLevel='strict'` and enabled when using `securityLevel='loose'`.
@@ -1034,7 +1078,8 @@ click nodeId call callback()
 ```
 
 - nodeId is the id of the node
-- callback is the name of a javascript function defined on the page displaying the graph, the function will be called with the nodeId as parameter.
+- callback is the name of a javascript function defined on the page displaying the graph, the
+  function will be called with the nodeId as parameter.
 
 Examples of tooltip usage below:
 
@@ -1046,7 +1091,8 @@ Examples of tooltip usage below:
 </script>
 ```
 
-The tooltip text is surrounded in double quotes. The styles of the tooltip are set by the class `.mermaidTooltip`.
+The tooltip text is surrounded in double quotes. The styles of the tooltip are set by the class
+`.mermaidTooltip`.
 
 ```mermaid-example
 flowchart LR
@@ -1059,11 +1105,14 @@ flowchart LR
     click D href "https://www.github.com" "This is a tooltip for a link"
 ```
 
-> **Success** The tooltip functionality and the ability to link to urls are available from version 0.5.2.
+> **Success** The tooltip functionality and the ability to link to urls are available from version
+> 0.5.2.
 
-?> Due to limitations with how Docsify handles JavaScript callback functions, an alternate working demo for the above code can be viewed at [this jsfiddle](https://jsfiddle.net/yk4h7qou/2/).
+?> Due to limitations with how Docsify handles JavaScript callback functions, an alternate working
+demo for the above code can be viewed at [this jsfiddle](https://jsfiddle.net/yk4h7qou/2/).
 
-Links are opened in the same browser tab/window by default. It is possible to change this by adding a link target to the click definition (`_self`, `_blank`, `_parent` and `_top` are supported):
+Links are opened in the same browser tab/window by default. It is possible to change this by adding
+a link target to the click definition (`_self`, `_blank`, `_parent` and `_top` are supported):
 
 ```mermaid-example
 flowchart LR
@@ -1108,7 +1157,9 @@ Beginner's tip—a full example using interactive links in a html context:
 
 ### Comments
 
-Comments can be entered within a flow diagram, which will be ignored by the parser. Comments need to be on their own line, and must be prefaced with `%%` (double percent signs). Any text after the start of the comment to the next newline will be treated as a comment, including any flow syntax
+Comments can be entered within a flow diagram, which will be ignored by the parser. Comments need to
+be on their own line, and must be prefaced with `%%` (double percent signs). Any text after the
+start of the comment to the next newline will be treated as a comment, including any flow syntax
 
 ```mermaid
 flowchart LR
@@ -1120,16 +1171,21 @@ flowchart LR
 
 ### Styling links
 
-It is possible to style links. For instance, you might want to style a link that is going backwards in the flow. As links
-have no ids in the same way as nodes, some other way of deciding what style the links should be attached to is required.
-Instead of ids, the order number of when the link was defined in the graph is used, or use default to apply to all links.
-In the example below the style defined in the linkStyle statement will belong to the fourth link in the graph:
+It is possible to style links. For instance, you might want to style a link that is going backwards
+in the flow. As links
+have no ids in the same way as nodes, some other way of deciding what style the links should be
+attached to is required.
+Instead of ids, the order number of when the link was defined in the graph is used, or use default
+to apply to all links.
+In the example below the style defined in the linkStyle statement will belong to the fourth link in
+the graph:
 
 ```
 linkStyle 3 stroke:#ff3,stroke-width:4px,color:red;
 ```
 
-It is also possible to add style to multiple links in a single statement, by separating link numbers with commas:
+It is also possible to add style to multiple links in a single statement, by separating link numbers
+with commas:
 
 ```
 linkStyle 1,2,7 color:blue;
@@ -1137,12 +1193,15 @@ linkStyle 1,2,7 color:blue;
 
 ### Styling line curves
 
-It is possible to style the type of curve used for lines between items, if the default method does not meet your needs.
-Available curve styles include `basis`, `bumpX`, `bumpY`, `cardinal`, `catmullRom`, `linear`, `monotoneX`, `monotoneY`,
+It is possible to style the type of curve used for lines between items, if the default method does
+not meet your needs.
+Available curve styles include `basis`, `bumpX`, `bumpY`, `cardinal`, `catmullRom`, `linear`,
+`monotoneX`, `monotoneY`,
 `natural`, `step`, `stepAfter`, and `stepBefore`.
 
 For a full list of available curves, including an explanation of custom curves, refer to
-the [Shapes](https://d3js.org/d3-shape/curve) documentation in the [d3-shape](https://github.com/d3/d3-shape/) project.
+the [Shapes](https://d3js.org/d3-shape/curve) documentation in
+the [d3-shape](https://github.com/d3/d3-shape/) project.
 
 Line styling can be achieved in two ways:
 
@@ -1164,7 +1223,8 @@ graph LR
 
 #### Edge level curve style using Edge IDs (v11.10.0+)
 
-You can assign IDs to [edges](#attaching-an-id-to-edges). After assigning an ID you can modify the line style by modifying the edge's `curve` property using the following syntax:
+You can assign IDs to [edges](#attaching-an-id-to-edges). After assigning an ID you can modify the
+line style by modifying the edge's `curve` property using the following syntax:
 
 ```mermaid
 flowchart LR
@@ -1184,7 +1244,8 @@ If the same edge is modified multiple times the last modification will be render
 
 ### Styling a node
 
-It is possible to apply specific styles such as a thicker border or a different background color to a node.
+It is possible to apply specific styles such as a thicker border or a different background color to
+a node.
 
 ```mermaid-example
 flowchart LR
@@ -1195,7 +1256,8 @@ flowchart LR
 
 #### Classes
 
-More convenient than defining the style every time is to define a class of styles and attach this class to the nodes that
+More convenient than defining the style every time is to define a class of styles and attach this
+class to the nodes that
 should have a different look.
 
 A class definition looks like the example below:
@@ -1222,7 +1284,8 @@ It is also possible to attach a class to a list of nodes in one statement:
     class nodeId1,nodeId2 className;
 ```
 
-A shorter form of adding a class is to attach the classname to the node using the `:::`operator as per below:
+A shorter form of adding a class is to attach the classname to the node using the `:::`operator as
+per below:
 
 ```mermaid-example
 flowchart LR
@@ -1242,7 +1305,8 @@ flowchart LR
 
 ### CSS classes
 
-It is also possible to predefine classes in CSS styles that can be applied from the graph definition as in the example
+It is also possible to predefine classes in CSS styles that can be applied from the graph definition
+as in the example
 below:
 
 **Example style**
@@ -1292,7 +1356,8 @@ There are two ways to display these FontAwesome icons:
 
 ### Register FontAwesome icon packs (v11.7.0+)
 
-You can register your own FontAwesome icon pack following the ["Registering icon packs" instructions](../config/icons.md).
+You can register your own FontAwesome icon pack following
+the ["Registering icon packs" instructions](../config/icons.md).
 
 Supported prefixes: `fa`, `fab`, `fas`, `far`, `fal`, `fad`.
 
@@ -1305,7 +1370,8 @@ Note that it will fall back to FontAwesome CSS if FontAwesome packs are not regi
 Mermaid supports Font Awesome if the CSS is included on the website.
 Mermaid does not have any restriction on the version of Font Awesome that can be used.
 
-Please refer the [Official Font Awesome Documentation](https://fontawesome.com/start) on how to include it in your website.
+Please refer the [Official Font Awesome Documentation](https://fontawesome.com/start) on how to
+include it in your website.
 
 Adding this snippet in the `<head>` would add support for Font Awesome v6.5.1
 
@@ -1318,7 +1384,8 @@ Adding this snippet in the `<head>` would add support for Font Awesome v6.5.1
 
 ### Custom icons
 
-It is possible to use custom icons served from Font Awesome as long as the website imports the corresponding kit.
+It is possible to use custom icons served from Font Awesome as long as the website imports the
+corresponding kit.
 
 Note that this is currently a paid feature from Font Awesome.
 
@@ -1342,11 +1409,16 @@ flowchart TD
 
 ## Graph declarations with spaces between vertices and link and without semicolon
 
-- In graph declarations, the statements also can now end without a semicolon. After release 0.2.16, ending a graph statement with semicolon is just optional. So the below graph declaration is also valid along with the old declarations of the graph.
+- In graph declarations, the statements also can now end without a semicolon. After release 0.2.16,
+  ending a graph statement with semicolon is just optional. So the below graph declaration is also
+  valid along with the old declarations of the graph.
 
-- A single space is allowed between vertices and the link. However there should not be any space between a vertex and its text and a link and its text. The old syntax of graph declaration will also work and hence this new feature is optional and is introduced to improve readability.
+- A single space is allowed between vertices and the link. However there should not be any space
+  between a vertex and its text and a link and its text. The old syntax of graph declaration will
+  also work and hence this new feature is optional and is introduced to improve readability.
 
-Below is the new declaration of the graph edges which is also valid along with the old declaration of the graph edges.
+Below is the new declaration of the graph edges which is also valid along with the old declaration
+of the graph edges.
 
 ```mermaid-example
 flowchart LR
@@ -1362,7 +1434,8 @@ flowchart LR
 
 The layout of the diagram is done with the renderer. The default renderer is dagre.
 
-Starting with Mermaid version 9.4, you can use an alternate renderer named elk. The elk renderer is better for larger and/or more complex diagrams.
+Starting with Mermaid version 9.4, you can use an alternate renderer named elk. The elk renderer is
+better for larger and/or more complex diagrams.
 
 The _elk_ renderer is an experimental feature.
 You can change the renderer to elk by adding this directive:
@@ -1381,8 +1454,10 @@ Note that the site needs to use mermaid version 9.4+ for this to work and have t
 
 It is possible to adjust the width of the rendered flowchart.
 
-This is done by defining **mermaid.flowchartConfig** or by the CLI to use a JSON file with the configuration. How to use the CLI is described in the mermaidCLI page.
-mermaid.flowchartConfig can be set to a JSON string with config parameters or the corresponding object.
+This is done by defining **mermaid.flowchartConfig** or by the CLI to use a JSON file with the
+configuration. How to use the CLI is described in the mermaidCLI page.
+mermaid.flowchartConfig can be set to a JSON string with config parameters or the corresponding
+object.
 
 ```javascript
 mermaid.flowchartConfig = {

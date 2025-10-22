@@ -1,6 +1,7 @@
 # [TEST007] Celery Task Tests
 
 ## Metadata
+
 - **Epic**: epic-012-testing
 - **Sprint**: Sprint-04
 - **Priority**: `medium`
@@ -8,9 +9,12 @@
 - **Dependencies**: Blocked by [CEL005, TEST001]
 
 ## Description
-Test Celery tasks in isolation: mock task execution, verify task logic, test retries and error handling.
+
+Test Celery tasks in isolation: mock task execution, verify task logic, test retries and error
+handling.
 
 ## Acceptance Criteria
+
 - [ ] Test task execution without Celery broker
 - [ ] Test task retries on failure
 - [ ] Test max retry limits
@@ -19,6 +23,7 @@ Test Celery tasks in isolation: mock task execution, verify task logic, test ret
 - [ ] Test task routing to correct queues
 
 ## Implementation
+
 ```python
 from app.tasks.ml_tasks import segment_photo_task
 
@@ -61,6 +66,7 @@ def test_task_retry_on_failure(monkeypatch):
 ```
 
 ## Testing
+
 - Test tasks with and without Celery
 - Test retry logic
 - Test DLQ (dead letter queue)

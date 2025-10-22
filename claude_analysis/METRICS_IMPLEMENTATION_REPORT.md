@@ -9,7 +9,8 @@
 
 ## Summary
 
-Implemented comprehensive Prometheus metrics collection for DemeterAI v2.0 with 17 metrics covering API, stock operations, ML pipeline, S3, database, and Celery tasks.
+Implemented comprehensive Prometheus metrics collection for DemeterAI v2.0 with 17 metrics covering
+API, stock operations, ML pipeline, S3, database, and Celery tasks.
 
 **File Created**: `/home/lucasg/proyectos/DemeterDocs/app/core/metrics.py`
 **Lines of Code**: 600 lines
@@ -23,11 +24,13 @@ Implemented comprehensive Prometheus metrics collection for DemeterAI v2.0 with 
 ### 1. Architecture
 
 **Pattern**: Module-level singleton registry for thread-safety
+
 - `_registry`: Global CollectorRegistry (None if disabled)
 - `_metrics_enabled`: Boolean flag controlled by configuration
 - All metrics initialized as module-level globals (None until setup)
 
 **Key Design Decisions**:
+
 - ✅ Conditional initialization via `setup_metrics(enable_metrics=True/False)`
 - ✅ Thread-safe and async-safe metric collection
 - ✅ No circular imports (imports only from core.config)
@@ -37,6 +40,7 @@ Implemented comprehensive Prometheus metrics collection for DemeterAI v2.0 with 
 ### 2. Metrics Implemented
 
 #### API Metrics (2 metrics)
+
 ```python
 # Histogram: Request latency by method/endpoint/status
 demeter_api_request_duration_seconds{method, endpoint, status}
@@ -47,6 +51,7 @@ demeter_api_request_errors_total{method, endpoint, error_type, status}
 ```
 
 #### Stock Operations Metrics (2 metrics)
+
 ```python
 # Counter: Operations by type/product/status
 demeter_stock_operations_total{operation, product_type, status}
@@ -58,6 +63,7 @@ demeter_stock_batch_size{operation, product_type}
 ```
 
 #### ML Pipeline Metrics (2 metrics)
+
 ```python
 # Histogram: Inference duration by model/batch_size
 demeter_ml_inference_duration_seconds{model_type, batch_size_bucket}
@@ -68,6 +74,7 @@ demeter_ml_detections_total{model_type, confidence_bucket}
 ```
 
 #### S3 Operations Metrics (2 metrics)
+
 ```python
 # Histogram: Operation latency by operation/bucket
 demeter_s3_operation_duration_seconds{operation, bucket}
@@ -78,6 +85,7 @@ demeter_s3_operation_errors_total{operation, bucket, error_type}
 ```
 
 #### Warehouse/Location Metrics (2 metrics)
+
 ```python
 # Counter: Queries by hierarchy level/operation
 demeter_warehouse_location_queries_total{level, operation}
@@ -89,6 +97,7 @@ demeter_warehouse_query_duration_seconds{level, operation}
 ```
 
 #### Product Search Metrics (2 metrics)
+
 ```python
 # Counter: Searches by type/result_count_bucket
 demeter_product_searches_total{search_type, result_count_bucket}
@@ -100,6 +109,7 @@ demeter_product_search_duration_seconds{search_type}
 ```
 
 #### Celery Task Metrics (2 metrics)
+
 ```python
 # Histogram: Task duration by task_name/queue
 demeter_celery_task_duration_seconds{task_name, queue}
@@ -111,6 +121,7 @@ demeter_celery_task_status_total{task_name, status, queue}
 ```
 
 #### Database Metrics (3 metrics)
+
 ```python
 # Gauge: Connection pool size
 demeter_db_connection_pool_size
@@ -128,6 +139,7 @@ demeter_db_query_duration_seconds{operation, table}
 ### 3. Context Managers
 
 **Synchronous Operations**:
+
 ```python
 from app.core.metrics import time_operation, api_request_duration_seconds
 
@@ -136,6 +148,7 @@ with time_operation(api_request_duration_seconds, method="GET", endpoint="/healt
 ```
 
 **Asynchronous Operations**:
+
 ```python
 from app.core.metrics import time_operation_async, ml_inference_duration_seconds
 
@@ -148,6 +161,7 @@ async with time_operation_async(ml_inference_duration_seconds, model_type="yolo"
 ### 4. Decorators
 
 **Track API Requests**:
+
 ```python
 from app.core.metrics import track_api_request
 
@@ -160,6 +174,7 @@ async def create_stock():
 ```
 
 **Track Stock Operations**:
+
 ```python
 from app.core.metrics import track_stock_operation
 
@@ -171,6 +186,7 @@ async def create_stock_batch():
 ```
 
 **Track ML Inference**:
+
 ```python
 from app.core.metrics import track_ml_inference
 
@@ -186,6 +202,7 @@ async def run_detection():
 ### 5. Direct Recording Functions
 
 **S3 Operations**:
+
 ```python
 from app.core.metrics import record_s3_operation
 
@@ -198,6 +215,7 @@ record_s3_operation(
 ```
 
 **Warehouse Queries**:
+
 ```python
 from app.core.metrics import record_warehouse_query
 
@@ -209,6 +227,7 @@ record_warehouse_query(
 ```
 
 **Product Searches**:
+
 ```python
 from app.core.metrics import record_product_search
 
@@ -220,6 +239,7 @@ record_product_search(
 ```
 
 **Celery Tasks**:
+
 ```python
 from app.core.metrics import record_celery_task
 
@@ -232,6 +252,7 @@ record_celery_task(
 ```
 
 **Database Queries**:
+
 ```python
 from app.core.metrics import record_db_query
 
@@ -243,6 +264,7 @@ record_db_query(
 ```
 
 **Database Pool**:
+
 ```python
 from app.core.metrics import update_db_pool_metrics
 
@@ -266,6 +288,7 @@ pip install prometheus-client
 ### Step 2: Add ENABLE_METRICS to config
 
 Edit `app/core/config.py`:
+
 ```python
 class Settings(BaseSettings):
     # ... existing fields ...
@@ -277,6 +300,7 @@ class Settings(BaseSettings):
 ### Step 3: Initialize metrics on startup
 
 Edit `app/main.py`:
+
 ```python
 from app.core.metrics import setup_metrics, get_metrics_text
 from fastapi.responses import Response
@@ -297,6 +321,7 @@ async def metrics():
 ### Step 4: Use in controllers/services
 
 **In Controllers** (auto-tracking):
+
 ```python
 from app.core.metrics import track_api_request
 
@@ -308,6 +333,7 @@ async def create_stock(request: CreateStockRequest):
 ```
 
 **In Services** (manual recording):
+
 ```python
 from app.core.metrics import record_product_search
 import time
@@ -336,6 +362,7 @@ python verify_metrics.py
 ```
 
 **Expected Output** (without prometheus_client):
+
 ```
 ✅ File structure verification PASSED
 ⚠️  prometheus_client NOT installed - skipping runtime tests
@@ -349,6 +376,7 @@ python verify_metrics.py
 ```
 
 **Expected Output**:
+
 ```
 ✅ File structure verification PASSED
 ✅ Import verification PASSED
@@ -377,6 +405,7 @@ print('✅ All imports successful')
 ## Configuration
 
 **Environment Variables**:
+
 ```bash
 # Enable/disable metrics (default: True)
 ENABLE_METRICS=true
@@ -386,6 +415,7 @@ ENABLE_METRICS=true
 ```
 
 **Runtime Control**:
+
 ```python
 from app.core.metrics import setup_metrics
 
@@ -404,6 +434,7 @@ setup_metrics()  # Uses settings.ENABLE_METRICS
 ## Prometheus Configuration
 
 Add to `prometheus.yml`:
+
 ```yaml
 scrape_configs:
   - job_name: 'demeter-api'
@@ -420,11 +451,13 @@ scrape_configs:
 ### Example Queries
 
 **API Request Rate**:
+
 ```promql
 rate(demeter_api_request_duration_seconds_count[5m])
 ```
 
 **API P95 Latency**:
+
 ```promql
 histogram_quantile(0.95,
   rate(demeter_api_request_duration_seconds_bucket[5m])
@@ -432,18 +465,21 @@ histogram_quantile(0.95,
 ```
 
 **Stock Operation Success Rate**:
+
 ```promql
 sum(rate(demeter_stock_operations_total{status="success"}[5m])) /
 sum(rate(demeter_stock_operations_total[5m]))
 ```
 
 **ML Inference Duration by Batch Size**:
+
 ```promql
 rate(demeter_ml_inference_duration_seconds_sum[5m]) /
 rate(demeter_ml_inference_duration_seconds_count[5m])
 ```
 
 **Database Connection Pool Utilization**:
+
 ```promql
 demeter_db_connection_pool_used / demeter_db_connection_pool_size * 100
 ```
@@ -453,12 +489,14 @@ demeter_db_connection_pool_used / demeter_db_connection_pool_size * 100
 ## Type Safety
 
 **All functions have complete type hints**:
+
 - ✅ All parameters typed
 - ✅ All return types specified
 - ✅ Optional types used appropriately
 - ✅ Type: ignore not used anywhere
 
 **Example**:
+
 ```python
 def record_warehouse_query(level: str, operation: str, duration: float) -> None:
     """Type-safe metric recording."""
@@ -470,6 +508,7 @@ def record_warehouse_query(level: str, operation: str, duration: float) -> None:
 ## Thread Safety
 
 **Guarantees**:
+
 - ✅ Module-level singleton registry (no global mutable state)
 - ✅ Prometheus client internal thread-safety
 - ✅ Async-safe timing (uses perf_counter, not thread-local state)
@@ -480,12 +519,14 @@ def record_warehouse_query(level: str, operation: str, duration: float) -> None:
 ## Performance Impact
 
 **Overhead**:
+
 - Metric recording: ~1-5 microseconds per operation
 - Histogram observe: ~2-10 microseconds
 - Counter increment: ~1-3 microseconds
 - Export generation: ~10-50 milliseconds (depends on metric count)
 
 **Optimization**:
+
 - Metrics completely disabled if `ENABLE_METRICS=false`
 - No-op decorators when disabled (zero overhead)
 - Lazy initialization (only on first setup call)
@@ -498,15 +539,15 @@ def record_warehouse_query(level: str, operation: str, duration: float) -> None:
 - [✅] Line count: 600 lines
 - [✅] Structure verified: 16 functions, 17 metrics
 - [✅] All required metrics implemented:
-  - [✅] API request latency (histogram)
-  - [✅] Stock operations count (counter)
-  - [✅] ML inference time (histogram)
-  - [✅] S3 upload/download latency (histogram)
-  - [✅] Warehouse location queries (counter)
-  - [✅] Product searches (counter)
-  - [✅] Celery task duration (histogram)
-  - [✅] Database connection pool utilization (gauge)
-  - [✅] Request errors by endpoint (counter)
+    - [✅] API request latency (histogram)
+    - [✅] Stock operations count (counter)
+    - [✅] ML inference time (histogram)
+    - [✅] S3 upload/download latency (histogram)
+    - [✅] Warehouse location queries (counter)
+    - [✅] Product searches (counter)
+    - [✅] Celery task duration (histogram)
+    - [✅] Database connection pool utilization (gauge)
+    - [✅] Request errors by endpoint (counter)
 - [✅] Context managers: `time_operation`, `time_operation_async`
 - [✅] Decorators: `@track_api_request`, `@track_stock_operation`, `@track_ml_inference`
 - [✅] Export function: `get_metrics_collector()`
@@ -532,42 +573,42 @@ def record_warehouse_query(level: str, operation: str, duration: float) -> None:
    ```
 
 3. **Update app/main.py**:
-   - Import and call `setup_metrics()`
-   - Add `/metrics` endpoint
+    - Import and call `setup_metrics()`
+    - Add `/metrics` endpoint
 
 4. **Apply to controllers**:
-   - Add `@track_api_request` decorators
+    - Add `@track_api_request` decorators
 
 5. **Apply to services**:
-   - Add `record_*` calls for business operations
+    - Add `record_*` calls for business operations
 
 6. **Configure Prometheus**:
-   - Add scrape target in prometheus.yml
-   - Test metrics endpoint: `curl http://localhost:8000/metrics`
+    - Add scrape target in prometheus.yml
+    - Test metrics endpoint: `curl http://localhost:8000/metrics`
 
 7. **Create Grafana dashboards**:
-   - API performance dashboard
-   - Stock operations dashboard
-   - ML pipeline dashboard
-   - Database health dashboard
+    - API performance dashboard
+    - Stock operations dashboard
+    - ML pipeline dashboard
+    - Database health dashboard
 
 ---
 
 ## Files Created
 
 1. **`/home/lucasg/proyectos/DemeterDocs/app/core/metrics.py`** (600 lines)
-   - Complete Prometheus metrics module
-   - 17 metrics, 16 functions
-   - Production-ready implementation
+    - Complete Prometheus metrics module
+    - 17 metrics, 16 functions
+    - Production-ready implementation
 
 2. **`/home/lucasg/proyectos/DemeterDocs/verify_metrics.py`** (200+ lines)
-   - Verification script
-   - Tests structure, imports, initialization, export
+    - Verification script
+    - Tests structure, imports, initialization, export
 
 3. **`/home/lucasg/proyectos/DemeterDocs/METRICS_IMPLEMENTATION_REPORT.md`** (this file)
-   - Complete implementation documentation
-   - Integration guide
-   - Usage examples
+    - Complete implementation documentation
+    - Integration guide
+    - Usage examples
 
 ---
 

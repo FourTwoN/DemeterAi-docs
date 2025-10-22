@@ -1,6 +1,7 @@
 # [TEST008] Repository Layer Tests
 
 ## Metadata
+
 - **Epic**: epic-012-testing
 - **Sprint**: Sprint-02
 - **Priority**: `high`
@@ -8,9 +9,12 @@
 - **Dependencies**: Blocked by [TEST001]
 
 ## Description
-Test repository layer with real database: CRUD operations, complex queries, transactions, eager loading.
+
+Test repository layer with real database: CRUD operations, complex queries, transactions, eager
+loading.
 
 ## Acceptance Criteria
+
 - [ ] Test all CRUD methods (create, get, update, delete)
 - [ ] Test filtering and searching
 - [ ] Test pagination
@@ -19,6 +23,7 @@ Test repository layer with real database: CRUD operations, complex queries, tran
 - [ ] Coverage >85% for repositories
 
 ## Implementation
+
 ```python
 @pytest.mark.asyncio
 async def test_warehouse_repository_crud(db_session):
@@ -61,6 +66,7 @@ async def test_repository_eager_loading(db_session):
 ```
 
 ## Testing
+
 - Test with real PostgreSQL database
 - Verify queries optimized (no N+1)
 - Test transaction isolation

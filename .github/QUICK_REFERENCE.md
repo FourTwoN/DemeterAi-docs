@@ -100,11 +100,11 @@ git commit --no-verify
 
 ## 🔧 Workflow Triggers
 
-| Workflow | Trigger | Duration |
-|----------|---------|----------|
-| **CI Pipeline** | Push, PR | ~8-10 min |
-| **Docker Build** | Release, Tags | ~15-20 min |
-| **Security Scan** | Push, PR, Weekly | ~5-8 min |
+| Workflow          | Trigger          | Duration   |
+|-------------------|------------------|------------|
+| **CI Pipeline**   | Push, PR         | ~8-10 min  |
+| **Docker Build**  | Release, Tags    | ~15-20 min |
+| **Security Scan** | Push, PR, Weekly | ~5-8 min   |
 
 ---
 
@@ -155,11 +155,11 @@ pytest tests/ --cov=app --cov-report=term-missing
 
 ## 📚 Documentation
 
-| File | Purpose |
-|------|---------|
-| `.github/workflows/README.md` | Workflow reference |
-| `.github/DEVELOPMENT.md` | Setup guide |
-| `.github/CI_CD_SUMMARY.md` | Implementation summary |
+| File                          | Purpose                |
+|-------------------------------|------------------------|
+| `.github/workflows/README.md` | Workflow reference     |
+| `.github/DEVELOPMENT.md`      | Setup guide            |
+| `.github/CI_CD_SUMMARY.md`    | Implementation summary |
 
 ---
 

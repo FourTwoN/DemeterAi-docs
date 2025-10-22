@@ -1,6 +1,7 @@
 # [DEP002] Docker Compose Production
 
 ## Metadata
+
 - **Epic**: epic-011-deployment
 - **Sprint**: Sprint-02
 - **Priority**: `critical` ⚡
@@ -8,10 +9,14 @@
 - **Dependencies**: Blocked by [DEP001, F012]
 
 ## Description
-Complete docker-compose.yml for production with all services: API, Celery workers (GPU/CPU/IO), PostgreSQL, Redis, Prometheus, Grafana.
+
+Complete docker-compose.yml for production with all services: API, Celery workers (GPU/CPU/IO),
+PostgreSQL, Redis, Prometheus, Grafana.
 
 ## Acceptance Criteria
-- [ ] All 9 services defined (api, celery_gpu_0, celery_gpu_1, celery_cpu, celery_io, db, redis, prometheus, grafana)
+
+- [ ] All 9 services defined (api, celery_gpu_0, celery_gpu_1, celery_cpu, celery_io, db, redis,
+  prometheus, grafana)
 - [ ] GPU workers use nvidia-runtime
 - [ ] Volume mounts for persistence
 - [ ] Health checks for all services
@@ -19,6 +24,7 @@ Complete docker-compose.yml for production with all services: API, Celery worker
 - [ ] Environment variable files (.env)
 
 ## Implementation
+
 ```yaml
 version: '3.8'
 
@@ -80,6 +86,7 @@ volumes:
 ```
 
 ## Testing
+
 - Start stack: `docker-compose up -d`
 - Verify all services healthy: `docker-compose ps`
 - Test API at http://localhost:8000

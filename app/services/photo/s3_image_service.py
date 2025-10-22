@@ -322,7 +322,8 @@ class S3ImageService:
             "width_px": 0,  # Unknown for visualizations (set by ML pipeline)
             "height_px": 0,
             "upload_source": "api",  # Visualizations always uploaded via API
-            "status": ProcessingStatusEnum.READY,  # Visualizations are ready immediately
+            "status": ProcessingStatusEnum.READY,
+            # Visualizations are ready immediately
         }
 
         s3_image = await self.repo.create(s3_image_data)

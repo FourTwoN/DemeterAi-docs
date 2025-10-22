@@ -10,22 +10,26 @@
 
 ## Task Overview
 
-Implement GitHub Actions CI/CD pipeline for automated linting, testing, and Docker image building. Keep it simple, local-first, and focused on quality gates.
+Implement GitHub Actions CI/CD pipeline for automated linting, testing, and Docker image building.
+Keep it simple, local-first, and focused on quality gates.
 
 ---
 
 ## Current State Analysis
 
 **Existing CI/CD**:
+
 - None (manual testing only)
 
 **Existing Quality Tools**:
+
 - pytest (tests exist)
 - No linter configured (need ruff or black)
 - No pre-commit hooks
 - Docker build works manually
 
 **Missing**:
+
 - GitHub Actions workflow files
 - Linting configuration
 - Automated test execution
@@ -40,12 +44,14 @@ Implement GitHub Actions CI/CD pipeline for automated linting, testing, and Dock
 **Pattern**: Git Push → GitHub Actions → Lint → Test → Build → (Optional Deploy)
 
 **Dependencies**:
+
 - GitHub repository
 - Existing tests (tests/ directory)
 - Docker and docker-compose files
 - New: Linting tools (ruff), GitHub Actions workflows
 
 **Files to Create/Modify**:
+
 - [ ] `.github/workflows/ci.yml` (create - main CI pipeline)
 - [ ] `.github/workflows/docker-build.yml` (create - Docker build workflow)
 - [ ] `pyproject.toml` (modify - add ruff/black configuration)
@@ -59,6 +65,7 @@ Implement GitHub Actions CI/CD pipeline for automated linting, testing, and Dock
 ### Phase 1: Add Development Dependencies
 
 **Create requirements-dev.txt**:
+
 ```
 # Development dependencies (not needed in production)
 pytest==8.3.5
@@ -74,6 +81,7 @@ httpx==0.28.2
 ### Phase 2: Configure Linting (pyproject.toml)
 
 **Add to pyproject.toml** (or create if doesn't exist):
+
 ```toml
 [project]
 name = "demeterai"
@@ -144,6 +152,7 @@ markers = [
 ### Phase 3: Create GitHub Actions CI Workflow
 
 **Create .github/workflows/ci.yml**:
+
 ```yaml
 name: CI Pipeline
 
@@ -311,6 +320,7 @@ jobs:
 ### Phase 4: Create Docker Build Workflow
 
 **Create .github/workflows/docker-build.yml**:
+
 ```yaml
 name: Docker Build & Push
 
@@ -362,6 +372,7 @@ jobs:
 ### Phase 5: Create Pre-Commit Hooks (Optional)
 
 **Create .pre-commit-config.yaml**:
+
 ```yaml
 # Pre-commit hooks - run locally with: pre-commit run --all-files
 repos:
@@ -484,18 +495,20 @@ pre-commit run --all-files
 ## GitHub Repository Setup
 
 **Branch Protection Rules** (recommended):
+
 1. Go to Settings → Branches
 2. Add rule for `main` branch:
-   - Require pull request reviews before merging
-   - Require status checks to pass (ci, lint, test)
-   - Require branches to be up to date
-   - Include administrators
+    - Require pull request reviews before merging
+    - Require status checks to pass (ci, lint, test)
+    - Require branches to be up to date
+    - Include administrators
 
 **Secrets Configuration** (if pushing to Docker Hub):
+
 1. Go to Settings → Secrets and variables → Actions
 2. Add secrets:
-   - DOCKERHUB_USERNAME
-   - DOCKERHUB_TOKEN
+    - DOCKERHUB_USERNAME
+    - DOCKERHUB_TOKEN
 
 ---
 

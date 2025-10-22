@@ -105,6 +105,7 @@ pytest tests/unit/models/test_warehouse.py -v
 **Diagnosis**: Database has partial state from failed migration
 
 **Evidence**:
+
 - Alembic says: "I'm at version 8807863f7d8c"
 - Database has: warehouses table (from version 2f68e3f132f5)
 - warehouses table is MISSING: warehouse_type column
@@ -119,6 +120,7 @@ pytest tests/unit/models/test_warehouse.py -v
 See: `/home/lucasg/proyectos/DemeterDocs/ENUM_CONFLICT_DIAGNOSTIC_REPORT.md`
 
 **Report includes**:
+
 - Complete ENUM inventory (15 expected vs 2 actual)
 - Table-by-table comparison
 - Root cause analysis

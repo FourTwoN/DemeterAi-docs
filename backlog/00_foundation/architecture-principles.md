@@ -1,4 +1,5 @@
 # Architecture Principles - DemeterAI v2.0
+
 ## Clean Architecture & Core Rules
 
 **Document Version:** 1.0
@@ -63,12 +64,14 @@ DemeterAI follows **Clean Architecture** (aka Hexagonal Architecture, Ports & Ad
 **Rule**: Dependencies point INWARD (Domain ← Application ← Infrastructure)
 
 ✅ **Allowed**:
+
 - Controllers depend on Services
 - Services depend on Repositories
 - Services depend on other Services
 - Repositories depend on Database models
 
 ❌ **Forbidden**:
+
 - Services depending on Controllers (inverted dependency)
 - Models depending on Services
 - Business logic in Controllers or Repositories
@@ -78,6 +81,7 @@ DemeterAI follows **Clean Architecture** (aka Hexagonal Architecture, Ports & Ad
 **Rule**: Business logic doesn't know about PostgreSQL or SQLAlchemy
 
 ✅ **Correct**:
+
 ```python
 class StockMovementService:
     def __init__(self, repo: StockMovementRepository):
@@ -89,6 +93,7 @@ class StockMovementService:
 ```
 
 ❌ **Incorrect**:
+
 ```python
 class StockMovementService:
     async def create_movement(self, session: AsyncSession, data: dict):
@@ -102,10 +107,12 @@ class StockMovementService:
 **Rule**: Business logic doesn't know about FastAPI or HTTP
 
 ✅ **Correct**:
+
 - Services return domain objects or DTOs
 - Controllers convert to HTTP responses
 
 ❌ **Incorrect**:
+
 - Services returning HTTP status codes
 - Services raising HTTPException
 
@@ -114,10 +121,12 @@ class StockMovementService:
 **Rule**: Core logic portable to other frameworks (Flask, Django, CLI)
 
 ✅ **Correct**:
+
 - Services have no FastAPI imports
 - Business logic in pure Python functions
 
 ❌ **Incorrect**:
+
 - Business logic inside FastAPI route handlers
 - Services depending on FastAPI's Request/Response objects
 
@@ -126,6 +135,7 @@ class StockMovementService:
 **Rule**: Business logic testable without DB/API/External services
 
 ✅ **Correct**:
+
 ```python
 # Test with mocked repository
 async def test_stock_service_create():
@@ -138,6 +148,7 @@ async def test_stock_service_create():
 ```
 
 ❌ **Incorrect**:
+
 ```python
 # Test requires real database
 async def test_stock_service_create(real_db_session):
@@ -162,6 +173,7 @@ Controller → Service A → Service B → Repository B
 ```
 
 **Example**:
+
 ```python
 class StockMovementService:
     def __init__(
@@ -191,6 +203,7 @@ Controller → Service A → Repository B  (VIOLATION)
 ```
 
 **Bad Example**:
+
 ```python
 class StockMovementService:
     def __init__(
@@ -209,6 +222,7 @@ class StockMovementService:
 ```
 
 **Why This is Wrong**:
+
 - Violates encapsulation (Service B owns Repository B's logic)
 - Bypasses business rules in Service B
 - Makes testing harder (need to mock multiple repos)
@@ -223,6 +237,7 @@ class StockMovementService:
 **Location**: `/app/controllers/`
 
 **DO**:
+
 - ✅ Define FastAPI routes (`@router.get`, `@router.post`)
 - ✅ Validate input with Pydantic schemas
 - ✅ Call service layer methods
@@ -230,12 +245,14 @@ class StockMovementService:
 - ✅ Handle request/response serialization
 
 **DON'T**:
+
 - ❌ Business logic
 - ❌ Database queries
 - ❌ Call repositories directly
 - ❌ Complex data transformations
 
 **Template**:
+
 ```python
 from fastapi import APIRouter, Depends, status
 from app.services.stock_movement_service import StockMovementService
@@ -258,6 +275,7 @@ async def initialize_stock_manually(
 **Location**: `/app/services/`
 
 **DO**:
+
 - ✅ Implement business rules
 - ✅ Coordinate multi-step operations
 - ✅ Call other services (inter-service communication)
@@ -266,11 +284,13 @@ async def initialize_stock_manually(
 - ✅ Handle complex calculations
 
 **DON'T**:
+
 - ❌ Know about HTTP (no FastAPI imports)
 - ❌ Call repositories from other services directly
 - ❌ Handle database connections (use dependency injection)
 
 **Communication Rule**:
+
 ```
 ✅ Service A → Service B → Repository B
 ❌ Service A → Repository B (FORBIDDEN)
@@ -281,17 +301,20 @@ async def initialize_stock_manually(
 **Location**: `/app/repositories/`
 
 **DO**:
+
 - ✅ CRUD operations (Create, Read, Update, Delete)
 - ✅ SQLAlchemy queries
 - ✅ Database transaction management
 - ✅ Eager/lazy loading optimization
 
 **DON'T**:
+
 - ❌ Business logic
 - ❌ Call other repositories
 - ❌ Know about Pydantic schemas (work with SQLAlchemy models only)
 
 **Base Pattern**:
+
 ```python
 from typing import Generic, TypeVar, Type, Optional
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -319,6 +342,7 @@ class AsyncRepository(Generic[ModelType]):
 **Purpose**: Abstract database access
 
 ✅ **Benefits**:
+
 - Testability (mock repositories in tests)
 - Flexibility (swap ORM/raw SQL without changing services)
 - Reusability (repositories shared across services)
@@ -441,12 +465,14 @@ diff models_generated.py app/models/
 **Location**: `/app/services/ml_processing/`
 
 **Why**:
+
 - ✅ Reuses same services and repositories as API
 - ✅ No code duplication
 - ✅ Same transaction boundaries
 - ✅ Easier testing and debugging
 
 **Components**:
+
 - `pipeline_coordinator.py` - Orchestrates full ML flow
 - `localization_service.py` - GPS → storage_location lookup
 - `segmentation_service.py` - YOLO v11 segmentation

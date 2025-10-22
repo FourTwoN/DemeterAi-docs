@@ -8,6 +8,7 @@
 ## Database Connections
 
 ### Main Database (Development)
+
 ```bash
 Host: localhost
 Port: 5432
@@ -24,6 +25,7 @@ DATABASE_URL_SYNC="postgresql+psycopg2://demeter:demeter_dev_password@localhost:
 ```
 
 ### Test Database
+
 ```bash
 Host: localhost
 Port: 5434
@@ -66,6 +68,7 @@ docker compose ps
 ## Alembic Migration Commands
 
 ### Main Database (default)
+
 ```bash
 # Check current version
 alembic current
@@ -87,6 +90,7 @@ alembic history --verbose
 ```
 
 ### Test Database (requires env override)
+
 ```bash
 # Set environment variable for test DB
 export DATABASE_URL_SYNC="postgresql+psycopg2://demeter_test:demeter_test_password@localhost:5434/demeterai_test"
@@ -101,6 +105,7 @@ alembic upgrade head
 ## Database Schema Summary
 
 ### Current State
+
 - **Migration Version**: `8807863f7d8c`
 - **Total Tables**: 15 (14 app + 1 metadata)
 - **Total Indexes**: 73
@@ -112,29 +117,35 @@ alembic upgrade head
 ### Tables by Category
 
 #### Geospatial Hierarchy (4 levels)
+
 1. `warehouses` (Level 1) - Root of geospatial hierarchy
 2. `storage_areas` (Level 2) - Areas within warehouses
 3. `storage_locations` (Level 3) - Locations within areas
 4. `storage_bins` (Level 4) - Bins within locations
 
 #### Configuration & Support
+
 5. `storage_bin_types` - Bin type definitions
 6. `location_relationships` - Custom location relationships (NEW)
 
 #### Product Taxonomy (3 levels)
+
 7. `product_categories` (Level 1) - Top-level categories
 8. `product_families` (Level 2) - Families within categories
 9. `products` (Level 3) - Individual products
 
 #### Product Attributes
+
 10. `product_sizes` - Size definitions
 11. `product_states` - State definitions
 
 #### User & Media
+
 12. `users` - User management
 13. `s3_images` - Image metadata (NEW)
 
 #### System
+
 14. `alembic_version` - Migration tracking
 15. `spatial_ref_sys` - PostGIS spatial references
 
@@ -143,11 +154,13 @@ alembic upgrade head
 ## Common SQL Queries
 
 ### Check Migration Status
+
 ```sql
 SELECT version_num FROM alembic_version;
 ```
 
 ### List All Tables
+
 ```sql
 SELECT tablename
 FROM pg_tables
@@ -156,6 +169,7 @@ ORDER BY tablename;
 ```
 
 ### Count Records by Table
+
 ```sql
 SELECT
   schemaname,
@@ -167,6 +181,7 @@ ORDER BY tablename;
 ```
 
 ### Check Enum Types
+
 ```sql
 SELECT typname as enum_type
 FROM pg_type
@@ -176,6 +191,7 @@ ORDER BY typname;
 ```
 
 ### List Foreign Keys
+
 ```sql
 SELECT
     tc.table_name,
@@ -193,11 +209,13 @@ ORDER BY tc.table_name;
 ```
 
 ### Check Database Size
+
 ```sql
 SELECT pg_size_pretty(pg_database_size(current_database())) as db_size;
 ```
 
 ### List Indexes by Table
+
 ```sql
 SELECT
     tablename,
@@ -213,26 +231,31 @@ ORDER BY tablename, indexname;
 ## Testing Commands
 
 ### Run All Tests
+
 ```bash
 pytest tests/ -v
 ```
 
 ### Run Model Tests Only
+
 ```bash
 pytest tests/unit/models/ -v
 ```
 
 ### Run Repository Tests Only
+
 ```bash
 pytest tests/integration/ -v
 ```
 
 ### Run with Coverage
+
 ```bash
 pytest tests/ --cov=app --cov-report=term-missing
 ```
 
 ### Run Specific Test File
+
 ```bash
 pytest tests/unit/models/test_warehouse.py -v
 ```
@@ -242,6 +265,7 @@ pytest tests/unit/models/test_warehouse.py -v
 ## Diagnostic Commands
 
 ### Quick Health Check
+
 ```bash
 # Main DB
 PGPASSWORD=demeter_dev_password psql -U demeter -d demeterai -h localhost -p 5432 -c "
@@ -261,6 +285,7 @@ WHERE schemaname='public' AND tablename != 'spatial_ref_sys';
 ```
 
 ### Full Diagnostic (uses script from /tmp/db_diagnostic.sql)
+
 ```bash
 # Main DB
 PGPASSWORD=demeter_dev_password psql -U demeter -d demeterai -h localhost -p 5432 -f /tmp/db_diagnostic.sql
@@ -274,14 +299,18 @@ PGPASSWORD=demeter_test_password psql -U demeter_test -d demeterai_test -h local
 ## Troubleshooting
 
 ### Issue: Alembic connects to wrong database
+
 **Solution:** Override DATABASE_URL_SYNC environment variable
+
 ```bash
 export DATABASE_URL_SYNC="postgresql+psycopg2://demeter_test:demeter_test_password@localhost:5434/demeterai_test"
 alembic current
 ```
 
 ### Issue: Enum type already exists
+
 **Solution:** Drop and recreate database
+
 ```bash
 docker compose down db_test -v
 docker compose up db_test -d
@@ -291,7 +320,9 @@ alembic upgrade head
 ```
 
 ### Issue: Connection refused
+
 **Solution:** Ensure Docker containers are running
+
 ```bash
 docker compose ps
 docker compose up db db_test -d
@@ -299,7 +330,9 @@ sleep 10  # Wait for PostgreSQL to initialize
 ```
 
 ### Issue: Authentication failed
+
 **Solution:** Check passwords in docker-compose.yml
+
 ```bash
 # For main DB
 PGPASSWORD=demeter_dev_password psql -U demeter -d demeterai -h localhost -p 5432 -c "SELECT 1;"

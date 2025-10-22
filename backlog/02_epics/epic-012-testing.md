@@ -10,7 +10,8 @@
 
 ## Goal
 
-Implement comprehensive testing strategy with unit tests, integration tests, test fixtures, and quality gates ensuring ≥80% coverage and production-grade code quality.
+Implement comprehensive testing strategy with unit tests, integration tests, test fixtures, and
+quality gates ensuring ≥80% coverage and production-grade code quality.
 
 ---
 
@@ -28,12 +29,14 @@ Implement comprehensive testing strategy with unit tests, integration tests, tes
 ## Cards List (15 cards, 75 points)
 
 ### Test Infrastructure (15 points)
+
 - **TEST001**: Test database fixtures (5pts)
 - **TEST002**: FastAPI test client fixtures (3pts)
 - **TEST003**: Mock external services (S3, Redis) (5pts)
 - **TEST004**: Factory patterns for test data (2pts)
 
 ### Unit Tests (25 points)
+
 - **TEST005**: Repository unit tests (8pts)
 - **TEST006**: Service unit tests (8pts)
 - **TEST007**: Model validation tests (3pts)
@@ -41,16 +44,19 @@ Implement comprehensive testing strategy with unit tests, integration tests, tes
 - **TEST009**: Utility function tests (3pts)
 
 ### Integration Tests (25 points)
+
 - **TEST010**: API endpoint integration tests (8pts)
 - **TEST011**: ML pipeline integration tests (8pts)
 - **TEST012**: Database integration tests (5pts)
 - **TEST013**: Celery task integration tests (4pts)
 
 ### Performance Tests (5 points)
+
 - **TEST014**: API load testing (Locust) (3pts)
 - **TEST015**: ML inference benchmarks (2pts)
 
 ### Quality Gates (5 points)
+
 - **TEST016**: Coverage enforcement (pytest-cov) (2pts)
 - **TEST017**: Mutation testing (mutmut - optional) (3pts)
 
@@ -66,6 +72,7 @@ Implement comprehensive testing strategy with unit tests, integration tests, tes
 ## Technical Approach
 
 **Test Pyramid**:
+
 ```
            /\
           /  \  Unit Tests (70%)
@@ -77,12 +84,14 @@ Implement comprehensive testing strategy with unit tests, integration tests, tes
 ```
 
 **Coverage Target**:
+
 - Critical path (ML pipeline, stock management): ≥90%
 - Services: ≥80%
 - Controllers: ≥75%
 - Models: ≥70%
 
 **Test Patterns**:
+
 ```python
 # Unit test (mocked dependencies)
 async def test_stock_movement_service(mocker):

@@ -1,6 +1,7 @@
 # S035: DashboardService
 
 ## Metadata
+
 - **Epic**: [epic-004-services.md](../../02_epics/epic-004-services.md)
 - **Sprint**: Sprint-06
 - **Status**: `backlog`
@@ -8,8 +9,8 @@
 - **Complexity**: M (3 story points)
 - **Area**: `services/analytics`
 - **Dependencies**:
-  - Blocks: [C031]
-  - Blocked by: [S028, S012]
+    - Blocks: [C031]
+    - Blocked by: [S028, S012]
 
 ## Description
 
@@ -28,6 +29,7 @@
 - [ ] **AC5**: Unit tests ≥85% coverage
 
 ## Time Tracking
+
 - **Estimated**: 3 story points (~6 hours)
 
 ---

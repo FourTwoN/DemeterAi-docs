@@ -10,7 +10,8 @@
 
 ## Goal
 
-Implement production deployment infrastructure with CI/CD pipeline, container orchestration, database backups, and production docker-compose configuration.
+Implement production deployment infrastructure with CI/CD pipeline, container orchestration,
+database backups, and production docker-compose configuration.
 
 ---
 
@@ -29,24 +30,28 @@ Implement production deployment infrastructure with CI/CD pipeline, container or
 ## Cards List (12 cards, 60 points)
 
 ### CI/CD (20 points)
+
 - **DEP001**: GitHub Actions workflow (or GitLab CI) (8pts)
 - **DEP002**: Automated testing in CI (5pts)
 - **DEP003**: Docker image build and push (5pts)
 - **DEP004**: Deployment to staging (2pts)
 
 ### Production Config (15 points)
+
 - **DEP005**: docker-compose.prod.yml (5pts)
 - **DEP006**: Secrets management (AWS Secrets Manager) (5pts)
 - **DEP007**: SSL/TLS configuration (nginx reverse proxy) (3pts)
 - **DEP008**: Environment-specific .env files (2pts)
 
 ### Database Operations (15 points)
+
 - **DEP009**: Database backup scripts (automated) (5pts)
 - **DEP010**: Database restore procedure (3pts)
 - **DEP011**: Migration rollback plan (3pts)
 - **DEP012**: Point-in-time recovery (PITR) setup (4pts)
 
 ### Health & Reliability (10 points)
+
 - **DEP013**: Health check endpoints (2pts)
 - **DEP014**: Readiness probes (2pts)
 - **DEP015**: Graceful shutdown (3pts)
@@ -64,6 +69,7 @@ Implement production deployment infrastructure with CI/CD pipeline, container or
 ## Technical Approach
 
 **CI/CD Pipeline** (.github/workflows/main.yml):
+
 ```yaml
 name: CI/CD
 
@@ -102,6 +108,7 @@ jobs:
 ```
 
 **Production docker-compose.yml**:
+
 ```yaml
 version: '3.8'
 
@@ -131,6 +138,7 @@ secrets:
 ```
 
 **Database Backup** (automated):
+
 ```bash
 #!/bin/bash
 # Daily backup at 2 AM

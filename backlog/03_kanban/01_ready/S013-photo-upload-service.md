@@ -1,6 +1,7 @@
 # S013: PhotoUploadService
 
 ## Metadata
+
 - **Epic**: [epic-004-services.md](../../02_epics/epic-004-services.md)
 - **Sprint**: Sprint-04
 - **Status**: `backlog`
@@ -9,20 +10,24 @@
 - **Area**: `services/photo`
 - **Assignee**: TBD
 - **Dependencies**:
-  - Blocks: [S014, C012]
-  - Blocked by: [S006, S015, CEL005]
+    - Blocks: [S014, C012]
+    - Blocked by: [S006, S015, CEL005]
 
 ## Description
 
-**What**: Implement `PhotoUploadService` for photo upload orchestration (S3 upload + session creation + ML pipeline dispatch).
+**What**: Implement `PhotoUploadService` for photo upload orchestration (S3 upload + session
+creation + ML pipeline dispatch).
 
-**Why**: Entry point for photo-based stock initialization. Orchestrates S3 upload, GPS extraction, location lookup, and Celery task dispatch.
+**Why**: Entry point for photo-based stock initialization. Orchestrates S3 upload, GPS extraction,
+location lookup, and Celery task dispatch.
 
-**Context**: Clean Architecture Application Layer. CRITICAL SERVICE - triggers ML pipeline via Celery. Calls S006 (GPS lookup), S015 (S3 upload), and CEL005 (ML task dispatch).
+**Context**: Clean Architecture Application Layer. CRITICAL SERVICE - triggers ML pipeline via
+Celery. Calls S006 (GPS lookup), S015 (S3 upload), and CEL005 (ML task dispatch).
 
 ## Acceptance Criteria
 
 - [ ] **AC1**: Photo upload workflow:
+
 ```python
 class PhotoUploadService:
     def __init__(
@@ -92,6 +97,7 @@ class PhotoUploadService:
 ```
 
 - [ ] **AC2**: Validate file upload:
+
 ```python
 async def validate_photo_upload(self, file: UploadFile) -> ValidationResult:
     """Validate photo file"""
@@ -115,18 +121,22 @@ async def validate_photo_upload(self, file: UploadFile) -> ValidationResult:
 ## Technical Implementation Notes
 
 ### Architecture
+
 - **Layer**: Application (Service)
 - **Dependencies**: S006, S014, S015, CEL005
 - **Design Pattern**: Orchestration service (coordinates photo workflow)
 
 ### Performance Expectations
+
 - `upload_photo`: <2000ms (includes S3 upload)
 
 ## Handover Briefing
 
-**Context**: CRITICAL entry point for photo-based initialization. Orchestrates GPS lookup, S3 upload, and ML dispatch.
+**Context**: CRITICAL entry point for photo-based initialization. Orchestrates GPS lookup, S3
+upload, and ML dispatch.
 
 **Key decisions**:
+
 - GPS lookup before S3 upload (fail fast if no location)
 - Session created with "pending" status, updated to "processing" after Celery dispatch
 - Max file size: 20MB
@@ -142,6 +152,7 @@ async def validate_photo_upload(self, file: UploadFile) -> ValidationResult:
 - [ ] PR reviewed (2+ approvals)
 
 ## Time Tracking
+
 - **Estimated**: 5 story points (~10 hours)
 - **Actual**: TBD
 

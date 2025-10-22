@@ -1,4 +1,5 @@
 # SPRINT 03 CRITICAL ACTION ITEMS
+
 **Date**: 2025-10-21
 **Status**: BLOCKING QUALITY GATES
 **Priority**: IMMEDIATE
@@ -8,18 +9,22 @@
 ## CRITICAL BLOCKERS (MUST FIX)
 
 ### 1. FIX 19 FAILING TESTS
+
 **Status**: 5.3% failure rate (EXCEEDS 0% threshold)
 **Estimated Effort**: 4-6 hours
 
 #### Group A: Storage Bin Service (3 tests) - EASY FIX
+
 **Root Cause**: Test expects generic `ValueError`, code raises `DuplicateCodeException`
 
 **Failing Tests**:
+
 - `tests/unit/services/test_storage_bin_service.py::test_create_storage_bin_duplicate_code`
 - `tests/unit/services/test_storage_bin_service.py::test_get_bins_by_location_success`
 - `tests/unit/services/test_storage_bin_service.py::test_get_bins_by_location_empty`
 
 **Fix Options**:
+
 ```python
 # OPTION 1: Update test to catch specific exception (RECOMMENDED)
 from app.core.exceptions import DuplicateCodeException
@@ -37,9 +42,11 @@ raise ValueError(f"Code {request.code} already exists")
 **Recommendation**: OPTION 1 (most specific, best practice)
 
 #### Group B: Pipeline Coordinator (16 tests) - MODERATE FIX
+
 **Root Cause**: Mock setup issues in test fixtures or missing repository methods
 
 **Failing Tests** (all in `tests/unit/services/ml_processing/test_pipeline_coordinator.py`):
+
 - test_process_complete_pipeline_success
 - test_process_complete_pipeline_progress_updates
 - test_process_complete_pipeline_result_aggregation
@@ -58,12 +65,14 @@ raise ValueError(f"Code {request.code} already exists")
 - test_process_complete_pipeline_zero_confidence_detections
 
 **Investigation Required**:
+
 1. Check Mock object setup for repository returns
 2. Verify async mock is properly configured
 3. Ensure all required methods are mocked with return values
 4. Check if repository method names match what service expects
 
 **Commands to Run**:
+
 ```bash
 # Run with verbose output to see actual error
 pytest tests/unit/services/ml_processing/test_pipeline_coordinator.py::TestMLPipelineCoordinatorHappyPath::test_process_complete_pipeline_success -xvs
@@ -75,6 +84,7 @@ python -c "from app.services.ml_processing.pipeline_coordinator import MLPipelin
 ---
 
 ### 2. ACHIEVE ≥80% TEST COVERAGE
+
 **Current**: 65.64%
 **Target**: 80%
 **Deficit**: 14.36 percentage points
@@ -83,6 +93,7 @@ python -c "from app.services.ml_processing.pipeline_coordinator import MLPipelin
 #### Phase 1: Add Tests for Untested Services (10-12 hours)
 
 **Services with 0% Coverage** (5 services):
+
 1. `app/services/movement_validation_service.py` (18 lines)
 2. `app/services/packaging_catalog_service.py` (29 lines)
 3. `app/services/packaging_color_service.py` (29 lines)
@@ -90,6 +101,7 @@ python -c "from app.services.ml_processing.pipeline_coordinator import MLPipelin
 5. `app/services/price_list_service.py` (29 lines)
 
 **Template for Each Service**:
+
 ```python
 # tests/unit/services/test_[service_name].py
 
@@ -125,6 +137,7 @@ async def test_create_success(service, mock_repo):
 #### Phase 2: Increase ML Pipeline Coverage (8-10 hours)
 
 **Services with <30% Coverage**:
+
 1. `app/services/ml_processing/sahi_detection_service.py`: 24% → 80%
 2. `app/services/ml_processing/segmentation_service.py`: 27% → 80%
 3. `app/services/ml_processing/pipeline_coordinator.py`: 28% → 80%
@@ -133,10 +146,12 @@ async def test_create_success(service, mock_repo):
 6. `app/services/photo/photo_processing_session_service.py`: 26% → 80%
 
 **Priority Order**:
+
 1. First: Fix failing pipeline_coordinator tests (16 tests)
 2. Then: Increase coverage for each ML service
 
 **Approach**:
+
 - Create test fixtures for complex objects (numpy arrays, image data)
 - Test both success and error paths
 - Test with real data samples where possible
@@ -145,11 +160,13 @@ async def test_create_success(service, mock_repo):
 #### Phase 3: Increase Low Coverage Services (6-8 hours)
 
 **Services 30-70% Coverage**:
+
 1. `app/services/analytics_service.py`: 33% → 80%
 2. `app/services/photo/photo_upload_service.py`: 37% → 80%
 3. `app/services/stock_movement_service.py`: 71% → 80%
 
 **Specific Focus**:
+
 - analytics_service: Test all aggregation methods
 - photo_upload_service: Test file handling, validation, error cases
 - stock_movement_service: Add 2-3 more comprehensive tests
@@ -163,10 +180,12 @@ async def test_create_success(service, mock_repo):
 **Issue**: Docstring examples show improper dependency injection pattern
 
 **Files to Update**:
+
 1. `app/services/storage_area_service.py:102-107`
 2. `app/services/warehouse_service.py:86-91`
 
 **Current (WRONG)**:
+
 ```python
 def get_storage_area_service(session: AsyncSession):
     repo = StorageAreaRepository(session)  # WRONG: Direct instantiation
@@ -174,6 +193,7 @@ def get_storage_area_service(session: AsyncSession):
 ```
 
 **New (CORRECT)**:
+
 ```python
 def get_storage_area_service(
     session: AsyncSession = Depends(get_db_session),
@@ -184,6 +204,7 @@ def get_storage_area_service(
 ```
 
 **Or for simple services**:
+
 ```python
 # Using factory function (recommended for complex cases)
 from app.dependencies import get_storage_area_service
@@ -227,6 +248,7 @@ async def create_storage_area(
 ## VERIFICATION COMMANDS
 
 **Check Current Status**:
+
 ```bash
 # Run all service tests
 pytest tests/unit/services/ -v
@@ -240,6 +262,7 @@ pytest tests/unit/services/ml_processing/test_pipeline_coordinator.py -v
 ```
 
 **After Fixes**:
+
 ```bash
 # Verify all tests pass
 pytest tests/unit/services/ -v --tb=short
@@ -257,14 +280,14 @@ pytest tests/unit/services/ml_processing/ --cov=app/services/ml_processing --cov
 
 ## GATE REQUIREMENTS SUMMARY
 
-| Gate | Requirement | Current | Status |
-|------|-------------|---------|--------|
-| Tests Pass | 0 failures | 19 failures | ❌ FAIL |
-| Coverage | ≥80% | 65.64% | ❌ FAIL |
-| Type Hints | 100% | 99.9% | ✅ PASS |
-| Async/Await | Proper usage | OK | ✅ PASS |
-| Architecture | Service→Service | OK | ✅ PASS |
-| Schema Match | 100% match | OK | ✅ PASS |
+| Gate         | Requirement     | Current     | Status |
+|--------------|-----------------|-------------|--------|
+| Tests Pass   | 0 failures      | 19 failures | ❌ FAIL |
+| Coverage     | ≥80%            | 65.64%      | ❌ FAIL |
+| Type Hints   | 100%            | 99.9%       | ✅ PASS |
+| Async/Await  | Proper usage    | OK          | ✅ PASS |
+| Architecture | Service→Service | OK          | ✅ PASS |
+| Schema Match | 100% match      | OK          | ✅ PASS |
 
 **Cannot mark Sprint 03 COMPLETE until all gates pass**
 

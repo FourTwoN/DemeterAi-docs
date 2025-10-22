@@ -1,6 +1,7 @@
 # [CEL007] Callback Aggregation
 
 ## Metadata
+
 - **Epic**: epic-008
 - **Sprint**: Sprint-04
 - **Priority**: critical ⚡
@@ -8,9 +9,11 @@
 - **Dependencies**: Blocked by [CEL006]
 
 ## Description
+
 Callback that aggregates all child task results and updates PhotoProcessingSession to 'completed'.
 
 ## Acceptance Criteria
+
 - [ ] Callback `ml_callback(results, session_code)`
 - [ ] Aggregates total detections, estimations
 - [ ] Updates session status to 'completed' or 'warning'
@@ -18,6 +21,7 @@ Callback that aggregates all child task results and updates PhotoProcessingSessi
 - [ ] Sets completed_at timestamp
 
 ## Implementation
+
 ```python
 @app.task
 def ml_callback(results, session_code):

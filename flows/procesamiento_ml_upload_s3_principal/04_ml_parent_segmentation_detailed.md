@@ -2,7 +2,9 @@
 
 ## Purpose
 
-GPU task that orchestrates the entire ML pipeline: loads YOLO model, performs segmentation, validates requirements (GPS, config, density), and spawns parallel child tasks using Celery Chord pattern.
+GPU task that orchestrates the entire ML pipeline: loads YOLO model, performs segmentation,
+validates requirements (GPS, config, density), and spawns parallel child tasks using Celery Chord
+pattern.
 
 ## Scope
 
@@ -13,6 +15,7 @@ GPU task that orchestrates the entire ML pipeline: loads YOLO model, performs se
 ## Key Components
 
 ### 1. Model Singleton Pattern
+
 ```python
 worker_id = os.getpid() % num_gpus
 model_key = f'yolo_v11_seg_{worker_id}'
@@ -26,15 +29,16 @@ if model_key not in model_cache:
 
 ### 2. Warning States (Graceful Degradation)
 
-| State | Trigger | Action |
-|-------|---------|--------|
-| `needs_location` | No GPS or outside cultivation | User assigns location manually |
-| `needs_config` | No storage_location_config | Admin configures product + packaging |
-| `needs_calibration` | No density_parameters | Manual calibration required |
+| State               | Trigger                       | Action                               |
+|---------------------|-------------------------------|--------------------------------------|
+| `needs_location`    | No GPS or outside cultivation | User assigns location manually       |
+| `needs_config`      | No storage_location_config    | Admin configures product + packaging |
+| `needs_calibration` | No density_parameters         | Manual calibration required          |
 
 **Not Failures**: Photo stored, user completes manually.
 
 ### 3. PostGIS Geolocation
+
 ```sql
 SELECT sl.id FROM storage_locations sl
 WHERE ST_Contains(
@@ -46,6 +50,7 @@ WHERE ST_Contains(
 **Performance**: ~15ms with SP-GiST spatial index.
 
 ### 4. YOLO v11 Segmentation
+
 ```python
 results = model.predict(
   image,
@@ -60,6 +65,7 @@ results = model.predict(
 **Classes**: segment (0), cajon (1), almacigo (2), plug (3)
 
 ### 5. Celery Chord Pattern
+
 ```python
 chord(
   group(*child_tasks),        # Parallel children

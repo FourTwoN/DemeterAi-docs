@@ -2,7 +2,8 @@
 
 ## Purpose
 
-This diagram shows the **detailed implementation flow** for exporting analytics results to Excel and CSV formats, allowing users to download and process data externally.
+This diagram shows the **detailed implementation flow** for exporting analytics results to Excel and
+CSV formats, allowing users to download and process data externally.
 
 ## Scope
 
@@ -24,17 +25,20 @@ The complete export flow including:
 ## Supported Export Sources
 
 ### 1. Manual Filter Results
+
 - Aggregated query results
 - Charts (embedded as images in Excel)
 - Summary statistics
 
 ### 2. Sales vs Stock Comparison
+
 - Comparison table
 - Discrepancies list
 - Summary metrics
 - Charts (embedded)
 
 ### 3. AI Analytics Results
+
 - Query results
 - AI-generated insights (as text)
 - Visualizations (as SVG converted to PNG)
@@ -45,6 +49,7 @@ The complete export flow including:
 ### Excel (.xlsx) Format
 
 **Advantages**:
+
 - Multiple sheets for different data sections
 - Formatted tables with headers
 - Embedded charts and visualizations
@@ -55,6 +60,7 @@ The complete export flow including:
 **Library**: `openpyxl` or `xlsxwriter`
 
 **File Structure**:
+
 ```
 analytics_export_20251008.xlsx
 ├── Summary (sheet)
@@ -79,6 +85,7 @@ analytics_export_20251008.xlsx
 ```
 
 **Example Code**:
+
 ```python
 from openpyxl import Workbook
 from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
@@ -168,12 +175,14 @@ def create_excel_export(
 ### CSV Format
 
 **Advantages**:
+
 - Universal compatibility
 - Small file size
 - Easy to import into other tools
 - Plain text (version control friendly)
 
 **Limitations**:
+
 - Single file (no multiple sheets)
 - No formatting
 - No embedded images
@@ -182,6 +191,7 @@ def create_excel_export(
 **Format**: UTF-8 encoded, comma-delimited
 
 **File Structure**:
+
 ```csv
 # DemeterAI Analytics Export
 # Generated: 2025-10-08 14:30:00
@@ -202,6 +212,7 @@ Warehouse B,Cactus,450,2475.00
 ```
 
 **Example Code**:
+
 ```python
 import csv
 from io import StringIO

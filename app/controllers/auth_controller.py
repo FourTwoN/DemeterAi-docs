@@ -174,24 +174,24 @@ async def get_current_user_info(
 ) -> UserResponse:
     """Get current authenticated user information.
 
-    This endpoint requires a valid JWT token in the Authorization header.
-    Returns user details extracted from the verified token.
+  This endpoint requires a valid JWT token in the Authorization header.
+  Returns user details extracted from the verified token.
 
-    Args:
-        user: Current user claims from JWT token (injected by dependency)
+  Args:
+      user: Current user claims from JWT token (injected by dependency)
 
-    Returns:
-        UserResponse with user ID, email, roles, and token timestamps
+  Returns:
+      UserResponse with user ID, email, roles, and token timestamps
 
-    Raises:
-        HTTPException: 401 if token is invalid or missing
+  Raises:
+      HTTPException: 401 if token is invalid or missing
 
-    Example:
-        ```bash
-        curl -H "Authorization: Bearer <token>" \\
-             http://localhost:8000/api/v1/auth/me
-        ```
-    """
+  Example:
+      ```bash
+      curl -H "Authorization: Bearer <token>" \\
+           http://localhost:8000/api/v1/auth/me
+      ```
+  """
     try:
         logger.info("Current user info requested", extra={"user_id": user.sub, "email": user.email})
 
@@ -222,38 +222,38 @@ async def login(
 ) -> LoginResponse:
     """Authenticate user with email and password.
 
-    **IMPORTANT**: This is a placeholder implementation for development.
-    In production, this endpoint will delegate authentication to Auth0's
-    OAuth2 token endpoint.
+  **IMPORTANT**: This is a placeholder implementation for development.
+  In production, this endpoint will delegate authentication to Auth0's
+  OAuth2 token endpoint.
 
-    Current behavior (development):
-    - Accepts any email/password combination
-    - Returns a demo token message
-    - Real Auth0 integration pending
+  Current behavior (development):
+  - Accepts any email/password combination
+  - Returns a demo token message
+  - Real Auth0 integration pending
 
-    Production flow (to be implemented):
-    1. Validate email/password with Auth0 OAuth2 endpoint
-    2. Receive access_token, refresh_token from Auth0
-    3. Return tokens to client
-    4. Client uses access_token for subsequent API requests
+  Production flow (to be implemented):
+  1. Validate email/password with Auth0 OAuth2 endpoint
+  2. Receive access_token, refresh_token from Auth0
+  3. Return tokens to client
+  4. Client uses access_token for subsequent API requests
 
-    Args:
-        request: LoginRequest with email and password
+  Args:
+      request: LoginRequest with email and password
 
-    Returns:
-        LoginResponse with access_token and metadata
+  Returns:
+      LoginResponse with access_token and metadata
 
-    Raises:
-        HTTPException: 401 if credentials are invalid (Auth0 integration)
-        HTTPException: 500 if Auth0 service is unavailable
+  Raises:
+      HTTPException: 401 if credentials are invalid (Auth0 integration)
+      HTTPException: 500 if Auth0 service is unavailable
 
-    Example:
-        ```bash
-        curl -X POST http://localhost:8000/api/v1/auth/login \\
-             -H "Content-Type: application/json" \\
-             -d '{"email": "user@example.com", "password": "password123"}'
-        ```
-    """
+  Example:
+      ```bash
+      curl -X POST http://localhost:8000/api/v1/auth/login \\
+           -H "Content-Type: application/json" \\
+           -d '{"email": "user@example.com", "password": "password123"}'
+      ```
+  """
     try:
         logger.info("Login attempt", extra={"email": request.email})
 
@@ -299,24 +299,24 @@ async def logout(
 ) -> LogoutResponse:
     """Logout current authenticated user.
 
-    **Note**: JWT tokens are stateless, so logout is client-side only.
-    The token remains valid until expiration. For true logout in production:
-    1. Client discards the token
-    2. Optionally: Call Auth0 logout endpoint to clear Auth0 session
-    3. Optionally: Implement token blacklist (requires Redis/database)
+  **Note**: JWT tokens are stateless, so logout is client-side only.
+  The token remains valid until expiration. For true logout in production:
+  1. Client discards the token
+  2. Optionally: Call Auth0 logout endpoint to clear Auth0 session
+  3. Optionally: Implement token blacklist (requires Redis/database)
 
-    Args:
-        user: Current user claims from JWT token (injected by dependency)
+  Args:
+      user: Current user claims from JWT token (injected by dependency)
 
-    Returns:
-        LogoutResponse with confirmation message
+  Returns:
+      LogoutResponse with confirmation message
 
-    Example:
-        ```bash
-        curl -X POST http://localhost:8000/api/v1/auth/logout \\
-             -H "Authorization: Bearer <token>"
-        ```
-    """
+  Example:
+      ```bash
+      curl -X POST http://localhost:8000/api/v1/auth/logout \\
+           -H "Authorization: Bearer <token>"
+      ```
+  """
     try:
         logger.info("User logged out", extra={"user_id": user.sub, "email": user.email})
 

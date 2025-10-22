@@ -1,6 +1,7 @@
 # [C020] Stock Trends - GET /api/analytics/trends
 
 ## Metadata
+
 - **Epic**: epic-003-backend-implementation.md
 - **Sprint**: Sprint-05
 - **Status**: `backlog`
@@ -38,6 +39,7 @@ async def get_stock_trends(
 **Coverage Target**: ≥80%
 
 ## Time Tracking
+
 - **Estimated**: 2 story points
 
 ---

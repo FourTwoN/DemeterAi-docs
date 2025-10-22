@@ -1,6 +1,7 @@
 # [F006] Database Connection Manager - Async Session + Pooling
 
 ## Metadata
+
 - **Epic**: epic-001-foundation.md
 - **Sprint**: Sprint-00 (Week 1-2)
 - **Status**: `backlog`
@@ -9,23 +10,31 @@
 - **Area**: `foundation`
 - **Assignee**: TBD
 - **Dependencies**:
-  - Blocks: [F007, DB001-DB035, R001-R028]
-  - Blocked by: [F001, F002]
+    - Blocks: [F007, DB001-DB035, R001-R028]
+    - Blocked by: [F001, F002]
 
 ## Related Documentation
+
 - **Database Architecture**: ../../engineering_plan/database/README.md
 - **Tech Stack**: ../../backlog/00_foundation/tech-stack.md#database-layer
 - **Architecture**: ../../engineering_plan/03_architecture_overview.md#system-layers
 
 ## Description
 
-Implement async database connection manager with SQLAlchemy 2.0.43 + asyncpg, connection pooling, and FastAPI dependency injection for database sessions.
+Implement async database connection manager with SQLAlchemy 2.0.43 + asyncpg, connection pooling,
+and FastAPI dependency injection for database sessions.
 
-**What**: Create `app/db/session.py` with async engine, session factory, and `get_db_session()` dependency for FastAPI. Configure connection pooling (pool_size=20, max_overflow=10) and proper session lifecycle management.
+**What**: Create `app/db/session.py` with async engine, session factory, and `get_db_session()`
+dependency for FastAPI. Configure connection pooling (pool_size=20, max_overflow=10) and proper
+session lifecycle management.
 
-**Why**: Async database operations prevent FastAPI event loop blocking. Connection pooling prevents database connection exhaustion (PostgreSQL default: 100 max connections). Dependency injection ensures sessions are properly closed after each request.
+**Why**: Async database operations prevent FastAPI event loop blocking. Connection pooling prevents
+database connection exhaustion (PostgreSQL default: 100 max connections). Dependency injection
+ensures sessions are properly closed after each request.
 
-**Context**: DemeterAI uses PostgreSQL 18 with PostGIS as single source of truth. All repositories depend on async sessions. Without proper pooling, 200+ concurrent requests would exhaust database connections.
+**Context**: DemeterAI uses PostgreSQL 18 with PostGIS as single source of truth. All repositories
+depend on async sessions. Without proper pooling, 200+ concurrent requests would exhaust database
+connections.
 
 ## Acceptance Criteria
 
@@ -67,11 +76,11 @@ Implement async database connection manager with SQLAlchemy 2.0.43 + asyncpg, co
   ```
 
 - [ ] **AC4**: Environment variable configuration:
-  - `DATABASE_URL`: postgresql+asyncpg://user:pass@host:5432/db
-  - `DATABASE_URL_SYNC`: postgresql+psycopg2://... (for Alembic migrations)
-  - `DB_POOL_SIZE`: 20
-  - `DB_MAX_OVERFLOW`: 10
-  - `DB_ECHO_SQL`: false (true for debugging)
+    - `DATABASE_URL`: postgresql+asyncpg://user:pass@host:5432/db
+    - `DATABASE_URL_SYNC`: postgresql+psycopg2://... (for Alembic migrations)
+    - `DB_POOL_SIZE`: 20
+    - `DB_MAX_OVERFLOW`: 10
+    - `DB_ECHO_SQL`: false (true for debugging)
 
 - [ ] **AC5**: Connection test function:
   ```python
@@ -98,6 +107,7 @@ Implement async database connection manager with SQLAlchemy 2.0.43 + asyncpg, co
 ## Technical Implementation Notes
 
 ### Architecture
+
 - Layer: Foundation (Database Infrastructure)
 - Dependencies: SQLAlchemy 2.0.43, asyncpg 0.30.0, PostgreSQL 18
 - Design pattern: Dependency injection, connection pooling, unit of work
@@ -105,6 +115,7 @@ Implement async database connection manager with SQLAlchemy 2.0.43 + asyncpg, co
 ### Code Hints
 
 **app/db/session.py structure:**
+
 ```python
 from sqlalchemy.ext.asyncio import (
     create_async_engine,
@@ -172,6 +183,7 @@ async def test_connection() -> bool:
 ```
 
 **app/core/config.py (settings):**
+
 ```python
 from pydantic_settings import BaseSettings
 
@@ -189,6 +201,7 @@ settings = Settings()
 ```
 
 **.env.example:**
+
 ```env
 DATABASE_URL=postgresql+asyncpg://demeter:password@localhost:5432/demeterai
 DATABASE_URL_SYNC=postgresql+psycopg2://demeter:password@localhost:5432/demeterai
@@ -200,6 +213,7 @@ DB_ECHO_SQL=false
 ### Testing Requirements
 
 **Unit Tests**:
+
 - [ ] Test engine creation:
   ```python
   def test_engine_configuration():
@@ -218,6 +232,7 @@ DB_ECHO_SQL=false
   ```
 
 **Integration Tests**:
+
 - [ ] Test database connectivity:
   ```python
   @pytest.mark.asyncio
@@ -248,11 +263,13 @@ DB_ECHO_SQL=false
   ```
 
 **Test Command**:
+
 ```bash
 pytest tests/db/test_session.py -v --cov=app/db/session
 ```
 
 ### Performance Expectations
+
 - Connection acquisition: <5ms (from pool)
 - Session creation: <2ms
 - Connection test (SELECT 1): <1ms
@@ -261,25 +278,26 @@ pytest tests/db/test_session.py -v --cov=app/db/session
 ## Handover Briefing
 
 **For the next developer:**
+
 - **Context**: This is the foundation for ALL database access - every repository uses these sessions
 - **Key decisions**:
-  - Using asyncpg (350× faster bulk inserts than ORM)
-  - Pool size 20 + overflow 10 = 30 max connections (conservative for 100 PostgreSQL limit)
-  - `expire_on_commit=False`: Keep objects in memory after commit (prevents N+1 queries)
-  - `pool_pre_ping=True`: Prevents "connection lost" errors
-  - Two DATABASE_URLs: asyncpg (app) + psycopg2 (Alembic migrations - can't use async)
+    - Using asyncpg (350× faster bulk inserts than ORM)
+    - Pool size 20 + overflow 10 = 30 max connections (conservative for 100 PostgreSQL limit)
+    - `expire_on_commit=False`: Keep objects in memory after commit (prevents N+1 queries)
+    - `pool_pre_ping=True`: Prevents "connection lost" errors
+    - Two DATABASE_URLs: asyncpg (app) + psycopg2 (Alembic migrations - can't use async)
 - **Known limitations**:
-  - Alembic migrations use sync psycopg2 (asyncpg not supported in Alembic)
-  - Connection pool shared across all API workers (need PgBouncer for production)
-  - No connection encryption yet (add SSL in production)
+    - Alembic migrations use sync psycopg2 (asyncpg not supported in Alembic)
+    - Connection pool shared across all API workers (need PgBouncer for production)
+    - No connection encryption yet (add SSL in production)
 - **Next steps after this card**:
-  - F007: Alembic setup (uses DATABASE_URL_SYNC)
-  - DB001-DB035: SQLAlchemy models (use engine)
-  - R001-R028: Repositories (use get_db_session dependency)
+    - F007: Alembic setup (uses DATABASE_URL_SYNC)
+    - DB001-DB035: SQLAlchemy models (use engine)
+    - R001-R028: Repositories (use get_db_session dependency)
 - **Questions to ask**:
-  - Should we use PgBouncer for production? (recommended for >100 API workers)
-  - Should we enable SSL for database connections? (required for AWS RDS)
-  - Should we add read replicas for analytics queries? (Sprint 05 decision)
+    - Should we use PgBouncer for production? (recommended for >100 API workers)
+    - Should we enable SSL for database connections? (required for AWS RDS)
+    - Should we add read replicas for analytics queries? (Sprint 05 decision)
 
 ## Definition of Done Checklist
 
@@ -293,6 +311,7 @@ pytest tests/db/test_session.py -v --cov=app/db/session
 - [ ] No raw database credentials in code (all in .env)
 
 ## Time Tracking
+
 - **Estimated**: 5 story points
 - **Actual**: TBD (fill after completion)
 - **Started**: TBD

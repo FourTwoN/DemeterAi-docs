@@ -1,6 +1,7 @@
 # [DEP007] Database Migrations CI/CD
 
 ## Metadata
+
 - **Epic**: epic-011-deployment
 - **Sprint**: Sprint-03
 - **Priority**: `high`
@@ -8,9 +9,11 @@
 - **Dependencies**: Blocked by [F007, DEP011]
 
 ## Description
+
 Automate Alembic migrations in CI/CD pipeline. Run migrations before deploying new code.
 
 ## Acceptance Criteria
+
 - [ ] Migrations run automatically on deploy
 - [ ] Rollback strategy for failed migrations
 - [ ] Dry-run mode for testing migrations
@@ -18,7 +21,9 @@ Automate Alembic migrations in CI/CD pipeline. Run migrations before deploying n
 - [ ] Migration success logged and monitored
 
 ## Implementation
+
 **GitHub Actions (.github/workflows/deploy.yml):**
+
 ```yaml
 - name: Run Database Migrations
   run: |
@@ -32,6 +37,7 @@ Automate Alembic migrations in CI/CD pipeline. Run migrations before deploying n
 ```
 
 **Kubernetes Job (pre-deployment):**
+
 ```yaml
 apiVersion: batch/v1
 kind: Job
@@ -54,6 +60,7 @@ spec:
 ```
 
 **Migration lock (prevent concurrent runs):**
+
 ```python
 # Use advisory lock in PostgreSQL
 SELECT pg_advisory_lock(123456);
@@ -62,6 +69,7 @@ SELECT pg_advisory_unlock(123456);
 ```
 
 ## Testing
+
 - Test migration runs successfully in CI
 - Test rollback: `alembic downgrade -1`
 - Test concurrent migration attempts (lock prevents)

@@ -7,21 +7,26 @@
 
 ## Purpose
 
-This diagram documents the **job monitoring and progress tracking mechanism** that allows users to track the status of uploaded photos as they undergo ML processing. This provides real-time feedback and maintains visibility for 24-48 hours.
+This diagram documents the **job monitoring and progress tracking mechanism** that allows users to
+track the status of uploaded photos as they undergo ML processing. This provides real-time feedback
+and maintains visibility for 24-48 hours.
 
 ## Scope
 
 **Input:**
+
 - `upload_session_id` (UUID): Returned from upload endpoint
 - User authentication token
 
 **Output:**
+
 - Real-time job status updates (every 2 seconds)
 - Progress percentage and ETA
 - Job list with individual status per photo
 - Completion notification
 
 **Performance Target:**
+
 - Poll response: < 50ms (Redis cache)
 - Job list visibility: 24-48 hours
 - Progress accuracy: Within 10% of actual completion
@@ -35,7 +40,9 @@ This diagram documents the **job monitoring and progress tracking mechanism** th
 **Solution:** HTTP long polling with 2-second interval
 
 **Alternatives considered:**
-1. **WebSockets** - More efficient, but requires persistent connections (infrastructure complexity) ❌
+
+1. **WebSockets** - More efficient, but requires persistent connections (infrastructure complexity)
+   ❌
 2. **Server-Sent Events (SSE)** - One-way push, less browser support ❌
 3. **HTTP Polling** - Simple, universally supported, chosen ✓
 
@@ -55,11 +62,13 @@ const pollingConfig = {
 ```
 
 **Why 2-second interval?**
+
 - **Fast enough**: Users see updates quickly (sub-3s latency)
 - **Not too fast**: Doesn't overload server (30 requests/minute)
 - **Good balance**: Between responsiveness and efficiency
 
 **Cost calculation:**
+
 - 50 photos × 7 min avg = 350 seconds total (with 4 parallel workers)
 - 350 seconds × 0.5 polls/second = 175 total poll requests
 - Cost: 175 × 2ms (cache hit) = ~0.35 seconds total overhead
@@ -69,16 +78,18 @@ const pollingConfig = {
 ### 1. Job List UI Component (lines 120-200)
 
 **What users see:**
+
 - **Job list table** with columns:
-  - Thumbnail (small preview)
-  - Filename
-  - Status badge (pending/processing/completed/failed)
-  - Progress bar (fake, based on average time)
-  - ETA countdown
+    - Thumbnail (small preview)
+    - Filename
+    - Status badge (pending/processing/completed/failed)
+    - Progress bar (fake, based on average time)
+    - ETA countdown
 - **Overall progress** at top (X of Y complete)
 - **Auto-refresh** every 2 seconds
 
 **React/TypeScript implementation:**
+
 ```tsx
 interface Job {
     job_id: string
@@ -171,6 +182,7 @@ function JobList({ uploadSessionId }: JobListProps) {
 ### 2. Progress Summary Component (lines 240-300)
 
 **Visual design:**
+
 ```tsx
 function ProgressSummary({ summary }: { summary: Summary }) {
     const { total, completed, failed, processing, pending, overall_progress } = summary
@@ -223,11 +235,13 @@ function ProgressSummary({ summary }: { summary: Summary }) {
 ### 3. Fake Progress Bar Logic (lines 340-420)
 
 **Why "fake" progress?**
+
 - **Problem**: Celery doesn't provide accurate progress during ML inference
 - **Solution**: Simulate progress based on average processing time
 - **Accuracy**: Within 10-20% of actual (good enough for UX)
 
 **Implementation:**
+
 ```javascript
 function calculateFakeProgress(job: Job): number {
     /*
@@ -298,6 +312,7 @@ function calculateETA(job: Job): string {
 ```
 
 **Visual feedback:**
+
 ```
 Photo 1: greenhouse_a.jpg
 [████████████████████████████░░] 95% - Processing... (~20s remaining)
@@ -312,6 +327,7 @@ Photo 3: greenhouse_c.jpg
 ### 4. Backend: Poll Status Endpoint (lines 460-580)
 
 **FastAPI implementation:**
+
 ```python
 from typing import List, Dict, Optional
 from fastapi import APIRouter, Depends, HTTPException, Query
@@ -419,13 +435,15 @@ async def get_job_status(
 ```
 
 **Performance:**
+
 - **Redis cache hit**: ~2ms
 - **Redis cache miss**: ~50ms (lookup from DB)
 - **Database fallback**: ~100-200ms (if Redis unavailable)
 
 ### 5. Job Status Updates (Celery Workers)
 
-**IMPORTANT:** Processing happens in **4 distinct phases** with multiple task types. See `flows/procesamiento_ml_upload_s3_principal/` for complete pipeline details.
+**IMPORTANT:** Processing happens in **4 distinct phases** with multiple task types. See
+`flows/procesamiento_ml_upload_s3_principal/` for complete pipeline details.
 
 **Task lifecycle base class:**
 
@@ -625,6 +643,7 @@ def aggregate_results(self, child_results: List[Dict]):
 ```
 
 **Status update frequency:**
+
 - **S3 Upload**: Per-image updates (20 images × 5ms = 100ms overhead)
 - **ML Parent**: 4 milestone updates (geolocate, segment, classify, spawn)
 - **Child Tasks**: Per-slice updates (SAHI) or single update (Direct)
@@ -632,19 +651,22 @@ def aggregate_results(self, child_results: List[Dict]):
 - **Redis write time**: ~5ms per update
 
 **Warning states** (not failures):
+
 - `completed_with_warning`: Photo processed but needs manual action
-  - `needs_location`: No GPS coordinates
-  - `needs_config`: No storage location configuration
-  - `needs_calibration`: Density estimation unavailable
+    - `needs_location`: No GPS coordinates
+    - `needs_config`: No storage location configuration
+    - `needs_calibration`: Density estimation unavailable
 
 ### 6. Job List Persistence (lines 760-840)
 
 **Why persist for 24-48 hours?**
+
 - **User convenience**: User can close browser and check back later
 - **Debugging**: Support team can review failed jobs
 - **Auditing**: Track upload history
 
 **Redis data structure:**
+
 ```json
 {
   "upload_session:550e8400-e29b-41d4-a716-446655440000": {
@@ -669,6 +691,7 @@ def aggregate_results(self, child_results: List[Dict]):
 ```
 
 **TTL strategy:**
+
 ```python
 # Upload session metadata: 24 hours
 await redis.setex(
@@ -686,6 +709,7 @@ await redis.setex(
 ```
 
 **Cleanup policy:**
+
 - **Automatic**: Redis evicts keys after TTL expires
 - **Manual**: Admin can flush old sessions with `/admin/cleanup-sessions`
 
@@ -694,6 +718,7 @@ await redis.setex(
 **When all jobs complete:**
 
 **Frontend detection:**
+
 ```javascript
 // In polling loop
 if (summary.completed + summary.failed >= summary.total) {
@@ -734,6 +759,7 @@ if (summary.completed + summary.failed >= summary.total) {
 ```
 
 **Optional: Email notification (backend):**
+
 ```python
 async def send_completion_email(
     user_email: str,
@@ -765,15 +791,16 @@ async def send_completion_email(
 
 **Complete monitoring flow timing (for 50 photos):**
 
-| Phase | Time | Details |
-|-------|------|---------|
-| **Initial poll** | 2ms | Redis cache hit |
-| **Poll iterations** | 175 × 2ms = 0.35s | 175 polls over ~6 minutes |
-| **Status updates** | 50 × 5 × 5ms = 1.25s | 5 updates per job |
-| **Completion check** | 2ms | Final poll |
-| **Total overhead** | ~1.6s | Over 6 minutes (negligible) |
+| Phase                | Time                 | Details                     |
+|----------------------|----------------------|-----------------------------|
+| **Initial poll**     | 2ms                  | Redis cache hit             |
+| **Poll iterations**  | 175 × 2ms = 0.35s    | 175 polls over ~6 minutes   |
+| **Status updates**   | 50 × 5 × 5ms = 1.25s | 5 updates per job           |
+| **Completion check** | 2ms                  | Final poll                  |
+| **Total overhead**   | ~1.6s                | Over 6 minutes (negligible) |
 
 **Network cost:**
+
 - **Request size**: ~500 bytes (GET with query param)
 - **Response size**: ~10KB (50 jobs × 200 bytes each)
 - **Total transfer**: 175 × 10KB = ~1.75MB over 6 minutes
@@ -786,12 +813,14 @@ async def send_completion_email(
 **Scenario:** Redis key expired or invalid upload_session_id
 
 **Response:**
+
 ```python
 if not cached:
     raise HTTPException(404, 'Upload session not found or expired')
 ```
 
 **Frontend:**
+
 ```javascript
 if (response.status === 404) {
     showError({
@@ -809,6 +838,7 @@ if (response.status === 404) {
 **Scenario:** API unavailable, request timeout
 
 **Exponential backoff:**
+
 ```javascript
 let retryCount = 0
 const maxRetries = 5
@@ -840,6 +870,7 @@ async function pollWithRetry() {
 **Scenario:** Token expires during long processing
 
 **Behavior:**
+
 ```javascript
 if (response.status === 401) {
     // Save current session ID
@@ -861,6 +892,7 @@ if (resumeSessionId) {
 **Scenario:** Systemic issue (e.g., GPU server down)
 
 **Detection:**
+
 ```javascript
 if (summary.failed === summary.total && summary.total > 5) {
     // Likely systemic issue
@@ -884,11 +916,13 @@ if (summary.failed === summary.total && summary.total > 5) {
 **Future:** WebSocket push notifications
 
 **Benefits:**
+
 - Reduce server load by 95% (no polling)
 - Instant updates (no 2s delay)
 - Lower network cost
 
 **Implementation:**
+
 ```python
 # Backend: WebSocket endpoint
 @app.websocket('/ws/jobs/{upload_session_id}')
@@ -965,13 +999,14 @@ else {
 
 ## Version History
 
-| Version | Date | Changes |
-|---------|------|---------|
-| 1.0.0 | 2025-10-08 | Initial job monitoring subflow |
+| Version | Date       | Changes                        |
+|---------|------------|--------------------------------|
+| 1.0.0   | 2025-10-08 | Initial job monitoring subflow |
 
 ---
 
 **Notes:**
+
 - Polling is simple and reliable (chosen for MVP)
 - Redis cache is CRITICAL for performance (2ms vs 200ms)
 - Fake progress bar is good enough for UX (within 10-20% accuracy)

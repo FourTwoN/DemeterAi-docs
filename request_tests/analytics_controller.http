@@ -130,7 +130,8 @@ Accept: text/csv
 ###
 ### GET - Export daily counts as CSV
 ###
-GET {{baseUrl}}{{apiPrefix}}/daily-counts/export?format=csv&start_date=2025-10-01&end_date=2025-10-20
+GET {{baseUrl}}{{apiPrefix}}/daily-counts/export?format=csv&start_date=2025-10-01&
+    end_date=2025-10-20
 Accept: text/csv
 
 ###

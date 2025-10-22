@@ -28,9 +28,11 @@
 ## Executive Summary
 
 **What is DemeterAI v2.0?**
-Production ML-powered inventory management system for 600,000+ plants using FastAPI, PostgreSQL/PostGIS, YOLO v11, and Celery.
+Production ML-powered inventory management system for 600,000+ plants using FastAPI,
+PostgreSQL/PostGIS, YOLO v11, and Celery.
 
 **What's in Sprint 5?**
+
 - Docker multi-stage build (<500MB)
 - OpenTelemetry integration (traces → OTLP stack)
 - Prometheus metrics at `/metrics`
@@ -39,11 +41,13 @@ Production ML-powered inventory management system for 600,000+ plants using Fast
 - Comprehensive deployment documentation
 
 **Deployment Options**:
+
 1. **Docker Compose** (recommended for development/staging)
 2. **Kubernetes** (production - out of scope)
 3. **Native Python** (development only)
 
 **Estimated Setup Time**:
+
 - Quick Start (Docker): 15 minutes
 - Full Setup (with Auth0/S3): 1-2 hours
 
@@ -54,6 +58,7 @@ Production ML-powered inventory management system for 600,000+ plants using Fast
 ### Required Software
 
 **Core Dependencies**:
+
 - **Python 3.12+** - Application runtime
 - **Docker 24.0+** - Container runtime
 - **Docker Compose 2.20+** - Multi-container orchestration
@@ -61,6 +66,7 @@ Production ML-powered inventory management system for 600,000+ plants using Fast
 - **curl or Postman** - API testing
 
 **Optional (for native deployment)**:
+
 - **PostgreSQL 15+** with PostGIS 3.3+
 - **Redis 7+**
 - **psql** (PostgreSQL client)
@@ -69,28 +75,33 @@ Production ML-powered inventory management system for 600,000+ plants using Fast
 ### External Services (Production)
 
 **Required**:
+
 - **Auth0 Account** (free tier) - https://auth0.com/signup
 - **AWS Account** - For S3 buckets (free tier eligible)
 
 **Optional**:
+
 - **OTLP LGTM Stack** - For observability (Grafana/Prometheus/Tempo/Loki)
-  - User already has this running (mentioned in context)
-  - Default endpoint: http://localhost:4318
+    - User already has this running (mentioned in context)
+    - Default endpoint: http://localhost:4318
 
 ### System Requirements
 
 **Minimum** (Development):
+
 - CPU: 2 cores
 - RAM: 4GB
 - Disk: 10GB free
 
 **Recommended** (Production):
+
 - CPU: 4 cores
 - RAM: 8GB
 - Disk: 50GB SSD
 - Network: 100Mbps
 
 **For ML Inference** (Optional GPU):
+
 - NVIDIA GPU with CUDA 12.1+
 - 4GB+ VRAM
 
@@ -140,6 +151,7 @@ Production ML-powered inventory management system for 600,000+ plants using Fast
 ```
 
 **Key Components**:
+
 - **FastAPI**: Async REST API (26 endpoints)
 - **PostgreSQL**: Primary database with PostGIS for geospatial
 - **Redis**: Cache + Celery task queue
@@ -297,6 +309,7 @@ docker-compose down
 ```
 
 **Production mode**:
+
 ```bash
 docker-compose -f docker-compose.prod.yml up -d
 ```
@@ -327,6 +340,7 @@ vim .env  # or nano, code, etc.
 ```
 
 **Required Changes**:
+
 ```bash
 # MUST CHANGE (security):
 DATABASE_URL=postgresql+asyncpg://demeter:CHANGE_THIS_PASSWORD@db:5432/demeterai
@@ -440,30 +454,30 @@ docker exec -i demeterai-db psql -U demeter -d demeterai < seed_data.sql
 1. Go to **Applications → APIs**
 2. Click **Create API**
 3. Fill in:
-   - **Name**: DemeterAI v2.0
-   - **Identifier**: `https://api.demeterai.com` (any unique URI)
-   - **Signing Algorithm**: RS256
+    - **Name**: DemeterAI v2.0
+    - **Identifier**: `https://api.demeterai.com` (any unique URI)
+    - **Signing Algorithm**: RS256
 4. Click **Create**
 
 ### Step 3: Enable RBAC
 
 1. In API settings, go to **Settings** tab
 2. Enable:
-   - **Enable RBAC**: Yes
-   - **Add Permissions in the Access Token**: Yes
+    - **Enable RBAC**: Yes
+    - **Add Permissions in the Access Token**: Yes
 3. Click **Save**
 
 ### Step 4: Define Permissions
 
 1. In API settings, go to **Permissions** tab
 2. Add permissions:
-   - `stock:read` - Read stock data
-   - `stock:write` - Create/update stock
-   - `stock:delete` - Delete stock records
-   - `analytics:read` - View analytics
-   - `config:read` - Read configuration
-   - `config:write` - Modify configuration
-   - `users:manage` - Manage users (admin only)
+    - `stock:read` - Read stock data
+    - `stock:write` - Create/update stock
+    - `stock:delete` - Delete stock records
+    - `analytics:read` - View analytics
+    - `config:read` - Read configuration
+    - `config:write` - Modify configuration
+    - `users:manage` - Manage users (admin only)
 
 ### Step 5: Create Roles
 
@@ -471,21 +485,25 @@ docker exec -i demeterai-db psql -U demeter -d demeterai < seed_data.sql
 2. Create roles:
 
 **Admin Role**:
+
 - Name: `admin`
 - Description: Full system access
 - Permissions: ALL (stock:*, analytics:*, config:*, users:manage)
 
 **Supervisor Role**:
+
 - Name: `supervisor`
 - Description: Manage stock and view analytics
 - Permissions: stock:*, analytics:read, config:read
 
 **Worker Role**:
+
 - Name: `worker`
 - Description: Create and update stock
 - Permissions: stock:read, stock:write
 
 **Viewer Role**:
+
 - Name: `viewer`
 - Description: Read-only access
 - Permissions: stock:read, analytics:read
@@ -493,10 +511,11 @@ docker exec -i demeterai-db psql -U demeter -d demeterai < seed_data.sql
 ### Step 6: Get Credentials
 
 1. In API settings, copy:
-   - **Identifier** → `AUTH0_API_AUDIENCE`
-   - **Domain** (from tenant settings) → `AUTH0_DOMAIN`
+    - **Identifier** → `AUTH0_API_AUDIENCE`
+    - **Domain** (from tenant settings) → `AUTH0_DOMAIN`
 
 2. Update `.env`:
+
 ```bash
 AUTH0_DOMAIN=demeterai.us.auth0.com
 AUTH0_API_AUDIENCE=https://api.demeterai.com
@@ -505,6 +524,7 @@ AUTH0_ISSUER=https://demeterai.us.auth0.com/
 ```
 
 3. Restart API:
+
 ```bash
 docker-compose restart api
 ```
@@ -512,6 +532,7 @@ docker-compose restart api
 ### Step 7: Test Authentication
 
 **Get test token** (using Auth0 dashboard):
+
 ```bash
 # Method 1: Use Auth0 API Explorer
 # 1. Go to API → DemeterAI v2.0 → Test
@@ -530,6 +551,7 @@ curl --request POST \
 ```
 
 **Test protected endpoint**:
+
 ```bash
 # Without token (should fail)
 curl http://localhost:8000/api/v1/stock/batches
@@ -608,11 +630,12 @@ curl -X POST http://localhost:8000/api/v1/stock/batches \
 2. Go to **Explore** → Select **Tempo** datasource
 3. Query for service: `demeterai-api`
 4. View traces:
-   - HTTP request spans
-   - Database query spans
-   - Service-to-service calls
+    - HTTP request spans
+    - Database query spans
+    - Service-to-service calls
 
 **Example Trace**:
+
 ```
 POST /api/v1/stock/batches (200ms)
   ├─ StockService.create_batch (150ms)
@@ -657,6 +680,7 @@ aws s3 mb s3://demeter-photos-viz --region us-east-1
 ```
 
 **Or use AWS CLI**:
+
 ```bash
 aws iam create-user --user-name demeterai-s3-user
 
@@ -723,18 +747,21 @@ docker exec demeterai-api pytest tests/ --cov=app --cov-report=term-missing
 ### Manual API Tests
 
 **1. Health Check**:
+
 ```bash
 curl http://localhost:8000/health
 # Expected: {"status":"healthy"}
 ```
 
 **2. API Documentation**:
+
 ```bash
 open http://localhost:8000/docs
 # Interactive Swagger UI with all 26 endpoints
 ```
 
 **3. Stock Endpoints** (requires auth):
+
 ```bash
 # List stock batches
 curl -H "Authorization: Bearer TOKEN" \
@@ -753,12 +780,14 @@ curl -X POST http://localhost:8000/api/v1/stock/batches \
 ```
 
 **4. Metrics Endpoint**:
+
 ```bash
 curl http://localhost:8000/metrics
 # Should return Prometheus-formatted metrics
 ```
 
 **5. Auth Endpoints**:
+
 ```bash
 # Get current user info
 curl -H "Authorization: Bearer TOKEN" \
@@ -816,6 +845,7 @@ exit
 ### Prometheus Metrics
 
 **Available Metrics**:
+
 - `http_request_duration_seconds` - API request latency
 - `http_requests_total` - Total requests by status code
 - `demeter_stock_operations_total` - Stock operations counter
@@ -823,6 +853,7 @@ exit
 - `demeter_active_photo_sessions` - Active processing sessions
 
 **Query Metrics**:
+
 ```bash
 # View all metrics
 curl http://localhost:8000/metrics
@@ -832,6 +863,7 @@ curl http://localhost:8000/metrics | grep "demeter_"
 ```
 
 **Prometheus Queries** (in Prometheus UI):
+
 ```promql
 # Request rate (per second)
 rate(http_requests_total[1m])
@@ -846,12 +878,14 @@ sum(rate(demeter_stock_operations_total[5m])) by (operation_type)
 ### OpenTelemetry Traces
 
 **View in Grafana**:
+
 1. Go to Grafana → Explore
 2. Select Tempo datasource
 3. Query: `{service.name="demeterai-api"}`
 4. Explore traces
 
 **Trace Context**:
+
 - Correlation IDs automatically propagated
 - Service-to-service calls traced
 - Database queries included
@@ -860,6 +894,7 @@ sum(rate(demeter_stock_operations_total[5m])) by (operation_type)
 ### Structured Logging
 
 **Log Format** (JSON):
+
 ```json
 {
   "timestamp": "2025-10-21T14:30:00Z",
@@ -873,6 +908,7 @@ sum(rate(demeter_stock_operations_total[5m])) by (operation_type)
 ```
 
 **View Logs**:
+
 ```bash
 # API logs
 docker-compose logs api --tail=100 -f
@@ -893,6 +929,7 @@ docker-compose logs --tail=200 -f
 **Error**: `ImportError: cannot import name 'app'`
 
 **Solution**:
+
 ```bash
 # Verify Python version
 docker exec demeterai-api python --version
@@ -910,6 +947,7 @@ docker exec demeterai-api python -m py_compile app/main.py
 **Error**: `asyncpg.exceptions.InvalidPasswordError`
 
 **Solution**:
+
 ```bash
 # Verify database is running
 docker-compose ps db
@@ -926,6 +964,7 @@ docker exec demeterai-db psql -U demeter -d demeterai -c "SELECT 1;"
 **Error**: `Failed to export spans to OTLP endpoint`
 
 **Solution**:
+
 ```bash
 # Verify OTLP endpoint is reachable
 curl http://localhost:4318/v1/traces
@@ -944,6 +983,7 @@ docker logs YOUR_OTLP_CONTAINER
 **Error**: `401 Unauthorized - Invalid token`
 
 **Solution**:
+
 ```bash
 # Verify AUTH0_DOMAIN and AUTH0_API_AUDIENCE
 # Must match Auth0 dashboard settings
@@ -962,6 +1002,7 @@ curl https://YOUR_DOMAIN/.well-known/jwks.json
 **Error**: Image size >500MB
 
 **Solution**:
+
 ```bash
 # Check current size
 docker images demeterai:latest
@@ -985,12 +1026,14 @@ docker images demeterai:latest
 ### Security
 
 **✅ Implemented**:
+
 - Non-root user in Docker
 - JWT authentication with Auth0
 - Environment variable secrets
 - Structured logging (no sensitive data)
 
 **🔧 TODO (Operations Team)**:
+
 - Rotate secrets regularly
 - Enable TLS/HTTPS (reverse proxy)
 - Network segmentation (firewall rules)
@@ -1000,6 +1043,7 @@ docker images demeterai:latest
 ### Performance
 
 **Database Tuning**:
+
 ```sql
 -- Increase connection pool (in .env)
 DB_POOL_SIZE=50
@@ -1011,6 +1055,7 @@ CREATE INDEX idx_detections_session ON detections(session_id);
 ```
 
 **Redis Tuning**:
+
 ```bash
 # In redis.conf or docker-compose
 maxmemory 2gb
@@ -1018,6 +1063,7 @@ maxmemory-policy allkeys-lru
 ```
 
 **API Scaling**:
+
 ```bash
 # Run multiple API instances
 docker-compose -f docker-compose.prod.yml up -d --scale api=3
@@ -1028,6 +1074,7 @@ docker-compose -f docker-compose.prod.yml up -d --scale api=3
 ### Backup & Recovery
 
 **Database Backups**:
+
 ```bash
 # Manual backup
 docker exec demeterai-db pg_dump -U demeter demeterai > backup.sql
@@ -1037,6 +1084,7 @@ docker exec demeterai-db pg_dump -U demeter demeterai > backup.sql
 ```
 
 **Restore**:
+
 ```bash
 docker exec -i demeterai-db psql -U demeter -d demeterai < backup.sql
 ```
@@ -1047,6 +1095,7 @@ docker exec -i demeterai-db psql -U demeter -d demeterai < backup.sql
 **RPO (Recovery Point Objective)**: 24 hours
 
 **Procedure**:
+
 1. Restore database from latest backup
 2. Restore `.env` from secrets manager
 3. Deploy application from Docker image
@@ -1083,17 +1132,20 @@ docker exec -i demeterai-db psql -U demeter -d demeterai < backup.sql
 ## Support & Resources
 
 **Documentation**:
+
 - API Docs: http://localhost:8000/docs
 - Engineering Plan: `/home/lucasg/proyectos/DemeterDocs/engineering_plan/`
 - Database Schema: `/home/lucasg/proyectos/DemeterDocs/database/database.mmd`
 
 **External Resources**:
+
 - FastAPI: https://fastapi.tiangolo.com/
 - Auth0: https://auth0.com/docs/
 - OpenTelemetry: https://opentelemetry.io/docs/
 - Prometheus: https://prometheus.io/docs/
 
 **Contact**:
+
 - Development Team: dev@demeterai.com
 - Operations Team: ops@demeterai.com
 

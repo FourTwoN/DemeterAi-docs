@@ -1,6 +1,7 @@
 # R016: Stock Batch Repository
 
 ## Metadata
+
 - **Epic**: [epic-003-repositories.md](../../02_epics/epic-003-repositories.md)
 - **Sprint**: Sprint-02
 - **Status**: `backlog`
@@ -9,30 +10,38 @@
 - **Area**: `repositories`
 - **Assignee**: TBD
 - **Dependencies**:
-  - Blocks: [R017, S013]
-  - Blocked by: [F006, F007, DB008, R004, R008]
+    - Blocks: [R017, S013]
+    - Blocked by: [F006, F007, DB008, R004, R008]
 
 ## Related Documentation
-- **Engineering Plan**: [../../engineering_plan/backend/repository_layer.md](../../engineering_plan/backend/repository_layer.md)
+
+- **Engineering Plan
+  **: [../../engineering_plan/backend/repository_layer.md](../../engineering_plan/backend/repository_layer.md)
 - **Database ERD**: [../../database/database.mmd](../../database/database.mmd#L156-L177)
 
 ## Description
 
-**What**: Implement repository class for `stock_batches` table with CRUD operations, batch_code lookup, and complex inventory queries.
+**What**: Implement repository class for `stock_batches` table with CRUD operations, batch_code
+lookup, and complex inventory queries.
 
-**Why**: Stock batches are the core inventory entities - groups of plants with shared attributes (product, state, size, location). Repository provides batch tracking, inventory queries, and lifecycle management.
+**Why**: Stock batches are the core inventory entities - groups of plants with shared attributes (
+product, state, size, location). Repository provides batch tracking, inventory queries, and
+lifecycle management.
 
-**Context**: Central to inventory management. Created by ML pipeline (photo initialization) or manual input. Links to storage bins, products, and movements.
+**Context**: Central to inventory management. Created by ML pipeline (photo initialization) or
+manual input. Links to storage bins, products, and movements.
 
 ## Acceptance Criteria
 
 - [ ] **AC1**: `StockBatchRepository` class inherits from `AsyncRepository[StockBatch]`
 - [ ] **AC2**: Implements `get_by_batch_code(batch_code: str)` method (unique constraint)
 - [ ] **AC3**: Implements `get_by_storage_bin_id(bin_id: int)` with full hierarchy loading
-- [ ] **AC4**: Implements `get_by_product_and_state(product_id: int, state_id: int)` for inventory queries
+- [ ] **AC4**: Implements `get_by_product_and_state(product_id: int, state_id: int)` for inventory
+  queries
 - [ ] **AC5**: Implements `get_sellable_inventory(product_id: Optional[int])` for sales workflows
 - [ ] **AC6**: Implements `get_batches_needing_attention()` for low quantity alerts
-- [ ] **AC7**: Includes complex eager loading (product → family → category, packaging, state, size, bin → location)
+- [ ] **AC7**: Includes complex eager loading (product → family → category, packaging, state, size,
+  bin → location)
 - [ ] **AC8**: Query performance: batch_code <10ms, inventory queries <50ms
 
 ## Technical Implementation Notes
@@ -221,11 +230,13 @@ class StockBatchRepository(AsyncRepository[StockBatch]):
 
 ## Testing Requirements
 
-**Unit Tests**: Test batch_code lookup, storage bin filtering, sellable inventory, low quantity alerts, inventory summary aggregation.
+**Unit Tests**: Test batch_code lookup, storage bin filtering, sellable inventory, low quantity
+alerts, inventory summary aggregation.
 
 **Coverage Target**: ≥85%
 
 ### Performance Expectations
+
 - batch_code lookup: <10ms
 - get_by_storage_bin_id: <20ms for 20 batches per bin
 - get_sellable_inventory: <50ms for full catalog
@@ -234,12 +245,13 @@ class StockBatchRepository(AsyncRepository[StockBatch]):
 ## Handover Briefing
 
 **For the next developer:**
+
 - **Context**: Core inventory entity. Complex eager loading critical for performance
 - **Key decisions**:
-  - batch_code unique globally (format: "{LOCATION}-{DATE}-{SEQ}")
-  - quantity_current tracks current stock (updated by movements)
-  - Sellable inventory uses is_sellable flag from product_states
-  - Low quantity alerts configurable threshold
+    - batch_code unique globally (format: "{LOCATION}-{DATE}-{SEQ}")
+    - quantity_current tracks current stock (updated by movements)
+    - Sellable inventory uses is_sellable flag from product_states
+    - Low quantity alerts configurable threshold
 - **Next steps**: R017 (StockMovementRepository) tracks batch movements
 
 ## Definition of Done Checklist
@@ -252,6 +264,7 @@ class StockBatchRepository(AsyncRepository[StockBatch]):
 - [ ] PR reviewed (2+ approvals)
 
 ## Time Tracking
+
 - **Estimated**: 5 story points (~10 hours)
 - **Actual**: TBD
 

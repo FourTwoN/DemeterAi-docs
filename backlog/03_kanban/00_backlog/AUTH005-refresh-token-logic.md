@@ -1,6 +1,7 @@
 # [AUTH005] Refresh Token Logic
 
 ## Metadata
+
 - **Epic**: epic-009-auth-security
 - **Sprint**: Sprint-05
 - **Status**: `backlog`
@@ -9,20 +10,24 @@
 - **Area**: `authentication`
 - **Assignee**: TBD
 - **Dependencies**:
-  - Blocks: [AUTH006]
-  - Blocked by: [AUTH001, AUTH003]
+    - Blocks: [AUTH006]
+    - Blocked by: [AUTH001, AUTH003]
 
 ## Related Documentation
+
 - **Engineering Plan**: ../../engineering_plan/02_technology_stack.md
 - **JWT Best Practices**: OAuth2 refresh token pattern
 
 ## Description
 
-Implement refresh token rotation logic for extending user sessions without requiring re-login. Access tokens expire in 15 minutes, refresh tokens in 7 days.
+Implement refresh token rotation logic for extending user sessions without requiring re-login.
+Access tokens expire in 15 minutes, refresh tokens in 7 days.
 
-**What**: Endpoint `/api/auth/refresh` that accepts refresh token and returns new access token. Optionally implements token rotation (issue new refresh token on each use).
+**What**: Endpoint `/api/auth/refresh` that accepts refresh token and returns new access token.
+Optionally implements token rotation (issue new refresh token on each use).
 
-**Why**: Short-lived access tokens (15 min) improve security. Refresh tokens allow users to stay logged in for 7 days without re-entering credentials.
+**Why**: Short-lived access tokens (15 min) improve security. Refresh tokens allow users to stay
+logged in for 7 days without re-entering credentials.
 
 **Context**: Part of AUTH003 (user authentication service) but separated for clarity.
 
@@ -48,23 +53,24 @@ Implement refresh token rotation logic for extending user sessions without requi
   ```
 
 - [ ] **AC3**: Token rotation (security best practice):
-  - Option A (simple): Return only new access token
-  - Option B (secure): Return new access + new refresh token, invalidate old refresh
-  - Implement Option A first (stateless), Option B requires token blacklist
+    - Option A (simple): Return only new access token
+    - Option B (secure): Return new access + new refresh token, invalidate old refresh
+    - Implement Option A first (stateless), Option B requires token blacklist
 
 - [ ] **AC4**: Validation rules:
-  - Refresh token must not be expired
-  - Token type must be "refresh" (not "access")
-  - User from token must still be active
+    - Refresh token must not be expired
+    - Token type must be "refresh" (not "access")
+    - User from token must still be active
 
 - [ ] **AC5**: Error handling:
-  - Expired refresh token → 401 "Refresh token expired, please login"
-  - Invalid token → 401 "Invalid refresh token"
-  - User disabled → 403 "Account disabled"
+    - Expired refresh token → 401 "Refresh token expired, please login"
+    - Invalid token → 401 "Invalid refresh token"
+    - User disabled → 403 "Account disabled"
 
 ## Technical Implementation Notes
 
 ### Architecture
+
 - Layer: Application (Service) + Presentation (Controller)
 - Integration: AUTH001 (JWT), AUTH003 (auth service)
 - Pattern: Token refresh flow
@@ -72,6 +78,7 @@ Implement refresh token rotation logic for extending user sessions without requi
 ### Code Hints
 
 **Already implemented in AUTH003, add to controller:**
+
 ```python
 # app/controllers/auth_controller.py
 from fastapi import APIRouter, Depends, HTTPException, status
@@ -107,6 +114,7 @@ async def refresh_access_token(
 ```
 
 **app/schemas/auth_schema.py additions:**
+
 ```python
 from pydantic import BaseModel
 
@@ -115,6 +123,7 @@ class RefreshTokenRequest(BaseModel):
 ```
 
 **Future: Token rotation with blacklist (Option B):**
+
 ```python
 # Requires Redis blacklist or database token table
 async def refresh_token_with_rotation(self, old_refresh_token: str) -> LoginResponse:
@@ -147,6 +156,7 @@ async def refresh_token_with_rotation(self, old_refresh_token: str) -> LoginResp
 ### Testing Requirements
 
 **Integration Tests** (`tests/api/test_auth_endpoints.py`):
+
 - [ ] Test POST /api/auth/refresh with valid refresh token
 - [ ] Test returns new access token
 - [ ] Test expired refresh token returns 401
@@ -154,6 +164,7 @@ async def refresh_token_with_rotation(self, old_refresh_token: str) -> LoginResp
 - [ ] Test refresh token for disabled user returns 403
 
 **Test Example**:
+
 ```python
 from fastapi.testclient import TestClient
 from app.main import app
@@ -192,6 +203,7 @@ def test_refresh_with_access_token(valid_access_token):
 ```
 
 ### Performance Expectations
+
 - Refresh token endpoint: <50ms
 - Token generation: <5ms
 - User lookup: <20ms
@@ -199,21 +211,22 @@ def test_refresh_with_access_token(valid_access_token):
 ## Handover Briefing
 
 **For the next developer:**
+
 - **Context**: Refresh tokens extend sessions without re-login
 - **Key decisions**:
-  - Simple approach: Don't rotate refresh token (stateless)
-  - Secure approach: Rotate + blacklist (requires Redis, future feature)
-  - Access tokens short-lived (15 min), refresh tokens 7 days
+    - Simple approach: Don't rotate refresh token (stateless)
+    - Secure approach: Rotate + blacklist (requires Redis, future feature)
+    - Access tokens short-lived (15 min), refresh tokens 7 days
 - **Security trade-offs**:
-  - Stateless = no revocation (if refresh token stolen, valid until expiry)
-  - Solution: Keep refresh token expiry short (7 days)
-  - Future: Implement token blacklist in Redis
+    - Stateless = no revocation (if refresh token stolen, valid until expiry)
+    - Solution: Keep refresh token expiry short (7 days)
+    - Future: Implement token blacklist in Redis
 - **User experience**:
-  - Client should refresh access token when it expires
-  - If refresh token expired, redirect to login
+    - Client should refresh access token when it expires
+    - If refresh token expired, redirect to login
 - **Next steps after this card**:
-  - AUTH006: Complete login/logout endpoints
-  - Future: Token rotation with Redis blacklist
+    - AUTH006: Complete login/logout endpoints
+    - Future: Token rotation with Redis blacklist
 
 ## Definition of Done Checklist
 
@@ -227,6 +240,7 @@ def test_refresh_with_access_token(valid_access_token):
 - [ ] OpenAPI docs generated automatically
 
 ## Time Tracking
+
 - **Estimated**: 3 story points
 - **Actual**: TBD
 - **Started**: TBD

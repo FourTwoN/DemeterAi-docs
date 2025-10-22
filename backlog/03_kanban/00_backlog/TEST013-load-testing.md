@@ -1,6 +1,7 @@
 # [TEST013] Load Testing (Locust/k6)
 
 ## Metadata
+
 - **Epic**: epic-012-testing
 - **Sprint**: Sprint-08
 - **Priority**: `medium`
@@ -8,9 +9,11 @@
 - **Dependencies**: Blocked by [DEP002]
 
 ## Description
+
 Simulate production load: 1000 concurrent users, verify API handles load, identify bottlenecks.
 
 ## Acceptance Criteria
+
 - [ ] Load test tool selected (Locust or k6)
 - [ ] Simulate 1000 concurrent users
 - [ ] Test critical endpoints (login, stock summary, photo upload)
@@ -21,6 +24,7 @@ Simulate production load: 1000 concurrent users, verify API handles load, identi
 ## Implementation
 
 **Option A: Locust (Python)**
+
 ```python
 # locustfile.py
 from locust import HttpUser, task, between
@@ -52,11 +56,13 @@ class DemeterAIUser(HttpUser):
 ```
 
 **Run Locust:**
+
 ```bash
 locust -f locustfile.py --host=http://localhost:8000 --users=1000 --spawn-rate=50
 ```
 
 **Option B: k6 (JavaScript, more lightweight)**
+
 ```javascript
 import http from 'k6/http';
 import { check } from 'k6';
@@ -80,6 +86,7 @@ export default function () {
 ```
 
 ## Testing
+
 - Run load test on staging environment
 - Monitor metrics (Grafana dashboards)
 - Identify bottlenecks (slow queries, connection pool exhausted)

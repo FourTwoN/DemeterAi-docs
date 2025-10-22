@@ -9,528 +9,527 @@ parent_diagram: "00_comprehensive_view.mmd"
 ---
 
 flowchart TB
-    %% =================================================================
-    %% DIAGRAM 03: AI-POWERED ANALYTICS
-    %% =================================================================
-    %%
-    %% PURPOSE:
-    %% Shows how users can ask natural language questions and receive
-    %% automated insights through LLM-powered SQL generation and
-    %% visualization.
-    %%
-    %% SECURITY CRITICAL:
-    %% - Read-only database access
-    %% - SQL validation and sanitization
-    %% - Python sandbox execution
-    %% - Rate limiting
-    %%
-    %% SCOPE: Natural language → SQL → Results → Visualization → Insights
-    %% PERFORMANCE TARGET: 2-5s per query
-    %% =================================================================
-
+%% =================================================================
+%% DIAGRAM 03: AI-POWERED ANALYTICS
+%% =================================================================
+%%
+%% PURPOSE:
+%% Shows how users can ask natural language questions and receive
+%% automated insights through LLM-powered SQL generation and
+%% visualization.
+%%
+%% SECURITY CRITICAL:
+%% - Read-only database access
+%% - SQL validation and sanitization
+%% - Python sandbox execution
+%% - Rate limiting
+%%
+%% SCOPE: Natural language → SQL → Results → Visualization → Insights
+%% PERFORMANCE TARGET: 2-5s per query
+%% =================================================================
     START@{ shape: stadium, label: "🤖 User Navigates to AI Analytics
-    Route: /analytics/ai
-
-    UI shows:
-    • Chat interface
-    • Example questions
-    • Schema overview
-    • Query history
-
-    Examples displayed:
-    'Show mortality by cantero'
-    'Compare stock in nave 1 vs 2'
-
-    ⏱️ Page load: < 1s" }
-
-    INPUT_QUERY@{ shape: rect, label: "💬 User Types Question
-    Natural language input:
-    'Show me mortality rate
-     comparison between
-     nave 1 and nave 2'
-
-    UI features:
-    • Auto-complete suggestions
-    • Previous query history
-    • Clear button
-    • Submit on Enter
-
-    Min length: 10 chars
-    Max length: 500 chars" }
-
-    VALIDATE_INPUT@{ shape: diamond, label: "Input Valid?
-    Checks:
-    • Length: 10-500 chars
-    • Not empty
-    • No SQL injection attempts
-    • Not offensive content
-
-    ⏱️ ~5ms" }
-
-    INPUT_ERROR@{ shape: rect, label: "❌ Invalid Input
-    Show error:
-    'Please enter a question
-     (10-500 characters)'
-
-    Highlight input field red" }
-
-    SUBMIT_QUERY@{ shape: rect, label: "🚀 Submit Query
-    POST /api/analytics/ai-query
-    {
-      'question': 'Show mortality...',
-      'user_id': UUID,
-      'context': {
-        'warehouses': [...],
-        'date': '2025-10-08'
-      }
-    }
-
-    Show loading:
-    • Spinner
-    • 'AI is thinking...'
-
-    ⏱️ ~10ms sending" }
-
-    %% =================================================================
-    %% BACKEND PROCESSING
-    %% =================================================================
-
-    CHECK_RATE_LIMIT@{ shape: diamond, label: "Rate Limit OK?
-    Redis check:
-    Key: rate_limit:{user_id}
-
-    Limits:
-    • 10 per minute
-    • 100 per hour
-    • 1000 per day
-
-    ⏱️ ~10ms" }
-
-    RATE_LIMITED@{ shape: rect, label: "⚠️ Rate Limit Exceeded
-    Return 429:
-    {
-      'error': 'Too many requests',
-      'retry_after': 60,
-      'limit': '10 per minute'
-    }
-
-    Frontend shows countdown" }
-
-    CHECK_CACHE@{ shape: diamond, label: "Query Cached?
-    Key: ai_query:hash(question)
-    TTL: 3600s (1 hour)
-
-    Identical questions reuse
-    previous LLM response
-
-    ⏱️ ~10ms" }
-
-    CACHE_HIT@{ shape: rect, label: "✅ Cache Hit
-    Return cached:
-    • SQL query
-    • Previous results
-    • Visualization
-    • Insights
-
-    Skip LLM call
-    Cost: $0
-
-    ⏱️ ~50ms total" }
-
-    %% =================================================================
-    %% LLM INTEGRATION
-    %% =================================================================
-
-    PREPARE_CONTEXT@{ shape: rect, label: "📋 Prepare LLM Context
-    Gather:
-    1. Database schema (curated)
-    2. Example queries
-    3. User context (role, warehouses)
-    4. Current date
-
-    Format system prompt:
-    'You are PostgreSQL expert...'
-
-    ⏱️ ~50ms" }
-
-    CALL_OPENAI@{ shape: subproc, label: "🧠 Call OpenAI API
-    Endpoint: chat.completions.create
-    Model: gpt-4o
-    Temperature: 0.2
-
-    Messages:
-    [
-      {role: 'system', content: schema + rules},
-      {role: 'user', content: question}
-    ]
-
-    Response format: JSON
-    {
-      'sql': 'SELECT...',
-      'explanation': '...',
-      'python_code': '...',
-      'insights': [...]
-    }
-
-    ⏱️ 1-3s
-    Cost: ~$0.01" }
-
-    LLM_SUCCESS@{ shape: diamond, label: "LLM Response OK?
-    Checks:
-    • Valid JSON
-    • 'sql' field present
-    • Response < 2000 tokens
-
-    ⏱️ ~5ms" }
-
-    LLM_ERROR@{ shape: rect, label: "❌ LLM Error
-    Return 500:
-    {
-      'error': 'AI service unavailable',
-      'retry': true
-    }
-
-    Log error for debugging
-    Fallback: suggest manual filters" }
-
-    %% =================================================================
-    %% SQL VALIDATION
-    %% =================================================================
-
-    VALIDATE_SQL@{ shape: subproc, label: "🔒 Validate Generated SQL
-    Multi-layer validation:
-
-    Layer 1: Regex blacklist
-    • No DELETE/UPDATE/INSERT
-    • No DROP/ALTER/GRANT
-    • No multiple statements (;)
-
-    Layer 2: SQL Parser (sqlparse)
-    • Parse AST
-    • Check first token is SELECT
-    • Verify single statement
-
-    Layer 3: Business rules
-    • No UNION with dangerous queries
-    • No subqueries with mutations
-
-    ⏱️ ~20ms" }
-
-    SQL_VALID@{ shape: diamond, label: "SQL Safe?
-    All validation layers passed?
-
-    If any fail:
-    Reject query" }
-
-    SQL_UNSAFE@{ shape: rect, label: "❌ Unsafe SQL Detected
-    Return 400:
-    {
-      'error': 'AI generated unsafe query',
-      'sql': '<redacted>',
-      'issue': 'Contains forbidden operation',
-      'action': 'Try rephrasing question'
-    }
-
-    Log incident for review
-    Consider fine-tuning LLM" }
-
-    %% =================================================================
-    %% QUERY EXECUTION
-    %% =================================================================
-
-    EXECUTE_SQL@{ shape: cyl, label: "Execute SQL (Read-Only User)
-    Database connection:
-    • User: demeter_readonly
-    • Privileges: SELECT only
-    • Timeout: 30s
-    • Max rows: 10,000
-
-    Query:
-    {generated_sql}
-
-    Example:
-    SELECT sa.name, COUNT(*)...
-    FROM stock_movements sm
-    WHERE movement_type = 'muerte'
-    GROUP BY sa.name
-
-    ⏱️ 100ms - 5s" }
-
-    QUERY_TIMEOUT@{ shape: diamond, label: "Query Completed?
-    Check:
-    • Execution time < 30s
-    • Result size < 10K rows
-    • No errors
-
-    ⏱️ variable" }
-
-    QUERY_ERROR@{ shape: rect, label: "❌ Query Execution Error
-    Possible errors:
-    • Timeout (> 30s)
-    • Too many rows (> 10K)
-    • Invalid table/column
-    • Permission denied
-
-    Return 500 with details
-    Ask user to narrow question" }
-
-    FETCH_RESULTS@{ shape: rect, label: "📊 Fetch Query Results
-    Convert to:
-    • List of dicts
-    • DataFrame (pandas)
-    • JSON serializable
-
-    Sample result:
-    [
-      {'name': 'Norte', 'count': 45},
-      {'name': 'Sur', 'count': 38}
-    ]
-
-    ⏱️ ~50ms" }
-
-    %% =================================================================
-    %% VISUALIZATION GENERATION
-    %% =================================================================
-
-    CHECK_VIZ_CODE@{ shape: diamond, label: "Visualization Code Present?
-    LLM provided Python code?" }
-
-    SKIP_VIZ@{ shape: rect, label: "⏭️ Skip Visualization
-    Return data as table only
-    No chart generated" }
-
-    PREPARE_SANDBOX@{ shape: rect, label: "🏖️ Prepare Python Sandbox
-    Safe globals:
-    • pd (pandas)
-    • np (numpy)
-    • plt (matplotlib)
-    • sns (seaborn)
-    • data (query results DataFrame)
-
-    Restricted:
-    • No file I/O
-    • No network access
-    • No os/sys/subprocess
-    • Limited memory
-
-    ⏱️ ~20ms" }
-
-    EXECUTE_PYTHON@{ shape: subproc, label: "🐍 Execute Visualization Code
-    Run in sandbox:
-
-    ```python
-    fig, ax = plt.subplots()
-    ax.bar(data['name'], data['count'])
-    ax.set_title('Mortality by Area')
-    plt.tight_layout()
-    # Auto-saved to BytesIO
-    ```
-
-    Timeout: 10s
-    Output: SVG bytes
-
-    ⏱️ 100ms - 2s" }
-
-    VIZ_SUCCESS@{ shape: diamond, label: "Visualization OK?
-    Check:
-    • Execution successful
-    • SVG generated
-    • Size < 5MB
-
-    ⏱️ ~5ms" }
-
-    VIZ_ERROR@{ shape: rect, label: "⚠️ Visualization Failed
-    Non-fatal error
-    Continue without chart
-
-    Log error:
-    'Python code execution failed:
-     {error_message}'
-
-    Return data only" }
-
-    ENCODE_SVG@{ shape: rect, label: "🎨 Encode SVG
-    Convert bytes to base64
-    or UTF-8 string
-
-    SVG can be:
-    • Embedded in HTML
-    • Displayed in frontend
-    • Downloaded
-
-    ⏱️ ~10ms" }
-
-    %% =================================================================
-    %% RESPONSE BUILDING
-    %% =================================================================
-
-    GENERATE_INSIGHTS@{ shape: rect, label: "💡 Format Insights
-    From LLM response:
-
-    insights = [
-      'Norte area has 18% higher mortality',
-      'Consider reviewing irrigation in Sur',
-      'Mortality increased 5% vs last month'
-    ]
-
-    Add metadata:
-    • Confidence level
-    • Data freshness
-    • Sample size
-
-    ⏱️ ~20ms" }
-
-    BUILD_RESPONSE@{ shape: rect, label: "📦 Build Response
-    {
-      'question': 'Show mortality...',
-      'sql_query': 'SELECT...',
-      'explanation': 'This query...',
-      'data': [...],
-      'visualization_svg': '<svg>...',
-      'insights': [...],
-      'metadata': {
-        'row_count': 2,
-        'execution_time_ms': 2340,
-        'model': 'gpt-4o',
-        'cached': false,
-        'cost_usd': 0.012
-      }
-    }
-
-    ⏱️ ~20ms" }
-
-    CACHE_RESPONSE@{ shape: rect, label: "💾 Cache Response
-    Key: ai_query:hash(question)
-    Value: full response JSON
-    TTL: 3600s (1 hour)
-
-    Next identical query:
-    • No LLM call
-    • No DB query
-    • Instant response
-
-    ⏱️ ~20ms" }
-
-    RETURN_RESPONSE@{ shape: rect, label: "✅ Return 200 OK
-    Send JSON to frontend
-
-    ⏱️ Total: 2-5s
-    (1-3s LLM + 1-2s execution)" }
-
-    %% =================================================================
-    %% FRONTEND DISPLAY
-    %% =================================================================
-
-    FRONTEND_RENDER@{ shape: rect, label: "🖥️ Frontend Renders Response
-    1. Hide loading spinner
-    2. Show Q&A pair:
-       Q: User question
-       A: Explanation
-
-    3. Display data:
-       • SVG chart (if generated)
-       • Data table
-
-    4. Show insights as cards:
-       💡 [Insight 1]
-       💡 [Insight 2]
-
-    5. Show metadata:
-       • Rows: N
-       • Time: Xms
-       • SQL: <collapsible>
-
-    6. Action buttons:
-       • Export to Excel
-       • Refine question
-       • Save to history
-
-    ⏱️ ~200ms rendering" }
-
-    DISPLAY_RESULTS@{ shape: stadium, label: "🎯 User Views AI Insights
-    Interactive features:
-    • Click insight for details
-    • Hover chart for values
-    • Expand SQL query
-    • Export data
-
-    User can:
-    • Ask follow-up question
-    • Modify and re-run
-    • Share link to analysis
-    • Download chart as PNG/SVG
-
-    History saved for future reference" }
-
-    %% =================================================================
-    %% CONNECTIONS
-    %% =================================================================
-
-    START --> INPUT_QUERY
-    INPUT_QUERY --> VALIDATE_INPUT
-
-    VALIDATE_INPUT -->|Invalid| INPUT_ERROR
-    VALIDATE_INPUT -->|Valid| SUBMIT_QUERY
-
-    SUBMIT_QUERY --> CHECK_RATE_LIMIT
-    CHECK_RATE_LIMIT -->|Exceeded| RATE_LIMITED
-    CHECK_RATE_LIMIT -->|OK| CHECK_CACHE
-
-    CHECK_CACHE -->|Hit| CACHE_HIT
-    CHECK_CACHE -->|Miss| PREPARE_CONTEXT
-
-    CACHE_HIT --> RETURN_RESPONSE
-
-    PREPARE_CONTEXT --> CALL_OPENAI
-    CALL_OPENAI --> LLM_SUCCESS
-
-    LLM_SUCCESS -->|Error| LLM_ERROR
-    LLM_SUCCESS -->|OK| VALIDATE_SQL
-
-    VALIDATE_SQL --> SQL_VALID
-    SQL_VALID -->|Unsafe| SQL_UNSAFE
-    SQL_VALID -->|Safe| EXECUTE_SQL
-
-    EXECUTE_SQL --> QUERY_TIMEOUT
-    QUERY_TIMEOUT -->|Error| QUERY_ERROR
-    QUERY_TIMEOUT -->|OK| FETCH_RESULTS
-
-    FETCH_RESULTS --> CHECK_VIZ_CODE
-    CHECK_VIZ_CODE -->|No| SKIP_VIZ
-    CHECK_VIZ_CODE -->|Yes| PREPARE_SANDBOX
-
-    SKIP_VIZ --> GENERATE_INSIGHTS
-
-    PREPARE_SANDBOX --> EXECUTE_PYTHON
-    EXECUTE_PYTHON --> VIZ_SUCCESS
-
-    VIZ_SUCCESS -->|Error| VIZ_ERROR
-    VIZ_SUCCESS -->|OK| ENCODE_SVG
-
-    VIZ_ERROR --> GENERATE_INSIGHTS
-    ENCODE_SVG --> GENERATE_INSIGHTS
-
-    GENERATE_INSIGHTS --> BUILD_RESPONSE
-    BUILD_RESPONSE --> CACHE_RESPONSE
-    CACHE_RESPONSE --> RETURN_RESPONSE
-
-    RETURN_RESPONSE --> FRONTEND_RENDER
-    FRONTEND_RENDER --> DISPLAY_RESULTS
-
-    %% =================================================================
-    %% STYLING
-    %% =================================================================
-
-    classDef uiStyle fill:#E3F2FD,stroke:#1976D2,stroke-width:2px
-    classDef llmStyle fill:#F3E5F5,stroke:#7B1FA2,stroke-width:2px
-    classDef securityStyle fill:#FFEBEE,stroke:#C62828,stroke-width:2px
-    classDef dbStyle fill:#E0F2F1,stroke:#00796B,stroke-width:2px
-    classDef vizStyle fill:#E8F5E9,stroke:#388E3C,stroke-width:2px
-    classDef errorStyle fill:#FFE0B2,stroke:#E65100,stroke-width:2px
-
-    class INPUT_QUERY,VALIDATE_INPUT,SUBMIT_QUERY,FRONTEND_RENDER uiStyle
-    class PREPARE_CONTEXT,CALL_OPENAI,LLM_SUCCESS llmStyle
-    class VALIDATE_SQL,SQL_VALID,CHECK_RATE_LIMIT,RATE_LIMITED securityStyle
-    class EXECUTE_SQL,QUERY_TIMEOUT,FETCH_RESULTS dbStyle
-    class CHECK_VIZ_CODE,PREPARE_SANDBOX,EXECUTE_PYTHON,VIZ_SUCCESS,ENCODE_SVG vizStyle
-    class INPUT_ERROR,LLM_ERROR,SQL_UNSAFE,QUERY_ERROR,VIZ_ERROR errorStyle
+Route: /analytics/ai
+
+UI shows:
+• Chat interface
+• Example questions
+• Schema overview
+• Query history
+
+Examples displayed:
+'Show mortality by cantero'
+'Compare stock in nave 1 vs 2'
+
+⏱️ Page load: < 1s" }
+
+INPUT_QUERY@{ shape: rect, label: "💬 User Types Question
+Natural language input:
+'Show me mortality rate
+comparison between
+nave 1 and nave 2'
+
+UI features:
+• Auto-complete suggestions
+• Previous query history
+• Clear button
+• Submit on Enter
+
+Min length: 10 chars
+Max length: 500 chars" }
+
+VALIDATE_INPUT@{ shape: diamond, label: "Input Valid?
+Checks:
+• Length: 10-500 chars
+• Not empty
+• No SQL injection attempts
+• Not offensive content
+
+⏱️ ~5ms" }
+
+INPUT_ERROR@{ shape: rect, label: "❌ Invalid Input
+Show error:
+'Please enter a question
+(10-500 characters)'
+
+Highlight input field red" }
+
+SUBMIT_QUERY@{ shape: rect, label: "🚀 Submit Query
+POST /api/analytics/ai-query
+{
+'question': 'Show mortality...',
+'user_id': UUID,
+'context': {
+'warehouses': [...],
+'date': '2025-10-08'
+}
+}
+
+Show loading:
+• Spinner
+• 'AI is thinking...'
+
+⏱️ ~10ms sending" }
+
+%% =================================================================
+%% BACKEND PROCESSING
+%% =================================================================
+
+CHECK_RATE_LIMIT@{ shape: diamond, label: "Rate Limit OK?
+Redis check:
+Key: rate_limit:{user_id}
+
+Limits:
+• 10 per minute
+• 100 per hour
+• 1000 per day
+
+⏱️ ~10ms" }
+
+RATE_LIMITED@{ shape: rect, label: "⚠️ Rate Limit Exceeded
+Return 429:
+{
+'error': 'Too many requests',
+'retry_after': 60,
+'limit': '10 per minute'
+}
+
+Frontend shows countdown" }
+
+CHECK_CACHE@{ shape: diamond, label: "Query Cached?
+Key: ai_query:hash(question)
+TTL: 3600s (1 hour)
+
+Identical questions reuse
+previous LLM response
+
+⏱️ ~10ms" }
+
+CACHE_HIT@{ shape: rect, label: "✅ Cache Hit
+Return cached:
+• SQL query
+• Previous results
+• Visualization
+• Insights
+
+Skip LLM call
+Cost: $0
+
+⏱️ ~50ms total" }
+
+%% =================================================================
+%% LLM INTEGRATION
+%% =================================================================
+
+PREPARE_CONTEXT@{ shape: rect, label: "📋 Prepare LLM Context
+Gather:
+1. Database schema (curated)
+2. Example queries
+3. User context (role, warehouses)
+4. Current date
+
+Format system prompt:
+'You are PostgreSQL expert...'
+
+⏱️ ~50ms" }
+
+CALL_OPENAI@{ shape: subproc, label: "🧠 Call OpenAI API
+Endpoint: chat.completions.create
+Model: gpt-4o
+Temperature: 0.2
+
+Messages:
+[
+{role: 'system', content: schema + rules},
+{role: 'user', content: question}
+]
+
+Response format: JSON
+{
+'sql': 'SELECT...',
+'explanation': '...',
+'python_code': '...',
+'insights': [...]
+}
+
+⏱️ 1-3s
+Cost: ~$0.01" }
+
+LLM_SUCCESS@{ shape: diamond, label: "LLM Response OK?
+Checks:
+• Valid JSON
+• 'sql' field present
+• Response < 2000 tokens
+
+⏱️ ~5ms" }
+
+LLM_ERROR@{ shape: rect, label: "❌ LLM Error
+Return 500:
+{
+'error': 'AI service unavailable',
+'retry': true
+}
+
+Log error for debugging
+Fallback: suggest manual filters" }
+
+%% =================================================================
+%% SQL VALIDATION
+%% =================================================================
+
+VALIDATE_SQL@{ shape: subproc, label: "🔒 Validate Generated SQL
+Multi-layer validation:
+
+Layer 1: Regex blacklist
+• No DELETE/UPDATE/INSERT
+• No DROP/ALTER/GRANT
+• No multiple statements (;)
+
+Layer 2: SQL Parser (sqlparse)
+• Parse AST
+• Check first token is SELECT
+• Verify single statement
+
+Layer 3: Business rules
+• No UNION with dangerous queries
+• No subqueries with mutations
+
+⏱️ ~20ms" }
+
+SQL_VALID@{ shape: diamond, label: "SQL Safe?
+All validation layers passed?
+
+If any fail:
+Reject query" }
+
+SQL_UNSAFE@{ shape: rect, label: "❌ Unsafe SQL Detected
+Return 400:
+{
+'error': 'AI generated unsafe query',
+'sql': '<redacted>',
+'issue': 'Contains forbidden operation',
+'action': 'Try rephrasing question'
+}
+
+Log incident for review
+Consider fine-tuning LLM" }
+
+%% =================================================================
+%% QUERY EXECUTION
+%% =================================================================
+
+EXECUTE_SQL@{ shape: cyl, label: "Execute SQL (Read-Only User)
+Database connection:
+• User: demeter_readonly
+• Privileges: SELECT only
+• Timeout: 30s
+• Max rows: 10,000
+
+Query:
+{generated_sql}
+
+Example:
+SELECT sa.name, COUNT(*)...
+FROM stock_movements sm
+WHERE movement_type = 'muerte'
+GROUP BY sa.name
+
+⏱️ 100ms - 5s" }
+
+QUERY_TIMEOUT@{ shape: diamond, label: "Query Completed?
+Check:
+• Execution time < 30s
+• Result size < 10K rows
+• No errors
+
+⏱️ variable" }
+
+QUERY_ERROR@{ shape: rect, label: "❌ Query Execution Error
+Possible errors:
+• Timeout (> 30s)
+• Too many rows (> 10K)
+• Invalid table/column
+• Permission denied
+
+Return 500 with details
+Ask user to narrow question" }
+
+FETCH_RESULTS@{ shape: rect, label: "📊 Fetch Query Results
+Convert to:
+• List of dicts
+• DataFrame (pandas)
+• JSON serializable
+
+Sample result:
+[
+{'name': 'Norte', 'count': 45},
+{'name': 'Sur', 'count': 38}
+]
+
+⏱️ ~50ms" }
+
+%% =================================================================
+%% VISUALIZATION GENERATION
+%% =================================================================
+
+CHECK_VIZ_CODE@{ shape: diamond, label: "Visualization Code Present?
+LLM provided Python code?" }
+
+SKIP_VIZ@{ shape: rect, label: "⏭️ Skip Visualization
+Return data as table only
+No chart generated" }
+
+PREPARE_SANDBOX@{ shape: rect, label: "🏖️ Prepare Python Sandbox
+Safe globals:
+• pd (pandas)
+• np (numpy)
+• plt (matplotlib)
+• sns (seaborn)
+• data (query results DataFrame)
+
+Restricted:
+• No file I/O
+• No network access
+• No os/sys/subprocess
+• Limited memory
+
+⏱️ ~20ms" }
+
+EXECUTE_PYTHON@{ shape: subproc, label: "🐍 Execute Visualization Code
+Run in sandbox:
+
+```python
+fig, ax = plt.subplots()
+ax.bar(data['name'], data['count'])
+ax.set_title('Mortality by Area')
+plt.tight_layout()
+# Auto-saved to BytesIO
+```
+
+Timeout: 10s
+Output: SVG bytes
+
+⏱️ 100ms - 2s" }
+
+VIZ_SUCCESS@{ shape: diamond, label: "Visualization OK?
+Check:
+• Execution successful
+• SVG generated
+• Size < 5MB
+
+⏱️ ~5ms" }
+
+VIZ_ERROR@{ shape: rect, label: "⚠️ Visualization Failed
+Non-fatal error
+Continue without chart
+
+Log error:
+'Python code execution failed:
+{error_message}'
+
+Return data only" }
+
+ENCODE_SVG@{ shape: rect, label: "🎨 Encode SVG
+Convert bytes to base64
+or UTF-8 string
+
+SVG can be:
+• Embedded in HTML
+• Displayed in frontend
+• Downloaded
+
+⏱️ ~10ms" }
+
+%% =================================================================
+%% RESPONSE BUILDING
+%% =================================================================
+
+GENERATE_INSIGHTS@{ shape: rect, label: "💡 Format Insights
+From LLM response:
+
+insights = [
+'Norte area has 18% higher mortality',
+'Consider reviewing irrigation in Sur',
+'Mortality increased 5% vs last month'
+]
+
+Add metadata:
+• Confidence level
+• Data freshness
+• Sample size
+
+⏱️ ~20ms" }
+
+BUILD_RESPONSE@{ shape: rect, label: "📦 Build Response
+{
+'question': 'Show mortality...',
+'sql_query': 'SELECT...',
+'explanation': 'This query...',
+'data': [...],
+'visualization_svg': '<svg>...',
+'insights': [...],
+'metadata': {
+'row_count': 2,
+'execution_time_ms': 2340,
+'model': 'gpt-4o',
+'cached': false,
+'cost_usd': 0.012
+}
+}
+
+⏱️ ~20ms" }
+
+CACHE_RESPONSE@{ shape: rect, label: "💾 Cache Response
+Key: ai_query:hash(question)
+Value: full response JSON
+TTL: 3600s (1 hour)
+
+Next identical query:
+• No LLM call
+• No DB query
+• Instant response
+
+⏱️ ~20ms" }
+
+RETURN_RESPONSE@{ shape: rect, label: "✅ Return 200 OK
+Send JSON to frontend
+
+⏱️ Total: 2-5s
+(1-3s LLM + 1-2s execution)" }
+
+%% =================================================================
+%% FRONTEND DISPLAY
+%% =================================================================
+
+FRONTEND_RENDER@{ shape: rect, label: "🖥️ Frontend Renders Response
+1. Hide loading spinner
+2. Show Q&A pair:
+Q: User question
+A: Explanation
+
+3. Display data:
+• SVG chart (if generated)
+• Data table
+
+4. Show insights as cards:
+💡 [Insight 1]
+💡 [Insight 2]
+
+5. Show metadata:
+• Rows: N
+• Time: Xms
+• SQL: <collapsible>
+
+6. Action buttons:
+• Export to Excel
+• Refine question
+• Save to history
+
+⏱️ ~200ms rendering" }
+
+DISPLAY_RESULTS@{ shape: stadium, label: "🎯 User Views AI Insights
+Interactive features:
+• Click insight for details
+• Hover chart for values
+• Expand SQL query
+• Export data
+
+User can:
+• Ask follow-up question
+• Modify and re-run
+• Share link to analysis
+• Download chart as PNG/SVG
+
+History saved for future reference" }
+
+%% =================================================================
+%% CONNECTIONS
+%% =================================================================
+
+START --> INPUT_QUERY
+INPUT_QUERY --> VALIDATE_INPUT
+
+VALIDATE_INPUT -->|Invalid|INPUT_ERROR
+VALIDATE_INPUT -->|Valid|SUBMIT_QUERY
+
+SUBMIT_QUERY --> CHECK_RATE_LIMIT
+CHECK_RATE_LIMIT -->|Exceeded|RATE_LIMITED
+CHECK_RATE_LIMIT -->|OK|CHECK_CACHE
+
+CHECK_CACHE -->|Hit|CACHE_HIT
+CHECK_CACHE -->|Miss| PREPARE_CONTEXT
+
+CACHE_HIT --> RETURN_RESPONSE
+
+PREPARE_CONTEXT --> CALL_OPENAI
+CALL_OPENAI --> LLM_SUCCESS
+
+LLM_SUCCESS -->|Error|LLM_ERROR
+LLM_SUCCESS -->|OK|VALIDATE_SQL
+
+VALIDATE_SQL --> SQL_VALID
+SQL_VALID -->|Unsafe|SQL_UNSAFE
+SQL_VALID -->|Safe|EXECUTE_SQL
+
+EXECUTE_SQL --> QUERY_TIMEOUT
+QUERY_TIMEOUT -->|Error| QUERY_ERROR
+QUERY_TIMEOUT -->|OK|FETCH_RESULTS
+
+FETCH_RESULTS --> CHECK_VIZ_CODE
+CHECK_VIZ_CODE -->|No|SKIP_VIZ
+CHECK_VIZ_CODE -->|Yes|PREPARE_SANDBOX
+
+SKIP_VIZ --> GENERATE_INSIGHTS
+
+PREPARE_SANDBOX --> EXECUTE_PYTHON
+EXECUTE_PYTHON --> VIZ_SUCCESS
+
+VIZ_SUCCESS -->|Error|VIZ_ERROR
+VIZ_SUCCESS -->|OK|ENCODE_SVG
+
+VIZ_ERROR --> GENERATE_INSIGHTS
+ENCODE_SVG --> GENERATE_INSIGHTS
+
+GENERATE_INSIGHTS --> BUILD_RESPONSE
+BUILD_RESPONSE --> CACHE_RESPONSE
+CACHE_RESPONSE --> RETURN_RESPONSE
+
+RETURN_RESPONSE --> FRONTEND_RENDER
+FRONTEND_RENDER --> DISPLAY_RESULTS
+
+%% =================================================================
+%% STYLING
+%% =================================================================
+
+classDef uiStyle fill: #E3F2FD, stroke: #1976D2, stroke-width: 2px
+classDef llmStyle fill: #F3E5F5, stroke: #7B1FA2, stroke-width: 2px
+classDef securityStyle fill: #FFEBEE, stroke: #C62828, stroke-width: 2px
+classDef dbStyle fill: #E0F2F1, stroke: #00796B, stroke-width: 2px
+classDef vizStyle fill: #E8F5E9, stroke: #388E3C, stroke-width: 2px
+classDef errorStyle fill: #FFE0B2, stroke: #E65100, stroke-width: 2px
+
+class INPUT_QUERY, VALIDATE_INPUT,SUBMIT_QUERY, FRONTEND_RENDER uiStyle
+class PREPARE_CONTEXT, CALL_OPENAI,LLM_SUCCESS llmStyle
+class VALIDATE_SQL, SQL_VALID,CHECK_RATE_LIMIT, RATE_LIMITED securityStyle
+class EXECUTE_SQL, QUERY_TIMEOUT,FETCH_RESULTS dbStyle
+class CHECK_VIZ_CODE, PREPARE_SANDBOX,EXECUTE_PYTHON, VIZ_SUCCESS, ENCODE_SVG vizStyle
+class INPUT_ERROR, LLM_ERROR,SQL_UNSAFE, QUERY_ERROR,VIZ_ERROR errorStyle

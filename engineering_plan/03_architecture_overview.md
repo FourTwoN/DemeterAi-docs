@@ -84,6 +84,7 @@ DemeterAI follows **Clean Architecture** (aka Hexagonal Architecture, Ports & Ad
 **Responsibility:** HTTP concerns ONLY
 
 **What Controllers Do:**
+
 - ✅ Define FastAPI routes (`@router.get`, `@router.post`)
 - ✅ Validate input with Pydantic schemas
 - ✅ Call service layer methods
@@ -91,12 +92,14 @@ DemeterAI follows **Clean Architecture** (aka Hexagonal Architecture, Ports & Ad
 - ✅ Handle request/response serialization
 
 **What Controllers DON'T Do:**
+
 - ❌ Business logic
 - ❌ Database queries
 - ❌ Call repositories directly
 - ❌ Complex data transformations
 
 **Example:**
+
 ```python
 from fastapi import APIRouter, Depends, status
 from app.services.stock_movement_service import StockMovementService
@@ -124,6 +127,7 @@ async def initialize_stock_manually(
 **Responsibility:** Business logic and orchestration
 
 **What Services Do:**
+
 - ✅ Implement business rules
 - ✅ Coordinate multi-step operations
 - ✅ Call other services (inter-service communication)
@@ -132,11 +136,13 @@ async def initialize_stock_manually(
 - ✅ Handle complex calculations
 
 **What Services DON'T Do:**
+
 - ❌ Know about HTTP (no FastAPI imports)
 - ❌ Call repositories from other services directly
 - ❌ Handle database connections (use dependency injection)
 
 **Communication Rule:**
+
 ```
 Controller → Service A → Service B → Repository B
                       ↓
@@ -146,6 +152,7 @@ Controller → Service A → Service B → Repository B
 ```
 
 **Example:**
+
 ```python
 class StockMovementService:
     def __init__(
@@ -193,17 +200,20 @@ class StockMovementService:
 **Responsibility:** Data access ONLY
 
 **What Repositories Do:**
+
 - ✅ CRUD operations (Create, Read, Update, Delete)
 - ✅ SQLAlchemy queries
 - ✅ Database transaction management
 - ✅ Eager/lazy loading optimization
 
 **What Repositories DON'T Do:**
+
 - ❌ Business logic
 - ❌ Call other repositories
 - ❌ Know about Pydantic schemas (work with SQLAlchemy models only)
 
 **Base Repository Pattern:**
+
 ```python
 from typing import Generic, TypeVar, Type, List, Optional
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -259,6 +269,7 @@ class AsyncRepository(Generic[ModelType]):
 **Status:** Integrated with API (NOT a separate microservice)
 
 **Components:**
+
 - `pipeline_coordinator.py`: Orchestrates full ML pipeline
 - `localization_service.py`: GPS → storage_location lookup
 - `segmentation_service.py`: YOLO v11 segmentation
@@ -367,6 +378,7 @@ class AsyncRepository(Generic[ModelType]):
 **Purpose:** Abstract database access
 
 **Benefits:**
+
 - ✅ Testability (mock repositories in tests)
 - ✅ Flexibility (swap ORM/raw SQL without changing services)
 - ✅ Reusability (repositories shared across services)
@@ -378,6 +390,7 @@ class AsyncRepository(Generic[ModelType]):
 **Implementation:** FastAPI's `Depends()`
 
 **Example:**
+
 ```python
 from fastapi import Depends
 from app.db.session import get_db_session
@@ -403,6 +416,7 @@ async def manual_init(
 **Implementation:** SQLAlchemy session with commit/rollback
 
 **Example:**
+
 ```python
 @asynccontextmanager
 async def transaction_scope():
@@ -424,6 +438,7 @@ async def transaction_scope():
 **Critical for GPU:** Prevents 2-3s model load overhead per photo
 
 **Example:**
+
 ```python
 class ModelCache:
     _instances = {}
@@ -448,6 +463,7 @@ class ModelCache:
 **Implementation:** pybreaker
 
 **Example:**
+
 ```python
 s3_breaker = pybreaker.CircuitBreaker(fail_max=5, reset_timeout=60)
 
@@ -512,6 +528,7 @@ class StockMovementService:
 **Location:** `/app/exceptions/`
 
 **Structure:**
+
 ```python
 class AppBaseException(Exception):
     def __init__(self, technical_message: str, user_message: str, code: int = 500):

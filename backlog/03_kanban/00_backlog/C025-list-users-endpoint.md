@@ -1,6 +1,7 @@
 # [C025] List Users - GET /api/users
 
 ## Metadata
+
 - **Epic**: epic-003-backend-implementation.md
 - **Sprint**: Sprint-06
 - **Status**: `backlog`
@@ -9,8 +10,8 @@
 - **Area**: `backend/controllers`
 - **Assignee**: TBD
 - **Dependencies**:
-  - Blocks: [SCH018]
-  - Blocked by: [SVC012-user-service, DB028-users-model]
+    - Blocks: [SCH018]
+    - Blocked by: [SVC012-user-service, DB028-users-model]
 
 ## Description
 
@@ -36,6 +37,7 @@ async def list_users(
 **Coverage Target**: ≥80%
 
 ## Time Tracking
+
 - **Estimated**: 1 story point
 
 ---

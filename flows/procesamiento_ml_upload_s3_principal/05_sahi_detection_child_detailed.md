@@ -7,15 +7,19 @@
 
 ## Purpose
 
-This diagram documents **the critical innovation of DemeterAI**: the band-based plant density estimation algorithm using SAHI (Slicing Aided Hyper Inference). This is a Celery child task spawned by the ML parent (diagram 04) to process a single field image.
+This diagram documents **the critical innovation of DemeterAI**: the band-based plant density
+estimation algorithm using SAHI (Slicing Aided Hyper Inference). This is a Celery child task spawned
+by the ML parent (diagram 04) to process a single field image.
 
 ## Scope
 
 **Input:**
+
 - `image_id_pk` (UUID): Primary key of the image
 - `slice_data` (dict): Contains S3 URL, dimensions, GPS coordinates, area in m², and band_config_id
 
 **Output:**
+
 - `estimated_plant_count` (int): Total estimated plants (after density correction)
 - `detected_plant_count` (int): Raw YOLO detections
 - `confidence_band` (str): HIGH | MEDIUM | LOW
@@ -27,6 +31,7 @@ This diagram documents **the critical innovation of DemeterAI**: the band-based 
 ## Key Components
 
 ### 1. Model Singleton Pattern (lines 45-68)
+
 ```python
 worker_id = os.getpid() % num_gpus
 model_key = f'yolo_v11_det_{worker_id}'
@@ -38,19 +43,22 @@ if model_key not in model_cache:
     model_cache[model_key] = model
 ```
 
-**Why:** Loading YOLO from disk takes ~3 seconds. Singleton pattern caches the model in memory per GPU worker, reducing subsequent loads to ~0.1ms.
+**Why:** Loading YOLO from disk takes ~3 seconds. Singleton pattern caches the model in memory per
+GPU worker, reducing subsequent loads to ~0.1ms.
 
 ### 2. SAHI Slicing (lines 129-166)
 
 **When to use:** Images larger than 2000px in any dimension
 
 **Configuration:**
+
 - `slice_height`: 640px
 - `slice_width`: 640px
 - `overlap_ratio`: 20% (prevents edge artifacts)
 - `postprocess_type`: NMS (Non-Maximum Suppression to remove duplicates)
 
 **How it works:**
+
 1. Divide large image into overlapping 640×640 tiles
 2. Run YOLO detection on each tile independently
 3. Merge predictions and remove duplicates at tile boundaries
@@ -62,7 +70,8 @@ if model_key not in model_cache:
 
 **THE CRITICAL INNOVATION:**
 
-The algorithm divides the image into 5 horizontal bands and applies learned density correction parameters to each band:
+The algorithm divides the image into 5 horizontal bands and applies learned density correction
+parameters to each band:
 
 ```python
 # Visual representation
@@ -80,28 +89,32 @@ The algorithm divides the image into 5 horizontal bands and applies learned dens
 ```
 
 **Why density parameters vary:**
-- **Band 3 (middle):** Plants appear smaller due to perspective → YOLO underdetects → multiply by 1.5
+
+- **Band 3 (middle):** Plants appear smaller due to perspective → YOLO underdetects → multiply by
+  1.5
 - **Bands 1 & 5 (edges):** Perspective distortion, different lighting → adjust accordingly
 - **Parameters are learned:** Auto-calibration uses verified manual counts to optimize these values
 
 **Example calculation:**
 | Band | Detected | Density Param | Estimated | Explanation |
 |------|----------|---------------|-----------|-------------|
-| 1    | 12       | 0.8           | 10        | Perspective far (overdetection) |
-| 2    | 34       | 1.2           | 41        | Transition zone |
-| 3    | 58       | **1.5**       | **87**    | **Critical underdetection** |
-| 4    | 41       | 1.2           | 49        | Transition zone |
-| 5    | 19       | 0.9           | 17        | Perspective near |
-| **Total** | **164** | —         | **204**   | **+24% correction** |
+| 1 | 12 | 0.8 | 10 | Perspective far (overdetection) |
+| 2 | 34 | 1.2 | 41 | Transition zone |
+| 3 | 58 | **1.5**       | **87**    | **Critical underdetection** |
+| 4 | 41 | 1.2 | 49 | Transition zone |
+| 5 | 19 | 0.9 | 17 | Perspective near |
+| **Total** | **164** | — | **204**   | **+24% correction** |
 
 ### 4. Auto-Calibration Learning (lines 324-374)
 
 **Triggered when:**
+
 - New `band_config` created (default params: all 1.0)
 - After 50 detections in the same field
 - User manually requests recalibration
 
 **Algorithm:**
+
 ```python
 # Collect verified manual counts
 recent_detections = db.query("""
@@ -124,12 +137,14 @@ for band_id in range(1, 6):
 ```
 
 **Accuracy improvement:**
+
 - Before calibration: ±30% error (default params)
 - After calibration: ±8% error (learned params)
 
 ### 5. Bulk Insert Pattern (lines 394-424)
 
 **Performance optimization:**
+
 ```python
 # Prepare all records in memory
 detection_records = [
@@ -156,31 +171,35 @@ await session.commit()
 
 Total time: **15-30 seconds per image**
 
-| Phase | Time | % of Total | Notes |
-|-------|------|------------|-------|
-| Model load (cached) | 0.1ms | ~0% | Singleton pattern |
-| S3 download | 1s | ~5% | I/O-bound |
-| SAHI slicing + inference | 3-8s | **~90%** | GPU-bound (CRITICAL) |
-| Band estimation | 5ms | ~0% | CPU negligible |
-| Database save | 20ms | ~0.1% | Bulk insert |
-| Other | 100ms | ~0.5% | Python overhead |
+| Phase                    | Time  | % of Total | Notes                |
+|--------------------------|-------|------------|----------------------|
+| Model load (cached)      | 0.1ms | ~0%        | Singleton pattern    |
+| S3 download              | 1s    | ~5%        | I/O-bound            |
+| SAHI slicing + inference | 3-8s  | **~90%**   | GPU-bound (CRITICAL) |
+| Band estimation          | 5ms   | ~0%        | CPU negligible       |
+| Database save            | 20ms  | ~0.1%      | Bulk insert          |
+| Other                    | 100ms | ~0.5%      | Python overhead      |
 
-**Bottleneck:** GPU inference time dominates (90% of total). Future optimization: parallelize across multiple GPUs.
+**Bottleneck:** GPU inference time dominates (90% of total). Future optimization: parallelize across
+multiple GPUs.
 
 ## Error Handling
 
 ### Warning States
 
 **1. `no_detections_found`** (line 217)
+
 - **Cause:** YOLO found 0 plants
 - **Possible reasons:** Empty field, poor image quality, threshold too high
 - **Action:** Set `estimated_count = 0`, `confidence = 'UNKNOWN'`
 
 **2. `needs_calibration`** (detected but not shown in diagram)
+
 - **Cause:** Using default density parameters (all 1.0)
 - **Action:** Show warning to user, request manual count for calibration
 
 ### Graceful Degradation
+
 - No hard failures for missing calibration → use defaults
 - Low confidence results still returned (with warning)
 - Partial detections accepted (minimum 1 detection per band not enforced)
@@ -190,6 +209,7 @@ Total time: **15-30 seconds per image**
 ### Tables Used
 
 **`band_configurations`** (READ):
+
 ```sql
 CREATE TABLE band_configurations (
     id UUID PRIMARY KEY,
@@ -202,6 +222,7 @@ CREATE TABLE band_configurations (
 ```
 
 **`detections`** (INSERT):
+
 ```sql
 CREATE TABLE detections (
     id UUID PRIMARY KEY,
@@ -218,6 +239,7 @@ CREATE INDEX idx_detections_band ON detections(band_id);
 ```
 
 **`detection_summaries`** (INSERT):
+
 ```sql
 CREATE TABLE detection_summaries (
     image_id UUID PRIMARY KEY REFERENCES s3_images(id),
@@ -232,6 +254,7 @@ CREATE TABLE detection_summaries (
 ```
 
 **`s3_images`** (UPDATE):
+
 ```sql
 UPDATE s3_images
 SET
@@ -245,6 +268,7 @@ WHERE id = :image_id_pk;
 ## Code Patterns
 
 ### Pattern 1: SAHI Integration
+
 ```python
 from sahi import AutoDetectionModel
 from sahi.predict import get_sliced_prediction
@@ -270,6 +294,7 @@ result = get_sliced_prediction(
 ```
 
 ### Pattern 2: Band Assignment (O(n) algorithm)
+
 ```python
 for detection in detections:
     # Get center Y coordinate of bounding box
@@ -284,6 +309,7 @@ for detection in detections:
 ```
 
 ### Pattern 3: Confidence Calculation
+
 ```python
 def calculate_overall_confidence(bands):
     high_confidence_bands = sum(
@@ -307,13 +333,15 @@ def calculate_overall_confidence(bands):
 
 ## Version History
 
-| Version | Date | Changes |
-|---------|------|---------|
-| 1.0.0 | 2025-10-08 | Initial detailed subflow with band-based estimation algorithm |
+| Version | Date       | Changes                                                       |
+|---------|------------|---------------------------------------------------------------|
+| 1.0.0   | 2025-10-08 | Initial detailed subflow with band-based estimation algorithm |
 
 ---
 
 **Notes:**
+
 - This diagram represents the intellectual property of DemeterAI
-- The band-based estimation algorithm is a novel approach to handling perspective distortion in agricultural imagery
+- The band-based estimation algorithm is a novel approach to handling perspective distortion in
+  agricultural imagery
 - SAHI library: https://github.com/obss/sahi

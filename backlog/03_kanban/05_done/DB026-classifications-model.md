@@ -12,11 +12,13 @@
 **What**: Classifications table stores ML model predictions for detected/estimated plants
 **Why**: Links ML predictions (confidence scores) to actual entities (product, packaging, size)
 **Where in Pipeline**:
+
 ```
 Photo → YOLO Segmentation → YOLO Detection → Classifications → Detections/Estimations
 ```
 
-**Key Insight**: This is the "ML prediction cache" - stores model outputs so we don't re-run inference
+**Key Insight**: This is the "ML prediction cache" - stores model outputs so we don't re-run
+inference
 
 ---
 
@@ -78,6 +80,7 @@ class Classification(Base):
 ```
 
 **Key Decisions**:
+
 - `Numeric(4,3)` for confidence: 0.000 to 0.999 (3 decimal precision)
 - `model_version`: Enables ML model A/B testing and rollback
 - `name`: Human-readable label for quick debugging
@@ -123,6 +126,7 @@ def downgrade():
 ```
 
 **Indexes Rationale**:
+
 - `product_id`: Most common query ("show all classifications for product X")
 - `model_version`: For A/B test analysis, rollback queries
 - `created_at DESC`: Recent classifications first (time-series queries)
@@ -134,6 +138,7 @@ def downgrade():
 #### Unit Tests (`tests/unit/models/test_classification.py`)
 
 **Test Cases** (15 tests):
+
 1. `test_classification_creation` - Basic instantiation
 2. `test_confidence_score_validation` - 0.0 ≤ conf ≤ 1.0
 3. `test_nullable_fields` - size_id, packaging_id can be NULL
@@ -153,6 +158,7 @@ def downgrade():
 #### Integration Tests (`tests/integration/test_classification_db.py`)
 
 **Test Cases** (8 tests):
+
 1. `test_insert_classification_with_all_fields`
 2. `test_insert_classification_without_packaging`
 3. `test_query_by_model_version`
@@ -199,6 +205,7 @@ def validate_model_version(self, key, value):
 ## Execution Checklist
 
 ### Python Expert Tasks (30 min)
+
 - [ ] Create `app/models/classification.py` with complete model
 - [ ] Add confidence validation (0.0-1.0 bounds)
 - [ ] Add model_version validation (semantic versioning)
@@ -208,6 +215,7 @@ def validate_model_version(self, key, value):
 - [ ] Run pre-commit hooks (ruff, mypy)
 
 ### Testing Expert Tasks (25 min, PARALLEL)
+
 - [ ] Write 15 unit tests in `test_classification.py`
 - [ ] Write 8 integration tests in `test_classification_db.py`
 - [ ] Test confidence validation edge cases
@@ -217,6 +225,7 @@ def validate_model_version(self, key, value):
 - [ ] All tests pass
 
 ### Team Leader Review (5 min)
+
 - [ ] Verify ERD alignment (database.mmd line 290-302)
 - [ ] Check confidence precision (3 decimals)
 - [ ] Validate indexes (product_id, model_version, created_at)
@@ -227,24 +236,24 @@ def validate_model_version(self, key, value):
 ## Known Edge Cases
 
 1. **Same product, multiple classifications**
-   - Scenario: ML model upgraded from v1.0 to v2.0
-   - Solution: Allow multiple classifications per product (no unique constraint)
-   - Query: `SELECT * WHERE model_version = 'yolo11n-v2.0.0'`
+    - Scenario: ML model upgraded from v1.0 to v2.0
+    - Solution: Allow multiple classifications per product (no unique constraint)
+    - Query: `SELECT * WHERE model_version = 'yolo11n-v2.0.0'`
 
 2. **Confidence = 0.0 (valid but suspicious)**
-   - Scenario: Model predicts product but confidence is 0.0
-   - Solution: Allow 0.0 (valid range), but log warning in service layer
-   - Test: Ensure 0.0 is accepted by validation
+    - Scenario: Model predicts product but confidence is 0.0
+    - Solution: Allow 0.0 (valid range), but log warning in service layer
+    - Test: Ensure 0.0 is accepted by validation
 
 3. **Orphaned classifications**
-   - Scenario: Product deleted, classification should be deleted too
-   - Solution: CASCADE delete on product_id FK
-   - Test: Delete product → verify classification gone
+    - Scenario: Product deleted, classification should be deleted too
+    - Solution: CASCADE delete on product_id FK
+    - Test: Delete product → verify classification gone
 
 4. **NULL packaging but non-NULL packaging_conf**
-   - Scenario: Model predicted packaging confidence but no packaging_catalog_id
-   - Solution: Allow this (model may predict confidence even if mapping fails)
-   - Validation: No constraint between packaging_id and packaging_conf
+    - Scenario: Model predicted packaging confidence but no packaging_catalog_id
+    - Solution: Allow this (model may predict confidence even if mapping fails)
+    - Validation: No constraint between packaging_id and packaging_conf
 
 ---
 
@@ -256,6 +265,7 @@ def validate_model_version(self, key, value):
 - Query with confidence filter: <30ms (sequential scan on confidence column)
 
 **Future optimization**: If confidence queries become common, add partial index:
+
 ```sql
 CREATE INDEX idx_high_confidence ON classifications(product_conf)
 WHERE product_conf > 0.8;

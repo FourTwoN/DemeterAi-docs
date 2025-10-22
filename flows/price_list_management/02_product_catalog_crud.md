@@ -2,7 +2,8 @@
 
 ## Purpose
 
-Shows the detailed flow for managing the product catalog hierarchy: Categories → Families → Products, with complete CRUD operations for each level.
+Shows the detailed flow for managing the product catalog hierarchy: Categories → Families →
+Products, with complete CRUD operations for each level.
 
 ## Scope
 
@@ -14,6 +15,7 @@ Shows the detailed flow for managing the product catalog hierarchy: Categories �
 ## What It Represents
 
 Complete CRUD flow for product catalog structure:
+
 1. **Product Categories**: Top level (cactus, suculenta, injerto)
 2. **Product Families**: Mid level (belongs to category)
 3. **Products**: Bottom level (individual plants)
@@ -608,6 +610,7 @@ RETURNING *;
 ```
 
 **Note**:
+
 - Cannot change `family_id` or `sku` after creation
 - If SKU needs change, delete and recreate
 
@@ -740,14 +743,14 @@ async def invalidate_catalog_cache():
 
 ## Performance Targets
 
-| Operation | Target Time | Notes |
-|-----------|-------------|-------|
-| List categories | < 50ms | Small table, cached |
-| List families (all) | < 100ms | Moderate size |
-| List products (50 items) | < 200ms | With filters, joins |
-| Create product | < 100ms | With validation |
-| Get hierarchy | < 300ms | Full tree, cached |
-| Search products | < 250ms | With trigram index |
+| Operation                | Target Time | Notes               |
+|--------------------------|-------------|---------------------|
+| List categories          | < 50ms      | Small table, cached |
+| List families (all)      | < 100ms     | Moderate size       |
+| List products (50 items) | < 200ms     | With filters, joins |
+| Create product           | < 100ms     | With validation     |
+| Get hierarchy            | < 300ms     | Full tree, cached   |
+| Search products          | < 250ms     | With trigram index  |
 
 ## Request/Response Models
 

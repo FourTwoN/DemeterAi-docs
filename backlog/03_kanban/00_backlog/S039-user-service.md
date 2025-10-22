@@ -1,6 +1,7 @@
 # S039: UserService
 
 ## Metadata
+
 - **Epic**: [epic-004-services.md](../../02_epics/epic-004-services.md)
 - **Sprint**: Sprint-07
 - **Status**: `backlog`
@@ -8,8 +9,8 @@
 - **Complexity**: M (3 story points)
 - **Area**: `services/config`
 - **Dependencies**:
-  - Blocks: [C035]
-  - Blocked by: [R039, F009-auth]
+    - Blocks: [C035]
+    - Blocked by: [R039, F009-auth]
 
 ## Description
 
@@ -28,10 +29,12 @@
 - [ ] **AC5**: Unit tests ≥85% coverage
 
 ## Technical Notes
+
 - Authentication handled by separate module (F009)
 - User roles for permission-based access control
 
 ## Time Tracking
+
 - **Estimated**: 3 story points (~6 hours)
 
 ---

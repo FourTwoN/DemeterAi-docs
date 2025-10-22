@@ -7,7 +7,8 @@
 
 ## Purpose
 
-This subflow details the **warehouse internal structure view** displaying storage areas (canteros: Norte, Sur, Este, Oeste, Centro) and all storage_locations as preview cards with key metrics.
+This subflow details the **warehouse internal structure view** displaying storage areas (canteros:
+Norte, Sur, Este, Oeste, Centro) and all storage_locations as preview cards with key metrics.
 
 ## Scope
 
@@ -29,13 +30,16 @@ The warehouse internal structure view allows users to:
 ## Key Features
 
 ### Storage Areas (Canteros)
+
 - **Position-based organization**: Norte, Sur, Este, Oeste, Centro
 - **Visual representation**: Cards or map sections
 - **Filter buttons**: Click to show only storage_locations in that area
 - **Count badges**: Show number of claros per cantero
 
 ### Preview Cards for Storage Locations
+
 Each card displays:
+
 - **Thumbnail**: Last photo thumbnail (300x300px from S3)
 - **Quantity**: Current plant count with trend indicator (↑↓)
 - **Maceta type**: Primary container type (8cm, 10cm, etc.)
@@ -46,6 +50,7 @@ Each card displays:
 - **Status badge**: Green (healthy), yellow (warning), red (error)
 
 ### Performance Features
+
 - **No API call needed**: Data already loaded from bulk-load
 - **Client-side filtering**: Instant cantero filtering
 - **Lazy rendering**: Virtualization for large grids (100+ cards)
@@ -54,6 +59,7 @@ Each card displays:
 ## Database Schema
 
 ### storage_areas Table
+
 ```sql
 CREATE TABLE storage_areas (
     id SERIAL PRIMARY KEY,
@@ -77,6 +83,7 @@ CREATE INDEX idx_storage_areas_position ON storage_areas(warehouse_id, position)
 ```
 
 ### storage_locations Table
+
 ```sql
 CREATE TABLE storage_locations (
     id SERIAL PRIMARY KEY,
@@ -102,6 +109,7 @@ CREATE INDEX idx_storage_locations_code ON storage_locations(code);
 ```
 
 ### Materialized View: mv_storage_location_preview
+
 Pre-aggregated preview data for all storage_locations.
 
 ```sql
@@ -183,6 +191,7 @@ CREATE INDEX idx_mv_location_preview_position ON mv_storage_location_preview(war
 ```
 
 **Refresh strategy:**
+
 ```sql
 -- Refresh every 10 minutes via pg_cron
 SELECT cron.schedule(
@@ -200,6 +209,7 @@ REFRESH MATERIALIZED VIEW CONCURRENTLY mv_storage_location_preview;
 The `/api/v1/map/bulk-load` endpoint returns:
 
 ### storage_areas Array
+
 ```json
 {
   "storage_areas": [
@@ -226,6 +236,7 @@ The `/api/v1/map/bulk-load` endpoint returns:
 ```
 
 ### storage_locations Array
+
 ```json
 {
   "storage_locations": [
@@ -268,6 +279,7 @@ The `/api/v1/map/bulk-load` endpoint returns:
 ## Frontend Implementation
 
 ### Component: WarehouseInternalView
+
 Main component for warehouse internal structure.
 
 ```typescript
@@ -537,6 +549,7 @@ export const WarehouseInternalView: React.FC = () => {
 ```
 
 ### Component: StorageLocationPreviewCard
+
 Preview card component (detailed in 03_storage_location_preview.md).
 
 ```typescript
@@ -680,11 +693,13 @@ export const StorageLocationPreviewCard: React.FC<Props> = ({ location, onClick 
 ## Performance Considerations
 
 ### No Additional API Calls
+
 - **Data already loaded**: All storage areas and preview data fetched during bulk-load
 - **Instant filtering**: Client-side cantero filtering (no network delay)
 - **Fast navigation**: Click warehouse → immediate render (no loading)
 
 ### Lazy Rendering for Large Datasets
+
 If warehouse has 500+ storage_locations, use virtualization:
 
 ```typescript
@@ -716,6 +731,7 @@ import { FixedSizeGrid as Grid } from 'react-window';
 ```
 
 ### Image Loading Optimization
+
 - **Lazy loading**: Use `loading="lazy"` attribute
 - **Presigned URLs**: S3 URLs generated during bulk-load (valid 1 hour)
 - **Thumbnail size**: 300x300px JPEG (quality 80%) ~15-30KB each
@@ -724,6 +740,7 @@ import { FixedSizeGrid as Grid } from 'react-window';
 ## User Experience
 
 ### Navigation Flow
+
 1. **User clicks warehouse** on map (Level 1)
 2. **Internal view renders immediately** (no loading, data cached)
 3. **Preview cards display** with thumbnails and metrics
@@ -731,12 +748,14 @@ import { FixedSizeGrid as Grid } from 'react-window';
 5. **User clicks card** → Navigate to detail view (Level 3, fetches data)
 
 ### Loading States
+
 - **Initial load**: Already done in Level 1 (bulk-load)
 - **Filtering**: No loading (instant)
 - **Sorting**: No loading (instant)
 - **Images**: Lazy load with placeholder
 
 ### Error Handling
+
 - **Missing warehouse**: Show "Not found" message with back button
 - **No storage locations**: Show "No data" message
 - **Failed images**: Show gray placeholder with "No photo" text
@@ -750,13 +769,14 @@ import { FixedSizeGrid as Grid } from 'react-window';
 
 ## Version History
 
-| Version | Date | Changes |
-|---------|------|---------|
-| 1.0.0 | 2025-10-08 | Initial warehouse internal structure subflow |
+| Version | Date       | Changes                                      |
+|---------|------------|----------------------------------------------|
+| 1.0.0   | 2025-10-08 | Initial warehouse internal structure subflow |
 
 ---
 
 **Notes:**
+
 - Storage areas (canteros) organized by position: N, S, E, W, C
 - Preview cards show key metrics without fetching additional data
 - Client-side filtering provides instant responsiveness

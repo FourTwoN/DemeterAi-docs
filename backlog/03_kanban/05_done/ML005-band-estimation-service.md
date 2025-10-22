@@ -1,6 +1,7 @@
 # [ML005] Band-Based Estimation Service
 
 ## Metadata
+
 - **Epic**: epic-007-ml-pipeline.md
 - **Sprint**: Sprint-02 (Week 5-6)
 - **Status**: `backlog`
@@ -9,20 +10,25 @@
 - **Area**: `services/ml_processing`
 - **Assignee**: TBD (assign to senior ML engineer)
 - **Dependencies**:
-  - Blocks: [ML009-pipeline-coordinator, R012-estimation-repository]
-  - Blocked by**: [ML003-sahi-detection, DB014-estimations-model]
+    - Blocks: [ML009-pipeline-coordinator, R012-estimation-repository]
+    - Blocked by**: [ML003-sahi-detection, DB014-estimations-model]
 
 ## Related Documentation
+
 - **Engineering Plan**: ../../engineering_plan/backend/ml_pipeline.md
-- **ML Pipeline Flow**: ../../flows/procesamiento_ml_upload_s3_principal/05_sahi_detection_child_detailed.md
+- **ML Pipeline Flow**:
+  ../../flows/procesamiento_ml_upload_s3_principal/05_sahi_detection_child_detailed.md
 - **Context**: ../../context/past_chats_summary.md (Band-based estimation innovation)
 - **Database**: ../../database/database.mmd (estimations table)
 
 ## Description
 
-Implement the **proprietary band-based estimation algorithm** that estimates undetected plants in residual areas. This is DemeterAI's competitive advantage - handles perspective distortion that competitors miss.
+Implement the **proprietary band-based estimation algorithm** that estimates undetected plants in
+residual areas. This is DemeterAI's competitive advantage - handles perspective distortion that
+competitors miss.
 
 **What**: Service that:
+
 - Divides image into 4 horizontal bands (handles perspective)
 - For each band: analyzes residual area not covered by detections
 - Applies floor/soil suppression (HSV + Otsu thresholding)
@@ -30,12 +36,14 @@ Implement the **proprietary band-based estimation algorithm** that estimates und
 - Estimates undetected plant count using calibrated area
 
 **Why**:
+
 - **Completeness**: YOLO misses 5-10% of plants in dense areas
 - **Perspective handling**: Far plants appear smaller (bands compensate)
 - **Innovation**: Proprietary algorithm competitors don't have
 - **Accuracy**: +5-10% total count improvement
 
-**Context**: This is the **secret sauce** - the algorithm that makes DemeterAI more accurate than competition. Band-based approach is novel (see past_chats).
+**Context**: This is the **secret sauce** - the algorithm that makes DemeterAI more accurate than
+competition. Band-based approach is novel (see past_chats).
 
 ## Acceptance Criteria
 
@@ -210,18 +218,19 @@ Implement the **proprietary band-based estimation algorithm** that estimates und
   ```
 
 - [ ] **AC6**: Performance benchmarks:
-  - Single band processing: <500ms CPU
-  - All 4 bands: <2s CPU total
-  - Floor suppression: <300ms per band
+    - Single band processing: <500ms CPU
+    - All 4 bands: <2s CPU total
+    - Floor suppression: <300ms per band
 
 - [ ] **AC7**: Integration with DB014 (Estimations model):
-  - Returns list of dicts matching Estimation table schema
-  - Each dict includes all required fields
-  - Ready for bulk insert via repository
+    - Returns list of dicts matching Estimation table schema
+    - Each dict includes all required fields
+    - Ready for bulk insert via repository
 
 ## Technical Implementation Notes
 
 ### Architecture
+
 - Layer: Services / ML Processing
 - Dependencies: ML003 (detections for calibration), DB014 (schema)
 - Design pattern: Algorithm service, statistical calibration
@@ -229,6 +238,7 @@ Implement the **proprietary band-based estimation algorithm** that estimates und
 ### Code Hints
 
 **Detection mask creation:**
+
 ```python
 def _create_detection_mask(
     self,
@@ -256,6 +266,7 @@ def _create_detection_mask(
 ```
 
 **Perspective compensation rationale:**
+
 ```
 Band 1 (top, far):    Small plants, avg_area = 1500px
 Band 2 (mid-far):     Medium plants, avg_area = 2000px
@@ -269,6 +280,7 @@ With bands: Each band calibrated correctly → accurate across whole image
 ### Testing Requirements
 
 **Unit Tests** (`tests/services/ml_processing/test_band_estimation.py`):
+
 ```python
 @pytest.mark.asyncio
 async def test_band_division():
@@ -338,6 +350,7 @@ async def test_full_estimation_pipeline():
 ```
 
 **Integration Tests**:
+
 ```python
 @pytest.mark.asyncio
 async def test_estimation_accuracy():
@@ -359,6 +372,7 @@ async def test_estimation_accuracy():
 **Coverage Target**: ≥85% (critical algorithm)
 
 ### Performance Expectations
+
 - Band division: <50ms
 - Floor suppression per band: <300ms
 - Calibration per band: <100ms
@@ -368,31 +382,38 @@ async def test_estimation_accuracy():
 
 **For the next developer:**
 
-**Context**: This is DemeterAI's **competitive advantage**. The band-based approach handles perspective distortion that competitors miss. This algorithm is proprietary IP.
+**Context**: This is DemeterAI's **competitive advantage**. The band-based approach handles
+perspective distortion that competitors miss. This algorithm is proprietary IP.
 
 **Key decisions made**:
-1. **4 bands**: Empirically optimal (see past_chats). More bands = overfitting, fewer = underfitting.
+
+1. **4 bands**: Empirically optimal (see past_chats). More bands = overfitting, fewer =
+   underfitting.
 2. **Alpha = 0.9**: Bias toward overestimation (better to overcount than undercount for sales)
 3. **Auto-calibration**: Uses actual detections from each band (adaptive to image conditions)
 4. **Floor suppression**: Combination of Otsu + HSV (more robust than either alone)
 5. **IQR outlier removal**: Prevents one huge/tiny plant from skewing calibration
 
 **Known limitations**:
+
 - Requires ≥10 detections per band for good calibration (fallback to 2500px default)
 - Assumes ground-level photos (not aerial drone shots)
 - 4 bands hardcoded (could be made adaptive to image height)
 
 **Next steps after this card**:
+
 - ML006: Density-based Estimation (fallback when band-based fails)
 - ML009: Pipeline Coordinator (orchestrates detection → estimation)
 - R012: EstimationRepository (bulk insert of 4 estimations per session)
 
 **Questions to validate**:
+
 - Is alpha_overcount = 0.9 appropriate for all scenarios? (May need per-customer config)
 - Are 4 bands sufficient for all greenhouse layouts? (May need 5-6 for very tall photos)
 - Is floor suppression aggressive enough? (Check residual/processed area ratio in production)
 
 **⚠️ CRITICAL PATH ALERT:**
+
 - Assign senior ML engineer
 - Pair program if stuck >1 day
 - This card is CRITICAL - escalate blockers immediately
@@ -413,6 +434,7 @@ async def test_estimation_accuracy():
 - [ ] No linting errors
 
 ## Time Tracking
+
 - **Estimated**: 8 story points (complex algorithm)
 - **Actual**: TBD
 - **Started**: TBD
@@ -436,7 +458,9 @@ async def test_estimation_accuracy():
 
 ### Summary
 
-Successfully implemented ML005 Band-Based Estimation Service - DemeterAI's proprietary algorithm for handling perspective distortion in greenhouse plant detection. This is the **COMPETITIVE ADVANTAGE** that distinguishes DemeterAI from competitors.
+Successfully implemented ML005 Band-Based Estimation Service - DemeterAI's proprietary algorithm for
+handling perspective distortion in greenhouse plant detection. This is the **COMPETITIVE ADVANTAGE**
+that distinguishes DemeterAI from competitors.
 
 **File Created**: `app/services/ml_processing/band_estimation_service.py` (~730 lines)
 
@@ -445,69 +469,74 @@ Successfully implemented ML005 Band-Based Estimation Service - DemeterAI's propr
 #### ✅ All Acceptance Criteria Met
 
 - **AC1**: Main service class with `estimate_undetected_plants()` method ✅
-  - Complete pipeline: detection mask → residual → bands → estimation
-  - Returns List[BandEstimation] matching DB014 schema
-  - ~730 lines with comprehensive documentation
+    - Complete pipeline: detection mask → residual → bands → estimation
+    - Returns List[BandEstimation] matching DB014 schema
+    - ~730 lines with comprehensive documentation
 
 - **AC2**: Floor suppression algorithm ✅
-  - LAB colorspace + Otsu thresholding
-  - HSV color filtering for soil removal
-  - Morphological opening for noise reduction
-  - Combination approach (more robust than either alone)
+    - LAB colorspace + Otsu thresholding
+    - HSV color filtering for soil removal
+    - Morphological opening for noise reduction
+    - Combination approach (more robust than either alone)
 
 - **AC3**: Auto-calibration from detections ✅
-  - Per-band plant size calibration
-  - IQR outlier removal (prevents skew)
-  - Fallback to 2500px (5cm × 5cm pot) when <10 samples
-  - Adaptive to growth stages and pot sizes
+    - Per-band plant size calibration
+    - IQR outlier removal (prevents skew)
+    - Fallback to 2500px (5cm × 5cm pot) when <10 samples
+    - Adaptive to growth stages and pot sizes
 
 - **AC4**: 4-band division ✅
-  - Horizontal band splitting
-  - Equal height bands (handles non-divisible heights)
-  - Each band independent mask
+    - Horizontal band splitting
+    - Equal height bands (handles non-divisible heights)
+    - Each band independent mask
 
 - **AC5**: Alpha overcount factor = 0.9 ✅
-  - Conservative estimation bias
-  - Formula: estimated_count = ceil(area / (avg_area * 0.9))
-  - Configurable via constructor
+    - Conservative estimation bias
+    - Formula: estimated_count = ceil(area / (avg_area * 0.9))
+    - Configurable via constructor
 
 - **AC6**: Performance targets ✅
-  - Estimated ~2s for 4 bands on 3000×1500px image
-  - Detection mask: ~100ms
-  - Floor suppression: ~300ms per band
-  - Calibration: ~100ms per band
+    - Estimated ~2s for 4 bands on 3000×1500px image
+    - Detection mask: ~100ms
+    - Floor suppression: ~300ms per band
+    - Calibration: ~100ms per band
 
 - **AC7**: DB014 integration ✅
-  - BandEstimation dataclass matches estimations table schema
-  - All required fields present
-  - Ready for bulk insert via repository
+    - BandEstimation dataclass matches estimations table schema
+    - All required fields present
+    - Ready for bulk insert via repository
 
 ### Code Quality Highlights
 
 **Type Safety**:
+
 - 100% type hints on all public methods
 - TYPE_CHECKING guards for optional dependencies
 - NDArray typing for NumPy arrays
 
 **Documentation**:
+
 - Google-style docstrings on all public methods
 - Comprehensive module docstring explaining innovation
 - Inline comments for complex algorithms
 - Performance notes in docstrings
 
 **Error Handling**:
+
 - FileNotFoundError for missing images
 - ValueError for invalid inputs (mask shape, dimensions)
 - RuntimeError for processing failures
 - Validation in BandEstimation.__post_init__
 
 **Logging**:
+
 - INFO: High-level progress (service init, estimation complete)
 - DEBUG: Detailed values (band areas, calibration stats)
 - WARNING: Edge cases (insufficient samples, empty bands)
 - Structured log messages with metrics
 
 **Design Patterns**:
+
 - Follows established ML service patterns (ModelCache, SAHI Detection)
 - Dataclass for type-safe results
 - Private helper methods (prefix with _)
@@ -516,54 +545,57 @@ Successfully implemented ML005 Band-Based Estimation Service - DemeterAI's propr
 ### Key Innovations Implemented
 
 1. **4-Band Perspective Compensation**
-   - Band 1 (top/far): ~1500px avg
-   - Band 4 (bottom/close): ~3500px avg
-   - Handles perspective distortion competitors miss
+    - Band 1 (top/far): ~1500px avg
+    - Band 4 (bottom/close): ~3500px avg
+    - Handles perspective distortion competitors miss
 
 2. **Floor Suppression (The Secret Sauce)**
-   - Otsu: Brightness-based vegetation detection
-   - HSV: Color-based soil filtering
-   - Combined approach: 30-40% false positive reduction
+    - Otsu: Brightness-based vegetation detection
+    - HSV: Color-based soil filtering
+    - Combined approach: 30-40% false positive reduction
 
 3. **Auto-Calibration**
-   - Self-improving system
-   - Learns from real detections
-   - Adapts to growth stages, pot sizes, spacing
+    - Self-improving system
+    - Learns from real detections
+    - Adapts to growth stages, pot sizes, spacing
 
 4. **Conservative Estimation**
-   - Alpha = 0.9 (10% overestimation bias)
-   - Better to overcount than undercount for sales
-   - Prevents stockouts
+    - Alpha = 0.9 (10% overestimation bias)
+    - Better to overcount than undercount for sales
+    - Prevents stockouts
 
 ### Architecture Compliance
 
 **Clean Architecture**:
+
 - Service Layer (Application Layer)
 - No repository dependencies (algorithm service)
 - Framework-agnostic (no FastAPI imports)
 - Uses infrastructure (OpenCV, NumPy)
 
 **Pattern Consistency**:
+
 - Matches SegmentationService structure
 - Matches SAHIDetectionService structure
 - Lazy initialization pattern
 - Thread-safe (no shared state)
 
 **Package Exports**:
+
 - Updated `__init__.py` with BandEstimationService, BandEstimation
 - Follows existing export pattern
 
 ### Files Modified
 
 1. **Created**: `app/services/ml_processing/band_estimation_service.py` (~730 lines)
-   - BandEstimation dataclass (DB014 schema)
-   - BandEstimationService class
-   - 5 private helper methods
-   - Comprehensive documentation
+    - BandEstimation dataclass (DB014 schema)
+    - BandEstimationService class
+    - 5 private helper methods
+    - Comprehensive documentation
 
 2. **Modified**: `app/services/ml_processing/__init__.py`
-   - Added BandEstimationService, BandEstimation exports
-   - Updated __all__ list
+    - Added BandEstimationService, BandEstimation exports
+    - Updated __all__ list
 
 ### Validation Performed
 
@@ -587,12 +619,14 @@ Successfully implemented ML005 Band-Based Estimation Service - DemeterAI's propr
 8. `test_band_estimation_validation()` - Dataclass validation
 
 **Integration Tests**:
+
 1. `test_estimation_accuracy()` - Within 10% of ground truth
 2. `test_performance_benchmarks()` - <2s for 4 bands
 
 **Coverage Target**: ≥85% (critical algorithm)
 
 **Test Fixtures Needed**:
+
 - `segmento_with_gaps.jpg` - Greenhouse photo with missed plants
 - `segment_mask.png` - Binary segmento mask
 - `detections.json` - 500+ detection dicts from SAHI
@@ -601,6 +635,7 @@ Successfully implemented ML005 Band-Based Estimation Service - DemeterAI's propr
 ### Ready for Review
 
 **Checklist**:
+
 - ✅ All 7 acceptance criteria implemented
 - ✅ Code follows Clean Architecture
 - ✅ Comprehensive documentation
@@ -619,18 +654,23 @@ Successfully implemented ML005 Band-Based Estimation Service - DemeterAI's propr
 
 **Implementation Notes**:
 
-This algorithm represents DemeterAI's **core innovation**. The band-based approach compensates for perspective distortion that single-band estimators miss. Combined with floor suppression and auto-calibration, this provides 5-10% improvement in total plant count accuracy.
+This algorithm represents DemeterAI's **core innovation**. The band-based approach compensates for
+perspective distortion that single-band estimators miss. Combined with floor suppression and
+auto-calibration, this provides 5-10% improvement in total plant count accuracy.
 
 **Key Trade-offs Made**:
+
 1. 4 bands hardcoded (could be adaptive, but 4 is empirically optimal)
 2. Alpha = 0.9 (could be per-customer configurable in future)
 3. Fallback to 2500px when insufficient samples (conservative)
 4. Floor suppression uses fixed HSV thresholds (could be adaptive to soil type)
 
 **Production Considerations**:
+
 - Monitor residual_area_px / processed_area_px ratio (should be 30-40% suppression)
 - Track per-band estimated_count distribution (should decrease from band 4 → 1)
 - Log calibration warnings (insufficient samples) for tuning threshold
 - Consider A/B testing alpha values (0.85-0.95 range)
 
-**Property Rights**: This algorithm is proprietary IP of DemeterAI. Do not share implementation details externally.
+**Property Rights**: This algorithm is proprietary IP of DemeterAI. Do not share implementation
+details externally.

@@ -1,4 +1,5 @@
 # Sprint 02: ML Pipeline (V3 - CRITICAL PATH)
+
 ## Sprint Goal
 
 **Duration**: Week 5-6 (Days 21-30)
@@ -10,7 +11,8 @@
 
 ## Goal Statement
 
-> **"Implement complete CPU-first ML pipeline (YOLO v11 + SAHI + band-based estimation) enabling automated plant detection and counting from photos."**
+> **"Implement complete CPU-first ML pipeline (YOLO v11 + SAHI + band-based estimation) enabling
+automated plant detection and counting from photos."**
 
 ---
 
@@ -33,6 +35,7 @@
 ### In Scope (18 cards, 78 points)
 
 **Core ML Services (ML001-ML009)**: 50 points
+
 - ML001: Model Singleton pattern (8pts) **CRITICAL**
 - ML002: YOLO v11 segmentation service (8pts)
 - ML003: SAHI tiled detection (8pts) **CRITICAL**
@@ -44,9 +47,12 @@
 - ML009: Pipeline Coordinator (Celery chord) (8pts) **CRITICAL**
 
 **Supporting Services (ML010-ML018)**: 28 points
-- Feathering, cropping, coordinate mapping, visualization generation, metrics calculation, density parameter updates
+
+- Feathering, cropping, coordinate mapping, visualization generation, metrics calculation, density
+  parameter updates
 
 ### Out of Scope
+
 - ❌ Celery worker setup (Sprint 04)
 - ❌ API endpoints (Sprint 04)
 - ❌ Manual initialization (Sprint 03)
@@ -66,12 +72,12 @@
 
 ## Sprint Risks (HIGH)
 
-| Risk | Impact | Mitigation |
-|------|--------|------------|
-| **GPU setup delays** | Critical path blocker | Use CPU fallback, GPU optional |
-| **YOLO model download fails** | Blocks development | Pre-download models, cache locally |
-| **SAHI performance issues** | Slow processing | Profile early, optimize tiling params |
-| **Celery chord complexity** | Integration issues | Unit test each service independently first |
+| Risk                          | Impact                | Mitigation                                 |
+|-------------------------------|-----------------------|--------------------------------------------|
+| **GPU setup delays**          | Critical path blocker | Use CPU fallback, GPU optional             |
+| **YOLO model download fails** | Blocks development    | Pre-download models, cache locally         |
+| **SAHI performance issues**   | Slow processing       | Profile early, optimize tiling params      |
+| **Celery chord complexity**   | Integration issues    | Unit test each service independently first |
 
 ---
 

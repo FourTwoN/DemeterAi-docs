@@ -1,6 +1,7 @@
 # [DEP006] Secrets Management
 
 ## Metadata
+
 - **Epic**: epic-011-deployment
 - **Sprint**: Sprint-07
 - **Priority**: `critical` ⚡
@@ -8,9 +9,12 @@
 - **Dependencies**: Blocked by [DEP005]
 
 ## Description
-Implement secure secrets management using Docker secrets (Swarm) or Kubernetes secrets. Never commit secrets to git.
+
+Implement secure secrets management using Docker secrets (Swarm) or Kubernetes secrets. Never commit
+secrets to git.
 
 ## Acceptance Criteria
+
 - [ ] .env excluded from git (.gitignore)
 - [ ] .env.example template (safe values)
 - [ ] Docker secrets integration (Docker Swarm)
@@ -19,7 +23,9 @@ Implement secure secrets management using Docker secrets (Swarm) or Kubernetes s
 - [ ] Secrets rotated every 90 days (documented process)
 
 ## Implementation
+
 **Docker Secrets (docker-compose.yml):**
+
 ```yaml
 secrets:
   db_password:
@@ -38,6 +44,7 @@ services:
 ```
 
 **Kubernetes Secrets:**
+
 ```yaml
 apiVersion: v1
 kind: Secret
@@ -64,6 +71,7 @@ spec:
 ```
 
 **AWS Secrets Manager (production):**
+
 ```python
 import boto3
 
@@ -75,6 +83,7 @@ def load_secrets():
 ```
 
 ## Testing
+
 - Verify secrets not in git history
 - Test app reads Docker secrets correctly
 - Test Kubernetes secrets mounted as env vars

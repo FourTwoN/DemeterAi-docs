@@ -1,6 +1,7 @@
 # [C009] Reprocess Failed Photo - POST /api/photos/reprocess
 
 ## Metadata
+
 - **Epic**: epic-003-backend-implementation.md
 - **Sprint**: Sprint-03
 - **Status**: `backlog`
@@ -38,6 +39,7 @@ async def reprocess_photo(
 **Coverage Target**: ≥80%
 
 ## Time Tracking
+
 - **Estimated**: 2 story points
 
 ---

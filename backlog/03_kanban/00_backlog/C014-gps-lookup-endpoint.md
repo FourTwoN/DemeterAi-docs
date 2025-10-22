@@ -1,6 +1,7 @@
 # [C014] GPS Lookup - GET /api/map/gps-lookup
 
 ## Metadata
+
 - **Epic**: epic-003-backend-implementation.md
 - **Sprint**: Sprint-04
 - **Status**: `backlog`
@@ -9,7 +10,7 @@
 - **Area**: `backend/controllers`
 - **Assignee**: TBD
 - **Dependencies**:
-  - Blocked by: [SVC007-localization-service, DB001-warehouses-model]
+    - Blocked by: [SVC007-localization-service, DB001-warehouses-model]
 
 ## Description
 
@@ -38,6 +39,7 @@ async def gps_lookup(
 **Coverage Target**: ≥85%
 
 ## Time Tracking
+
 - **Estimated**: 2 story points
 
 ---

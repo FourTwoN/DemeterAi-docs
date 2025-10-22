@@ -1,6 +1,7 @@
 # [SCH001] ManualStockInitRequest Schema
 
 ## Metadata
+
 - **Epic**: epic-003-backend-implementation.md
 - **Sprint**: Sprint-02
 - **Status**: `backlog`
@@ -9,7 +10,7 @@
 - **Area**: `backend/schemas`
 - **Assignee**: TBD
 - **Dependencies**:
-  - Blocked by: [DB007, DB024]
+    - Blocked by: [DB007, DB024]
 
 ## Description
 
@@ -97,16 +98,17 @@ Pydantic request schema for manual stock initialization (POST /api/stock/manual)
   ```
 
 - [ ] **AC2**: Field validation:
-  - All IDs must be > 0
-  - quantity must be > 0
-  - notes max 500 chars
-  - planting_date must be valid date
+    - All IDs must be > 0
+    - quantity must be > 0
+    - notes max 500 chars
+    - planting_date must be valid date
 
 - [ ] **AC3**: OpenAPI example included
 
 **Coverage Target**: ≥85%
 
 ## Time Tracking
+
 - **Estimated**: 1 story point
 
 ---

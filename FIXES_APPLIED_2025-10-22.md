@@ -7,11 +7,14 @@
 
 ## Summary of Fixes
 
-This document catalogs all the test fixes applied to address the audit findings. The focus is on fixing tests to match the actual model signatures and field names, rather than modifying the production code.
+This document catalogs all the test fixes applied to address the audit findings. The focus is on
+fixing tests to match the actual model signatures and field names, rather than modifying the
+production code.
 
 ### Principle: Fix Tests, Not Models
 
-Per user guidance, we are fixing the **tests** to match the **actual model implementations**, rather than changing the models themselves. This ensures tests accurately reflect production behavior.
+Per user guidance, we are fixing the **tests** to match the **actual model implementations**, rather
+than changing the models themselves. This ensures tests accurately reflect production behavior.
 
 ---
 
@@ -22,69 +25,81 @@ Per user guidance, we are fixing the **tests** to match the **actual model imple
 Added 6 comprehensive async factory fixtures for test data creation:
 
 ### 1a. product_category_factory
+
 ```python
 async def product_category_factory(**kwargs):
     """Create ProductCategory instances with proper attributes."""
 ```
+
 - Creates ProductCategory with: code, name, description
 - Auto-generates defaults if not provided
 - Commits to database and returns fresh instance
 
 ### 1b. product_family_factory
+
 ```python
 async def product_family_factory(product_category_factory, **kwargs):
     """Create ProductFamily instances with auto-creation of category if needed."""
 ```
+
 - Depends on product_category_factory
 - Creates ProductFamily with: category_id, name, scientific_name, description
 - Auto-creates category if category_id not provided
 
 ### 1c. product_factory
+
 ```python
 async def product_factory(product_family_factory, **kwargs):
     """Create Product instances with proper sku/common_name attributes."""
 ```
+
 - **KEY FIX**: Replaces old Product(code=, name=) pattern
 - Uses correct attributes:
-  - `sku`: Stock Keeping Unit (6-20 chars, alphanumeric+hyphen)
-  - `common_name`: Human-readable name (NOT 'name')
-  - `scientific_name`: Optional botanical name
-  - `description`: Optional description
-  - `custom_attributes`: JSONB metadata
-  - `family_id`: Foreign key to ProductFamily
+    - `sku`: Stock Keeping Unit (6-20 chars, alphanumeric+hyphen)
+    - `common_name`: Human-readable name (NOT 'name')
+    - `scientific_name`: Optional botanical name
+    - `description`: Optional description
+    - `custom_attributes`: JSONB metadata
+    - `family_id`: Foreign key to ProductFamily
 - Auto-creates family if family_id not provided
 - **Fixes ~40+ test failures** in Detection and Estimation tests
 
 ### 1d. user_factory
+
 ```python
 async def user_factory(**kwargs):
     """Create User instances with bcrypt password hashing."""
 ```
+
 - **KEY FIX**: Replaces old User(username=, hashed_password=) pattern
 - Uses correct attributes:
-  - `email`: Login identifier (unique, indexed)
-  - `password_hash`: Bcrypt hash ($2b$... format)
-  - `first_name`: User first name
-  - `last_name`: User last name
-  - `role`: UserRoleEnum (admin, supervisor, worker, viewer)
-  - `active`: Account status
+    - `email`: Login identifier (unique, indexed)
+    - `password_hash`: Bcrypt hash ($2b$... format)
+    - `first_name`: User first name
+    - `last_name`: User last name
+    - `role`: UserRoleEnum (admin, supervisor, worker, viewer)
+    - `active`: Account status
 - Auto-generates valid bcrypt hashes for test passwords
 - **Fixes ~10+ test failures** in PhotoProcessingSession tests
 
 ### 1e. product_size_factory
+
 ```python
 async def product_size_factory(**kwargs):
     """Create ProductSize instances."""
 ```
+
 - Note: ProductSizes are usually seeded via migrations (7 standard sizes)
 - Available for creating additional test sizes if needed
 - Attributes: code, name, description, min_height_cm, max_height_cm, sort_order
 
 ### 1f. product_state_factory
+
 ```python
 async def product_state_factory(**kwargs):
     """Create ProductState instances."""
 ```
+
 - Note: ProductStates are usually seeded via migrations (11 lifecycle states)
 - Available for creating additional test states if needed
 - Attributes: code, name, description, is_sellable, sort_order
@@ -98,7 +113,9 @@ async def product_state_factory(**kwargs):
 **File**: `tests/unit/models/test_detection.py`
 
 **Fixes Applied**:
-- Replaced 9 instances of `Product(code="...", name="...", category="...")` with `await product_factory(sku="...", common_name="...")`
+
+- Replaced 9 instances of `Product(code="...", name="...", category="...")` with
+  `await product_factory(sku="...", common_name="...")`
 - Added `product_factory` parameter to all affected test methods
 - Pattern changed from:
   ```python
@@ -108,13 +125,15 @@ async def product_state_factory(**kwargs):
   ```python
   product = await product_factory(sku="PROD-001", common_name="Test Product")
   ```
-- **Affected test methods**: 9 tests in TestDetectionBasicCRUD, TestDetectionBooleanFlags, TestDetectionCascadeDelete, etc.
+- **Affected test methods**: 9 tests in TestDetectionBasicCRUD, TestDetectionBooleanFlags,
+  TestDetectionCascadeDelete, etc.
 
 ### 2b. test_estimation.py
 
 **File**: `tests/unit/models/test_estimation.py`
 
 **Fixes Applied**:
+
 - Replaced 9 instances of `Product(code=..., name=..., category=...)` with `product_factory` calls
 - Added `product_factory` parameter to all affected test methods
 - Same pattern change as test_detection.py
@@ -124,7 +143,9 @@ async def product_state_factory(**kwargs):
 **File**: `tests/unit/models/test_photo_processing_session.py`
 
 **Fixes Applied**:
-- Replaced `User(username="...", email="...", hashed_password="...")` with `await user_factory(email="...", first_name="...")`
+
+- Replaced `User(username="...", email="...", hashed_password="...")` with
+  `await user_factory(email="...", first_name="...")`
 - Added `user_factory` parameter to all affected test methods
 - Pattern changed from:
   ```python
@@ -145,12 +166,15 @@ async def product_state_factory(**kwargs):
 **Fix Applied**: Replace `coordinates=` with `geojson_coordinates=`
 
 **Reasoning**:
+
 - SQLAlchemy models use `geojson_coordinates` as the database column name
 - Tests were using wrong parameter name `coordinates`
 - This affected Warehouse, StorageArea, and StorageLocation models
 
 **Files Modified**:
-1. `tests/conftest.py` - Fixed sample_storage_areas, sample_storage_locations, warehouse_factory, storage_area_factory, storage_location_factory
+
+1. `tests/conftest.py` - Fixed sample_storage_areas, sample_storage_locations, warehouse_factory,
+   storage_area_factory, storage_location_factory
 2. `tests/unit/models/test_warehouse.py`
 3. `tests/unit/models/test_storage_area.py`
 4. `tests/unit/models/test_storage_location.py`
@@ -164,6 +188,7 @@ async def product_state_factory(**kwargs):
 12. `tests/unit/services/test_storage_location_service.py`
 
 **Example Change**:
+
 ```python
 # BEFORE
 warehouse = Warehouse(
@@ -187,20 +212,24 @@ warehouse = Warehouse(
 **File**: `tests/integration/test_s3_image_service.py`
 
 **Fixes Applied**:
+
 1. Added missing import:
    ```python
    from app.schemas.s3_image_schema import S3ImageUploadRequest
    ```
 
-2. Updated upload_original() method calls to use S3ImageUploadRequest object instead of flat parameters
-   - Old pattern: `await s3_service.upload_original(file_bytes, session_id, filename="...", content_type=..., width_px=..., ...)`
-   - New pattern: Create S3ImageUploadRequest object with all parameters, then pass to service
+2. Updated upload_original() method calls to use S3ImageUploadRequest object instead of flat
+   parameters
+    - Old pattern:
+      `await s3_service.upload_original(file_bytes, session_id, filename="...", content_type=..., width_px=..., ...)`
+    - New pattern: Create S3ImageUploadRequest object with all parameters, then pass to service
 
 **Reasoning**:
+
 - S3ImageService.upload_original() signature expects:
-  - file_bytes: bytes
-  - session_id: UUID
-  - upload_request: S3ImageUploadRequest object
+    - file_bytes: bytes
+    - session_id: UUID
+    - upload_request: S3ImageUploadRequest object
 - Tests were passing individual parameters which don't exist in the method signature
 
 ---
@@ -210,7 +239,9 @@ warehouse = Warehouse(
 **Updated test method signatures** to include factory parameters:
 
 ### test_detection.py
+
 All test methods that use `product_factory` now have it in their parameters:
+
 ```python
 async def test_create_detection_minimal_fields(
     self, db_session, warehouse_factory, storage_area_factory,
@@ -219,10 +250,13 @@ async def test_create_detection_minimal_fields(
 ```
 
 ### test_estimation.py
+
 Same pattern as test_detection.py
 
 ### test_photo_processing_session.py
+
 All test methods that use `user_factory` now have it in their parameters:
+
 ```python
 async def test_create_session_all_fields(
     self, db_session, warehouse_factory, storage_area_factory,
@@ -235,43 +269,47 @@ async def test_create_session_all_fields(
 ## Expected Impact on Test Pass Rate
 
 ### Before Fixes
+
 - **Total Tests**: 1,456
 - **Passing**: 1,187 (81.5%)
 - **Failing**: 261 (18.0%)
 - **Coverage**: 72.38% (below 80% threshold)
 
 ### Expected After Fixes
+
 - **Model instantiation failures fixed**: ~90-100 tests
-  - Product(code=...) → product_factory: ~40 tests
-  - User(username=...) → user_factory: ~10 tests
-  - coordinates → geojson_coordinates: ~40-50 tests
+    - Product(code=...) → product_factory: ~40 tests
+    - User(username=...) → user_factory: ~10 tests
+    - coordinates → geojson_coordinates: ~40-50 tests
 
 - **Expected passing**: ~1,280-1,290 tests (88-90%)
 - **Expected failing**: ~170-180 tests (10-12%)
 - **Expected coverage**: ~75-80%
 
 ### Remaining Issues to Address
+
 1. **Celery task property setter issues** (~20 tests)
-   - ModelSingletonTask.request property has no setter
-   - Needs modification to allow test injection
+    - ModelSingletonTask.request property has no setter
+    - Needs modification to allow test injection
 
 2. **ML Pipeline async/await issues** (~15 tests)
-   - File path issues in tests
-   - Mock setup required
+    - File path issues in tests
+    - Mock setup required
 
 3. **Auth configuration** (~16 tests)
-   - Missing AUTH0_DOMAIN environment variable
-   - Needs test fixtures for auth service
+    - Missing AUTH0_DOMAIN environment variable
+    - Needs test fixtures for auth service
 
 4. **Type checking** (275 mypy errors)
-   - Missing type stubs for some dependencies
-   - Lower priority, doesn't affect test execution
+    - Missing type stubs for some dependencies
+    - Lower priority, doesn't affect test execution
 
 ---
 
 ## How to Verify Fixes
 
 ### Step 1: Run a Sample of Fixed Tests
+
 ```bash
 # Test Product factory fixes
 pytest tests/unit/models/test_detection.py::TestDetectionBasicCRUD::test_create_detection_minimal_fields -v
@@ -284,6 +322,7 @@ pytest tests/unit/models/test_warehouse.py::TestWarehouseDefaultValues::test_act
 ```
 
 ### Step 2: Run Full Test Suite
+
 ```bash
 pytest tests/ -v --tb=short 2>&1 | tee test_results.log
 
@@ -292,6 +331,7 @@ grep "passed\|failed" test_results.log | tail -1
 ```
 
 ### Step 3: Check Coverage
+
 ```bash
 pytest tests/ --cov=app --cov-report=term-missing | grep "TOTAL"
 ```
@@ -301,10 +341,12 @@ pytest tests/ --cov=app --cov-report=term-missing | grep "TOTAL"
 ## Files Modified Summary
 
 **conftest.py** (Main fixture file)
+
 - Added 6 factory fixtures
 - ~150 lines added
 
 **Test Files Modified** (15 files)
+
 - test_detection.py: 9 Product fixes
 - test_estimation.py: 9 Product fixes
 - test_photo_processing_session.py: 10+ User fixes
@@ -328,15 +370,18 @@ pytest tests/ --cov=app --cov-report=term-missing | grep "TOTAL"
 ## Next Steps
 
 ### High Priority (Blocking other fixes)
+
 1. **Verify** these fixes work with pytest run
 2. **Commit** the test fixes
 3. **Address Celery task issues** if test results show they're blocking further progress
 
 ### Medium Priority
+
 4. Fix ML Pipeline coordinate and file path issues
 5. Add Auth configuration test fixtures
 
 ### Low Priority (Non-blocking)
+
 6. Fix type checking issues (mypy errors)
 7. Clean up test code style violations
 

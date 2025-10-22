@@ -7,7 +7,8 @@
 
 ## Overview
 
-This guide covers development workflow, conventions, testing, and the 15-phase implementation plan for DemeterAI v2.0.
+This guide covers development workflow, conventions, testing, and the 15-phase implementation plan
+for DemeterAI v2.0.
 
 ---
 
@@ -27,24 +28,28 @@ This guide covers development workflow, conventions, testing, and the 15-phase i
 ### Phase 1-5: Backend Core (8-10 weeks)
 
 **Phase 1:** SQLAlchemy Models + Repositories
+
 - Create all 28 database models
 - Implement base AsyncRepository pattern
 - Write specialized repository methods
 - Unit tests for all repositories
 
 **Phase 2:** Base Services
+
 - ProductService, PackagingService
 - StorageLocationService, WarehouseService
 - Configuration services
 - Unit tests with mocked repositories
 
 **Phase 3:** Complex Services
+
 - StockMovementService (with manual init support)
 - StockBatchService
 - PhotoSessionService
 - Integration tests
 
 **Phase 4:** ML Pipeline
+
 - SegmentationService (YOLO v11, CPU-first)
 - DetectionService (SAHI integration)
 - EstimationService (band-based algorithm)
@@ -52,6 +57,7 @@ This guide covers development workflow, conventions, testing, and the 15-phase i
 - Model singleton pattern
 
 **Phase 5:** Pydantic Schemas
+
 - Request/response schemas for all endpoints
 - Validation rules
 - Schema documentation
@@ -59,25 +65,30 @@ This guide covers development workflow, conventions, testing, and the 15-phase i
 ### Phase 6-10: API Layer (6-8 weeks)
 
 **Phase 6:** Location Controllers
+
 - GET /warehouses, /areas, /locations
 - Pagination, filtering
 
 **Phase 7:** Configuration Controllers
+
 - POST/GET /config/storage-location
 - Product/packaging CRUD
 
 **Phase 8:** Stock Controllers + Celery
+
 - POST /stock/photo (async with Celery)
 - POST /stock/manual (sync)
 - GET /stock/tasks/status (polling)
 - Celery worker setup
 
 **Phase 9:** Analytics Controllers
+
 - POST /report
 - GET /comparison
 - Data export (Excel/CSV)
 
 **Phase 10:** Authentication
+
 - JWT token generation
 - User management
 - Role-based access control
@@ -85,26 +96,31 @@ This guide covers development workflow, conventions, testing, and the 15-phase i
 ### Phase 11-15: Infrastructure (4-6 weeks)
 
 **Phase 11:** Exceptions + Logging
+
 - Centralized exception handling
 - Structured logging (JSON format)
 - Error tracking integration
 
 **Phase 12:** Configuration Management
+
 - YAML config loaders
 - Environment variable management
 - Feature flags
 
 **Phase 13:** Docker + Deployment
+
 - Dockerfile (multi-stage build)
 - docker-compose.yml
 - CI/CD pipeline (GitHub Actions)
 
 **Phase 14:** Documentation
+
 - README.md
 - API documentation (Swagger)
 - Deployment guide
 
 **Phase 15:** Optimization + Refactoring
+
 - Performance profiling
 - Query optimization
 - Code cleanup
@@ -123,6 +139,7 @@ This guide covers development workflow, conventions, testing, and the 15-phase i
 Ruff is a fast, all-in-one linter and formatter (10-100x faster than Black+Flake8+isort).
 
 **Quick Commands:**
+
 ```bash
 # Format code
 ruff format .
@@ -135,6 +152,7 @@ ruff format . && ruff check . --fix
 ```
 
 **Configuration:** See `pyproject.toml` under `[tool.ruff]`
+
 - Line length: 100 characters
 - Target version: Python 3.12
 - Enabled rules: E, F, I, N, W, UP, B, C4, SIM
@@ -143,15 +161,15 @@ ruff format . && ruff check . --fix
 
 ### Naming Conventions
 
-| Type | Convention | Example |
-|------|-----------|---------|
-| **Variables** | snake_case | `storage_location_id` |
-| **Functions** | snake_case | `async def get_stock_movements()` |
-| **Classes** | PascalCase | `StockMovementService` |
-| **Constants** | UPPER_SNAKE_CASE | `MAX_RETRIES = 3` |
-| **Private** | _leading_underscore | `_internal_method()` |
-| **Database Models** | PascalCase | `StockMovement` |
-| **Pydantic Schemas** | PascalCase + suffix | `StockMovementRequest` |
+| Type                 | Convention          | Example                           |
+|----------------------|---------------------|-----------------------------------|
+| **Variables**        | snake_case          | `storage_location_id`             |
+| **Functions**        | snake_case          | `async def get_stock_movements()` |
+| **Classes**          | PascalCase          | `StockMovementService`            |
+| **Constants**        | UPPER_SNAKE_CASE    | `MAX_RETRIES = 3`                 |
+| **Private**          | _leading_underscore | `_internal_method()`              |
+| **Database Models**  | PascalCase          | `StockMovement`                   |
+| **Pydantic Schemas** | PascalCase + suffix | `StockMovementRequest`            |
 
 ### File Organization
 
@@ -202,16 +220,19 @@ app/
 ### Test Types
 
 **Unit Tests:** 70% of tests
+
 - Test individual functions/methods
 - Mock dependencies
 - Fast execution (<1s per test)
 
 **Integration Tests:** 25% of tests
+
 - Test service layer with real database
 - Use test database (Docker container)
 - Medium execution (1-5s per test)
 
 **End-to-End Tests:** 5% of tests
+
 - Test full workflows (API → DB)
 - Simulate real user scenarios
 - Slow execution (5-30s per test)
@@ -277,10 +298,12 @@ pytest-watch
 ### Branch Strategy
 
 **Main branches:**
+
 - `main` - Production-ready code
 - `develop` - Integration branch
 
 **Feature branches:**
+
 - `feature/manual-stock-init`
 - `feature/celery-gpu-workers`
 - `bugfix/product-mismatch-error`
@@ -297,6 +320,7 @@ chore: <description>
 ```
 
 **Examples:**
+
 - ✅ `docs: add manual stock initialization workflow`
 - ✅ `feat: implement StockMovementService.create_manual_init`
 - ✅ `fix: validate product_id matches config`
@@ -326,12 +350,14 @@ Before submitting PR:
 ### Database Queries
 
 **DO:**
+
 - ✅ Use `selectinload()` for one-to-many
 - ✅ Use `joinedload()` for many-to-one
 - ✅ Add indexes for frequent WHERE clauses
 - ✅ Use `asyncpg COPY` for bulk inserts (1000+ rows)
 
 **DON'T:**
+
 - ❌ Lazy loading in async code (N+1 queries)
 - ❌ SELECT * (fetch only needed columns)
 - ❌ Missing indexes on foreign keys
@@ -339,11 +365,13 @@ Before submitting PR:
 ### Async/Await
 
 **DO:**
+
 - ✅ Use `async def` for I/O-bound operations
 - ✅ Use `await` for database queries, S3 uploads
 - ✅ Use `asyncio.gather()` for parallel operations
 
 **DON'T:**
+
 - ❌ Use `async def` without any `await` (blocking event loop)
 - ❌ Call sync DB methods in async routes
 - ❌ Use `time.sleep()` (use `await asyncio.sleep()`)

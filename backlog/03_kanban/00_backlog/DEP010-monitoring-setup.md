@@ -1,6 +1,7 @@
 # [DEP010] Monitoring Stack Setup (Prometheus + Grafana)
 
 ## Metadata
+
 - **Epic**: epic-011-deployment
 - **Sprint**: Sprint-06
 - **Priority**: `high`
@@ -8,9 +9,12 @@
 - **Dependencies**: Blocked by [OBS006, DEP002]
 
 ## Description
-Deploy complete monitoring stack: Prometheus (metrics), Grafana (dashboards), Loki (logs), Tempo (traces).
+
+Deploy complete monitoring stack: Prometheus (metrics), Grafana (dashboards), Loki (logs), Tempo (
+traces).
 
 ## Acceptance Criteria
+
 - [ ] Prometheus scraping API /metrics every 15s
 - [ ] Grafana dashboards accessible at :3000
 - [ ] Loki collecting logs from all containers
@@ -19,7 +23,9 @@ Deploy complete monitoring stack: Prometheus (metrics), Grafana (dashboards), Lo
 - [ ] Alertmanager configured for critical alerts
 
 ## Implementation
+
 **docker-compose.yml additions:**
+
 ```yaml
 services:
   prometheus:
@@ -67,6 +73,7 @@ volumes:
 ```
 
 **prometheus.yml:**
+
 ```yaml
 global:
   scrape_interval: 15s
@@ -82,6 +89,7 @@ scrape_configs:
 ```
 
 **Grafana datasources:**
+
 ```yaml
 apiVersion: 1
 datasources:
@@ -100,6 +108,7 @@ datasources:
 ```
 
 ## Testing
+
 - Access Prometheus UI: http://localhost:9090
 - Access Grafana UI: http://localhost:3000
 - Query metrics: `rate(http_requests_total[5m])`

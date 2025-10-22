@@ -2,7 +2,8 @@
 
 ## Purpose
 
-Shows the detailed flow for creating a new storage location configuration with historical preservation, used when starting a new cultivation cycle.
+Shows the detailed flow for creating a new storage location configuration with historical
+preservation, used when starting a new cultivation cycle.
 
 ## Scope
 
@@ -14,6 +15,7 @@ Shows the detailed flow for creating a new storage location configuration with h
 ## What It Represents
 
 Complete CREATE flow including:
+
 1. Form validation
 2. Deactivate existing config (active=false)
 3. Insert new config (active=true)
@@ -23,12 +25,14 @@ Complete CREATE flow including:
 ## When to Use CREATE
 
 **Use CREATE when**:
+
 - Sold all previous stock, replanting different species
 - Major crop change (cactus → suculenta)
 - Starting new cultivation cycle
 - Want to preserve historical configuration for reporting
 
-**Impact**: Old config archived (active=false), new config active, historical queries still use old config for their time period.
+**Impact**: Old config archived (active=false), new config active, historical queries still use old
+config for their time period.
 
 ## Database Operations
 
@@ -157,12 +161,12 @@ ORDER BY created_at DESC;
 
 ## Performance
 
-| Operation | Time | Notes |
-|-----------|------|-------|
-| Deactivate old | ~20ms | Single row UPDATE |
-| Insert new | ~20ms | Single row INSERT |
-| Transaction overhead | ~10ms | BEGIN/COMMIT |
-| Total | **~50ms** | Atomic operation |
+| Operation            | Time      | Notes             |
+|----------------------|-----------|-------------------|
+| Deactivate old       | ~20ms     | Single row UPDATE |
+| Insert new           | ~20ms     | Single row INSERT |
+| Transaction overhead | ~10ms     | BEGIN/COMMIT      |
+| Total                | **~50ms** | Atomic operation  |
 
 ---
 

@@ -1,6 +1,7 @@
 # [TEST009] Service Layer Tests
 
 ## Metadata
+
 - **Epic**: epic-012-testing
 - **Sprint**: Sprint-03
 - **Priority**: `high`
@@ -8,9 +9,12 @@
 - **Dependencies**: Blocked by [TEST001, TEST010]
 
 ## Description
-Test service layer with mocked repositories: business logic validation, orchestration, error handling.
+
+Test service layer with mocked repositories: business logic validation, orchestration, error
+handling.
 
 ## Acceptance Criteria
+
 - [ ] Test business logic isolated from database
 - [ ] Mock repositories (pytest-mock)
 - [ ] Test service orchestration (calls multiple services)
@@ -19,6 +23,7 @@ Test service layer with mocked repositories: business logic validation, orchestr
 - [ ] Coverage >80% for services
 
 ## Implementation
+
 ```python
 @pytest.fixture
 def mock_stock_repo(mocker):
@@ -64,6 +69,7 @@ async def test_service_orchestration(stock_service):
 ```
 
 ## Testing
+
 - Test services in isolation (mocked repos)
 - Test business logic without DB
 - Test error handling

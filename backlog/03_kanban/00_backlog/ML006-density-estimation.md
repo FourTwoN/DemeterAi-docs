@@ -1,6 +1,7 @@
 # [ML006] Density-Based Estimation Service - Fallback Algorithm
 
 ## Metadata
+
 - **Epic**: epic-007-ml-pipeline.md
 - **Sprint**: Sprint-02 (Week 5-6)
 - **Status**: `backlog`
@@ -9,18 +10,21 @@
 - **Area**: `services/ml_processing`
 - **Assignee**: TBD
 - **Dependencies**:
-  - Blocks: [ML009]
-  - Blocked by: [ML005, DB014]
+    - Blocks: [ML009]
+    - Blocked by: [ML005, DB014]
 
 ## Related Documentation
+
 - **Engineering Plan**: ../../engineering_plan/backend/ml_pipeline.md
 - **Database**: ../../database/database.mmd (estimations table)
 
 ## Description
 
-Implement density-based estimation as fallback when band-based fails (insufficient detections for calibration). Uses global density parameter instead of per-band calibration.
+Implement density-based estimation as fallback when band-based fails (insufficient detections for
+calibration). Uses global density parameter instead of per-band calibration.
 
-**What**: Service calculates `estimated_count = residual_area * density_factor` where density_factor is plants per square pixel.
+**What**: Service calculates `estimated_count = residual_area * density_factor` where density_factor
+is plants per square pixel.
 
 **Why**: Fallback for edge cases (very few detections, unusual layouts).
 
@@ -28,7 +32,8 @@ Implement density-based estimation as fallback when band-based fails (insufficie
 
 ## Acceptance Criteria
 
-- [ ] **AC1**: Service class `DensityEstimationService` with method `estimate_by_density(residual_area_px, density_factor) -> int`
+- [ ] **AC1**: Service class `DensityEstimationService` with method
+  `estimate_by_density(residual_area_px, density_factor) -> int`
 - [ ] **AC2**: Density factor defaults to 0.000658 plants/px² (empirically derived)
 - [ ] **AC3**: Returns single estimation (not per-band like ML005)
 - [ ] **AC4**: Integration with DensityParameters table for per-location calibration
@@ -55,19 +60,23 @@ class DensityEstimationService:
 ```
 
 ## Testing Requirements
+
 - Test with known density scenarios
 - Verify fallback from ML005 triggers correctly
 - Coverage ≥75%
 
 ## Handover Briefing
+
 Simpler algorithm than ML005. Use when band-based can't calibrate.
 
 ## Definition of Done
+
 - [ ] Code passes tests
 - [ ] Integration with ML009 coordinator
 - [ ] PR approved
 
 ## Time Tracking
+
 - **Estimated**: 5 points
 - **Actual**: TBD
 

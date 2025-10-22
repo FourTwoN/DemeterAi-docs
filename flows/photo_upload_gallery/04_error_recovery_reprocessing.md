@@ -7,23 +7,29 @@
 
 ## Purpose
 
-This diagram documents the **warning state resolution and reprocessing mechanism** that allows users to fix photos in warning states and reprocess them from S3 without re-uploading. This enables graceful degradation and user-driven resolution.
+This diagram documents the **warning state resolution and reprocessing mechanism** that allows users
+to fix photos in warning states and reprocess them from S3 without re-uploading. This enables
+graceful degradation and user-driven resolution.
 
-**IMPORTANT:** Warning states (`completed_with_warning`) are NOT failures. Photos are processed successfully but need manual action to complete stock batch creation.
+**IMPORTANT:** Warning states (`completed_with_warning`) are NOT failures. Photos are processed
+successfully but need manual action to complete stock batch creation.
 
 ## Scope
 
 **Input:**
+
 - Photo with warning state (`needs_location`, `needs_config`, `needs_calibration`)
 - User corrections (manual location, configuration, calibration)
 - Image ID and S3 key
 
 **Output:**
+
 - New Celery job created from S3 original
 - Updated processing session with fixes applied
 - Success or new warning state
 
 **Performance Target:**
+
 - Warning modal load: < 100ms
 - Reprocess trigger: < 200ms
 - New job creation: < 500ms
@@ -36,12 +42,14 @@ This diagram documents the **warning state resolution and reprocessing mechanism
 **Problem:** GPS coordinates missing or outside known cultivation areas
 
 **Causes:**
+
 - Photo taken indoors without GPS
 - Phone GPS disabled
 - EXIF data stripped
 - GPS coordinates don't match any registered field/warehouse
 
 **Resolution:**
+
 - User manually selects storage location from dropdown
 - System reprocesses with manual location override
 - GPS matching skipped, uses user-provided location
@@ -51,11 +59,13 @@ This diagram documents the **warning state resolution and reprocessing mechanism
 **Problem:** Storage location identified but not configured with product/packaging info
 
 **Causes:**
+
 - New storage location created but not configured
 - Admin hasn't set up product types for this location
 - Missing density calibration parameters
 
 **Resolution:**
+
 - Admin configures storage location (via storage location manager)
 - Sets product type, packaging type, expected density
 - System reprocesses with new configuration
@@ -65,11 +75,13 @@ This diagram documents the **warning state resolution and reprocessing mechanism
 **Problem:** Density estimation requires calibration data for this product type
 
 **Causes:**
+
 - New product type without historical data
 - Unusual packaging not seen before
 - ML model confidence too low without calibration baseline
 
 **Resolution:**
+
 - Admin runs calibration wizard for product type
 - Provides 3-5 reference photos with known counts
 - System builds calibration model
@@ -80,6 +92,7 @@ This diagram documents the **warning state resolution and reprocessing mechanism
 ### 1. Warning Badge Click (Gallery View) (lines 120-200)
 
 **User interaction:**
+
 ```tsx
 function PhotoCard({ photo }: { photo: Photo }) {
     // Check for warning states (completed_with_warning)
@@ -125,6 +138,7 @@ function parseWarningType(warningType: string): string {
 ### 2. Warning Modal Component (lines 240-400)
 
 **Modal structure:**
+
 ```tsx
 interface WarningModalProps {
     photo: Photo
@@ -252,6 +266,7 @@ function WarningModal({ photo, onClose, onReprocess }: WarningModalProps) {
 ### 3. Fix Location Form (needs_location) (lines 440-560)
 
 **Manual location selection:**
+
 ```tsx
 function FixLocationForm({
     photo,
@@ -357,6 +372,7 @@ function FixLocationForm({
 ### 4. Fix Config Message (needs_config) (lines 600-680)
 
 **Admin action required:**
+
 ```tsx
 function FixConfigMessage({
     photo,
@@ -412,6 +428,7 @@ function FixConfigMessage({
 ### 5. Backend: Reprocess Endpoint (lines 720-900)
 
 **FastAPI implementation:**
+
 ```python
 from typing import Optional
 from fastapi import APIRouter, Depends, HTTPException, Path, Body
@@ -535,6 +552,7 @@ async def reprocess_photo(
 ### 6. Celery Task: Handle Reprocessing (lines 940-1080)
 
 **Modified task to handle manual overrides:**
+
 ```python
 @celery_app.task(
     name='process_uploaded_photo',
@@ -661,6 +679,7 @@ def process_uploaded_photo(
 9. **Result appears in gallery** (success or new error state)
 
 **Key advantages:**
+
 - **No re-upload needed**: Uses S3 original (saves time and bandwidth)
 - **Preserves original**: Original photo never modified
 - **User-driven**: User decides when to fix and reprocess
@@ -671,17 +690,18 @@ def process_uploaded_photo(
 
 **Reprocessing timing:**
 
-| Phase | Time | Details |
-|-------|------|---------|
-| **Error modal load** | 50ms | Render modal with error details |
-| **Load location options** | 100ms | Fetch warehouses and locations |
-| **User selects location** | ~30s | Human interaction time |
-| **Reprocess API call** | 200ms | Create job, update DB, return 202 |
-| **Job queue wait** | 0-60s | Wait for GPU worker availability |
-| **ML processing** | 5-10 min | Same as initial upload |
-| **Total user time** | ~30s | From error to job monitoring |
+| Phase                     | Time     | Details                           |
+|---------------------------|----------|-----------------------------------|
+| **Error modal load**      | 50ms     | Render modal with error details   |
+| **Load location options** | 100ms    | Fetch warehouses and locations    |
+| **User selects location** | ~30s     | Human interaction time            |
+| **Reprocess API call**    | 200ms    | Create job, update DB, return 202 |
+| **Job queue wait**        | 0-60s    | Wait for GPU worker availability  |
+| **ML processing**         | 5-10 min | Same as initial upload            |
+| **Total user time**       | ~30s     | From error to job monitoring      |
 
 **No re-upload overhead:**
+
 - Saves ~10-30s upload time
 - Saves network bandwidth (5-20MB per photo)
 - S3 download faster than user upload (~1-2s vs 5-10s)
@@ -693,6 +713,7 @@ def process_uploaded_photo(
 **Scenario:** User fixes location, but photo still fails (different error)
 
 **Behavior:**
+
 - New error details shown in gallery
 - User can click "Fix" again
 - Repeat until success or give up
@@ -704,6 +725,7 @@ def process_uploaded_photo(
 **Scenario:** S3 file deleted or corrupted
 
 **Response:**
+
 ```python
 if not verify_s3_file_exists(s3_key_original):
     raise HTTPException(400, 'Original image not found in S3. Cannot reprocess.')
@@ -716,6 +738,7 @@ if not verify_s3_file_exists(s3_key_original):
 **Scenario:** User clicks "Reprocess" multiple times rapidly
 
 **Prevention:**
+
 ```tsx
 const [reprocessing, setReprocessing] = useState(false)
 
@@ -738,6 +761,7 @@ async function handleReprocess() {
 **Scenario:** User tries to reprocess photo they don't own
 
 **Backend check:**
+
 ```python
 if image.uploaded_by_user_id != current_user.id:
     raise HTTPException(403, 'Forbidden')
@@ -751,13 +775,14 @@ if image.uploaded_by_user_id != current_user.id:
 
 ## Version History
 
-| Version | Date | Changes |
-|---------|------|---------|
-| 1.0.0 | 2025-10-08 | Initial error recovery subflow |
+| Version | Date       | Changes                        |
+|---------|------------|--------------------------------|
+| 1.0.0   | 2025-10-08 | Initial error recovery subflow |
 
 ---
 
 **Notes:**
+
 - Reprocessing uses S3 original (no re-upload needed)
 - Manual overrides preserved in processing session
 - Higher priority than normal uploads (faster processing)

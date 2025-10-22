@@ -1,6 +1,7 @@
 # [ML008] Mask Generation Service
 
 ## Metadata
+
 - **Epic**: epic-007
 - **Sprint**: Sprint-02
 - **Priority**: `medium`
@@ -8,15 +9,18 @@
 - **Dependencies**: Blocks [ML009], Blocked by [ML003]
 
 ## Description
+
 Generate soft circular masks around each detection for visualization and residual calculation.
 
 ## Acceptance Criteria
+
 - [ ] Create binary mask per detection (circular, radius = 85% of bbox)
 - [ ] Gaussian blur for soft edges (kernel=15)
 - [ ] Union mask (all detections combined)
 - [ ] Return as numpy array
 
 ## Implementation
+
 ```python
 class MaskGenerationService:
     def create_detection_masks(self, detections, image_shape):
@@ -28,6 +32,7 @@ class MaskGenerationService:
 ```
 
 ## Testing
+
 - Verify mask dimensions match image
 - Check soft edges (no hard circles)
 

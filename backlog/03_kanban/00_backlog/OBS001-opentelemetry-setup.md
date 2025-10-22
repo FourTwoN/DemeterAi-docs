@@ -1,6 +1,7 @@
 # [OBS001] OpenTelemetry Setup
 
 ## Metadata
+
 - **Epic**: epic-010-observability
 - **Sprint**: Sprint-06
 - **Status**: `backlog`
@@ -9,20 +10,24 @@
 - **Area**: `observability`
 - **Assignee**: TBD
 - **Dependencies**:
-  - Blocks: [OBS002, OBS003, OBS004, OBS005]
-  - Blocked by: [F002]
+    - Blocks: [OBS002, OBS003, OBS004, OBS005]
+    - Blocked by: [F002]
 
 ## Related Documentation
+
 - **Engineering Plan**: ../../engineering_plan/02_technology_stack.md (Monitoring section)
 - **Deployment**: ../../engineering_plan/deployment/README.md
 
 ## Description
 
-Initialize OpenTelemetry SDK for distributed tracing, metrics, and logging correlation. OpenTelemetry provides vendor-neutral observability (export to Prometheus, Grafana, Jaeger, or commercial APMs).
+Initialize OpenTelemetry SDK for distributed tracing, metrics, and logging correlation.
+OpenTelemetry provides vendor-neutral observability (export to Prometheus, Grafana, Jaeger, or
+commercial APMs).
 
 **What**: Install and configure OpenTelemetry SDK with automatic FastAPI and Celery instrumentation.
 
-**Why**: Gain visibility into request flows across API → Celery → Database. Essential for debugging production issues and performance optimization.
+**Why**: Gain visibility into request flows across API → Celery → Database. Essential for debugging
+production issues and performance optimization.
 
 **Context**: Foundation for all observability features (traces, metrics, logs).
 
@@ -60,9 +65,9 @@ Initialize OpenTelemetry SDK for distributed tracing, metrics, and logging corre
   ```
 
 - [ ] **AC4**: Automatic instrumentation:
-  - FastAPI: HTTP request traces
-  - Celery: Task execution traces
-  - SQLAlchemy: Database query traces
+    - FastAPI: HTTP request traces
+    - Celery: Task execution traces
+    - SQLAlchemy: Database query traces
 
 - [ ] **AC5**: Call `init_observability()` on app startup:
   ```python
@@ -74,6 +79,7 @@ Initialize OpenTelemetry SDK for distributed tracing, metrics, and logging corre
 ## Technical Implementation Notes
 
 ### Architecture
+
 - Layer: Core (Infrastructure)
 - Pattern: Initialization hook
 - Dependencies: opentelemetry-* packages
@@ -81,6 +87,7 @@ Initialize OpenTelemetry SDK for distributed tracing, metrics, and logging corre
 ### Code Hints
 
 **app/core/observability.py:**
+
 ```python
 from opentelemetry import trace, metrics
 from opentelemetry.sdk.trace import TracerProvider
@@ -149,6 +156,7 @@ def instrument_database(engine):
 ```
 
 **app/main.py integration:**
+
 ```python
 from fastapi import FastAPI
 from app.core.observability import init_observability, instrument_app
@@ -169,6 +177,7 @@ async def health():
 ```
 
 **app/core/config.py additions:**
+
 ```python
 class Settings(BaseSettings):
     # Observability
@@ -180,16 +189,19 @@ class Settings(BaseSettings):
 ### Testing Requirements
 
 **Unit Tests** (`tests/core/test_observability.py`):
+
 - [ ] Test init_observability sets up providers
 - [ ] Test tracer provider configured with correct resource
 - [ ] Test meter provider configured with correct resource
 
 **Integration Tests** (`tests/test_tracing.py`):
+
 - [ ] Test FastAPI request creates trace span
 - [ ] Test span includes service.name attribute
 - [ ] Test nested spans (API → service → repo)
 
 **Test Example**:
+
 ```python
 from opentelemetry import trace
 from app.core.observability import init_observability
@@ -208,6 +220,7 @@ def test_fastapi_creates_trace(client):
 ```
 
 ### Performance Expectations
+
 - Overhead per request: <5ms (tracing)
 - Memory overhead: ~50MB (trace buffers)
 - CPU overhead: <2%
@@ -215,15 +228,16 @@ def test_fastapi_creates_trace(client):
 ## Handover Briefing
 
 **For the next developer:**
+
 - **Context**: OpenTelemetry is the CNCF standard for observability
 - **Key decisions**:
-  - Using OTLP exporter (next card OBS002)
-  - Automatic instrumentation (zero code changes in business logic)
-  - Export to Prometheus (metrics) + Tempo (traces) + Loki (logs)
+    - Using OTLP exporter (next card OBS002)
+    - Automatic instrumentation (zero code changes in business logic)
+    - Export to Prometheus (metrics) + Tempo (traces) + Loki (logs)
 - **Next steps after this card**:
-  - OBS002: Configure OTLP exporter (send data to Grafana stack)
-  - OBS003: Add custom trace spans for ML pipeline
-  - OBS004: Add business metrics (counters, histograms)
+    - OBS002: Configure OTLP exporter (send data to Grafana stack)
+    - OBS003: Add custom trace spans for ML pipeline
+    - OBS004: Add business metrics (counters, histograms)
 
 ## Definition of Done Checklist
 
@@ -236,6 +250,7 @@ def test_fastapi_creates_trace(client):
 - [ ] Documentation updated
 
 ## Time Tracking
+
 - **Estimated**: 5 story points
 - **Actual**: TBD
 - **Started**: TBD

@@ -74,37 +74,37 @@ async def upload_photo_for_stock_count(
 ) -> PhotoUploadResponse:
     """Upload photo for ML-powered stock counting (C001).
 
-    Complete workflow:
-    1. Validate file (type, size)
-    2. GPS-based location lookup
-    3. Upload to S3
-    4. Create processing session
-    5. Dispatch ML pipeline (Celery)
+  Complete workflow:
+  1. Validate file (type, size)
+  2. GPS-based location lookup
+  3. Upload to S3
+  4. Create processing session
+  5. Dispatch ML pipeline (Celery)
 
-    Args:
-        file: Photo file (JPEG/PNG/WEBP, max 20MB)
-        longitude: GPS longitude coordinate
-        latitude: GPS latitude coordinate
-        user_id: User ID for audit trail
+  Args:
+      file: Photo file (JPEG/PNG/WEBP, max 20MB)
+      longitude: GPS longitude coordinate
+      latitude: GPS latitude coordinate
+      user_id: User ID for audit trail
 
-    Returns:
-        PhotoUploadResponse with task_id for polling
+  Returns:
+      PhotoUploadResponse with task_id for polling
 
-    Raises:
-        HTTPException 400: Invalid file type/size
-        HTTPException 404: GPS location not found
-        HTTPException 500: Upload/processing error
+  Raises:
+      HTTPException 400: Invalid file type/size
+      HTTPException 404: GPS location not found
+      HTTPException 500: Upload/processing error
 
-    Example:
-        ```bash
-        curl -X POST "http://localhost:8000/api/v1/stock/photo" \\
-          -H "Content-Type: multipart/form-data" \\
-          -F "file=@photo.jpg" \\
-          -F "longitude=10.5" \\
-          -F "latitude=20.5" \\
-          -F "user_id=1"
-        ```
-    """
+  Example:
+      ```bash
+      curl -X POST "http://localhost:8000/api/v1/stock/photo" \\
+        -H "Content-Type: multipart/form-data" \\
+        -F "file=@photo.jpg" \\
+        -F "longitude=10.5" \\
+        -F "latitude=20.5" \\
+        -F "user_id=1"
+      ```
+  """
     try:
         logger.info(
             "Photo upload request received",

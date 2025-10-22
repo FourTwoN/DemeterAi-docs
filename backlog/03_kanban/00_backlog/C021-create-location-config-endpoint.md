@@ -1,6 +1,7 @@
 # [C021] Create Location Config - POST /api/config/location
 
 ## Metadata
+
 - **Epic**: epic-003-backend-implementation.md
 - **Sprint**: Sprint-06
 - **Status**: `backlog`
@@ -9,8 +10,8 @@
 - **Area**: `backend/controllers`
 - **Assignee**: TBD
 - **Dependencies**:
-  - Blocks: [SCH004]
-  - Blocked by: [SVC009-location-config-service, DB024-storage-location-config]
+    - Blocks: [SCH004]
+    - Blocked by: [SVC009-location-config-service, DB024-storage-location-config]
 
 ## Description
 
@@ -36,6 +37,7 @@ async def create_location_config(
 **Coverage Target**: ≥85%
 
 ## Time Tracking
+
 - **Estimated**: 2 story points
 
 ---

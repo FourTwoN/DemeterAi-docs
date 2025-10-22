@@ -1,6 +1,7 @@
 # S029: ComparisonService
 
 ## Metadata
+
 - **Epic**: [epic-004-services.md](../../02_epics/epic-004-services.md)
 - **Sprint**: Sprint-06
 - **Status**: `backlog`
@@ -8,8 +9,8 @@
 - **Complexity**: M (3 story points)
 - **Area**: `services/analytics`
 - **Dependencies**:
-  - Blocks: [C026]
-  - Blocked by: [S028]
+    - Blocks: [C026]
+    - Blocked by: [S028]
 
 ## Description
 
@@ -27,6 +28,7 @@
 - [ ] **AC4**: Unit tests ≥85% coverage
 
 ## Time Tracking
+
 - **Estimated**: 3 story points (~6 hours)
 
 ---

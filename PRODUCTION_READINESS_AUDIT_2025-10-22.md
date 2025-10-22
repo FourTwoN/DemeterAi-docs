@@ -8,16 +8,17 @@
 
 ## Executive Summary
 
-A comprehensive verification audit of the DemeterAI v2.0 project has revealed **critical issues** that must be resolved before production deployment:
+A comprehensive verification audit of the DemeterAI v2.0 project has revealed **critical issues**
+that must be resolved before production deployment:
 
-| Metric | Result | Status |
-|--------|--------|--------|
-| Test Success Rate | 81.5% (1,187/1,456) | ❌ FAILING |
-| Test Failures | 261 (18.0%) | ❌ CRITICAL |
-| Pre-commit Violations (app code) | 42 (now fixed) | ✅ FIXED |
-| Pre-commit Violations (test code) | 80+ | ⚠️ LOW PRIORITY |
-| Type Checking Errors | 35+ | ❌ NEEDS FIX |
-| Production Code Quality | Issues Found | ❌ ADDRESS |
+| Metric                            | Result              | Status          |
+|-----------------------------------|---------------------|-----------------|
+| Test Success Rate                 | 81.5% (1,187/1,456) | ❌ FAILING       |
+| Test Failures                     | 261 (18.0%)         | ❌ CRITICAL      |
+| Pre-commit Violations (app code)  | 42 (now fixed)      | ✅ FIXED         |
+| Pre-commit Violations (test code) | 80+                 | ⚠️ LOW PRIORITY |
+| Type Checking Errors              | 35+                 | ❌ NEEDS FIX     |
+| Production Code Quality           | Issues Found        | ❌ ADDRESS       |
 
 ---
 
@@ -34,12 +35,12 @@ Total Tests Run: 1,456
 
 ### Test Failure Breakdown by Category
 
-| Category | Failures | Priority |
-|----------|----------|----------|
-| Model Unit Tests | 167 | TIER 1 |
-| Integration Tests (auth, services) | 71 | TIER 1 |
-| ML Pipeline Tests | 19 | TIER 1 |
-| Celery Task Tests | 4 | TIER 2 |
+| Category                           | Failures | Priority |
+|------------------------------------|----------|----------|
+| Model Unit Tests                   | 167      | TIER 1   |
+| Integration Tests (auth, services) | 71       | TIER 1   |
+| ML Pipeline Tests                  | 19       | TIER 1   |
+| Celery Task Tests                  | 4        | TIER 2   |
 
 ---
 
@@ -48,6 +49,7 @@ Total Tests Run: 1,456
 ### 1. Model Unit Tests Failing (167 tests) ❌
 
 **Affected Models**:
+
 - `detection.py`: All 9 tests failing
 - `estimation.py`: All 10 tests failing
 - `photo_processing_session.py`: All 25 tests failing
@@ -65,6 +67,7 @@ Total Tests Run: 1,456
 ### 2. Authentication Integration Tests Failing (16 tests) ❌
 
 **Affected Tests**:
+
 ```
 test_auth0_config_from_settings
 test_fetch_jwks_success
@@ -80,6 +83,7 @@ test_login_with_valid_credentials_returns_demo_token
 ### 3. S3/Storage Integration Tests Failing (13 tests) ❌
 
 **Affected Tests**:
+
 ```
 test_upload_original_full_workflow
 test_download_uploaded_image_workflow
@@ -95,6 +99,7 @@ test_generate_presigned_url_for_uploaded_image
 ### 4. ML Pipeline Tests Failing (19 tests) ❌
 
 **Affected Tests**:
+
 ```
 TestMLPipelineCoordinatorHappyPath (4 tests)
 TestMLPipelineCoordinatorErrorHandling (4 tests)
@@ -116,6 +121,7 @@ TestMLTasksIntegration (2 errors)
 **Status**: ✅ **ALL FIXED**
 
 Fixed files:
+
 - `app/core/auth.py`: 6 exception handling fixes (B904: `raise ... from e`)
 - `app/core/config.py`: 1 property naming fix (N802: lowercase)
 - `app/main.py`: 2 import ordering fixes (E402: imports at top)
@@ -126,6 +132,7 @@ Fixed files:
 **Status**: ⚠️ LOWER PRIORITY
 
 Common violations (don't block deployment but should fix):
+
 - SIM117: Nested `with` statements (13 occurrences)
 - UP038: Use `X | Y` instead of `(X, Y)` in isinstance (6 occurrences)
 - B017: Generic `pytest.raises(Exception)` (4 occurrences)
@@ -136,6 +143,7 @@ Common violations (don't block deployment but should fix):
 **Status**: ❌ FAILING
 
 Common errors:
+
 - Missing type parameters: `dict` → `dict[str, Any]`
 - Missing import stubs: celery, kombu, bcrypt, numpy.typing
 - Schema validation errors in response objects
@@ -151,22 +159,26 @@ Common errors:
 ### Why Are Tests Failing?
 
 #### 1. Database Session Issues
+
 - Test conftest.py not properly initializing async database sessions
 - Test database migrations may not be running
 - Session scope/lifecycle issues in test fixtures
 
 #### 2. Environment Configuration Missing
+
 - Auth0 configuration not set in test environment
 - S3/Minio not configured for integration tests
 - ML model paths not set
 - Redis/Celery configuration incomplete
 
 #### 3. Dependency Issues
+
 - YOLO v11 models not downloaded/cached
 - ML package dependencies incomplete
 - Type stubs missing for third-party libraries
 
 #### 4. Schema/Model Mismatches
+
 - Models may not match `database/database.mmd` ERD
 - Relationships or field names may be incorrect
 - Field constraints may be violated
@@ -177,16 +189,16 @@ Common errors:
 
 ### Hook Results
 
-| Hook | Status | Details |
-|------|--------|---------|
-| ruff-lint | ✅ FIXED | Code violations corrected |
-| ruff-format | ✅ PASSED | Code formatting OK |
-| mypy-type-check | ❌ FAILED | Import stubs needed |
-| detect-secrets | ✅ PASSED | No credentials found |
-| YAML/JSON/TOML | ✅ PASSED | Config files valid |
-| trailing-whitespace | ✅ PASSED | Whitespace clean |
-| end-of-file-fixer | ✅ PASSED | File endings correct |
-| no-print-statements | ❌ FAILED | print() in test files |
+| Hook                | Status   | Details                   |
+|---------------------|----------|---------------------------|
+| ruff-lint           | ✅ FIXED  | Code violations corrected |
+| ruff-format         | ✅ PASSED | Code formatting OK        |
+| mypy-type-check     | ❌ FAILED | Import stubs needed       |
+| detect-secrets      | ✅ PASSED | No credentials found      |
+| YAML/JSON/TOML      | ✅ PASSED | Config files valid        |
+| trailing-whitespace | ✅ PASSED | Whitespace clean          |
+| end-of-file-fixer   | ✅ PASSED | File endings correct      |
+| no-print-statements | ❌ FAILED | print() in test files     |
 | blanket-type-ignore | ❌ FAILED | blanket comments in tests |
 
 **Application Code Status**: ✅ **READY** (all major issues fixed)
@@ -199,6 +211,7 @@ Common errors:
 ### CRITICAL ACTIONS (Must Complete Before Deployment)
 
 #### 1. Fix Database/Model Tests
+
 ```bash
 # Priority: HIGHEST
 # Estimated effort: 4-6 hours
@@ -213,6 +226,7 @@ Common errors:
 ```
 
 #### 2. Fix Authentication Integration Tests
+
 ```bash
 # Priority: HIGHEST
 # Estimated effort: 2-3 hours
@@ -226,6 +240,7 @@ Common errors:
 ```
 
 #### 3. Fix ML Pipeline Tests
+
 ```bash
 # Priority: HIGH
 # Estimated effort: 2-4 hours
@@ -239,6 +254,7 @@ Common errors:
 ```
 
 #### 4. Fix S3/Storage Integration Tests
+
 ```bash
 # Priority: HIGH
 # Estimated effort: 1-2 hours
@@ -253,6 +269,7 @@ Common errors:
 ### IMPORTANT ACTIONS (Should Complete Before Deployment)
 
 #### 5. Fix Type Checking (mypy)
+
 ```bash
 # Priority: MEDIUM
 # Estimated effort: 2-3 hours
@@ -266,6 +283,7 @@ Common errors:
 ```
 
 #### 6. Clean Up Test Code Violations
+
 ```bash
 # Priority: MEDIUM
 # Estimated effort: 1-2 hours
@@ -281,12 +299,14 @@ Common errors:
 ### OPTIONAL (Good to Have)
 
 #### 7. Increase Test Coverage
+
 - Current: ~81.5% pass rate
 - Target: 100% pass rate + 80%+ code coverage
 - Review uncovered code paths
 - Add edge case tests
 
 #### 8. Load Testing
+
 - Test system under 600,000+ plants load
 - Verify performance benchmarks
 - Check resource utilization
@@ -328,7 +348,9 @@ Use this checklist to verify readiness before deployment:
 The following files have been automatically corrected and are ready for commit:
 
 ### ✅ app/core/auth.py
+
 **6 fixes applied**:
+
 - Line 248: Added `from e` to exception chain
 - Line 289: Added `from e` to exception chain
 - Line 390: Added `from e` to exception chain
@@ -337,17 +359,23 @@ The following files have been automatically corrected and are ready for commit:
 - Line 436: Added `from e` to exception chain
 
 ### ✅ app/core/config.py
+
 **1 fix applied**:
+
 - Line 72: Renamed property `AUTH0_ISSUER` → `auth0_issuer` (PEP 8 compliant)
 
 ### ✅ app/main.py
+
 **2 fixes applied**:
+
 - Line 14: Moved `setup_metrics` import to top of file
 - Line 15: Moved `setup_telemetry` import to top of file
 - Removed duplicate import block from line 190
 
 ### ✅ app/services/photo/photo_upload_service.py
+
 **1 fix applied**:
+
 - Line 171: Removed unused variable `s3_upload_request`
 
 ---
@@ -357,6 +385,7 @@ The following files have been automatically corrected and are ready for commit:
 ### Immediate (Today)
 
 1. **Commit the fixed files**:
+
 ```bash
 git add app/core/auth.py app/core/config.py app/main.py app/services/photo/photo_upload_service.py
 git commit -m "fix: apply production readiness audit fixes
@@ -370,6 +399,7 @@ These fixes resolve all major pre-commit violations in production code."
 ```
 
 2. **Run failing tests with verbose output**:
+
 ```bash
 pytest tests/unit/models/ -v -s 2>&1 | tee model_tests_debug.log
 pytest tests/integration/test_auth.py -v -s 2>&1 | tee auth_tests_debug.log
@@ -399,6 +429,7 @@ pytest tests/integration/test_auth.py -v -s 2>&1 | tee auth_tests_debug.log
 ## Quick Reference
 
 ### Test Coverage by Module
+
 - Models: 26/28 models have tests (92.9%)
 - Repositories: 27/27 repositories have tests (100%)
 - Services: 15+ services have tests (~70%)
@@ -406,12 +437,14 @@ pytest tests/integration/test_auth.py -v -s 2>&1 | tee auth_tests_debug.log
 - Utilities: Auth, logging, config have tests (100%)
 
 ### Most Critical Files to Fix
+
 1. `tests/conftest.py` - Database session setup
 2. `tests/integration/test_auth.py` - Auth0 mocking
 3. `tests/unit/models/` - Model tests (167 failing)
 4. `app/models/` - May need schema updates
 
 ### Important Commands
+
 ```bash
 # Run specific failing tests
 pytest tests/unit/models/test_detection.py -v -s
@@ -436,9 +469,12 @@ ruff format app/
 
 ## Conclusion
 
-The DemeterAI v2.0 project has **solid infrastructure** with 81.5% test pass rate and fixed code quality issues. However, **critical test failures** in models, auth, ML pipeline, and S3 integration must be resolved before production deployment.
+The DemeterAI v2.0 project has **solid infrastructure** with 81.5% test pass rate and fixed code
+quality issues. However, **critical test failures** in models, auth, ML pipeline, and S3 integration
+must be resolved before production deployment.
 
 **Estimated Time to Production-Ready**:
+
 - Fixing Tier 1 issues: **10-15 hours**
 - Type checking & cleanup: **3-5 hours**
 - Final verification: **2-3 hours**

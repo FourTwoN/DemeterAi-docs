@@ -1,6 +1,7 @@
 # [ML004] Box/Plug Detection Service - Direct YOLO for Cajones
 
 ## Metadata
+
 - **Epic**: epic-007-ml-pipeline.md
 - **Sprint**: Sprint-02 (Week 5-6)
 - **Status**: `backlog`
@@ -9,31 +10,37 @@
 - **Area**: `services/ml_processing`
 - **Assignee**: TBD
 - **Dependencies**:
-  - Blocks: [ML009-pipeline-coordinator]
-  - Blocked by: [ML001-model-singleton, ML002-yolo-segmentation]
+    - Blocks: [ML009-pipeline-coordinator]
+    - Blocked by: [ML001-model-singleton, ML002-yolo-segmentation]
 
 ## Related Documentation
+
 - **Engineering Plan**: ../../engineering_plan/backend/ml_pipeline.md
-- **ML Pipeline Flow**: ../../flows/procesamiento_ml_upload_s3_principal/06_boxes_plugs_detection_detailed.md
+- **ML Pipeline Flow**:
+  ../../flows/procesamiento_ml_upload_s3_principal/06_boxes_plugs_detection_detailed.md
 - **Context**: ../../context/past_chats_summary.md (Direct vs SAHI strategy)
 
 ## Description
 
-Implement direct YOLO detection service for small cajones (boxes/plugs). Unlike segmentos that need SAHI tiling, cajones are small enough for direct inference without downscaling issues.
+Implement direct YOLO detection service for small cajones (boxes/plugs). Unlike segmentos that need
+SAHI tiling, cajones are small enough for direct inference without downscaling issues.
 
 **What**: Service that:
+
 - Takes cropped cajon images (<1000×1000px typically)
 - Runs YOLO detection directly (no tiling needed)
 - Maps detection coordinates back to original image
 - Handles both "cajon" and "plug" container types
 
 **Why**:
+
 - **Efficiency**: Cajones don't need SAHI overhead (small images)
 - **Speed**: Direct inference 5-10× faster than tiling
 - **Simplicity**: No tile merging, no black tile filtering
 - **Accuracy**: Sufficient at native resolution
 
-**Context**: Dual detection strategy - SAHI for large segmentos, direct YOLO for small cajones. This is the simpler path.
+**Context**: Dual detection strategy - SAHI for large segmentos, direct YOLO for small cajones. This
+is the simpler path.
 
 ## Acceptance Criteria
 
@@ -93,14 +100,14 @@ Implement direct YOLO detection service for small cajones (boxes/plugs). Unlike 
   ```
 
 - [ ] **AC3**: Performance benchmarks met:
-  - Small cajon (500×500px): <200ms CPU, <50ms GPU
-  - Medium cajon (800×800px): <400ms CPU, <100ms GPU
-  - Large cajon (1000×1000px): <600ms CPU, <150ms GPU
+    - Small cajon (500×500px): <200ms CPU, <50ms GPU
+    - Medium cajon (800×800px): <400ms CPU, <100ms GPU
+    - Large cajon (1000×1000px): <600ms CPU, <150ms GPU
 
 - [ ] **AC4**: Edge cases handled:
-  - Empty cajon (no plants) → return empty list
-  - Very small cajon (<200px) → still process (no minimum size)
-  - Corrupted crop → raise clear exception
+    - Empty cajon (no plants) → return empty list
+    - Very small cajon (<200px) → still process (no minimum size)
+    - Corrupted crop → raise clear exception
 
 - [ ] **AC5**: Container type differentiation:
   ```python
@@ -110,13 +117,14 @@ Implement direct YOLO detection service for small cajones (boxes/plugs). Unlike 
   ```
 
 - [ ] **AC6**: Integration with ML002 segmentation outputs:
-  - Receives cajon bounding boxes from segmentation
-  - Processes each cajon independently
-  - Returns combined results for all cajones
+    - Receives cajon bounding boxes from segmentation
+    - Processes each cajon independently
+    - Returns combined results for all cajones
 
 ## Technical Implementation Notes
 
 ### Architecture
+
 - Layer: Services / ML Processing
 - Dependencies: ML001 (Model Singleton), ML002 (Segmentation)
 - Design pattern: Service layer, direct YOLO inference
@@ -124,6 +132,7 @@ Implement direct YOLO detection service for small cajones (boxes/plugs). Unlike 
 ### Code Hints
 
 **Direct YOLO inference:**
+
 ```python
 from ultralytics import YOLO
 
@@ -147,6 +156,7 @@ for result in results:
 ```
 
 **Coordinate offset calculation:**
+
 ```python
 def map_to_original_coords(
     detection: dict,
@@ -168,6 +178,7 @@ def map_to_original_coords(
 ### Testing Requirements
 
 **Unit Tests** (`tests/services/ml_processing/test_direct_detection.py`):
+
 ```python
 @pytest.mark.asyncio
 async def test_direct_detection_on_small_cajon():
@@ -223,6 +234,7 @@ async def test_performance_benchmark():
 ```
 
 **Integration Tests**:
+
 ```python
 @pytest.mark.asyncio
 async def test_multiple_cajones_processing():
@@ -250,6 +262,7 @@ async def test_multiple_cajones_processing():
 **Coverage Target**: ≥80%
 
 ### Performance Expectations
+
 - **500×500 cajon**: 200ms CPU, 50ms GPU
 - **800×800 cajon**: 400ms CPU, 100ms GPU
 - **Typical image** (3-5 cajones): 1-2s total CPU, 200-400ms GPU
@@ -258,23 +271,28 @@ async def test_multiple_cajones_processing():
 
 **For the next developer:**
 
-**Context**: This is the "easy path" compared to ML003 (SAHI). Cajones are small, so direct YOLO works perfectly.
+**Context**: This is the "easy path" compared to ML003 (SAHI). Cajones are small, so direct YOLO
+works perfectly.
 
 **Key decisions made**:
+
 1. **No tiling needed**: Cajones <1000px don't benefit from SAHI
 2. **Coordinate offset**: Must add cajon bbox offset to map back to original
 3. **Same model as SAHI**: Uses detection model from ModelCache singleton
 4. **Container type flexibility**: Works for both cajones and plugs (same algorithm)
 
 **Known limitations**:
+
 - If cajones become larger (>1500px), may need to switch to SAHI
 - Assumes cajones are already cropped by ML002 segmentation
 
 **Next steps after this card**:
+
 - ML009: Pipeline Coordinator (orchestrates ML002 → ML003/ML004 → aggregation)
 - ML015: Grouping Service (merges nearby detections from cajones)
 
 **Questions to validate**:
+
 - Are cajon bboxes coming from ML002 in correct format? (Should be {x1, y1, x2, y2})
 - Is offset being added correctly? (Test with known fixture)
 - Are cajones and plugs treated identically? (Should be YES)
@@ -293,6 +311,7 @@ async def test_multiple_cajones_processing():
 - [ ] No linting errors
 
 ## Time Tracking
+
 - **Estimated**: 5 story points
 - **Actual**: TBD
 - **Started**: TBD

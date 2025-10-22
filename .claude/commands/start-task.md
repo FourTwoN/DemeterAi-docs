@@ -11,6 +11,7 @@ Begin implementation of task `{{task-id}}` from the ready queue.
 ## Steps
 
 1. **Locate Task File**:
+
 ```bash
 # Find task in ready queue
 TASK_FILE=$(find backlog/03_kanban/01_ready/ -name "{{task-id}}-*.md")
@@ -22,17 +23,20 @@ fi
 ```
 
 2. **Read Task Details**:
+
 ```bash
 cat "$TASK_FILE"
 ```
 
 Extract:
+
 - Epic and sprint
 - Priority and complexity
 - Acceptance criteria
 - Dependencies
 
 3. **Create Mini-Plan** (append to task file):
+
 ```markdown
 ## Team Leader Mini-Plan ($(date +%Y-%m-%d\ %H:%M))
 
@@ -79,6 +83,7 @@ Extract:
 ```
 
 4. **Move Task to In-Progress**:
+
 ```bash
 NEW_PATH="backlog/03_kanban/02_in-progress/$(basename "$TASK_FILE")"
 mv "$TASK_FILE" "$NEW_PATH"
@@ -87,6 +92,7 @@ echo "Moved {{task-id}} to in-progress"
 ```
 
 5. **Spawn Specialist Agents**:
+
 ```markdown
 ## Team Leader Delegation ($(date +%Y-%m-%d\ %H:%M))
 
@@ -122,21 +128,23 @@ echo "Moved {{task-id}} to in-progress"
 ```
 
 6. **Update Status**:
+
 ```bash
 echo "▶️ {{task-id}}: Started ($(date +%Y-%m-%d))" >> backlog/03_kanban/DATABASE_CARDS_STATUS.md
 ```
 
 7. **Report Task Initiation**:
-   - Confirm task moved to in-progress
-   - Show Mini-Plan summary
-   - List spawned agents
-   - Provide ETA for completion
+    - Confirm task moved to in-progress
+    - Show Mini-Plan summary
+    - List spawned agents
+    - Provide ETA for completion
 
 ## Example
 
 **Command**: `/start-task S001`
 
 **Output**:
+
 ```
 Located task: backlog/03_kanban/01_ready/S001-stock-movement-service.md
 

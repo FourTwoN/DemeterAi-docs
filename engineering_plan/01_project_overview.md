@@ -19,11 +19,15 @@
 
 ## Executive Summary
 
-**DemeterAI** is a production-grade **automated plant counting and inventory management system** designed to replace manual, error-prone stock-taking processes for a large-scale cactus and succulent cultivation operation managing **600,000+ plants** across multiple greenhouses and cultivation zones.
+**DemeterAI** is a production-grade **automated plant counting and inventory management system**
+designed to replace manual, error-prone stock-taking processes for a large-scale cactus and
+succulent cultivation operation managing **600,000+ plants** across multiple greenhouses and
+cultivation zones.
 
 ### The Mission
 
-Transform plant inventory management from a time-consuming, inaccurate manual process to a **90% automated, ML-powered system** that delivers:
+Transform plant inventory management from a time-consuming, inaccurate manual process to a **90%
+automated, ML-powered system** that delivers:
 
 - **90% less waste** from inventory errors
 - **80% reduction** in administrative time
@@ -90,24 +94,24 @@ Transform plant inventory management from a time-consuming, inaccurate manual pr
 An **ML-powered inventory management system** that combines:
 
 1. **Computer Vision (YOLO v11 + SAHI)**
-   - Automated plant detection and counting from photos
-   - 95%+ accuracy in real cultivation conditions
-   - CPU-first design (GPU optional for 3-5× speedup)
+    - Automated plant detection and counting from photos
+    - 95%+ accuracy in real cultivation conditions
+    - CPU-first design (GPU optional for 3-5× speedup)
 
 2. **Geospatial Database (PostgreSQL + PostGIS)**
-   - 4-level location hierarchy
-   - Point-in-polygon geocoding from GPS metadata
-   - Full audit trail of all movements
+    - 4-level location hierarchy
+    - Point-in-polygon geocoding from GPS metadata
+    - Full audit trail of all movements
 
 3. **Two Initialization Methods**
-   - **Photo-based:** ML pipeline (primary method)
-   - **Manual entry:** Direct count input (fallback/legacy)
+    - **Photo-based:** ML pipeline (primary method)
+    - **Manual entry:** Direct count input (fallback/legacy)
 
 4. **Monthly Reconciliation Workflow**
-   - Baseline photo/count at month start
-   - Track movements (plantings, deaths, transplants)
-   - End-of-month photo → **automatic sales calculation**
-   - External validation via client CSV data
+    - Baseline photo/count at month start
+    - Track movements (plantings, deaths, transplants)
+    - End-of-month photo → **automatic sales calculation**
+    - External validation via client CSV data
 
 ### How It Works (High-Level)
 
@@ -155,12 +159,12 @@ An **ML-powered inventory management system** that combines:
 
 ### Primary Users
 
-| Role | Needs | How DemeterAI Helps |
-|------|-------|---------------------|
-| **Field Workers** | Fast, easy plant counting | Upload photo, get instant count |
-| **Supervisors** | Monitor multiple greenhouses | Real-time dashboard, map views |
-| **Administrators** | Configure products, analyze trends | Powerful analytics, export reports |
-| **Company Owners** | Reduce waste, increase profit | Data-driven insights, automated reconciliation |
+| Role               | Needs                              | How DemeterAI Helps                            |
+|--------------------|------------------------------------|------------------------------------------------|
+| **Field Workers**  | Fast, easy plant counting          | Upload photo, get instant count                |
+| **Supervisors**    | Monitor multiple greenhouses       | Real-time dashboard, map views                 |
+| **Administrators** | Configure products, analyze trends | Powerful analytics, export reports             |
+| **Company Owners** | Reduce waste, increase profit      | Data-driven insights, automated reconciliation |
 
 ### System Roles (Technical)
 
@@ -175,13 +179,13 @@ An **ML-powered inventory management system** that combines:
 
 ### Quantitative Goals
 
-| Metric | Current (Manual) | Target (DemeterAI) | Improvement |
-|--------|------------------|-------------------|-------------|
-| **Counting Time** | 4-6 hours/greenhouse | 10-15 min/greenhouse | **90% reduction** |
-| **Accuracy** | 80-85% (manual) | 95%+ (ML) | **15-20% improvement** |
-| **Administrative Time** | 20 hours/week | 4 hours/week | **80% reduction** |
-| **Waste from Errors** | 10-15% of stock | <2% | **90% waste reduction** |
-| **Inventory Visibility** | Monthly | Real-time | **100% visibility** |
+| Metric                   | Current (Manual)     | Target (DemeterAI)   | Improvement             |
+|--------------------------|----------------------|----------------------|-------------------------|
+| **Counting Time**        | 4-6 hours/greenhouse | 10-15 min/greenhouse | **90% reduction**       |
+| **Accuracy**             | 80-85% (manual)      | 95%+ (ML)            | **15-20% improvement**  |
+| **Administrative Time**  | 20 hours/week        | 4 hours/week         | **80% reduction**       |
+| **Waste from Errors**    | 10-15% of stock      | <2%                  | **90% waste reduction** |
+| **Inventory Visibility** | Monthly              | Real-time            | **100% visibility**     |
 
 ### Qualitative Goals
 
@@ -197,7 +201,8 @@ An **ML-powered inventory management system** that combines:
 
 ### Phase: Engineering Design & Documentation (Current)
 
-**Goal:** Create comprehensive technical documentation that enables development team to implement DemeterAI v2.0 efficiently.
+**Goal:** Create comprehensive technical documentation that enables development team to implement
+DemeterAI v2.0 efficiently.
 
 **Deliverables:**
 

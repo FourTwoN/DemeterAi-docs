@@ -1,6 +1,7 @@
 # [DB013] Detections Model - Partitioned Table
 
 ## Metadata
+
 - **Epic**: epic-002-database-models.md
 - **Sprint**: Sprint-01 (Week 3-4)
 - **Status**: `backlog`
@@ -9,31 +10,38 @@
 - **Area**: `database/models`
 - **Assignee**: TBD
 - **Dependencies**:
-  - Blocks: [ML003, ML005, R011, S013]
-  - Blocked by: [DB012-photo-processing-sessions, DB007-stock-movements, DB026-classifications]
+    - Blocks: [ML003, ML005, R011, S013]
+    - Blocked by: [DB012-photo-processing-sessions, DB007-stock-movements, DB026-classifications]
 
 ## Related Documentation
+
 - **Engineering Plan**: ../../engineering_plan/database/README.md (Partitioning section)
 - **Database ERD**: ../../database/database.mmd
 - **ADR**: ../../backlog/09_decisions/ADR-007-daily-partitioning.md
-- **ML Pipeline**: ../../flows/procesamiento_ml_upload_s3_principal/05_sahi_detection_child_detailed.md
+- **ML Pipeline**:
+  ../../flows/procesamiento_ml_upload_s3_principal/05_sahi_detection_child_detailed.md
 
 ## Description
 
-Create the `detections` SQLAlchemy model with **daily partitioning** for high-volume plant detection data. Each row represents one individual plant detected by YOLO in a photo, with bounding box coordinates and confidence score.
+Create the `detections` SQLAlchemy model with **daily partitioning** for high-volume plant detection
+data. Each row represents one individual plant detected by YOLO in a photo, with bounding box
+coordinates and confidence score.
 
 **What**: Partitioned SQLAlchemy model for individual plant detections from ML pipeline:
+
 - Each detection = one plant's bounding box + confidence + classification
 - 500-1000 detections per photo average
 - Daily partitions to handle millions of rows efficiently
 
 **Why**:
+
 - **High volume**: 600k plants → 600k+ detections expected
 - **Query performance**: 99% of queries filter by date → partition pruning 10-100× faster
 - **Maintenance**: VACUUM on daily partitions 100× faster than monolithic table
 - **Storage management**: Auto-drop old partitions after retention period
 
-**Context**: This table grows rapidly (1000+ rows per ML job). Without partitioning, queries slow to crawl after 1M+ rows. Partitioning is non-negotiable for performance (see ADR-007).
+**Context**: This table grows rapidly (1000+ rows per ML job). Without partitioning, queries slow to
+crawl after 1M+ rows. Partitioning is non-negotiable for performance (see ADR-007).
 
 ## Acceptance Criteria
 
@@ -168,6 +176,7 @@ Create the `detections` SQLAlchemy model with **daily partitioning** for high-vo
 ## Technical Implementation Notes
 
 ### Architecture
+
 - Layer: Database / Models
 - Dependencies: DB012 (PhotoProcessingSession), pg_partman extension
 - Design pattern: Partitioned table (RANGE on created_at)
@@ -175,6 +184,7 @@ Create the `detections` SQLAlchemy model with **daily partitioning** for high-vo
 ### Code Hints
 
 **Partitioning declaration (SQLAlchemy 2.0):**
+
 ```python
 class Detection(Base):
     __tablename__ = 'detections'
@@ -189,6 +199,7 @@ class Detection(Base):
 ```
 
 **Bulk insert with asyncpg COPY (performance critical):**
+
 ```python
 # In DetectionRepository:
 async def bulk_insert_detections(self, detections: list[dict]) -> None:
@@ -224,6 +235,7 @@ async def bulk_insert_detections(self, detections: list[dict]) -> None:
 ```
 
 **Query with partition pruning:**
+
 ```sql
 -- Fast: Only scans today's partition
 SELECT * FROM detections
@@ -238,6 +250,7 @@ WHERE confidence > 0.7;  -- Missing created_at filter!
 ### Testing Requirements
 
 **Unit Tests** (`tests/models/test_detection.py`):
+
 ```python
 def test_confidence_bounds():
     """Confidence must be between 0.0 and 1.0"""
@@ -266,6 +279,7 @@ def test_container_type_values():
 ```
 
 **Integration Tests** (`tests/integration/test_detections_partitioning.py`):
+
 ```python
 @pytest.mark.asyncio
 async def test_partition_creation(db_session):
@@ -323,6 +337,7 @@ async def test_bulk_insert_performance(db_session):
 **Coverage Target**: ≥75% (complex partitioning setup)
 
 ### Performance Expectations
+
 - Single insert: <5ms (partition-local)
 - Bulk insert (1000 rows): <1s with asyncpg COPY
 - Query with date filter: <50ms (partition pruning)
@@ -332,26 +347,32 @@ async def test_bulk_insert_performance(db_session):
 
 **For the next developer:**
 
-**Context**: This is a **high-volume table** (millions of rows expected). Partitioning is MANDATORY for performance. Without it, queries grind to a halt after 1M rows.
+**Context**: This is a **high-volume table** (millions of rows expected). Partitioning is MANDATORY
+for performance. Without it, queries grind to a halt after 1M rows.
 
 **Key decisions made**:
-1. **Daily partitions**: Balance between too many partitions (overhead) and too few (large partition size)
+
+1. **Daily partitions**: Balance between too many partitions (overhead) and too few (large partition
+   size)
 2. **90-day retention**: Configurable, auto-cleanup with pg_partman
 3. **asyncpg COPY for bulk inserts**: ORM too slow (2k rows/sec vs 714k rows/sec)
 4. **Composite PK**: `(detection_id, created_at)` - partition key MUST be in PK
 5. **Optional classification**: Many detections don't get classified until aggregation step
 
 **Known limitations**:
+
 - Queries without `created_at` filter scan ALL partitions (slow) - must educate team
 - Partition maintenance requires cron extension (pg_cron)
 - Cannot use ON CONFLICT with partitioned tables (PostgreSQL limitation)
 
 **Next steps after this card**:
+
 - DB014: Estimations model (similar partitioning strategy)
 - R011: DetectionRepository (must use asyncpg COPY)
 - ML003: SAHI Detection service (writes to this table)
 
 **Questions to validate**:
+
 - Are partitions being created 7 days ahead? (Check pg_partman config)
 - Is cron job running every 4 hours? (Check `SELECT * FROM cron.job`)
 - Are old partitions being dropped after 90 days? (Check partman logs)
@@ -373,6 +394,7 @@ async def test_bulk_insert_performance(db_session):
 - [ ] No linting errors
 
 ## Time Tracking
+
 - **Estimated**: 2 story points
 - **Actual**: TBD
 - **Started**: TBD

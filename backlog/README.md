@@ -32,9 +32,11 @@
 
 ### What is DemeterAI?
 
-**DemeterAI** is an ML-powered automated plant counting and inventory management system for **600,000+ cacti and succulents** across multiple cultivation zones.
+**DemeterAI** is an ML-powered automated plant counting and inventory management system for *
+*600,000+ cacti and succulents** across multiple cultivation zones.
 
 **Core Technologies:**
+
 - **PostgreSQL 18** + PostGIS 3.3+ (28 tables, 4-level geospatial hierarchy)
 - **Python 3.12** + FastAPI 0.118.2 + SQLAlchemy 2.0.43
 - **Celery 5.4.0** + Redis 7+ (async ML processing)
@@ -42,6 +44,7 @@
 - **Docker** + docker-compose (containerization)
 
 **Key Features:**
+
 - **Two initialization methods**: Photo-based (ML) + Manual (direct entry)
 - **Monthly reconciliation**: Automated sales calculation from photos
 - **Clean Architecture**: Controllers → Services → Repositories → Database
@@ -132,44 +135,50 @@ backlog/
 ### Daily Flow
 
 **1. Morning Standup (15 minutes)**
+
 - What did I complete yesterday?
 - What will I work on today?
 - Any blockers?
 
 **2. Work on Card**
+
 - Pick card from `03_kanban/02_in-progress/` (your assigned card)
 - Follow card's acceptance criteria
 - Write tests (TDD encouraged)
 - Commit frequently
 
 **3. Submit PR**
+
 - Use `04_templates/pr-template.md`
 - Move card from `02_in-progress/` to `03_code-review/`
 - Tag 2+ reviewers
 
 **4. Code Review**
+
 - Review PRs in `03_code-review/` (2+ approvals required)
 - Use `04_templates/code-review-checklist.md`
 - Approve or request changes
 
 **5. Testing**
+
 - Card moves to `04_testing/`
 - Run integration tests
 - QA validation (if applicable)
 
 **6. Done**
+
 - Card meets Definition of Done
 - Move to `05_done/`
 - Archive at sprint end
 
 ### Sprint Ceremonies
 
-| Ceremony | Duration | When | Purpose |
-|----------|----------|------|---------|
-| **Sprint Planning** | 2 hours | Monday Week 1 | Select cards, assign work, set sprint goal |
-| **Daily Standup** | 15 minutes | Every morning | Sync progress, identify blockers |
-| **Sprint Review** | 1 hour | Friday Week 2 | Demo completed work, show value |
-| **Sprint Retrospective** | 1 hour | Friday Week 2 | Reflect on process, improve |
+| Ceremony                 | Duration   | When          | Purpose                                    |
+|--------------------------|------------|---------------|--------------------------------------------|
+| **Sprint Planning**      | 2 hours    | Monday Week 1 | Select cards, assign work, set sprint goal |
+| **Daily Standup**        | 15 minutes | Every morning | Sync progress, identify blockers           |
+| **Sprint Review**        | 1 hour     | Friday Week 2 | Demo completed work, show value            |
+| **Sprint Retrospective** | 1 hour     | Friday Week 2 | Reflect on process, improve                |
 
 ---
 
@@ -177,17 +186,18 @@ backlog/
 
 ### Column Rules
 
-| Column | WIP Limit | Entry Criteria | Exit Criteria |
-|--------|-----------|----------------|---------------|
-| **Backlog** | None | Card created | Meets DoR → Ready |
-| **Ready** | None | DoR passed, sized | Selected in sprint → In Progress |
-| **In Progress** | **5** | Assigned to dev | PR created → Code Review |
-| **Code Review** | **3** | PR submitted | 2+ approvals → Testing |
-| **Testing** | **2** | Review approved | Tests pass → Done |
-| **Done** | None | DoD met | Archive at sprint end |
-| **Blocked** | None | Dependency blocker | Blocker resolved → Previous column |
+| Column          | WIP Limit | Entry Criteria     | Exit Criteria                      |
+|-----------------|-----------|--------------------|------------------------------------|
+| **Backlog**     | None      | Card created       | Meets DoR → Ready                  |
+| **Ready**       | None      | DoR passed, sized  | Selected in sprint → In Progress   |
+| **In Progress** | **5**     | Assigned to dev    | PR created → Code Review           |
+| **Code Review** | **3**     | PR submitted       | 2+ approvals → Testing             |
+| **Testing**     | **2**     | Review approved    | Tests pass → Done                  |
+| **Done**        | None      | DoD met            | Archive at sprint end              |
+| **Blocked**     | None      | Dependency blocker | Blocker resolved → Previous column |
 
 **⚠️ WIP Limit Enforcement:**
+
 - If column reaches WIP limit, **STOP** starting new work
 - Finish existing cards before pulling new ones
 - Prevents work fragmentation and context switching
@@ -196,14 +206,14 @@ backlog/
 
 ## 🎯 Sprint Plan (6 Sprints = 12 Weeks)
 
-| Sprint | Weeks | Goal | Cards | Priority |
-|--------|-------|------|-------|----------|
-| **Sprint 00** | 1-2 | Foundation & setup | F001-F012 (12 cards) | Setup |
-| **Sprint 01** | 3-4 | Database & repositories | DB001-DB035, R001-R028 (63 cards) | High |
-| **Sprint 02** | 5-6 | **ML Pipeline (V3 CRITICAL)** | ML001-ML018 (18 cards) | **CRITICAL** |
-| **Sprint 03** | 7-8 | Services layer | S001-S042 (42 cards) | High |
-| **Sprint 04** | 9-10 | Controllers + Celery | C001-C026, CEL001-CEL008 (34 cards) | High |
-| **Sprint 05** | 11-12 | Deployment + observability | DEP001-DEP012, OBS001-OBS010 (22 cards) | Medium |
+| Sprint        | Weeks | Goal                          | Cards                                   | Priority     |
+|---------------|-------|-------------------------------|-----------------------------------------|--------------|
+| **Sprint 00** | 1-2   | Foundation & setup            | F001-F012 (12 cards)                    | Setup        |
+| **Sprint 01** | 3-4   | Database & repositories       | DB001-DB035, R001-R028 (63 cards)       | High         |
+| **Sprint 02** | 5-6   | **ML Pipeline (V3 CRITICAL)** | ML001-ML018 (18 cards)                  | **CRITICAL** |
+| **Sprint 03** | 7-8   | Services layer                | S001-S042 (42 cards)                    | High         |
+| **Sprint 04** | 9-10  | Controllers + Celery          | C001-C026, CEL001-CEL008 (34 cards)     | High         |
+| **Sprint 05** | 11-12 | Deployment + observability    | DEP001-DEP012, OBS001-OBS010 (22 cards) | Medium       |
 
 **Total Capacity**: 10 devs × 8 story points/sprint × 6 sprints = **480 story points**
 **Total Cards**: ~245 cards (average 2 story points/card)
@@ -216,7 +226,8 @@ backlog/
 ### Must-Read (Before Starting)
 
 1. **Tech Stack**: `00_foundation/tech-stack.md` → Know PostgreSQL 18, Python 3.12, FastAPI 0.118.2
-2. **Architecture**: `00_foundation/architecture-principles.md` → Clean Architecture, Service→Service rule
+2. **Architecture**: `00_foundation/architecture-principles.md` → Clean Architecture,
+   Service→Service rule
 3. **DoR/DoD**: `00_foundation/definition-of-ready.md` + `definition-of-done.md`
 4. **Conventions**: `00_foundation/conventions.md` → Naming, formatting standards
 5. **Local Setup**: `05_dev-environment/local-setup-guide.md` → 5-minute Docker setup
@@ -285,15 +296,15 @@ backlog/
 
 ## 📈 Success Metrics
 
-| Metric | Target | How to Track |
-|--------|--------|--------------|
-| **Sprint Velocity** | 80 points/sprint | `01_sprints/velocity-tracking.md` |
-| **Code Coverage** | ≥80% | `pytest --cov=app --cov-report=html` |
-| **Cycle Time** | Card ready → done ≤3 days | Kanban board timestamps |
-| **WIP Violations** | <5% of sprint days | Daily standup tracking |
-| **Blocker Duration** | Resolved within 1 day | `03_kanban/06_blocked/blocker-tracker.md` |
-| **PR Review Time** | <4 hours average | GitHub insights |
-| **Test Pass Rate** | ≥98% on main | CI/CD pipeline |
+| Metric               | Target                    | How to Track                              |
+|----------------------|---------------------------|-------------------------------------------|
+| **Sprint Velocity**  | 80 points/sprint          | `01_sprints/velocity-tracking.md`         |
+| **Code Coverage**    | ≥80%                      | `pytest --cov=app --cov-report=html`      |
+| **Cycle Time**       | Card ready → done ≤3 days | Kanban board timestamps                   |
+| **WIP Violations**   | <5% of sprint days        | Daily standup tracking                    |
+| **Blocker Duration** | Resolved within 1 day     | `03_kanban/06_blocked/blocker-tracker.md` |
+| **PR Review Time**   | <4 hours average          | GitHub insights                           |
+| **Test Pass Rate**   | ≥98% on main              | CI/CD pipeline                            |
 
 ---
 
@@ -325,6 +336,7 @@ backlog/
 ## 🎉 Team Onboarding Checklist
 
 **Day 1: Setup** (2 hours)
+
 - [ ] Read this README
 - [ ] Setup local environment (`05_dev-environment/local-setup-guide.md`)
 - [ ] Run `docker-compose up` and verify all services start
@@ -332,6 +344,7 @@ backlog/
 - [ ] Run tests (`pytest`) and verify they pass
 
 **Day 2: Architecture** (4 hours)
+
 - [ ] Read `00_foundation/tech-stack.md`
 - [ ] Read `00_foundation/architecture-principles.md`
 - [ ] Review database schema (`../../database/database.mmd`)
@@ -339,6 +352,7 @@ backlog/
 - [ ] Review Clean Architecture diagram
 
 **Day 3: First Card** (6 hours)
+
 - [ ] Attend sprint planning (or watch recording)
 - [ ] Pick first card from `03_kanban/01_ready/` (start with S or M size)
 - [ ] Read card's related documentation
@@ -347,6 +361,7 @@ backlog/
 - [ ] Submit PR
 
 **Week 1: Contribute**
+
 - [ ] Complete 2-3 cards (8-15 story points)
 - [ ] Review 2+ PRs
 - [ ] Attend all ceremonies (standup, review, retro)
@@ -357,13 +372,15 @@ backlog/
 ## 📝 Frequently Asked Questions
 
 **Q: How do I know what to work on?**
-A: Check `03_kanban/02_in-progress/` for your assigned card. If you don't have one, pick from `01_ready/` during sprint planning.
+A: Check `03_kanban/02_in-progress/` for your assigned card. If you don't have one, pick from
+`01_ready/` during sprint planning.
 
 **Q: What if a card is too big?**
 A: Break it down during sprint planning. Split XL → multiple L/M cards.
 
 **Q: Can I start a new card before finishing my current one?**
-A: Only if current card is blocked. Otherwise, finish current card first (reduces WIP, increases throughput).
+A: Only if current card is blocked. Otherwise, finish current card first (reduces WIP, increases
+throughput).
 
 **Q: How do I handle bugs?**
 A: Create bug card, prioritize in next sprint. Critical bugs: fix immediately, pause current work.
@@ -372,10 +389,12 @@ A: Create bug card, prioritize in next sprint. Critical bugs: fix immediately, p
 A: Fix locally first (`pytest`). If stuck, ask in standup. Don't merge until green.
 
 **Q: How do I update the database schema?**
-A: Create Alembic migration (`alembic revision --autogenerate -m "description"`). Test locally. Include in PR.
+A: Create Alembic migration (`alembic revision --autogenerate -m "description"`). Test locally.
+Include in PR.
 
 **Q: When should I create an ADR?**
-A: For any cross-cutting technical decision (affects >3 cards or multiple epics). Use `09_decisions/ADR-template.md`.
+A: For any cross-cutting technical decision (affects >3 cards or multiple epics). Use
+`09_decisions/ADR-template.md`.
 
 ---
 
@@ -387,6 +406,7 @@ A: For any cross-cutting technical decision (affects >3 cards or multiple epics)
 **Goal**: Production-ready backend for 600,000+ plant inventory system
 
 **Remember**:
+
 - 🎯 Focus on critical path (ML pipeline in Sprint 02)
 - 🧪 Tests first, then code
 - 🔄 WIP limits prevent bottlenecks

@@ -1,6 +1,7 @@
 # [DEP005] Environment Variable Validation
 
 ## Metadata
+
 - **Epic**: epic-011-deployment
 - **Sprint**: Sprint-01
 - **Priority**: `high`
@@ -8,9 +9,12 @@
 - **Dependencies**: Blocked by [F002]
 
 ## Description
-Use pydantic-settings for environment variable validation. App fails fast on startup if required config missing.
+
+Use pydantic-settings for environment variable validation. App fails fast on startup if required
+config missing.
 
 ## Acceptance Criteria
+
 - [ ] All config in `app/core/config.py` using pydantic-settings
 - [ ] Required fields validated (e.g., DATABASE_URL, JWT_SECRET_KEY)
 - [ ] Type validation (int, bool, URL)
@@ -18,6 +22,7 @@ Use pydantic-settings for environment variable validation. App fails fast on sta
 - [ ] Clear error messages for missing/invalid config
 
 ## Implementation
+
 ```python
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from pydantic import Field, PostgresDsn, RedisDsn
@@ -50,6 +55,7 @@ settings = Settings()
 ```
 
 ## Testing
+
 - Test missing DATABASE_URL raises ValidationError
 - Test invalid REDIS_URL format raises error
 - Test JWT_SECRET_KEY <32 chars raises error

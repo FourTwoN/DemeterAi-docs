@@ -10,7 +10,8 @@
 
 ## Goal
 
-Implement analytics system with custom reports, data exports, month-over-month comparisons, and dashboard metrics for business intelligence.
+Implement analytics system with custom reports, data exports, month-over-month comparisons, and
+dashboard metrics for business intelligence.
 
 ---
 
@@ -28,6 +29,7 @@ Implement analytics system with custom reports, data exports, month-over-month c
 ## Cards List (10 cards, 50 points)
 
 ### Report Generation (25 points)
+
 - **ANALYTICS001**: Custom report builder (8pts)
 - **ANALYTICS002**: Filter engine (warehouse, product, date) (5pts)
 - **ANALYTICS003**: Group-by aggregation (5pts)
@@ -35,12 +37,14 @@ Implement analytics system with custom reports, data exports, month-over-month c
 - **ANALYTICS005**: Pagination for large datasets (4pts)
 
 ### Data Export (15 points)
+
 - **ANALYTICS006**: Excel export (openpyxl) (5pts)
 - **ANALYTICS007**: CSV export (pandas) (3pts)
 - **ANALYTICS008**: Export templates (pre-defined formats) (3pts)
 - **ANALYTICS009**: Async export for large datasets (4pts)
 
 ### Dashboards (10 points)
+
 - **ANALYTICS010**: Dashboard metrics API (5pts)
 - **ANALYTICS011**: Month-over-month comparison (5pts)
 
@@ -56,6 +60,7 @@ Implement analytics system with custom reports, data exports, month-over-month c
 ## Technical Approach
 
 **Report Query Optimization**:
+
 ```sql
 -- Use materialized view for fast aggregation
 CREATE MATERIALIZED VIEW stock_summary AS
@@ -71,6 +76,7 @@ REFRESH MATERIALIZED VIEW stock_summary;  -- Daily cron
 ```
 
 **Caching Strategy**:
+
 - Report results cached 15 minutes
 - Dashboard metrics cached 5 minutes
 - Invalidate on stock_movement creation

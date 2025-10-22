@@ -8,9 +8,12 @@
 
 ## Executive Summary
 
-Successfully converted **3 test files** from SQLAlchemy 1.x sync `session.query()` API to SQLAlchemy 2.0 async `select()` API, eliminating **22 query() method calls** and converting **19 test functions** to async.
+Successfully converted **3 test files** from SQLAlchemy 1.x sync `session.query()` API to SQLAlchemy
+2.0 async `select()` API, eliminating **22 query() method calls** and converting **19 test functions
+** to async.
 
 ### Impact
+
 - **Before**: Tests failing with `AttributeError: 'AsyncSession' object has no attribute 'query'`
 - **After**: All syntax errors eliminated, tests now use proper async SQLAlchemy 2.0 patterns
 
@@ -21,12 +24,14 @@ Successfully converted **3 test files** from SQLAlchemy 1.x sync `session.query(
 ### 1. `/home/lucasg/proyectos/DemeterDocs/tests/integration/models/test_product_size.py`
 
 **Changes**:
+
 - ✅ Added `from sqlalchemy import select` import
 - ✅ Converted **8 test methods** from `def` to `async def`
 - ✅ Replaced **10 `session.query()` calls** with `await session.execute(select())`
 - ✅ Added `await` to all `session.commit()`, `session.rollback()`, `session.flush()` calls
 
 **Query Conversion Pattern**:
+
 ```python
 # OLD (SQLAlchemy 1.x sync)
 sizes = session.query(ProductSize).order_by(ProductSize.sort_order).all()
@@ -37,6 +42,7 @@ sizes = result.scalars().all()
 ```
 
 **Test Methods Converted**:
+
 1. `test_seed_data_loaded` (class: TestProductSizeSeedData)
 2. `test_seed_data_height_ranges` (class: TestProductSizeSeedData)
 3. `test_code_unique_constraint_db_level` (class: TestProductSizeDBConstraints)
@@ -53,12 +59,14 @@ sizes = result.scalars().all()
 ### 2. `/home/lucasg/proyectos/DemeterDocs/tests/integration/models/test_product_state.py`
 
 **Changes**:
+
 - ✅ Added `from sqlalchemy import select` import
 - ✅ Converted **8 test methods** from `def` to `async def`
 - ✅ Replaced **12 `session.query()` calls** with `await session.execute(select())`
 - ✅ Added `await` to all `session.commit()`, `session.rollback()`, `session.flush()` calls
 
 **Special Conversions**:
+
 ```python
 # OLD - Multiple query() calls for related data
 adult = session.query(ProductState).filter_by(code="ADULT").first()
@@ -75,6 +83,7 @@ fruiting = result.scalars().first()
 ```
 
 **Test Methods Converted**:
+
 1. `test_seed_data_loaded` (class: TestProductStateSeedData)
 2. `test_seed_data_is_sellable_logic` (class: TestProductStateSeedData)
 3. `test_code_unique_constraint_db_level` (class: TestProductStateDBConstraints)
@@ -91,15 +100,17 @@ fruiting = result.scalars().first()
 ### 3. `/home/lucasg/proyectos/DemeterDocs/tests/integration/test_product_family_db.py`
 
 **Changes**:
+
 - ✅ Converted **11 test methods** from `def` to `async def`
 - ✅ Already had `select()` imports, but was using sync `session.execute()`
 - ✅ Added `await` to **all database operations**:
-  - `await session.commit()` (15 occurrences)
-  - `await session.refresh()` (5 occurrences)
-  - `await session.execute()` (13 occurrences)
-  - `session.delete()` (2 occurrences - correctly NOT awaited)
+    - `await session.commit()` (15 occurrences)
+    - `await session.refresh()` (5 occurrences)
+    - `await session.execute()` (13 occurrences)
+    - `session.delete()` (2 occurrences - correctly NOT awaited)
 
 **Session Operation Pattern**:
+
 ```python
 # OLD (Sync operations)
 db_session.add(category)
@@ -113,6 +124,7 @@ await db_session.refresh(category)
 ```
 
 **Execute Pattern**:
+
 ```python
 # OLD (Sync execute)
 stmt = select(ProductFamily).where(ProductFamily.category_id == category.id)
@@ -125,6 +137,7 @@ families = result.scalars().all()
 ```
 
 **Test Methods Converted**:
+
 1. `test_create_family_with_category` (class: TestProductFamilyDatabaseOperations)
 2. `test_create_family_minimal_fields` (class: TestProductFamilyDatabaseOperations)
 3. `test_query_families_by_category` (class: TestProductFamilyDatabaseOperations)
@@ -148,12 +161,14 @@ families = result.scalars().all()
 **Status**: ✅ NO CHANGES NEEDED
 
 This file was already using SQLAlchemy 2.0 async syntax correctly:
+
 - All test methods already `async def`
 - All database operations already use `await`
 - All queries already use `select()` pattern
 - Uses `db_session` fixture (async)
 
 **Evidence**:
+
 ```bash
 $ grep -n "session\.query\|\.query(" tests/integration/models/test_storage_bin_type.py
 # (no results - file is clean)
@@ -163,19 +178,20 @@ $ grep -n "session\.query\|\.query(" tests/integration/models/test_storage_bin_t
 
 ## Conversion Statistics
 
-| File | Test Methods Converted | query() Calls Replaced | Lines Changed |
-|------|----------------------|----------------------|---------------|
-| test_product_size.py | 8 | 10 | +69/-56 |
-| test_product_state.py | 8 | 12 | +63/-48 |
-| test_product_family_db.py | 11 | 0 (already select) | +134/-115 |
-| test_storage_bin_type.py | 0 (already async) | 0 (already select) | 0 |
-| **TOTAL** | **27** | **22** | **+266/-219** |
+| File                      | Test Methods Converted | query() Calls Replaced | Lines Changed |
+|---------------------------|------------------------|------------------------|---------------|
+| test_product_size.py      | 8                      | 10                     | +69/-56       |
+| test_product_state.py     | 8                      | 12                     | +63/-48       |
+| test_product_family_db.py | 11                     | 0 (already select)     | +134/-115     |
+| test_storage_bin_type.py  | 0 (already async)      | 0 (already select)     | 0             |
+| **TOTAL**                 | **27**                 | **22**                 | **+266/-219** |
 
 ---
 
 ## Key Conversion Patterns Applied
 
 ### Pattern 1: Query Conversion (filter_by)
+
 ```python
 # OLD
 obj = session.query(Model).filter_by(code="VALUE").first()
@@ -186,6 +202,7 @@ obj = result.scalars().first()
 ```
 
 ### Pattern 2: Query Conversion (order_by + all)
+
 ```python
 # OLD
 items = session.query(Model).order_by(Model.field).all()
@@ -196,6 +213,7 @@ items = result.scalars().all()
 ```
 
 ### Pattern 3: Query Conversion (multiple filters)
+
 ```python
 # OLD
 items = session.query(Model).filter(
@@ -214,6 +232,7 @@ items = result.scalars().all()
 ```
 
 ### Pattern 4: Session Operations
+
 ```python
 # OLD (sync)
 session.add(obj)
@@ -231,6 +250,7 @@ await session.flush()
 ```
 
 ### Pattern 5: Delete Operations
+
 ```python
 # OLD
 session.delete(obj)
@@ -246,6 +266,7 @@ await session.commit()  # Awaited
 ## Test Verification
 
 ### Syntax Verification
+
 ```bash
 $ pytest tests/integration/models/test_product_size.py::TestProductSizeDBConstraints::test_code_unique_constraint_db_level -v
 # Result: PASSED ✅
@@ -254,6 +275,7 @@ $ pytest tests/integration/models/test_product_size.py::TestProductSizeDBConstra
 **No more `AttributeError: 'AsyncSession' object has no attribute 'query'` errors!**
 
 ### Integration Test Run
+
 ```bash
 $ pytest tests/integration/ -v 2>&1 | grep -c "'AsyncSession' object has no attribute 'query'"
 # Result: 0 (no errors)
@@ -264,16 +286,19 @@ $ pytest tests/integration/ -v 2>&1 | grep -c "'AsyncSession' object has no attr
 ## Remaining Test Failures
 
 The following test failures are **NOT related to SQLAlchemy syntax** but due to:
+
 1. **Missing seed data** in test database
 2. **Database schema setup issues** (area_m2 column errors in conftest.py)
 3. **Business logic errors** (not query syntax)
 
 **Examples**:
+
 - `test_seed_data_loaded` failures → Empty database (no seed data loaded)
 - `test_seed_data_height_ranges` failures → Missing ProductSize records
 - `test_area_auto_calculated_on_insert` failures → Database transaction errors
 
 **Next Steps**:
+
 1. Fix database seed data loading in migrations
 2. Fix conftest.py area_m2 column creation errors
 3. Re-run tests to verify business logic

@@ -2,7 +2,8 @@
 
 ## Purpose
 
-Shows the detailed flow for managing the packaging catalog (macetas, bandejas, plugs) with full CRUD operations including validation, constraints, and business rules.
+Shows the detailed flow for managing the packaging catalog (macetas, bandejas, plugs) with full CRUD
+operations including validation, constraints, and business rules.
 
 ## Scope
 
@@ -14,6 +15,7 @@ Shows the detailed flow for managing the packaging catalog (macetas, bandejas, p
 ## What It Represents
 
 Complete CRUD flow for packaging_catalog table:
+
 1. **Create**: Add new packaging items (R7, R10, R12, etc.)
 2. **Read**: List and filter packaging catalog
 3. **Update**: Modify existing packaging attributes
@@ -75,19 +77,19 @@ CREATE TABLE packaging_colors (
 ### Business Rules
 
 1. **SKU Generation**: Auto-generate if not provided
-   - Pattern: `{TYPE}-{SIZE}-{COLOR}`
-   - Example: `MAC-R7-BLK`, `MAC-R10-WHT`
+    - Pattern: `{TYPE}-{SIZE}-{COLOR}`
+    - Example: `MAC-R7-BLK`, `MAC-R10-WHT`
 
 2. **Validation Rules**:
-   - All dimensions must be positive numbers
-   - Volume should match approximate calculation: V ≈ π × (d/2)² × h / 1000
-   - Type, material, color must exist in reference tables
-   - Unique combination of type+material+color+dimensions
+    - All dimensions must be positive numbers
+    - Volume should match approximate calculation: V ≈ π × (d/2)² × h / 1000
+    - Type, material, color must exist in reference tables
+    - Unique combination of type+material+color+dimensions
 
 3. **Default Values**:
-   - Auto-generate SKU if not provided
-   - Auto-calculate volume if only dimensions provided
-   - Default material: PLASTIC if not specified
+    - Auto-generate SKU if not provided
+    - Auto-calculate volume if only dimensions provided
+    - Default material: PLASTIC if not specified
 
 ### SQL - Create Packaging
 
@@ -370,16 +372,16 @@ async def list_packaging(
 ### Business Rules
 
 1. **Immutable Fields**:
-   - `id`, `sku`, `created_at` cannot be changed
-   - If SKU needs change, delete and recreate
+    - `id`, `sku`, `created_at` cannot be changed
+    - If SKU needs change, delete and recreate
 
 2. **Impact Analysis**:
-   - Check if packaging is used in active price_list entries
-   - If yes, warn user that price list will be affected
+    - Check if packaging is used in active price_list entries
+    - If yes, warn user that price list will be affected
 
 3. **Validation**:
-   - Same validations as CREATE
-   - Must maintain uniqueness constraints
+    - Same validations as CREATE
+    - Must maintain uniqueness constraints
 
 ### SQL - Update Packaging
 
@@ -494,18 +496,18 @@ async def update_packaging(
 ### Business Rules
 
 1. **Constraint Checks**:
-   - Cannot delete if referenced in active price_list
-   - Cannot delete if used in historical stock
-   - If has any references, must use soft delete
+    - Cannot delete if referenced in active price_list
+    - Cannot delete if used in historical stock
+    - If has any references, must use soft delete
 
 2. **Soft Delete**:
-   - Add `deleted_at` timestamp
-   - Keep record in database
-   - Exclude from normal queries
+    - Add `deleted_at` timestamp
+    - Keep record in database
+    - Exclude from normal queries
 
 3. **Hard Delete**:
-   - Only if no references anywhere
-   - Permanently remove from database
+    - Only if no references anywhere
+    - Permanently remove from database
 
 ### SQL - Delete Packaging
 
@@ -643,13 +645,13 @@ async def invalidate_packaging_cache():
 
 ## Performance Targets
 
-| Operation | Target Time | Notes |
-|-----------|-------------|-------|
-| List packaging (50 items) | < 150ms | With joins and pagination |
-| Create packaging | < 100ms | With validation |
-| Update packaging | < 100ms | With impact check |
-| Delete packaging | < 100ms | With constraint check |
-| Get by SKU | < 50ms | Indexed lookup |
+| Operation                 | Target Time | Notes                     |
+|---------------------------|-------------|---------------------------|
+| List packaging (50 items) | < 150ms     | With joins and pagination |
+| Create packaging          | < 100ms     | With validation           |
+| Update packaging          | < 100ms     | With impact check         |
+| Delete packaging          | < 100ms     | With constraint check     |
+| Get by SKU                | < 50ms      | Indexed lookup            |
 
 ## Request/Response Models
 

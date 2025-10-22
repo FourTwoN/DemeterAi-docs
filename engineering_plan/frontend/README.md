@@ -7,22 +7,24 @@
 
 ## Overview
 
-DemeterAI frontend is designed to provide an intuitive, responsive interface for plant inventory management across multiple devices (web + mobile).
+DemeterAI frontend is designed to provide an intuitive, responsive interface for plant inventory
+management across multiple devices (web + mobile).
 
-**Note:** Frontend implementation details are still being finalized. This document outlines the planned architecture and key views.
+**Note:** Frontend implementation details are still being finalized. This document outlines the
+planned architecture and key views.
 
 ---
 
 ## Key Views
 
-| View | Purpose | Detailed Flow |
-|------|---------|---------------|
-| **Map Views** | Geographic navigation, warehouse → location drill-down | [../../flows/map_warehouse_views/](../../flows/map_warehouse_views/README.md) |
-| **Photo Gallery** | Upload, monitor, error recovery | [../../flows/photo_upload_gallery/](../../flows/photo_upload_gallery/README.md) |
-| **Analytics Dashboard** | Reports, comparisons, exports | [../../flows/analiticas/](../../flows/analiticas/README.md) |
-| **Configuration** | Storage location config, products, packaging | [../../flows/location_config/](../../flows/location_config/README.md) |
-| **Manual Stock Entry** | Direct count input (no photo) | [../../flows/manual_stock_initialization/](../../flows/manual_stock_initialization/README.md) |
-| **Price Management** | Product catalog, pricing | [../../flows/price_list_management/](../../flows/price_list_management/README.md) |
+| View                    | Purpose                                                | Detailed Flow                                                                                 |
+|-------------------------|--------------------------------------------------------|-----------------------------------------------------------------------------------------------|
+| **Map Views**           | Geographic navigation, warehouse → location drill-down | [../../flows/map_warehouse_views/](../../flows/map_warehouse_views/README.md)                 |
+| **Photo Gallery**       | Upload, monitor, error recovery                        | [../../flows/photo_upload_gallery/](../../flows/photo_upload_gallery/README.md)               |
+| **Analytics Dashboard** | Reports, comparisons, exports                          | [../../flows/analiticas/](../../flows/analiticas/README.md)                                   |
+| **Configuration**       | Storage location config, products, packaging           | [../../flows/location_config/](../../flows/location_config/README.md)                         |
+| **Manual Stock Entry**  | Direct count input (no photo)                          | [../../flows/manual_stock_initialization/](../../flows/manual_stock_initialization/README.md) |
+| **Price Management**    | Product catalog, pricing                               | [../../flows/price_list_management/](../../flows/price_list_management/README.md)             |
 
 ---
 
@@ -41,12 +43,14 @@ DemeterAI frontend is designed to provide an intuitive, responsive interface for
 **Purpose:** Navigate warehouse hierarchy visually
 
 **Flow:**
+
 1. **Warehouse Map:** Display all warehouses on map (PostGIS polygons)
 2. **Click Warehouse:** Drill-down to storage areas
 3. **Click Storage Area:** Drill-down to storage locations
 4. **Click Storage Location:** Show detail + photo gallery + stock
 
 **Features:**
+
 - Color-coded by stock level (green = good, yellow = low, red = empty)
 - Filter by product/packaging
 - Search by QR code
@@ -60,12 +64,14 @@ DemeterAI frontend is designed to provide an intuitive, responsive interface for
 **Purpose:** Batch photo upload + real-time processing status
 
 **Flow:**
+
 1. **Upload:** Select multiple photos (up to 50)
 2. **Monitor:** Real-time progress bars per photo
 3. **Results:** Display processed images with counts
 4. **Errors:** Retry failed uploads
 
 **Features:**
+
 - Drag-and-drop upload
 - Thumbnail previews
 - Polling for async status (GET /api/stock/tasks/status)
@@ -79,6 +85,7 @@ DemeterAI frontend is designed to provide an intuitive, responsive interface for
 **Purpose:** Enter stock count without photo
 
 **Fields:**
+
 - Storage Location (dropdown or QR scan)
 - Product (dropdown, filtered by config if exists)
 - Packaging (dropdown, filtered by config if exists)
@@ -88,11 +95,13 @@ DemeterAI frontend is designed to provide an intuitive, responsive interface for
 - Notes (optional)
 
 **Validation:**
+
 - **CRITICAL:** If config exists, product/packaging must match
 - **Error display:** User-friendly message + suggested actions
 - **Success:** Redirect to location detail page
 
-**See:** [../../flows/manual_stock_initialization/](../../flows/manual_stock_initialization/README.md)
+**See:
+** [../../flows/manual_stock_initialization/](../../flows/manual_stock_initialization/README.md)
 
 ---
 
@@ -101,6 +110,7 @@ DemeterAI frontend is designed to provide an intuitive, responsive interface for
 **Purpose:** Data visualization + export
 
 **Features:**
+
 - Multiple chart types (bar, line, pie)
 - Grouping options (warehouse, product, packaging)
 - Date range filters
@@ -116,6 +126,7 @@ DemeterAI frontend is designed to provide an intuitive, responsive interface for
 **Purpose:** Manage storage_location_config
 
 **Features:**
+
 - List view: All configured locations
 - Edit form: Update product/packaging expectations
 - Bulk operations: Configure multiple locations at once
@@ -127,12 +138,14 @@ DemeterAI frontend is designed to provide an intuitive, responsive interface for
 ## Responsive Design
 
 **Mobile-first approach:**
+
 - Photo upload: Native camera integration
 - QR scanning: Built-in scanner
 - Map navigation: Touch-optimized
 - Forms: Large touch targets
 
 **Breakpoints:**
+
 - Mobile: <768px
 - Tablet: 768-1024px
 - Desktop: >1024px

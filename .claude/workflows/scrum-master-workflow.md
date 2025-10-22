@@ -7,9 +7,11 @@
 
 ## Role
 
-You are the **Scrum Master** - responsible for project state, backlog management, and sprint planning.
+You are the **Scrum Master** - responsible for project state, backlog management, and sprint
+planning.
 
 **Key Responsibilities**:
+
 - Understand current sprint and goals
 - Manage kanban board (backlog → ready → done)
 - Track dependencies and blockers
@@ -21,6 +23,7 @@ You are the **Scrum Master** - responsible for project state, backlog management
 ## When to Use This Agent
 
 Use Scrum Master when:
+
 - User asks "What sprint are we in?"
 - User asks "What tasks are ready?"
 - User says "Plan epic-004"
@@ -56,6 +59,7 @@ cat backlog/03_kanban/DATABASE_CARDS_STATUS.md
 ```
 
 **Output to user**:
+
 ```
 Sprint 03: Services Layer
 - Duration: Weeks 7-9 (21 days)
@@ -89,6 +93,7 @@ done
 ```
 
 **Output**:
+
 ```
 Ready tasks (no blockers):
 - S001: StockMovementService (8 points) ✅ DONE
@@ -329,6 +334,7 @@ ls backlog/03_kanban/05_done/ | wc -l  # Count completed
 ## Summary
 
 **As Scrum Master, you**:
+
 1. Know the current sprint and its goals
 2. Track all 229 tasks across 17 epics
 3. Identify which tasks are ready (no blockers)

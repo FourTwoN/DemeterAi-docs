@@ -1,4 +1,5 @@
 # Sprint 05: Deployment + Observability
+
 ## Sprint Goal
 
 **Duration**: Week 11-12 (Days 51-60)
@@ -9,7 +10,8 @@
 
 ## Goal Statement
 
-> **"Production-ready deployment with observability, enabling stakeholder demo and handoff to operations team."**
+> **"Production-ready deployment with observability, enabling stakeholder demo and handoff to
+operations team."**
 
 ---
 
@@ -32,6 +34,7 @@
 ### In Scope (32 cards, 70 points)
 
 **Deployment (DEP001-DEP012)**: 25 points
+
 - Multi-stage Dockerfile optimization
 - docker-compose production configuration
 - Health checks (API, DB, Redis, Celery workers)
@@ -40,6 +43,7 @@
 - Secret management (AWS Secrets Manager integration)
 
 **Observability (OBS001-OBS010)**: 25 points
+
 - OpenTelemetry instrumentation (FastAPI, Celery, SQLAlchemy)
 - Prometheus metrics (API latency, ML inference time, GPU util)
 - Structured JSON logging (correlation IDs, trace IDs)
@@ -47,6 +51,7 @@
 - Error tracking integration (Sentry placeholder)
 
 **Authentication (AUTH001-AUTH006)**: 10 points
+
 - JWT token generation/validation
 - Password hashing (passlib + bcrypt)
 - User CRUD endpoints
@@ -54,12 +59,14 @@
 - Login/logout/refresh endpoints
 
 **Final Polish (10 points buffer)**:
+
 - Performance optimization
 - Documentation finalization
 - Demo preparation
 - Bug fixes
 
 ### Out of Scope
+
 - ❌ Production deployment (operations team responsibility)
 - ❌ Frontend integration (separate project)
 

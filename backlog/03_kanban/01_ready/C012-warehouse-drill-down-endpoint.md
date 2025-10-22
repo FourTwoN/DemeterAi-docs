@@ -1,6 +1,7 @@
 # [C012] Warehouse Drill-Down - GET /api/map/warehouses/{id}/areas
 
 ## Metadata
+
 - **Epic**: epic-003-backend-implementation.md
 - **Sprint**: Sprint-04
 - **Status**: `backlog`
@@ -9,7 +10,7 @@
 - **Area**: `backend/controllers`
 - **Assignee**: TBD
 - **Dependencies**:
-  - Blocked by: [DB001, DB002-storage-areas-model]
+    - Blocked by: [DB001, DB002-storage-areas-model]
 
 ## Description
 
@@ -34,6 +35,7 @@ async def get_warehouse_areas(
 **Coverage Target**: ≥80%
 
 ## Time Tracking
+
 - **Estimated**: 2 story points
 
 ---

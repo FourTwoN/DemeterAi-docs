@@ -1,6 +1,7 @@
 # [DB005] StorageBinTypes Model - Container Type Catalog
 
 ## Metadata
+
 - **Epic**: epic-002-database-models.md
 - **Sprint**: Sprint-01 (Week 3-4)
 - **Status**: `ready` (moved 2025-10-14)
@@ -9,39 +10,48 @@
 - **Area**: `database/models`
 - **Assignee**: Team Leader (delegated 2025-10-14)
 - **Dependencies**:
-  - Blocks: [DB025]
-  - Blocked by: [F007-alembic-setup] ✅ COMPLETE
-  - Required by: DB004 ✅ COMPLETE (can now add relationship back)
+    - Blocks: [DB025]
+    - Blocked by: [F007-alembic-setup] ✅ COMPLETE
+    - Required by: DB004 ✅ COMPLETE (can now add relationship back)
 
 ## Related Documentation
+
 - **Engineering Plan**: ../../engineering_plan/database/README.md
 - **Database ERD**: ../../database/database.mmd
 
 ## Description
 
-Create the `storage_bin_types` SQLAlchemy model - a catalog/reference table defining container types (plug trays, boxes, segments, pots) with dimensions and capacity.
+Create the `storage_bin_types` SQLAlchemy model - a catalog/reference table defining container
+types (plug trays, boxes, segments, pots) with dimensions and capacity.
 
 **What**: SQLAlchemy model for `storage_bin_types` table:
-- Reference data for container types (plug_tray_288, seedling_box_standard, segmento_rectangular, etc.)
+
+- Reference data for container types (plug_tray_288, seedling_box_standard, segmento_rectangular,
+  etc.)
 - Dimensions: length_cm, width_cm, height_cm
 - Capacity: rows × columns for grid types (plugs), or total capacity for boxes
 - Category enum: plug, seedling_tray, box, segment, pot
 
 **Why**:
+
 - **Capacity planning**: Know max plants per bin type
 - **Density estimation**: ML uses bin type + area to estimate plant count
 - **Standardization**: Consistent container definitions across system
 - **Reporting**: Group inventory by bin type
 
-**Context**: This is reference/catalog data. Loaded via seed migration. StorageBins FK to this table.
+**Context**: This is reference/catalog data. Loaded via seed migration. StorageBins FK to this
+table.
 
 ## Acceptance Criteria
 
-- [ ] **AC1**: Model created in `app/models/storage_bin_type.py` with category enum, dimensions (nullable), capacity fields, grid flag
-- [ ] **AC2**: Category enum created (`CREATE TYPE bin_category_enum AS ENUM ('plug', 'seedling_tray', 'box', 'segment', 'pot')`)
+- [ ] **AC1**: Model created in `app/models/storage_bin_type.py` with category enum, dimensions (
+  nullable), capacity fields, grid flag
+- [ ] **AC2**: Category enum created (
+  `CREATE TYPE bin_category_enum AS ENUM ('plug', 'seedling_tray', 'box', 'segment', 'pot')`)
 - [ ] **AC3**: Code validation (uppercase, alphanumeric, 3-50 chars, unique)
 - [ ] **AC4**: CHECK constraint: if is_grid=true, then rows/columns must be NOT NULL
-- [ ] **AC5**: Seed data migration with common bin types (plug_tray_288, plug_tray_128, seedling_box_standard, etc.)
+- [ ] **AC5**: Seed data migration with common bin types (plug_tray_288, plug_tray_128,
+  seedling_box_standard, etc.)
 - [ ] **AC6**: Indexes on code, category
 - [ ] **AC7**: Alembic migration with seed data
 
@@ -106,11 +116,13 @@ CHECK (
 ### Testing Requirements
 
 **Unit Tests** (`tests/models/test_storage_bin_type.py`):
+
 - Category enum validation
 - Code validation (uppercase, alphanumeric)
 - Grid constraint (is_grid=true requires rows/columns)
 
 **Integration Tests** (`tests/integration/test_storage_bin_type.py`):
+
 - Seed data loaded correctly
 - RESTRICT delete (cannot delete if storage_bins reference it)
 - Relationship to storage_bins
@@ -118,22 +130,27 @@ CHECK (
 **Coverage Target**: ≥75%
 
 ### Performance Expectations
+
 - Insert: <10ms
 - Retrieve by code: <5ms (UK index)
 - Retrieve all: <10ms (small reference table, <100 rows expected)
 
 ## Handover Briefing
 
-**Context**: Reference/catalog table. Defines container types used throughout the system. Loaded via seed migration, rarely modified.
+**Context**: Reference/catalog table. Defines container types used throughout the system. Loaded via
+seed migration, rarely modified.
 
 **Key decisions**:
+
 1. **Category enum**: 5 types (plug, seedling_tray, box, segment, pot)
-2. **Nullable dimensions**: Not all types have dimensions (segments detected by ML don't have predefined size)
+2. **Nullable dimensions**: Not all types have dimensions (segments detected by ML don't have
+   predefined size)
 3. **is_grid flag**: True for plug trays (grid-based capacity calculation)
 4. **CHECK constraint**: Grid types must have rows/columns
 5. **Seed data**: Common types preloaded in migration
 
-**Next steps**: DB025 (DensityParameters uses bin_type for ML estimation), re-enable StorageBin → StorageBinType relationship in DB004
+**Next steps**: DB025 (DensityParameters uses bin_type for ML estimation), re-enable StorageBin →
+StorageBinType relationship in DB004
 
 ---
 
@@ -145,6 +162,7 @@ CHECK (
 **Estimated Time**: 30-45 minutes (reference table, seed data)
 
 **Sprint Context**:
+
 - Wave: Phase 1 (Reference Data Foundation)
 - Position: 5 of 46 remaining Sprint 01 cards
 - Progress: 17 cards complete (78 points), 46 cards remaining (~68 points)
@@ -153,21 +171,26 @@ CHECK (
 **Sprint**: Sprint-01 (Week 3-4)
 
 **Dependencies SATISFIED**:
+
 - ✅ F007: Alembic setup (complete)
 - ✅ DB001-DB004: Geospatial hierarchy (complete - can now add relationship)
 - ✅ Test infrastructure ready (pytest + mypy + ruff working from DB001-DB004)
 
 **Blocks**:
+
 - DB025: DensityParameters (uses bin_type_id FK for ML density estimation)
 - DB004: StorageBin relationship (temporarily commented out, can be re-enabled)
 
 **Why This Task is Critical**:
-1. **Reference data foundation**: Catalog table for all container types (plug trays, boxes, segments)
+
+1. **Reference data foundation**: Catalog table for all container types (plug trays, boxes,
+   segments)
 2. **ML pipeline dependency**: DensityParameters (DB025) needs this for band estimation
 3. **Simplest model yet**: No PostGIS, no complex triggers, just catalog + seed data
 4. **High reusability**: Patterns from this model will be used for DB015-DB019 (product catalog)
 
 **Context from Previous Models** (DB001-DB004):
+
 - Code validation pattern: uppercase, alphanumeric, unique constraint
 - Enum creation: CREATE TYPE ... AS ENUM (...)
 - Seed data in migration: INSERT INTO ... VALUES (...)
@@ -175,6 +198,7 @@ CHECK (
 - Standard timestamps: created_at, updated_at
 
 **Key Features for DB005**:
+
 1. **Category enum**: 5 types (plug, seedling_tray, box, segment, pot)
 2. **Nullable dimensions**: Not all types have fixed dimensions (ML-detected segments)
 3. **Grid flag**: True for plug trays (rows × columns capacity)
@@ -182,22 +206,26 @@ CHECK (
 5. **Seed data**: 6-10 common bin types preloaded
 
 **Resources**:
+
 - **Template**: Follow DB001-DB004 pattern (this is simpler - no PostGIS)
 - **Architecture**: engineering_plan/03_architecture_overview.md (Model layer)
 - **Database ERD**: database/database.mmd (storage_bin_types table, lines 59-74)
 - **Past patterns**: DB001 Warehouse model (code validation, enum creation)
 
 **Testing Strategy** (same as DB001-DB004):
+
 - Unit tests: Category enum, code validation, grid CHECK constraint (15-20 tests)
 - Integration tests: Seed data loading, relationship to StorageBin (5-10 tests)
 - Coverage target: ≥75% (lower than DB001-DB004 because this is simpler)
 
 **Performance Expectations**:
+
 - Insert: <10ms (small reference table)
 - Retrieve by code: <5ms (UK index)
 - Retrieve all: <10ms (≤100 rows expected)
 
 **Acceptance Criteria Highlights** (7 ACs):
+
 1. Model in `app/models/storage_bin_type.py`
 2. Category enum created (5 values)
 3. Code validation (@validates, uppercase, 3-50 chars)
@@ -207,6 +235,7 @@ CHECK (
 7. Alembic migration tested (upgrade + downgrade)
 
 **Expected Deliverables**:
+
 - `app/models/storage_bin_type.py` (~150 lines - simpler than DB001)
 - `alembic/versions/XXXX_create_storage_bin_types.py` (migration + seed data, ~120 lines)
 - `tests/unit/models/test_storage_bin_type.py` (15-20 unit tests, ~400 lines)
@@ -214,11 +243,16 @@ CHECK (
 - Git commit: `feat(models): implement StorageBinType catalog with seed data (DB005)`
 
 **Validation Questions for Team Leader**:
-1. Should we include a `bin_type_id` primary key or use `code` as primary? (Answer: Use `id` PK + `code` UK, following convention)
-2. Should seed data be in separate migration or same as CREATE TABLE? (Answer: Same migration, easier to manage)
-3. Should we validate capacity = rows × columns for grid types? (Answer: No, allow override - some trays have unusable cells)
+
+1. Should we include a `bin_type_id` primary key or use `code` as primary? (Answer: Use `id` PK +
+   `code` UK, following convention)
+2. Should seed data be in separate migration or same as CREATE TABLE? (Answer: Same migration,
+   easier to manage)
+3. Should we validate capacity = rows × columns for grid types? (Answer: No, allow override - some
+   trays have unusable cells)
 
 **Next Steps After Completion**:
+
 1. Mark DB005 as COMPLETE in `05_done/`
 2. Update `DATABASE_CARDS_STATUS.md` (1 point complete)
 3. Re-enable StorageBin → StorageBinType relationship in DB004
@@ -226,6 +260,7 @@ CHECK (
 5. After DB006, start Product Catalog foundation (DB015-DB019, 10pts)
 
 **Estimated Velocity Check**:
+
 - DB001: 3pts → 2.5 hours
 - DB002: 2pts → 1.5 hours
 - DB003: 3pts → 1.5 hours
@@ -233,12 +268,14 @@ CHECK (
 - **DB005 projection**: 1pt → 30-45 minutes (simplest model, reference table)
 
 **REMINDER**: This is a **reference/catalog table**. Focus on:
+
 - Clean enum definition
 - Proper seed data (6-10 common types)
 - Grid CHECK constraint correctness
 - Code validation pattern from DB001-DB004
 
-**GO/NO-GO**: All dependencies satisfied, Team Leader has full context from DB001-DB004. Ready to delegate.
+**GO/NO-GO**: All dependencies satisfied, Team Leader has full context from DB001-DB004. Ready to
+delegate.
 
 ---
 
@@ -255,6 +292,7 @@ CHECK (
 - [ ] PR reviewed and approved
 
 ## Time Tracking
+
 - **Estimated**: 1 story point
 - **Actual**: TBD
 - **Started**: TBD
@@ -273,13 +311,17 @@ CHECK (
 **Status**: MINI-PLAN COMPLETE - Delegating to Python Expert + Testing Expert (PARALLEL)
 
 ### Mini-Plan Summary
-Created comprehensive mini-plan in: `/home/lucasg/proyectos/DemeterDocs/backlog/03_kanban/02_in-progress/DB005-mini-plan.md`
+
+Created comprehensive mini-plan in:
+`/home/lucasg/proyectos/DemeterDocs/backlog/03_kanban/02_in-progress/DB005-mini-plan.md`
 
 **Task Characteristics**:
+
 - **Simplest model yet**: Just reference/catalog table with seed data
 - **NO PostGIS**: No spatial complexity (like DB004)
 - **Estimated Time**: 30-45 minutes (1 story point)
-- **Key Features**: Category enum (5 types), nullable dimensions, CHECK constraint for grid types, seed data (6-10 types)
+- **Key Features**: Category enum (5 types), nullable dimensions, CHECK constraint for grid types,
+  seed data (6-10 types)
 
 ### Delegation Strategy: PARALLEL EXECUTION
 
@@ -288,19 +330,23 @@ Created comprehensive mini-plan in: `/home/lucasg/proyectos/DemeterDocs/backlog/
 1. **Python Expert** → Model + Migration + Seed Data (20-30 min)
 2. **Testing Expert** → Unit + Integration Tests (20-30 min)
 
-Both can work in parallel because Testing Expert can start writing tests based on specification while Python Expert implements.
+Both can work in parallel because Testing Expert can start writing tests based on specification
+while Python Expert implements.
 
 ---
 
 ## Python Expert Delegation (2025-10-14 10:35)
 
 **Task**: Implement StorageBinType model + Alembic migration + Seed data
-**File**: `/home/lucasg/proyectos/DemeterDocs/backlog/03_kanban/02_in-progress/DB005-storage-bin-types-model.md`
-**Mini-Plan**: `/home/lucasg/proyectos/DemeterDocs/backlog/03_kanban/02_in-progress/DB005-mini-plan.md`
+**File**:
+`/home/lucasg/proyectos/DemeterDocs/backlog/03_kanban/02_in-progress/DB005-storage-bin-types-model.md`
+**Mini-Plan**:
+`/home/lucasg/proyectos/DemeterDocs/backlog/03_kanban/02_in-progress/DB005-mini-plan.md`
 
 ### Key Requirements
 
 **File 1**: `app/models/storage_bin_type.py` (~150 lines)
+
 - BinCategoryEnum: plug, seedling_tray, box, segment, pot
 - Code validation: uppercase, alphanumeric + underscores, 3-50 chars
 - Nullable dimensions: rows, columns, capacity, length_cm, width_cm, height_cm
@@ -309,20 +355,22 @@ Both can work in parallel because Testing Expert can start writing tests based o
 - Relationships: storage_bins (one-to-many), density_parameters (COMMENT OUT - not ready)
 
 **File 2**: `alembic/versions/XXXX_create_storage_bin_types.py` (~120 lines + seed data)
+
 - Create bin_category_enum type
 - CREATE TABLE storage_bin_types
 - CHECK constraint for grid types
 - Indexes: code (UK), category
 - **SEED DATA** (6-10 types):
-  - PLUG_TRAY_288 (18x16 grid)
-  - PLUG_TRAY_128 (8x16 grid)
-  - PLUG_TRAY_72 (6x12 grid)
-  - SEEDLING_TRAY_50 (5x10 grid)
-  - BOX_STANDARD (no grid)
-  - SEGMENT_STANDARD (no grid, no dimensions)
-  - POT_10CM (no grid)
+    - PLUG_TRAY_288 (18x16 grid)
+    - PLUG_TRAY_128 (8x16 grid)
+    - PLUG_TRAY_72 (6x12 grid)
+    - SEEDLING_TRAY_50 (5x10 grid)
+    - BOX_STANDARD (no grid)
+    - SEGMENT_STANDARD (no grid, no dimensions)
+    - POT_10CM (no grid)
 
 **Patterns to Follow** (from DB001-DB004):
+
 - Code validation: @validates('code') with uppercase + regex
 - Enum creation: Same as StorageBinStatusEnum
 - Timestamps: created_at (server_default), updated_at (onupdate)
@@ -335,12 +383,15 @@ Both can work in parallel because Testing Expert can start writing tests based o
 ## Testing Expert Delegation (2025-10-14 10:35)
 
 **Task**: Write unit + integration tests for StorageBinType
-**File**: `/home/lucasg/proyectos/DemeterDocs/backlog/03_kanban/02_in-progress/DB005-storage-bin-types-model.md`
-**Mini-Plan**: `/home/lucasg/proyectos/DemeterDocs/backlog/03_kanban/02_in-progress/DB005-mini-plan.md`
+**File**:
+`/home/lucasg/proyectos/DemeterDocs/backlog/03_kanban/02_in-progress/DB005-storage-bin-types-model.md`
+**Mini-Plan**:
+`/home/lucasg/proyectos/DemeterDocs/backlog/03_kanban/02_in-progress/DB005-mini-plan.md`
 
 ### Key Requirements
 
 **File 1**: `tests/unit/models/test_storage_bin_type.py` (~400 lines, 15-20 tests)
+
 - Category enum validation (3 tests)
 - Code validation (6 tests)
 - CHECK constraint for grid types (4 tests)
@@ -350,6 +401,7 @@ Both can work in parallel because Testing Expert can start writing tests based o
 - **Target**: ≥75% coverage
 
 **File 2**: `tests/integration/models/test_storage_bin_type.py` (~300 lines, 5-10 tests)
+
 - Seed data verification (2 tests): Verify 6-10 types exist
 - RESTRICT delete tests (2 tests): Cannot delete type if bins exist
 - Relationship tests (2 tests): FK integrity with storage_bins
@@ -358,6 +410,7 @@ Both can work in parallel because Testing Expert can start writing tests based o
 - **Target**: ≥70% coverage
 
 **Critical Test**:
+
 ```python
 def test_seed_data_loaded(session):
     """Verify all seed types exist after migration."""
@@ -380,12 +433,14 @@ def test_seed_data_loaded(session):
 ## Team Leader Monitoring Plan
 
 **Check-in Points**:
+
 1. **T+15 min**: Python Expert progress (model structure complete?)
 2. **T+25 min**: Testing Expert progress (test structure complete?)
 3. **T+35 min**: Both experts complete → Review code
 4. **T+45 min**: Quality gates passed → Re-enable relationship → Commit
 
 **Quality Gates** (MANDATORY before completion):
+
 - [ ] All 7 acceptance criteria checked
 - [ ] Unit tests: ≥75% coverage
 - [ ] Integration tests: Pass + seed data verified
@@ -411,43 +466,47 @@ def test_seed_data_loaded(session):
 ### Implementation Summary
 
 **Python Expert Completion** (20 minutes):
-- [✅] Created `app/models/storage_bin_type.py` (353 lines)
-  - BinCategoryEnum: 5 categories (plug, seedling_tray, box, segment, pot)
-  - Code validation: uppercase, alphanumeric + underscores, 3-50 chars
-  - Nullable dimensions: rows, columns, capacity, length_cm, width_cm, height_cm
-  - Grid flag: is_grid (default FALSE)
-  - CHECK constraints: code length, grid requires rows/columns
-  - Relationships: storage_bins (one-to-many)
 
-- [✅] Created Alembic migration `alembic/versions/2wh7p3r9bm6t_create_storage_bin_types_table.py` (103 lines)
-  - bin_category_enum type creation
-  - Table creation with all fields
-  - CHECK constraints (code length, grid validation)
-  - Indexes: code (UK), category
-  - **SEED DATA**: 7 common types (PLUG_TRAY_288, PLUG_TRAY_128, PLUG_TRAY_72, SEEDLING_TRAY_50, BOX_STANDARD, SEGMENT_STANDARD, POT_10CM)
+- [✅] Created `app/models/storage_bin_type.py` (353 lines)
+    - BinCategoryEnum: 5 categories (plug, seedling_tray, box, segment, pot)
+    - Code validation: uppercase, alphanumeric + underscores, 3-50 chars
+    - Nullable dimensions: rows, columns, capacity, length_cm, width_cm, height_cm
+    - Grid flag: is_grid (default FALSE)
+    - CHECK constraints: code length, grid requires rows/columns
+    - Relationships: storage_bins (one-to-many)
+
+- [✅] Created Alembic migration `alembic/versions/2wh7p3r9bm6t_create_storage_bin_types_table.py` (
+  103 lines)
+    - bin_category_enum type creation
+    - Table creation with all fields
+    - CHECK constraints (code length, grid validation)
+    - Indexes: code (UK), category
+    - **SEED DATA**: 7 common types (PLUG_TRAY_288, PLUG_TRAY_128, PLUG_TRAY_72, SEEDLING_TRAY_50,
+      BOX_STANDARD, SEGMENT_STANDARD, POT_10CM)
 
 - [✅] Updated `app/models/__init__.py` (added StorageBinType, BinCategoryEnum exports)
 
 - [✅] Updated `app/models/storage_bin.py` (re-enabled storage_bin_type relationship)
 
 **Testing Expert Completion** (20 minutes):
+
 - [✅] Created `tests/unit/models/test_storage_bin_type.py` (504 lines, 38+ unit tests)
-  - Category enum validation (3 tests)
-  - Code validation (9 tests)
-  - Nullable dimensions (2 tests)
-  - Grid flag validation (2 tests)
-  - Relationships (2 tests)
-  - Basic CRUD (3 tests)
-  - Field constraints (3 tests)
-  - Default values (2 tests)
-  - Field combinations (4 tests)
+    - Category enum validation (3 tests)
+    - Code validation (9 tests)
+    - Nullable dimensions (2 tests)
+    - Grid flag validation (2 tests)
+    - Relationships (2 tests)
+    - Basic CRUD (3 tests)
+    - Field constraints (3 tests)
+    - Default values (2 tests)
+    - Field combinations (4 tests)
 
 - [✅] Created `tests/integration/models/test_storage_bin_type.py` (367 lines, 14 integration tests)
-  - Seed data verification (2 tests)
-  - RESTRICT delete tests (2 tests)
-  - Relationship tests (2 tests)
-  - Code uniqueness tests (2 tests)
-  - CHECK constraint at DB level (4 tests)
+    - Seed data verification (2 tests)
+    - RESTRICT delete tests (2 tests)
+    - Relationship tests (2 tests)
+    - Code uniqueness tests (2 tests)
+    - CHECK constraint at DB level (4 tests)
 
 ### Quality Gates Summary
 
@@ -463,12 +522,19 @@ def test_seed_data_loaded(session):
 ### Files Created/Modified
 
 **Created**:
+
 1. `/home/lucasg/proyectos/DemeterDocs/app/models/storage_bin_type.py` (353 lines)
-2. `/home/lucasg/proyectos/DemeterDocs/alembic/versions/2wh7p3r9bm6t_create_storage_bin_types_table.py` (103 lines)
+2.
+
+`/home/lucasg/proyectos/DemeterDocs/alembic/versions/2wh7p3r9bm6t_create_storage_bin_types_table.py` (
+103 lines)
+
 3. `/home/lucasg/proyectos/DemeterDocs/tests/unit/models/test_storage_bin_type.py` (504 lines)
-4. `/home/lucasg/proyectos/DemeterDocs/tests/integration/models/test_storage_bin_type.py` (367 lines)
+4. `/home/lucasg/proyectos/DemeterDocs/tests/integration/models/test_storage_bin_type.py` (367
+   lines)
 
 **Modified**:
+
 1. `/home/lucasg/proyectos/DemeterDocs/app/models/__init__.py` (added exports)
 2. `/home/lucasg/proyectos/DemeterDocs/app/models/storage_bin.py` (re-enabled relationship)
 
@@ -517,22 +583,27 @@ This is the FASTEST catalog model yet. All quality gates passed.
 ### Deliverables
 
 1. **Model**: `/home/lucasg/proyectos/DemeterDocs/app/models/storage_bin_type.py` (353 lines)
-   - BinCategoryEnum: 5 categories (plug, seedling_tray, box, segment, pot)
-   - Code validation: uppercase, alphanumeric + underscores, 3-50 chars
-   - Nullable dimensions: Support ML-detected segments
-   - Grid flag: is_grid for plug trays
-   - CHECK constraints: code length, grid validation
-   - Relationships: storage_bins (one-to-many)
+    - BinCategoryEnum: 5 categories (plug, seedling_tray, box, segment, pot)
+    - Code validation: uppercase, alphanumeric + underscores, 3-50 chars
+    - Nullable dimensions: Support ML-detected segments
+    - Grid flag: is_grid for plug trays
+    - CHECK constraints: code length, grid validation
+    - Relationships: storage_bins (one-to-many)
 
-2. **Migration**: `/home/lucasg/proyectos/DemeterDocs/alembic/versions/2wh7p3r9bm6t_create_storage_bin_types_table.py` (105 lines)
-   - bin_category_enum type
-   - Table with CHECK constraints
-   - Indexes: code (UK), category
-   - **SEED DATA**: 7 common types
+2. **Migration**:
+   `/home/lucasg/proyectos/DemeterDocs/alembic/versions/2wh7p3r9bm6t_create_storage_bin_types_table.py` (
+   105 lines)
+    - bin_category_enum type
+    - Table with CHECK constraints
+    - Indexes: code (UK), category
+    - **SEED DATA**: 7 common types
 
 3. **Tests**: 52 tests total (38 unit + 14 integration)
-   - Unit: `/home/lucasg/proyectos/DemeterDocs/tests/unit/models/test_storage_bin_type.py` (504 lines)
-   - Integration: `/home/lucasg/proyectos/DemeterDocs/tests/integration/models/test_storage_bin_type.py` (367 lines)
+    - Unit: `/home/lucasg/proyectos/DemeterDocs/tests/unit/models/test_storage_bin_type.py` (504
+      lines)
+    - Integration:
+      `/home/lucasg/proyectos/DemeterDocs/tests/integration/models/test_storage_bin_type.py` (367
+      lines)
 
 4. **Git Commit**: 0ce88a4 (feat: implement StorageBinType catalog with seed data)
 
@@ -563,17 +634,18 @@ This is the FASTEST catalog model yet. All quality gates passed.
 ### Dependencies Unblocked
 
 **Ready for Implementation**:
+
 - **DB025**: DensityParameters (uses bin_type_id FK for ML band estimation)
 - **Product Catalog**: Same pattern applicable to DB015-DB019
 
 ### Next Recommended Actions
 
 1. **Product Catalog Foundation**: Start DB015-DB019 (5 cards, reference tables)
-   - DB015: ProductCategories (similar to StorageBinType)
-   - DB016: ProductFamilies
-   - DB017: Products
-   - DB018: ProductStates enum
-   - DB019: ProductSizes enum
+    - DB015: ProductCategories (similar to StorageBinType)
+    - DB016: ProductFamilies
+    - DB017: Products
+    - DB018: ProductStates enum
+    - DB019: ProductSizes enum
 
 2. **ML Integration**: DB025 DensityParameters (uses bin types)
 
@@ -589,6 +661,7 @@ This is the FASTEST catalog model yet. All quality gates passed.
 ---
 
 **ACTION FOR SCRUM MASTER**:
+
 - Move DB015-DB019 from `00_backlog/` to `01_ready/` (5 cards, product catalog)
 - Consider parallel work on product catalog (5 similar reference tables)
 - Sprint on track to complete 17 cards in 2 weeks
@@ -604,12 +677,12 @@ This is the FASTEST catalog model yet. All quality gates passed.
 **Tests**: 52 (all passing)
 **Next**: Product Catalog (DB015-DB019)
 
-
 ## Team Leader Final Approval (2025-10-20 - RETROACTIVE)
 
 **Status**: ✅ COMPLETED (retroactive verification)
 
 ### Verification Results
+
 - [✅] Implementation complete per task specification
 - [✅] Code follows Clean Architecture patterns
 - [✅] Type hints and validations present
@@ -617,6 +690,7 @@ This is the FASTEST catalog model yet. All quality gates passed.
 - [✅] Integration with PostgreSQL verified
 
 ### Quality Gates
+
 - [✅] SQLAlchemy 2.0 async model
 - [✅] Type hints complete
 - [✅] SOLID principles followed
@@ -624,6 +698,7 @@ This is the FASTEST catalog model yet. All quality gates passed.
 - [✅] Imports working correctly
 
 ### Completion Status
+
 Retroactive approval based on audit of Sprint 00-02.
 Code verified to exist and function correctly against PostgreSQL test database.
 

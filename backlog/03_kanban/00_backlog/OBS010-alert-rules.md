@@ -1,6 +1,7 @@
 # [OBS010] Prometheus Alert Rules
 
 ## Metadata
+
 - **Epic**: epic-010-observability
 - **Sprint**: Sprint-07
 - **Priority**: `medium`
@@ -8,38 +9,43 @@
 - **Dependencies**: Blocked by [OBS006, DEP010]
 
 ## Description
-Define Prometheus alerting rules for critical issues: high error rate, slow responses, database down, GPU OOM.
+
+Define Prometheus alerting rules for critical issues: high error rate, slow responses, database
+down, GPU OOM.
 
 ## Acceptance Criteria
+
 - [ ] **Alert: High Error Rate**
-  - Trigger: >5% of requests return 5xx
-  - Duration: 5 minutes
-  - Severity: critical
+    - Trigger: >5% of requests return 5xx
+    - Duration: 5 minutes
+    - Severity: critical
 
 - [ ] **Alert: Slow API Response**
-  - Trigger: p95 latency >2s
-  - Duration: 10 minutes
-  - Severity: warning
+    - Trigger: p95 latency >2s
+    - Duration: 10 minutes
+    - Severity: warning
 
 - [ ] **Alert: Database Down**
-  - Trigger: All database connections fail
-  - Duration: 1 minute
-  - Severity: critical
+    - Trigger: All database connections fail
+    - Duration: 1 minute
+    - Severity: critical
 
 - [ ] **Alert: Celery Queue Backed Up**
-  - Trigger: >100 pending tasks
-  - Duration: 15 minutes
-  - Severity: warning
+    - Trigger: >100 pending tasks
+    - Duration: 15 minutes
+    - Severity: warning
 
 - [ ] **Alert: GPU OOM**
-  - Trigger: GPU memory >90%
-  - Duration: 5 minutes
-  - Severity: critical
+    - Trigger: GPU memory >90%
+    - Duration: 5 minutes
+    - Severity: critical
 
 - [ ] Alerts sent to Slack/email (Alertmanager)
 
 ## Implementation
+
 **prometheus/alerts.yml:**
+
 ```yaml
 groups:
   - name: api_alerts
@@ -72,6 +78,7 @@ groups:
 ```
 
 ## Testing
+
 - Trigger alerts manually (simulate failures)
 - Verify alerts fire in Prometheus
 - Verify notifications sent via Alertmanager

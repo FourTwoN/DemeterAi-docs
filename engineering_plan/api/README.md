@@ -7,7 +7,8 @@
 
 ## Overview
 
-DemeterAI exposes a **RESTful API** built with FastAPI 0.118.0. All endpoints follow REST conventions and return JSON responses.
+DemeterAI exposes a **RESTful API** built with FastAPI 0.118.0. All endpoints follow REST
+conventions and return JSON responses.
 
 **Base URL:** `http://localhost:8000/api` (development)
 
@@ -17,13 +18,13 @@ DemeterAI exposes a **RESTful API** built with FastAPI 0.118.0. All endpoints fo
 
 ## Endpoint Categories
 
-| Category | Purpose | Key Endpoints |
-|----------|---------|---------------|
-| **Stock** | Photo upload, manual init, movements | POST /stock/photo, POST /stock/manual |
-| **Locations** | Warehouse, area, location CRUD | GET /locations/warehouses, GET /locations/{id} |
-| **Analytics** | Reports, exports, comparisons | POST /analytics/report, GET /analytics/export |
-| **Configuration** | Storage location config | POST /config/storage-location, GET /config/{id} |
-| **Auth** | JWT login, user management | POST /auth/login, GET /auth/me |
+| Category          | Purpose                              | Key Endpoints                                   |
+|-------------------|--------------------------------------|-------------------------------------------------|
+| **Stock**         | Photo upload, manual init, movements | POST /stock/photo, POST /stock/manual           |
+| **Locations**     | Warehouse, area, location CRUD       | GET /locations/warehouses, GET /locations/{id}  |
+| **Analytics**     | Reports, exports, comparisons        | POST /analytics/report, GET /analytics/export   |
+| **Configuration** | Storage location config              | POST /config/storage-location, GET /config/{id} |
+| **Auth**          | JWT login, user management           | POST /auth/login, GET /auth/me                  |
 
 ---
 
@@ -34,6 +35,7 @@ DemeterAI exposes a **RESTful API** built with FastAPI 0.118.0. All endpoints fo
 **Purpose:** Upload photo for ML processing (primary initialization method)
 
 **Request:**
+
 ```http
 POST /api/stock/photo
 Content-Type: multipart/form-data
@@ -43,6 +45,7 @@ user_id: 123
 ```
 
 **Response (HTTP 202 Accepted):**
+
 ```json
 {
   "task_id": "550e8400-e29b-41d4-a716-446655440000",
@@ -51,7 +54,8 @@ user_id: 123
 }
 ```
 
-**See:** [../../flows/procesamiento_ml_upload_s3_principal/](../../flows/procesamiento_ml_upload_s3_principal/README.md)
+**See:
+** [../../flows/procesamiento_ml_upload_s3_principal/](../../flows/procesamiento_ml_upload_s3_principal/README.md)
 
 ---
 
@@ -60,6 +64,7 @@ user_id: 123
 **Purpose:** Manual stock initialization (no photo/ML)
 
 **Request:**
+
 ```json
 {
   "storage_location_id": 123,
@@ -73,6 +78,7 @@ user_id: 123
 ```
 
 **Response (HTTP 201 Created):**
+
 ```json
 {
   "stock_movement_id": "550e8400-e29b-41d4-a716-446655440000",
@@ -85,11 +91,13 @@ user_id: 123
 ```
 
 **Errors:**
+
 - `400` - Product/packaging mismatch with config
 - `404` - Location not found
 - `422` - Validation error (quantity ≤ 0)
 
-**See:** [../../engineering_plan/workflows/manual_initialization.md](../../engineering_plan/workflows/manual_initialization.md)
+**See:
+** [../../engineering_plan/workflows/manual_initialization.md](../../engineering_plan/workflows/manual_initialization.md)
 
 ---
 
@@ -98,9 +106,11 @@ user_id: 123
 **Purpose:** Poll task status (for async photo processing)
 
 **Query Parameters:**
+
 - `task_id` (required): Celery task UUID
 
 **Response (HTTP 200 OK):**
+
 ```json
 {
   "task_id": "550e8400-...",
@@ -126,6 +136,7 @@ user_id: 123
 **Purpose:** List all warehouses
 
 **Response (HTTP 200 OK):**
+
 ```json
 {
   "warehouses": [
@@ -148,6 +159,7 @@ user_id: 123
 **Purpose:** Get location details (warehouse, area, or storage_location)
 
 **Response (HTTP 200 OK):**
+
 ```json
 {
   "id": 123,
@@ -177,6 +189,7 @@ user_id: 123
 **Purpose:** Generate custom report with filters
 
 **Request:**
+
 ```json
 {
   "warehouse_ids": [1, 2],
@@ -189,6 +202,7 @@ user_id: 123
 ```
 
 **Response (HTTP 200 OK):**
+
 ```json
 {
   "report_data": [
@@ -221,6 +235,7 @@ user_id: 123
 **Purpose:** Obtain JWT access token
 
 **Request:**
+
 ```json
 {
   "email": "user@example.com",
@@ -229,6 +244,7 @@ user_id: 123
 ```
 
 **Response (HTTP 200 OK):**
+
 ```json
 {
   "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
@@ -239,6 +255,7 @@ user_id: 123
 ```
 
 **Token Expiration:**
+
 - Access token: 15 minutes
 - Refresh token: 7 days
 
@@ -249,11 +266,13 @@ user_id: 123
 **Purpose:** Get current authenticated user
 
 **Headers:**
+
 ```
 Authorization: Bearer <access_token>
 ```
 
 **Response (HTTP 200 OK):**
+
 ```json
 {
   "id": 123,
@@ -281,17 +300,17 @@ Authorization: Bearer <access_token>
 
 ### HTTP Status Codes
 
-| Code | Meaning | Example |
-|------|---------|---------|
-| **200** | OK | GET requests successful |
-| **201** | Created | POST /stock/manual successful |
-| **202** | Accepted | Async task started (photo upload) |
-| **400** | Bad Request | Product mismatch, validation error |
-| **401** | Unauthorized | Missing/invalid JWT token |
-| **403** | Forbidden | Insufficient permissions |
-| **404** | Not Found | Resource doesn't exist |
-| **422** | Unprocessable Entity | Pydantic validation error |
-| **500** | Internal Server Error | Unexpected error |
+| Code    | Meaning               | Example                            |
+|---------|-----------------------|------------------------------------|
+| **200** | OK                    | GET requests successful            |
+| **201** | Created               | POST /stock/manual successful      |
+| **202** | Accepted              | Async task started (photo upload)  |
+| **400** | Bad Request           | Product mismatch, validation error |
+| **401** | Unauthorized          | Missing/invalid JWT token          |
+| **403** | Forbidden             | Insufficient permissions           |
+| **404** | Not Found             | Resource doesn't exist             |
+| **422** | Unprocessable Entity  | Pydantic validation error          |
+| **500** | Internal Server Error | Unexpected error                   |
 
 ---
 
@@ -300,6 +319,7 @@ Authorization: Bearer <access_token>
 **Current:** No rate limiting
 
 **Planned:**
+
 - 100 requests/minute per IP (general endpoints)
 - 10 requests/minute for /stock/photo (resource-intensive)
 

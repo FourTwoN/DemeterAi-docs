@@ -1,6 +1,7 @@
 # S041: NotificationService
 
 ## Metadata
+
 - **Epic**: [epic-004-services.md](../../02_epics/epic-004-services.md)
 - **Sprint**: Sprint-07 (FUTURE)
 - **Status**: `backlog`
@@ -8,14 +9,15 @@
 - **Complexity**: M (3 story points)
 - **Area**: `services/config`
 - **Dependencies**:
-  - Blocks: [C037]
-  - Blocked by: [S039]
+    - Blocks: [C037]
+    - Blocked by: [S039]
 
 ## Description
 
 **What**: FUTURE - Notification service (email, SMS, in-app alerts).
 
-**Why**: User notifications for critical events (low stock, processing failures, reconciliation alerts).
+**Why**: User notifications for critical events (low stock, processing failures, reconciliation
+alerts).
 
 **Context**: Application Layer. PENDING - requires notification provider integration.
 
@@ -27,10 +29,12 @@
 - [ ] **AC4**: Unit tests ≥80% coverage
 
 ## Technical Notes
+
 - PENDING - requires email provider (SendGrid, AWS SES)
 - Template-based notifications
 
 ## Time Tracking
+
 - **Estimated**: 3 story points (~6 hours)
 
 ---

@@ -2,192 +2,192 @@
 title: Photo Upload Initiation - Detailed Flow
 ---
 flowchart TB
-    %% Start
+%% Start
     Start@{ shape: stadium, label: "User Selects Photos" }
 
-    %% Client-side validation
-    ValidateClient@{ shape: rect, label: "Client Validation<br/>• Count: 1-100 files<br/>• Type: JPEG/PNG<br/>• Size: < 20MB each<br/>⏱️ < 100ms" }
+%% Client-side validation
+ValidateClient@{ shape: rect, label: "Client Validation<br/>• Count: 1-100 files<br/>• Type: JPEG/PNG<br/>• Size: < 20MB each<br/>⏱️ < 100ms" }
 
-    ValidationFailed@{ shape: trap, label: "Show Error Messages<br/>• Invalid file types<br/>• Files too large<br/>• Too many files" }
+ValidationFailed@{ shape: trap, label: "Show Error Messages<br/>• Invalid file types<br/>• Files too large<br/>• Too many files" }
 
-    CheckValid@{ shape: diamond, label: "All files<br/>valid?" }
+CheckValid@{ shape: diamond, label: "All files<br/>valid?" }
 
-    %% Upload initiation
-    CreateFormData@{ shape: rect, label: "Create FormData<br/>• Append files<br/>• Add metadata<br/>• Add warehouse_id" }
+%% Upload initiation
+CreateFormData@{ shape: rect, label: "Create FormData<br/>• Append files<br/>• Add metadata<br/>• Add warehouse_id" }
 
-    ShowUploadProgress@{ shape: rect, label: "Show Upload Progress Bar<br/>Track bytes uploaded" }
+ShowUploadProgress@{ shape: rect, label: "Show Upload Progress Bar<br/>Track bytes uploaded" }
 
-    PostRequest@{ shape: subproc, label: "POST /api/v1/photos/upload<br/>multipart/form-data<br/>⏱️ 10-30s (network)" }
+PostRequest@{ shape: subproc, label: "POST /api/v1/photos/upload<br/>multipart/form-data<br/>⏱️ 10-30s (network)" }
 
-    %% Backend processing starts here
-    AuthCheck@{ shape: diamond, label: "Auth<br/>valid?" }
+%% Backend processing starts here
+AuthCheck@{ shape: diamond, label: "Auth<br/>valid?" }
 
-    Return401@{ shape: trap, label: "401 Unauthorized<br/>Redirect to login" }
+Return401@{ shape: trap, label: "401 Unauthorized<br/>Redirect to login" }
 
-    GenerateSessionID@{ shape: rect, label: "Generate Upload Session ID<br/>UUID v4<br/>⏱️ < 1ms" }
+GenerateSessionID@{ shape: rect, label: "Generate Upload Session ID<br/>UUID v4<br/>⏱️ < 1ms" }
 
-    CreateTempDir@{ shape: rect, label: "Create Temp Directory<br/>/tmp/uploads/{session_id}/<br/>⏱️ < 10ms" }
+CreateTempDir@{ shape: rect, label: "Create Temp Directory<br/>/tmp/uploads/{session_id}/<br/>⏱️ < 10ms" }
 
-    %% File processing loop
-    IterateFiles@{ shape: hex, label: "For Each File<br/>(parallel processing)" }
+%% File processing loop
+IterateFiles@{ shape: hex, label: "For Each File<br/>(parallel processing)" }
 
-    GenerateImageID@{ shape: rect, label: "Generate Image ID<br/>UUID v4<br/>⏱️ < 1ms per file" }
+GenerateImageID@{ shape: rect, label: "Generate Image ID<br/>UUID v4<br/>⏱️ < 1ms per file" }
 
-    SaveToTemp@{ shape: cyl, label: "Save to Temp Storage<br/>/tmp/uploads/{session}/{id}.jpg<br/>⏱️ 50ms per file" }
+SaveToTemp@{ shape: cyl, label: "Save to Temp Storage<br/>/tmp/uploads/{session}/{id}.jpg<br/>⏱️ 50ms per file" }
 
-    ExtractEXIF@{ shape: subproc, label: "Extract EXIF Metadata<br/>• GPS coordinates<br/>• Timestamp<br/>• Camera info<br/>• Image dimensions<br/>⏱️ 80ms per file" }
+ExtractEXIF@{ shape: subproc, label: "Extract EXIF Metadata<br/>• GPS coordinates<br/>• Timestamp<br/>• Camera info<br/>• Image dimensions<br/>⏱️ 80ms per file" }
 
-    HasGPS@{ shape: diamond, label: "Has GPS?" }
+HasGPS@{ shape: diamond, label: "Has GPS?" }
 
-    StoreGPS@{ shape: rect, label: "Store GPS Coordinates<br/>{lat, lon, altitude}" }
+StoreGPS@{ shape: rect, label: "Store GPS Coordinates<br/>{lat, lon, altitude}" }
 
-    NoGPS@{ shape: rect, label: "Mark as needs_location<br/>(handle later)" }
+NoGPS@{ shape: rect, label: "Mark as needs_location<br/>(handle later)" }
 
-    %% S3 upload
-    UploadS3Original@{ shape: subproc, label: "Upload to S3<br/>Bucket: demeter-photos<br/>Key: originals/YYYY/MM/DD/{id}.jpg<br/>⏱️ 2-5s per file" }
+%% S3 upload
+UploadS3Original@{ shape: subproc, label: "Upload to S3<br/>Bucket: demeter-photos<br/>Key: originals/YYYY/MM/DD/{id}.jpg<br/>⏱️ 2-5s per file" }
 
-    S3Success@{ shape: diamond, label: "S3 upload<br/>success?" }
+S3Success@{ shape: diamond, label: "S3 upload<br/>success?" }
 
-    RetryS3@{ shape: rect, label: "Retry Upload<br/>Max 3 attempts<br/>Exponential backoff" }
+RetryS3@{ shape: rect, label: "Retry Upload<br/>Max 3 attempts<br/>Exponential backoff" }
 
-    S3Failed@{ shape: trap, label: "Mark Upload Failed<br/>Store error details<br/>Schedule retry job" }
+S3Failed@{ shape: trap, label: "Mark Upload Failed<br/>Store error details<br/>Schedule retry job" }
 
-    StoreS3Key@{ shape: rect, label: "Store S3 Key<br/>s3_key_original" }
+StoreS3Key@{ shape: rect, label: "Store S3 Key<br/>s3_key_original" }
 
-    %% Thumbnail generation (async)
-    QueueThumbnail@{ shape: subproc, label: "Queue Thumbnail Task<br/>Celery: generate_thumbnail<br/>⏱️ 10ms (dispatch)" }
+%% Thumbnail generation (async)
+QueueThumbnail@{ shape: subproc, label: "Queue Thumbnail Task<br/>Celery: generate_thumbnail<br/>⏱️ 10ms (dispatch)" }
 
-    %% Database record creation
-    CreateDBRecord@{ shape: cyl, label: "INSERT s3_images<br/>• image_id<br/>• s3_key_original<br/>• exif_metadata<br/>• gps_coordinates<br/>• status='uploaded'<br/>⏱️ 20ms per record" }
+%% Database record creation
+CreateDBRecord@{ shape: cyl, label: "INSERT s3_images<br/>• image_id<br/>• s3_key_original<br/>• exif_metadata<br/>• gps_coordinates<br/>• status='uploaded'<br/>⏱️ 20ms per record" }
 
-    GetRecordID@{ shape: rect, label: "Get DB Record ID<br/>Return generated ID" }
+GetRecordID@{ shape: rect, label: "Get DB Record ID<br/>Return generated ID" }
 
-    %% Job creation
-    AllFilesProcessed@{ shape: diamond, label: "All files<br/>processed?" }
+%% Job creation
+AllFilesProcessed@{ shape: diamond, label: "All files<br/>processed?" }
 
-    CreateJobs@{ shape: hex, label: "Create Celery Jobs<br/>(one per photo)" }
+CreateJobs@{ shape: hex, label: "Create Celery Jobs<br/>(one per photo)" }
 
-    DispatchJob@{ shape: subproc, label: "Dispatch Job<br/>Task: process_uploaded_photo<br/>Queue: ml_processing<br/>Args: {image_id, s3_key}<br/>⏱️ 10ms per job" }
+DispatchJob@{ shape: subproc, label: "Dispatch Job<br/>Task: process_uploaded_photo<br/>Queue: ml_processing<br/>Args: {image_id, s3_key}<br/>⏱️ 10ms per job" }
 
-    StoreJobMetadata@{ shape: cyl, label: "Store in Redis<br/>Key: upload_session:{session_id}<br/>TTL: 24 hours<br/>⏱️ 5ms per job" }
+StoreJobMetadata@{ shape: cyl, label: "Store in Redis<br/>Key: upload_session:{session_id}<br/>TTL: 24 hours<br/>⏱️ 5ms per job" }
 
-    %% Build response
-    CalculateETA@{ shape: rect, label: "Calculate ETA<br/>avg_time × count / workers<br/>⏱️ < 1ms" }
+%% Build response
+CalculateETA@{ shape: rect, label: "Calculate ETA<br/>avg_time × count / workers<br/>⏱️ < 1ms" }
 
-    BuildResponse@{ shape: rect, label: "Build Response JSON<br/>• upload_session_id<br/>• jobs array<br/>• poll_url<br/>• estimated_time<br/>⏱️ 50ms" }
+BuildResponse@{ shape: rect, label: "Build Response JSON<br/>• upload_session_id<br/>• jobs array<br/>• poll_url<br/>• estimated_time<br/>⏱️ 50ms" }
 
-    Return202@{ shape: stadium, label: "Return 202 Accepted<br/>Location: poll_url" }
+Return202@{ shape: stadium, label: "Return 202 Accepted<br/>Location: poll_url" }
 
-    %% Cleanup
-    CleanupTemp@{ shape: rect, label: "Schedule Temp Cleanup<br/>Delete /tmp/ after 1 hour<br/>(background job)" }
+%% Cleanup
+CleanupTemp@{ shape: rect, label: "Schedule Temp Cleanup<br/>Delete /tmp/ after 1 hour<br/>(background job)" }
 
-    %% Background thumbnail processing
-    ThumbnailWorker@{ shape: subproc, label: "Thumbnail Worker<br/>• Download from S3<br/>• Resize to 300×300px<br/>• Upload to S3<br/>⏱️ 1-2s" }
+%% Background thumbnail processing
+ThumbnailWorker@{ shape: subproc, label: "Thumbnail Worker<br/>• Download from S3<br/>• Resize to 300×300px<br/>• Upload to S3<br/>⏱️ 1-2s" }
 
-    UpdateThumbnailKey@{ shape: cyl, label: "UPDATE s3_images<br/>SET s3_key_thumbnail" }
+UpdateThumbnailKey@{ shape: cyl, label: "UPDATE s3_images<br/>SET s3_key_thumbnail" }
 
-    %% Client receives response
-    ClientReceives@{ shape: rect, label: "Client Receives Response<br/>Parse JSON<br/>Extract job_ids" }
+%% Client receives response
+ClientReceives@{ shape: rect, label: "Client Receives Response<br/>Parse JSON<br/>Extract job_ids" }
 
-    NavigateMonitor@{ shape: stadium, label: "Navigate to Job Monitor<br/>Start polling" }
+NavigateMonitor@{ shape: stadium, label: "Navigate to Job Monitor<br/>Start polling" }
 
-    %% Error handling paths
-    NetworkError@{ shape: trap, label: "Network Error<br/>Retry upload<br/>Exponential backoff" }
+%% Error handling paths
+NetworkError@{ shape: trap, label: "Network Error<br/>Retry upload<br/>Exponential backoff" }
 
-    ServerError@{ shape: trap, label: "500 Server Error<br/>Show error message<br/>Cleanup temp files" }
+ServerError@{ shape: trap, label: "500 Server Error<br/>Show error message<br/>Cleanup temp files" }
 
-    %% ====================
-    %% CONNECTIONS
-    %% ====================
+%% ====================
+%% CONNECTIONS
+%% ====================
 
-    %% Client-side flow
-    Start --> ValidateClient
-    ValidateClient --> CheckValid
-    CheckValid -->|No| ValidationFailed
-    CheckValid -->|Yes| CreateFormData
-    ValidationFailed --> Start
+%% Client-side flow
+Start --> ValidateClient
+ValidateClient --> CheckValid
+CheckValid -->|No| ValidationFailed
+CheckValid -->|Yes|CreateFormData
+ValidationFailed --> Start
 
-    CreateFormData --> ShowUploadProgress
-    ShowUploadProgress --> PostRequest
+CreateFormData --> ShowUploadProgress
+ShowUploadProgress --> PostRequest
 
-    %% Backend entry
-    PostRequest --> AuthCheck
-    AuthCheck -->|No| Return401
-    AuthCheck -->|Yes| GenerateSessionID
+%% Backend entry
+PostRequest --> AuthCheck
+AuthCheck -->|No|Return401
+AuthCheck -->|Yes| GenerateSessionID
 
-    Return401 --> Start
+Return401 --> Start
 
-    %% Backend processing
-    GenerateSessionID --> CreateTempDir
-    CreateTempDir --> IterateFiles
+%% Backend processing
+GenerateSessionID --> CreateTempDir
+CreateTempDir --> IterateFiles
 
-    %% File processing loop
-    IterateFiles --> GenerateImageID
-    GenerateImageID --> SaveToTemp
-    SaveToTemp --> ExtractEXIF
+%% File processing loop
+IterateFiles --> GenerateImageID
+GenerateImageID --> SaveToTemp
+SaveToTemp --> ExtractEXIF
 
-    ExtractEXIF --> HasGPS
-    HasGPS -->|Yes| StoreGPS
-    HasGPS -->|No| NoGPS
+ExtractEXIF --> HasGPS
+HasGPS -->|Yes|StoreGPS
+HasGPS -->|No|NoGPS
 
-    StoreGPS --> UploadS3Original
-    NoGPS --> UploadS3Original
+StoreGPS --> UploadS3Original
+NoGPS --> UploadS3Original
 
-    UploadS3Original --> S3Success
-    S3Success -->|No| RetryS3
-    RetryS3 --> S3Success
-    S3Success -->|Failed after retries| S3Failed
-    S3Success -->|Yes| StoreS3Key
+UploadS3Original --> S3Success
+S3Success -->|No|RetryS3
+RetryS3 --> S3Success
+S3Success -->|Failed after retries|S3Failed
+S3Success -->|Yes|StoreS3Key
 
-    S3Failed --> AllFilesProcessed
+S3Failed --> AllFilesProcessed
 
-    StoreS3Key --> QueueThumbnail
-    QueueThumbnail --> CreateDBRecord
-    CreateDBRecord --> GetRecordID
-    GetRecordID --> AllFilesProcessed
+StoreS3Key --> QueueThumbnail
+QueueThumbnail --> CreateDBRecord
+CreateDBRecord --> GetRecordID
+GetRecordID --> AllFilesProcessed
 
-    AllFilesProcessed -->|No| IterateFiles
-    AllFilesProcessed -->|Yes| CreateJobs
+AllFilesProcessed -->|No|IterateFiles
+AllFilesProcessed -->|Yes|CreateJobs
 
-    %% Job creation
-    CreateJobs --> DispatchJob
-    DispatchJob --> StoreJobMetadata
-    StoreJobMetadata --> CalculateETA
+%% Job creation
+CreateJobs --> DispatchJob
+DispatchJob --> StoreJobMetadata
+StoreJobMetadata --> CalculateETA
 
-    %% Response
-    CalculateETA --> BuildResponse
-    BuildResponse --> Return202
-    Return202 --> CleanupTemp
+%% Response
+CalculateETA --> BuildResponse
+BuildResponse --> Return202
+Return202 --> CleanupTemp
 
-    %% Client side
-    Return202 -.-> ClientReceives
-    ClientReceives --> NavigateMonitor
+%% Client side
+Return202 -.-> ClientReceives
+ClientReceives --> NavigateMonitor
 
-    %% Background thumbnail processing
-    QueueThumbnail -.->|Async| ThumbnailWorker
-    ThumbnailWorker --> UpdateThumbnailKey
+%% Background thumbnail processing
+QueueThumbnail -.->|Async|ThumbnailWorker
+ThumbnailWorker --> UpdateThumbnailKey
 
-    %% Error handling
-    PostRequest -.->|Network failure| NetworkError
-    NetworkError -.->|Retry| PostRequest
-    PostRequest -.->|5xx error| ServerError
-    ServerError --> Start
+%% Error handling
+PostRequest -.->|Network failure|NetworkError
+NetworkError -.->|Retry|PostRequest
+PostRequest -.->|5xx error|ServerError
+ServerError --> Start
 
-    %% ====================
-    %% STYLING
-    %% ====================
+%% ====================
+%% STYLING
+%% ====================
 
-    classDef startEnd fill:#e1f5e1,stroke:#4caf50,stroke-width:3px
-    classDef process fill:#e3f2fd,stroke:#2196f3,stroke-width:2px
-    classDef database fill:#fff3e0,stroke:#ff9800,stroke-width:2px
-    classDef decision fill:#fff9c4,stroke:#fbc02d,stroke-width:2px
-    classDef error fill:#ffebee,stroke:#f44336,stroke-width:2px
-    classDef async fill:#f3e5f5,stroke:#9c27b0,stroke-width:2px
-    classDef loop fill:#e8eaf6,stroke:#3f51b5,stroke-width:2px
+classDef startEnd fill: #e1f5e1, stroke: #4caf50, stroke-width: 3px
+classDef process fill: #e3f2fd, stroke: #2196f3, stroke-width: 2px
+classDef database fill: #fff3e0, stroke: #ff9800, stroke-width: 2px
+classDef decision fill: #fff9c4, stroke: #fbc02d, stroke-width: 2px
+classDef error fill: #ffebee, stroke: #f44336, stroke-width: 2px
+classDef async fill: #f3e5f5, stroke: #9c27b0, stroke-width: 2px
+classDef loop fill: #e8eaf6, stroke: #3f51b5, stroke-width: 2px
 
-    class Start,Return202,NavigateMonitor startEnd
-    class PostRequest,UploadS3Original,QueueThumbnail,DispatchJob,ThumbnailWorker,ExtractEXIF process
-    class SaveToTemp,CreateDBRecord,StoreJobMetadata,UpdateThumbnailKey database
-    class CheckValid,AuthCheck,HasGPS,S3Success,AllFilesProcessed decision
-    class ValidationFailed,Return401,RetryS3,S3Failed,NetworkError,ServerError error
-    class IterateFiles,CreateJobs loop
+class Start, Return202,NavigateMonitor startEnd
+class PostRequest, UploadS3Original,QueueThumbnail, DispatchJob, ThumbnailWorker,ExtractEXIF process
+class SaveToTemp, CreateDBRecord,StoreJobMetadata, UpdateThumbnailKey database
+class CheckValid, AuthCheck,HasGPS, S3Success,AllFilesProcessed decision
+class ValidationFailed, Return401,RetryS3, S3Failed, NetworkError, ServerError error
+class IterateFiles, CreateJobs loop

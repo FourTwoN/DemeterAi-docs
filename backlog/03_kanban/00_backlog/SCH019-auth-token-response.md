@@ -1,6 +1,7 @@
 # [SCH019] AuthTokenResponse Schema
 
 ## Metadata
+
 - **Epic**: epic-003-backend-implementation.md
 - **Sprint**: Sprint-02
 - **Status**: `backlog`

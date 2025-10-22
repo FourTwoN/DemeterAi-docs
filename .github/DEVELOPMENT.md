@@ -237,27 +237,27 @@ detect-secrets scan
 When you push to GitHub, the following runs automatically:
 
 1. **Lint & Format Check** (~2 min)
-   - Ruff linting
-   - Black formatting
-   - Import sorting
+    - Ruff linting
+    - Black formatting
+    - Import sorting
 
 2. **Type Check** (~3 min)
-   - MyPy static analysis
+    - MyPy static analysis
 
 3. **Security Scan** (~2 min)
-   - Bandit security linting
-   - Safety vulnerability check
+    - Bandit security linting
+    - Safety vulnerability check
 
 4. **Tests & Coverage** (~8 min)
-   - PostgreSQL + Redis setup
-   - Database migrations
-   - Unit tests
-   - Integration tests
-   - Coverage report (must be ≥80%)
+    - PostgreSQL + Redis setup
+    - Database migrations
+    - Unit tests
+    - Integration tests
+    - Coverage report (must be ≥80%)
 
 5. **Docker Build** (~5 min, main branch only)
-   - Multi-platform image build
-   - Smoke tests
+    - Multi-platform image build
+    - Smoke tests
 
 **Total:** ~8-10 minutes (jobs run in parallel)
 
@@ -328,6 +328,7 @@ docker compose down
 **Issue:** `mypy` fails with missing imports
 
 **Solution:**
+
 ```bash
 # Install mypy dependencies
 pip install -r requirements.txt -r requirements-dev.txt
@@ -341,6 +342,7 @@ SKIP=mypy git commit -m "message"
 **Issue:** Coverage check fails
 
 **Solution:**
+
 ```bash
 # Find uncovered lines
 pytest tests/ --cov=app --cov-report=term-missing
@@ -353,6 +355,7 @@ pytest tests/ --cov=app --cov-report=term-missing
 **Issue:** Image won't build
 
 **Solution:**
+
 ```bash
 # Check Dockerfile syntax
 docker build -t demeterai:test .
@@ -366,6 +369,7 @@ docker builder prune -a
 **Issue:** Tests fail with database connection errors
 
 **Solution:**
+
 ```bash
 # Restart database
 docker compose down

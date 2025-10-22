@@ -1,6 +1,7 @@
 # S010: BatchLifecycleService
 
 ## Metadata
+
 - **Epic**: [epic-004-services.md](../../02_epics/epic-004-services.md)
 - **Sprint**: Sprint-03
 - **Status**: `backlog`
@@ -9,20 +10,24 @@
 - **Area**: `services/stock`
 - **Assignee**: TBD
 - **Dependencies**:
-  - Blocks: [C009]
-  - Blocked by: [S008]
+    - Blocks: [C009]
+    - Blocked by: [S008]
 
 ## Description
 
-**What**: Implement `BatchLifecycleService` for batch status transitions (planting → active → transplanted → sold).
+**What**: Implement `BatchLifecycleService` for batch status transitions (planting → active →
+transplanted → sold).
 
-**Why**: Tracks batch lifecycle from planting to final disposition. Provides batch history and aging calculations.
+**Why**: Tracks batch lifecycle from planting to final disposition. Provides batch history and aging
+calculations.
 
-**Context**: Clean Architecture Application Layer. Wraps S008 (StockBatchService) to add lifecycle management.
+**Context**: Clean Architecture Application Layer. Wraps S008 (StockBatchService) to add lifecycle
+management.
 
 ## Acceptance Criteria
 
 - [ ] **AC1**: Update batch status:
+
 ```python
 class BatchLifecycleService:
     def __init__(self, batch_service: StockBatchService):
@@ -49,6 +54,7 @@ class BatchLifecycleService:
 ```
 
 - [ ] **AC2**: Calculate batch age:
+
 ```python
 async def calculate_batch_age(self, batch_id: int) -> int:
     """Calculate batch age in days"""
@@ -66,6 +72,7 @@ async def calculate_batch_age(self, batch_id: int) -> int:
 - [ ] PR reviewed (2+ approvals)
 
 ## Time Tracking
+
 - **Estimated**: 3 story points (~6 hours)
 - **Actual**: TBD
 

@@ -27,14 +27,14 @@
 
 ## 📋 VIOLATION SCORECARD
 
-| Category | Count | Severity | Status |
-|----------|-------|----------|--------|
-| **Architecture Violations** | 27 | 🔴 CRITICAL | MUST FIX |
-| **Test Failures** | 86 | 🔴 CRITICAL | MUST FIX |
-| **Test Errors** | 292 | 🔴 CRITICAL | DB INIT |
-| **Missing Endpoints** | 7/26 | 🟠 MAJOR | MUST IMPL |
-| **Coverage Gap** | 30% | 🔴 CRITICAL | MUST ADD |
-| **Missing Methods** | 5+ | 🔴 CRITICAL | MUST IMPL |
+| Category                    | Count | Severity    | Status    |
+|-----------------------------|-------|-------------|-----------|
+| **Architecture Violations** | 27    | 🔴 CRITICAL | MUST FIX  |
+| **Test Failures**           | 86    | 🔴 CRITICAL | MUST FIX  |
+| **Test Errors**             | 292   | 🔴 CRITICAL | DB INIT   |
+| **Missing Endpoints**       | 7/26  | 🟠 MAJOR    | MUST IMPL |
+| **Coverage Gap**            | 30%   | 🔴 CRITICAL | MUST ADD  |
+| **Missing Methods**         | 5+    | 🔴 CRITICAL | MUST IMPL |
 
 ---
 
@@ -64,6 +64,7 @@
 ## 🔥 TOP 5 CRITICAL ISSUES
 
 ### 1. Controllers Import Repositories Directly
+
 **Severity**: 🔴 CRITICAL
 **Impact**: Violates clean architecture, endpoints will crash
 **Locations**: 6 files (stock, location, config, product, analytics controllers)
@@ -71,6 +72,7 @@
 **Status**: Must fix before Sprint 05
 
 ### 2. Services Missing Methods
+
 **Severity**: 🔴 CRITICAL
 **Impact**: AttributeError when calling endpoints
 **Locations**: 5+ services
@@ -78,6 +80,7 @@
 **Status**: Must fix before Sprint 05
 
 ### 3. Database Not Initialized
+
 **Severity**: 🔴 CRITICAL
 **Impact**: 292 test errors, cannot run tests
 **Location**: Alembic migrations
@@ -85,6 +88,7 @@
 **Status**: Quick fix, can do today
 
 ### 4. Test Coverage Insufficient
+
 **Severity**: 🔴 CRITICAL
 **Impact**: Quality gates fail
 **Gap**: 30% (need to add ~1,783 lines of test code)
@@ -92,6 +96,7 @@
 **Status**: Must do before production
 
 ### 5. Endpoints Are Placeholders
+
 **Severity**: 🟠 MAJOR
 **Impact**: API incomplete, 27% of endpoints don't work
 **Count**: 7/26 endpoints
@@ -103,6 +108,7 @@
 ## 📈 METRICS COMPARISON
 
 ### Sprint 01 (Database Layer)
+
 ```
 Expected: 27 models, 14 migrations
 Actual:   27 models, 14 migrations ✅
@@ -111,6 +117,7 @@ Status:   ✅ SOLID (minor issues only)
 ```
 
 ### Sprint 02 (ML Pipeline)
+
 ```
 Repositories: 28/28 ✅
 ML Services: 5/5 ✅
@@ -121,6 +128,7 @@ Status:   ⚠️ FOUNDATION GOOD, TESTS NEED WORK
 ```
 
 ### Sprint 03 (Services)
+
 ```
 Services: 33/33 ✅
 Architecture: Clean ✅
@@ -130,6 +138,7 @@ Status:   🟡 GOOD CODE, INCOMPLETE COVERAGE
 ```
 
 ### Sprint 04 (Controllers)
+
 ```
 Controllers: 5/5 ✅
 Endpoints: 26 defined, 7 broken (27% broken)
@@ -144,23 +153,23 @@ Status:   🔴 CRITICAL - DO NOT USE
 
 ### Critical Path (Must Do)
 
-| Task | Hours | Person-Days | Blocker |
-|------|-------|------------|---------|
-| Apply DB migrations | 0.25 | 0.03 | YES |
-| Factory DI refactor | 10 | 1.25 | YES |
-| Fix controller violations | 12 | 1.5 | YES |
-| Implement missing methods | 9 | 1.125 | YES |
-| **Critical Subtotal** | **31.25** | **~4 days** | - |
+| Task                      | Hours     | Person-Days | Blocker |
+|---------------------------|-----------|-------------|---------|
+| Apply DB migrations       | 0.25      | 0.03        | YES     |
+| Factory DI refactor       | 10        | 1.25        | YES     |
+| Fix controller violations | 12        | 1.5         | YES     |
+| Implement missing methods | 9         | 1.125       | YES     |
+| **Critical Subtotal**     | **31.25** | **~4 days** | -       |
 
 ### Important Path (Should Do)
 
-| Task | Hours | Person-Days | Blocker |
-|------|-------|------------|---------|
-| Add tests Sprint 02 | 8 | 1 | NO |
-| Add tests Sprint 03 | 8 | 1 | NO |
-| Add tests Sprint 04 | 16 | 2 | NO |
-| Implement 7 endpoints | 8 | 1 | NO |
-| **Important Subtotal** | **40** | **~5 days** | - |
+| Task                   | Hours  | Person-Days | Blocker |
+|------------------------|--------|-------------|---------|
+| Add tests Sprint 02    | 8      | 1           | NO      |
+| Add tests Sprint 03    | 8      | 1           | NO      |
+| Add tests Sprint 04    | 16     | 2           | NO      |
+| Implement 7 endpoints  | 8      | 1           | NO      |
+| **Important Subtotal** | **40** | **~5 days** | -       |
 
 ### **TOTAL**: 71.25 hours (~2 weeks at 40h/week)
 
@@ -169,20 +178,23 @@ Status:   🔴 CRITICAL - DO NOT USE
 ## ✅ WHAT TO DO NOW (TODAY)
 
 ### Step 1: APPROVE THE PLAN
+
 - [ ] Read EXECUTIVE_DECISION_SUMMARY_2025-10-21.md (3 min)
 - [ ] Read AUDIT_FINAL_CRITICAL_MASTER_REPORT_2025-10-21.md (30 min)
 - [ ] Decide: Continue with remediation or try to proceed to Sprint 05 as-is?
 
 ### Step 2: IF CHOOSING REMEDIATION (RECOMMENDED)
+
 - [ ] Assign 1-2 engineers
 - [ ] Start Phase 1 (20 hours)
-  - [ ] Apply DB migrations (0.25 hrs)
-  - [ ] Create factory.py DI (3 hrs)
-  - [ ] Refactor controllers (8 hrs)
-  - [ ] Implement missing methods (8 hrs)
-  - [ ] Verify tests pass
+    - [ ] Apply DB migrations (0.25 hrs)
+    - [ ] Create factory.py DI (3 hrs)
+    - [ ] Refactor controllers (8 hrs)
+    - [ ] Implement missing methods (8 hrs)
+    - [ ] Verify tests pass
 
 ### Step 3: IF PROCEEDING AS-IS (NOT RECOMMENDED)
+
 - [ ] Be prepared for Sprint 05 failures
 - [ ] Plan for emergency fixes
 - [ ] Budget for technical debt paydown
@@ -215,25 +227,28 @@ IMPLEMENTATION GUIDES:
 ## 🎬 NEXT ACTIONS BY ROLE
 
 ### For Project Manager
+
 - [ ] Read EXECUTIVE_DECISION_SUMMARY_2025-10-21.md
 - [ ] Decide: Remediate or proceed as-is?
 - [ ] If remediate: Allocate 1-2 engineers for 3-5 days
 - [ ] Adjust Sprint 05 timeline accordingly
 
 ### For Tech Lead
+
 - [ ] Read AUDIT_FINAL_CRITICAL_MASTER_REPORT_2025-10-21.md
 - [ ] Review ARCHITECTURE_VIOLATIONS_CRITICAL_2025-10-21.md
 - [ ] Prepare Phase 1 remediation tasks
 - [ ] Create tickets for each violation
 
 ### For Development Team
+
 - [ ] Read SPRINT_04_FIXES_CHECKLIST.md
 - [ ] Read ARCHITECTURE_VIOLATIONS_DETAILED_TABLE.txt
 - [ ] Start with Phase 1 (critical path):
-  1. Apply DB migrations
-  2. Create factory.py
-  3. Refactor controllers
-  4. Implement missing methods
+    1. Apply DB migrations
+    2. Create factory.py
+    3. Refactor controllers
+    4. Implement missing methods
 
 ---
 
@@ -255,13 +270,13 @@ Before moving to Sprint 05, verify:
 
 ## 📞 QUESTIONS?
 
-| Question | Answer | Document |
-|----------|--------|----------|
-| Why is Sprint 04 broken? | Controllers violate architecture | VIOLATIONS_CRITICAL_2025-10-21.md |
-| How long to fix? | 1-2 weeks (1-2 engineers) | MASTER_REPORT_2025-10-21.md |
-| Which issues are critical? | 5 (see top section) | This dashboard |
-| Can I deploy now? | NO - endpoints crash | EXECUTIVE_SUMMARY_2025-10-21.md |
-| What's the fix plan? | Phase 1-2 remediation | MASTER_REPORT_2025-10-21.md |
+| Question                   | Answer                           | Document                          |
+|----------------------------|----------------------------------|-----------------------------------|
+| Why is Sprint 04 broken?   | Controllers violate architecture | VIOLATIONS_CRITICAL_2025-10-21.md |
+| How long to fix?           | 1-2 weeks (1-2 engineers)        | MASTER_REPORT_2025-10-21.md       |
+| Which issues are critical? | 5 (see top section)              | This dashboard                    |
+| Can I deploy now?          | NO - endpoints crash             | EXECUTIVE_SUMMARY_2025-10-21.md   |
+| What's the fix plan?       | Phase 1-2 remediation            | MASTER_REPORT_2025-10-21.md       |
 
 ---
 

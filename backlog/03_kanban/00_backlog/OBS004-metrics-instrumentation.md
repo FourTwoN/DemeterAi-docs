@@ -1,6 +1,7 @@
 # [OBS004] Metrics Instrumentation
 
 ## Metadata
+
 - **Epic**: epic-010-observability
 - **Sprint**: Sprint-06
 - **Priority**: `high`
@@ -8,9 +9,11 @@
 - **Dependencies**: Blocked by [OBS001, OBS002]
 
 ## Description
+
 Add business metrics: request counters, latency histograms, ML inference time, GPU utilization.
 
 ## Acceptance Criteria
+
 - [ ] HTTP request counter (by endpoint, status code)
 - [ ] Request latency histogram (p50, p95, p99)
 - [ ] ML inference time histogram
@@ -19,6 +22,7 @@ Add business metrics: request counters, latency histograms, ML inference time, G
 - [ ] Active connections gauge
 
 ## Implementation
+
 ```python
 from opentelemetry import metrics
 
@@ -43,6 +47,7 @@ request_duration.record(150, {"endpoint": "/api/stock"})
 ```
 
 ## Testing
+
 - Verify metrics exported to Prometheus
 - Query metrics with PromQL
 - Grafana dashboards display metrics

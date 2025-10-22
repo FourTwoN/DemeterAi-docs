@@ -1,6 +1,7 @@
 # [F005] Exception Taxonomy - Centralized Error Handling
 
 ## Metadata
+
 - **Epic**: epic-001-foundation.md
 - **Sprint**: Sprint-00 (Week 1-2)
 - **Status**: `done`
@@ -9,23 +10,33 @@
 - **Area**: `foundation`
 - **Assignee**: Team Leader (Claude Code)
 - **Dependencies**:
-  - Blocks: [All cards requiring error handling]
-  - Blocked by: [F001, F002, F004] - ALL COMPLETE
+    - Blocks: [All cards requiring error handling]
+    - Blocked by: [F001, F002, F004] - ALL COMPLETE
 
 ## Related Documentation
+
 - **Architecture**: ../../engineering_plan/03_architecture_overview.md#error-handling-strategy
-- **Workflows**: ../../engineering_plan/workflows/manual_initialization.md (ProductMismatchException example)
+- **Workflows**: ../../engineering_plan/workflows/manual_initialization.md (ProductMismatchException
+  example)
 - **Template**: ../../backlog/04_templates/starter-code/base_exception.py
 
 ## Description
 
-Create centralized exception taxonomy with custom exception classes for all business logic errors, global FastAPI exception handlers, and consistent error response format.
+Create centralized exception taxonomy with custom exception classes for all business logic errors,
+global FastAPI exception handlers, and consistent error response format.
 
-**What**: Implement `app/core/exceptions.py` with base `AppBaseException` class and 10+ subclasses covering all error scenarios (not found, validation, permission, external service failures). Add FastAPI global exception handlers for consistent JSON error responses.
+**What**: Implement `app/core/exceptions.py` with base `AppBaseException` class and 10+ subclasses
+covering all error scenarios (not found, validation, permission, external service failures). Add
+FastAPI global exception handlers for consistent JSON error responses.
 
-**Why**: Scattered try/catch blocks with generic exceptions create inconsistent error handling. Users receive cryptic error messages. Developers can't distinguish business errors from system errors. Centralized exceptions ensure consistent error responses, better logging, and easier debugging.
+**Why**: Scattered try/catch blocks with generic exceptions create inconsistent error handling.
+Users receive cryptic error messages. Developers can't distinguish business errors from system
+errors. Centralized exceptions ensure consistent error responses, better logging, and easier
+debugging.
 
-**Context**: DemeterAI has critical validation logic (e.g., manual initialization must match configured product). Without specific exceptions, errors like "Product mismatch" appear as generic 500 errors instead of actionable 400 errors.
+**Context**: DemeterAI has critical validation logic (e.g., manual initialization must match
+configured product). Without specific exceptions, errors like "Product mismatch" appear as generic
+500 errors instead of actionable 400 errors.
 
 ## Acceptance Criteria
 
@@ -46,16 +57,16 @@ Create centralized exception taxonomy with custom exception classes for all busi
   ```
 
 - [x] **AC2**: Exception subclasses for all scenarios (11 total):
-  - `NotFoundException` (404) - Resource not found
-  - `ValidationException` (422) - Pydantic validation failed
-  - `ProductMismatchException` (400) - Manual init product != config
-  - `ConfigNotFoundException` (404) - Location config missing
-  - `UnauthorizedException` (401) - Invalid JWT token
-  - `ForbiddenException` (403) - Insufficient permissions
-  - `S3UploadException` (500) - S3 upload failed
-  - `MLProcessingException` (500) - YOLO/SAHI failure
-  - `DatabaseException` (500) - Database connection/query error
-  - `ExternalServiceException` (503) - External API unavailable
+    - `NotFoundException` (404) - Resource not found
+    - `ValidationException` (422) - Pydantic validation failed
+    - `ProductMismatchException` (400) - Manual init product != config
+    - `ConfigNotFoundException` (404) - Location config missing
+    - `UnauthorizedException` (401) - Invalid JWT token
+    - `ForbiddenException` (403) - Insufficient permissions
+    - `S3UploadException` (500) - S3 upload failed
+    - `MLProcessingException` (500) - YOLO/SAHI failure
+    - `DatabaseException` (500) - Database connection/query error
+    - `ExternalServiceException` (503) - External API unavailable
 
 - [x] **AC3**: Global exception handlers in FastAPI:
   ```python
@@ -83,10 +94,10 @@ Create centralized exception taxonomy with custom exception classes for all busi
   ```
 
 - [x] **AC5**: Exception logging integration:
-  - All exceptions logged with correlation ID
-  - Technical details logged at ERROR level
-  - User messages logged at WARNING level
-  - Stack traces included for 500 errors
+    - All exceptions logged with correlation ID
+    - Technical details logged at ERROR level
+    - User messages logged at WARNING level
+    - Stack traces included for 500 errors
 
 - [x] **AC6**: Usage in services (ready for use):
   ```python
@@ -102,6 +113,7 @@ Create centralized exception taxonomy with custom exception classes for all busi
 ## Technical Implementation Notes
 
 ### Architecture
+
 - Layer: Foundation (Core Infrastructure)
 - Dependencies: FastAPI, logging (from F004)
 - Design pattern: Exception hierarchy, global exception handlers
@@ -109,6 +121,7 @@ Create centralized exception taxonomy with custom exception classes for all busi
 ### Code Hints
 
 **app/core/exceptions.py structure:**
+
 ```python
 from app.core.logging import get_logger
 
@@ -169,6 +182,7 @@ class NotFoundException(AppBaseException):
 ```
 
 **FastAPI integration (app/main.py):**
+
 ```python
 from app.core.exceptions import AppBaseException
 from app.core.logging import get_correlation_id
@@ -194,6 +208,7 @@ async def app_exception_handler(request: Request, exc: AppBaseException):
 ### Testing Requirements
 
 **Unit Tests**:
+
 - [ ] Test exception creation:
   ```python
   def test_product_mismatch_exception():
@@ -213,6 +228,7 @@ async def app_exception_handler(request: Request, exc: AppBaseException):
   ```
 
 **Integration Tests**:
+
 - [ ] Test FastAPI exception handler:
   ```python
   @pytest.mark.asyncio
@@ -237,11 +253,13 @@ async def app_exception_handler(request: Request, exc: AppBaseException):
   ```
 
 **Test Command**:
+
 ```bash
 pytest tests/core/test_exceptions.py -v --cov=app/core/exceptions
 ```
 
 ### Performance Expectations
+
 - Exception creation overhead: <0.1ms
 - Logging overhead: <1ms (from F004)
 - Exception handler overhead: <0.2ms
@@ -249,23 +267,25 @@ pytest tests/core/test_exceptions.py -v --cov=app/core/exceptions
 ## Handover Briefing
 
 **For the next developer:**
-- **Context**: This is the foundation for all error handling - every business error uses these exceptions
+
+- **Context**: This is the foundation for all error handling - every business error uses these
+  exceptions
 - **Key decisions**:
-  - Two-message pattern: technical (for logs) + user-friendly (for API response)
-  - HTTP status codes embedded in exceptions (not in controllers)
-  - Global exception handlers in FastAPI (consistency)
-  - Extra dict for structured logging context
-  - Debug mode shows technical details (production hides them)
+    - Two-message pattern: technical (for logs) + user-friendly (for API response)
+    - HTTP status codes embedded in exceptions (not in controllers)
+    - Global exception handlers in FastAPI (consistency)
+    - Extra dict for structured logging context
+    - Debug mode shows technical details (production hides them)
 - **Known limitations**:
-  - Celery task exceptions handled separately (different serialization)
-  - Pydantic validation errors handled by FastAPI (not custom)
+    - Celery task exceptions handled separately (different serialization)
+    - Pydantic validation errors handled by FastAPI (not custom)
 - **Next steps after this card**:
-  - All services will raise these exceptions (not generic Exception)
-  - Controllers should NOT catch exceptions (let global handler do it)
-  - S001-S042: Service cards will use ProductMismatchException, etc.
+    - All services will raise these exceptions (not generic Exception)
+    - Controllers should NOT catch exceptions (let global handler do it)
+    - S001-S042: Service cards will use ProductMismatchException, etc.
 - **Questions to ask**:
-  - Should we add exception ID for tracking? (in addition to correlation_id)
-  - Should we send exceptions to Sentry? (Sprint 05 decision)
+    - Should we add exception ID for tracking? (in addition to correlation_id)
+    - Should we send exceptions to Sentry? (Sprint 05 decision)
 
 ## Definition of Done Checklist
 
@@ -279,6 +299,7 @@ pytest tests/core/test_exceptions.py -v --cov=app/core/exceptions
 - [x] No generic `raise Exception()` in app/ directory - Clean implementation
 
 ## Time Tracking
+
 - **Estimated**: 5 story points
 - **Actual**: 5 story points
 - **Started**: 2025-10-13 15:30
@@ -296,46 +317,48 @@ pytest tests/core/test_exceptions.py -v --cov=app/core/exceptions
 
 ### Implementation Summary
 
-Successfully implemented centralized exception taxonomy with 11 custom exception classes, global FastAPI handlers, and comprehensive test coverage. All acceptance criteria met and quality gates passed.
+Successfully implemented centralized exception taxonomy with 11 custom exception classes, global
+FastAPI handlers, and comprehensive test coverage. All acceptance criteria met and quality gates
+passed.
 
 ### Deliverables
 
 **Files Created/Modified:**
 
 1. **app/core/exceptions.py** (442 lines)
-   - `AppBaseException`: Base class with technical/user messages, HTTP codes, logging
-   - **11 Exception Subclasses**:
-     - NotFoundException (404)
-     - ValidationException (422)
-     - ProductMismatchException (400)
-     - ConfigNotFoundException (404)
-     - UnauthorizedException (401)
-     - ForbiddenException (403)
-     - DatabaseException (500)
-     - S3UploadException (500)
-     - MLProcessingException (500)
-     - ExternalServiceException (503)
-     - CeleryTaskException (500)
-   - Automatic logging with correlation IDs
-   - Rich docstrings with usage examples
+    - `AppBaseException`: Base class with technical/user messages, HTTP codes, logging
+    - **11 Exception Subclasses**:
+        - NotFoundException (404)
+        - ValidationException (422)
+        - ProductMismatchException (400)
+        - ConfigNotFoundException (404)
+        - UnauthorizedException (401)
+        - ForbiddenException (403)
+        - DatabaseException (500)
+        - S3UploadException (500)
+        - MLProcessingException (500)
+        - ExternalServiceException (503)
+        - CeleryTaskException (500)
+    - Automatic logging with correlation IDs
+    - Rich docstrings with usage examples
 
 2. **app/core/config.py** (updated)
-   - Added `debug: bool = False` setting
-   - Controls exception detail exposure (production vs debug)
+    - Added `debug: bool = False` setting
+    - Controls exception detail exposure (production vs debug)
 
 3. **app/main.py** (updated)
-   - Global `@app.exception_handler(AppBaseException)`
-   - Generic `@app.exception_handler(Exception)` for unhandled exceptions
-   - Consistent JSON response format with correlation IDs and timestamps
-   - Debug mode conditional detail exposure
+    - Global `@app.exception_handler(AppBaseException)`
+    - Generic `@app.exception_handler(Exception)` for unhandled exceptions
+    - Consistent JSON response format with correlation IDs and timestamps
+    - Debug mode conditional detail exposure
 
 4. **tests/core/test_exceptions.py** (567 lines)
-   - **32 comprehensive tests**:
-     - 6 tests for AppBaseException base class
-     - 22 tests for all exception subclasses
-     - 4 tests for FastAPI exception handlers
-   - 100% coverage on app/core/exceptions.py
-   - Tests for logging integration, correlation IDs, debug mode behavior
+    - **32 comprehensive tests**:
+        - 6 tests for AppBaseException base class
+        - 22 tests for all exception subclasses
+        - 4 tests for FastAPI exception handlers
+    - 100% coverage on app/core/exceptions.py
+    - Tests for logging integration, correlation IDs, debug mode behavior
 
 ### Test Results
 
@@ -346,6 +369,7 @@ Overall Coverage: 97% (135 statements, 4 missed)
 ```
 
 **Test Coverage Breakdown:**
+
 - Exception creation and attributes
 - HTTP status codes verification
 - Logging integration (5xx ERROR, 4xx WARNING)
@@ -357,6 +381,7 @@ Overall Coverage: 97% (135 statements, 4 missed)
 ### Sample Error Response
 
 **Production Mode (DEBUG=False):**
+
 ```json
 {
   "error": "The product you entered (ID: 50) does not match the configured product (ID: 45) for this location",
@@ -367,6 +392,7 @@ Overall Coverage: 97% (135 statements, 4 missed)
 ```
 
 **Debug Mode (DEBUG=True):**
+
 ```json
 {
   "error": "The product you entered (ID: 50) does not match the configured product (ID: 45) for this location",
@@ -409,6 +435,7 @@ Overall Coverage: 97% (135 statements, 4 missed)
 ### Usage Examples for Future Developers
 
 **In Services:**
+
 ```python
 from app.core.exceptions import ProductMismatchException, NotFoundException
 
@@ -426,6 +453,7 @@ if not stock_batch:
 ```
 
 **In Controllers:**
+
 ```python
 # DON'T catch exceptions - let global handler do it
 @router.post("/stock/initialize")
@@ -436,6 +464,7 @@ async def initialize_stock(request: InitRequest):
 ```
 
 **Exception Hierarchy:**
+
 ```
 Exception
 └── AppBaseException (base for all DemeterAI exceptions)
@@ -455,6 +484,7 @@ Exception
 ### Dependencies Unblocked
 
 All cards requiring error handling can now proceed:
+
 - All service cards (S001-S042) - Can use ProductMismatchException, NotFoundException, etc.
 - All controller cards (C001-C020) - Let exceptions bubble up to global handlers
 - All ML pipeline cards (ML001-ML012) - Use MLProcessingException
@@ -463,13 +493,14 @@ All cards requiring error handling can now proceed:
 
 ### Known Limitations
 
-1. **Celery serialization**: Celery tasks need to pass correlation_id as argument (can't serialize context)
+1. **Celery serialization**: Celery tasks need to pass correlation_id as argument (can't serialize
+   context)
    ```python
    task.delay(photo_id=123, correlation_id=get_correlation_id())
    ```
 
 2. **Pydantic validation**: FastAPI handles Pydantic validation errors automatically (422 responses)
-   - Our ValidationException is for custom business validation only
+    - Our ValidationException is for custom business validation only
 
 3. **Nested exceptions**: Stack trace only shows immediate cause (exc_info=True on 5xx)
 

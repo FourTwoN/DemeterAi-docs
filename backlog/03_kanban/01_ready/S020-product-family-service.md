@@ -1,6 +1,7 @@
 # S020: ProductFamilyService
 
 ## Metadata
+
 - **Epic**: [epic-004-services.md](../../02_epics/epic-004-services.md)
 - **Sprint**: Sprint-05
 - **Status**: `backlog`
@@ -9,8 +10,8 @@
 - **Area**: `services/catalog`
 - **Assignee**: TBD
 - **Dependencies**:
-  - Blocks: [S021, C019]
-  - Blocked by: [R020, S019]
+    - Blocks: [S021, C019]
+    - Blocked by: [R020, S019]
 
 ## Description
 
@@ -28,6 +29,7 @@
 - [ ] **AC4**: Unit tests ≥80% coverage
 
 ## Time Tracking
+
 - **Estimated**: 1 story point (~2 hours)
 
 ---

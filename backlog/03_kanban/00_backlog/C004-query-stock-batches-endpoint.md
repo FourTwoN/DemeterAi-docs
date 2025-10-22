@@ -1,6 +1,7 @@
 # [C004] Query Stock Batches Endpoint - GET /api/stock/batches
 
 ## Metadata
+
 - **Epic**: epic-003-backend-implementation.md
 - **Sprint**: Sprint-02 (Week 5-6)
 - **Status**: `backlog`
@@ -9,14 +10,15 @@
 - **Area**: `backend/controllers`
 - **Assignee**: TBD
 - **Dependencies**:
-  - Blocks: [SCH013]
-  - Blocked by: [SVC004-stock-batch-service, DB008-stock-batches-model]
+    - Blocks: [SCH013]
+    - Blocked by: [SVC004-stock-batch-service, DB008-stock-batches-model]
 
 ## Description
 
 Query endpoint for stock batches with filtering by location, product, status.
 
 **What**: GET endpoint with query parameters:
+
 - Filter by storage_location_id, product_id, packaging_id
 - Filter by batch_status (activo/agotado/vendido)
 - Pagination (skip, limit)
@@ -63,6 +65,7 @@ Query endpoint for stock batches with filtering by location, product, status.
 - [ ] Unit tests ≥80%
 
 ## Time Tracking
+
 - **Estimated**: 2 story points
 
 ---

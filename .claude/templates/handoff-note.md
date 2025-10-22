@@ -12,32 +12,39 @@
 **File**: backlog/03_kanban/[folder]/[task-file].md
 
 ### Need
+
 [What the target agent needs to do - be specific]
 
 ### Context
+
 - [Context point 1]
 - [Context point 2]
 - [Context point 3]
 
 ### Inputs Provided
+
 - [Link to docs/files/data available]
 - [Template or starter code]
 - [Database schema references]
 
 ### Done So Far
+
 - [✅] [Completed item 1]
 - [✅] [Completed item 2]
 - [In progress] [Current work item]
 
 ### Acceptance Criteria / Expected Output
+
 - [ ] [Specific deliverable 1]
 - [ ] [Specific deliverable 2]
 - [ ] [Quality standard to meet]
 
 ### Blockers / Questions
+
 [Any known issues or questions the target agent should address]
 
 ### Urgency
+
 [IMMEDIATE | URGENT | NORMAL | LOW] - [Brief explanation why]
 
 ---
@@ -188,20 +195,23 @@ Confirmation of method signatures for test scaffolds.
        request: ManualStockInitRequest
    ) -> StockMovementResponse:
    ```
-   Is this still accurate?
+
+Is this still accurate?
 
 2. **Exceptions**: Which exceptions does the method raise?
-   - ProductMismatchException?
-   - ConfigNotFoundException?
-   - InvalidQuantityException?
-   - Others?
+    - ProductMismatchException?
+    - ConfigNotFoundException?
+    - InvalidQuantityException?
+    - Others?
 
 3. **Return value**: Confirmed returning `StockMovementResponse` (Pydantic schema)?
 
 ### Urgency
+
 NORMAL - Need answers within 15 minutes to stay on schedule
 
 **Reply in task file** when you have a moment.
+
 ```
 
 ### 4. Team Leader → Database Expert (Schema Question)

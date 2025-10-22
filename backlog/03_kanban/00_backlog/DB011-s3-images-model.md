@@ -1,6 +1,7 @@
 # [DB011] S3Images Model - UUID Primary Key
 
 ## Metadata
+
 - **Epic**: epic-002-database-models.md
 - **Sprint**: Sprint-01 (Week 3-4)
 - **Status**: `backlog`
@@ -9,10 +10,11 @@
 - **Area**: `database/models`
 - **Assignee**: TBD
 - **Dependencies**:
-  - Blocks: [DB012, ML001, ML002, CEL001]
-  - Blocked by: [F007-alembic-setup]
+    - Blocks: [DB012, ML001, ML002, CEL001]
+    - Blocked by: [F007-alembic-setup]
 
 ## Related Documentation
+
 - **Engineering Plan**: ../../engineering_plan/database/README.md
 - **Database ERD**: ../../database/database.mmd
 - **ADR**: ../../backlog/09_decisions/ADR-002-uuid-s3-images.md
@@ -20,17 +22,24 @@
 
 ## Description
 
-Create the `s3_images` SQLAlchemy model with **UUID primary key** (NOT database SERIAL). This is a critical architectural decision that enables S3 key pre-generation and prevents race conditions in distributed systems.
+Create the `s3_images` SQLAlchemy model with **UUID primary key** (NOT database SERIAL). This is a
+critical architectural decision that enables S3 key pre-generation and prevents race conditions in
+distributed systems.
 
-**What**: SQLAlchemy model for the `s3_images` table that stores original and processed photo metadata with S3 URLs. Uses UUID as primary key, generated in the API layer before database insert.
+**What**: SQLAlchemy model for the `s3_images` table that stores original and processed photo
+metadata with S3 URLs. Uses UUID as primary key, generated in the API layer before database insert.
 
 **Why**:
-- **Pre-generation**: S3 keys need to be known before DB row exists (`s3://bucket/original/{uuid}.jpg`)
+
+- **Pre-generation**: S3 keys need to be known before DB row exists (
+  `s3://bucket/original/{uuid}.jpg`)
 - **Idempotency**: Retry-safe uploads (same UUID = same S3 key)
-- **Distributed systems**: Multiple API servers can generate UUIDs independently without coordination
+- **Distributed systems**: Multiple API servers can generate UUIDs independently without
+  coordination
 - **Race condition prevention**: No "insert then get ID" pattern needed
 
-**Context**: This table is the foundation of the entire photo processing pipeline. Every photo uploaded goes through this table, which then triggers ML processing via `photo_processing_sessions`.
+**Context**: This table is the foundation of the entire photo processing pipeline. Every photo
+uploaded goes through this table, which then triggers ML processing via `photo_processing_sessions`.
 
 ## Acceptance Criteria
 
@@ -80,9 +89,9 @@ Create the `s3_images` SQLAlchemy model with **UUID primary key** (NOT database 
   ```
 
 - [ ] **AC2**: UUID generation happens in API layer (NOT database default):
-  - When creating new image: `image_id = uuid.uuid4()` in service/controller
-  - S3 key uses this UUID: `f"original/{year}/{month}/{day}/{image_id}.jpg"`
-  - Then insert into database with pre-generated UUID
+    - When creating new image: `image_id = uuid.uuid4()` in service/controller
+    - S3 key uses this UUID: `f"original/{year}/{month}/{day}/{image_id}.jpg"`
+    - Then insert into database with pre-generated UUID
 
 - [ ] **AC3**: Enum type `upload_status_enum` created in migration:
   ```sql
@@ -109,13 +118,14 @@ Create the `s3_images` SQLAlchemy model with **UUID primary key** (NOT database 
 - [ ] **AC6**: Alembic migration created and tested (upgrade + downgrade)
 
 - [ ] **AC7**: Model validates GPS coordinates:
-  - Latitude: -90 to +90
-  - Longitude: -180 to +180
-  - Use SQLAlchemy CheckConstraint or @validates
+    - Latitude: -90 to +90
+    - Longitude: -180 to +180
+    - Use SQLAlchemy CheckConstraint or @validates
 
 ## Technical Implementation Notes
 
 ### Architecture
+
 - Layer: Database / Models
 - Dependencies: F007 (Alembic), SQLAlchemy 2.0.43, PostgreSQL 18
 - Design pattern: UUID primary key (ADR-002)
@@ -123,6 +133,7 @@ Create the `s3_images` SQLAlchemy model with **UUID primary key** (NOT database 
 ### Code Hints
 
 **UUID import and usage:**
+
 ```python
 from sqlalchemy.dialects.postgresql import UUID
 import uuid
@@ -131,7 +142,9 @@ import uuid
 image_id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
 ```
 
-**⚠️ CRITICAL**: The `default=uuid.uuid4` is a fallback. In practice, always generate UUID in the service layer:
+**⚠️ CRITICAL**: The `default=uuid.uuid4` is a fallback. In practice, always generate UUID in the
+service layer:
+
 ```python
 # In service layer (CORRECT):
 from uuid import uuid4
@@ -152,6 +165,7 @@ def create_image_record(file):
 ```
 
 **GPS validation:**
+
 ```python
 from sqlalchemy.orm import validates
 
@@ -171,6 +185,7 @@ def validate_longitude(self, key, value):
 ### Testing Requirements
 
 **Unit Tests** (`tests/models/test_s3_image.py`):
+
 ```python
 import pytest
 from uuid import UUID
@@ -215,6 +230,7 @@ def test_upload_status_enum():
 ```
 
 **Integration Tests** (`tests/integration/test_s3_image_db.py`):
+
 ```python
 @pytest.mark.asyncio
 async def test_s3_image_insert_with_uuid(db_session):
@@ -245,6 +261,7 @@ async def test_s3_image_insert_with_uuid(db_session):
 **Coverage Target**: ≥85% (critical model)
 
 ### Performance Expectations
+
 - Insert time: <10ms (UUID index is B-tree, same as SERIAL)
 - Retrieval by UUID: <5ms (primary key lookup)
 - GPS index query: <50ms for 10k rows
@@ -254,29 +271,36 @@ async def test_s3_image_insert_with_uuid(db_session):
 **For the next developer:**
 
 **Context**: This is the FIRST model in the ML pipeline chain. Everything flows from here:
+
 ```
 S3Image → PhotoProcessingSession → Detections → Estimations → StockMovements
 ```
 
 **Key decisions made**:
-1. **UUID vs SERIAL**: UUID chosen for S3 key pre-generation and distributed system safety (see ADR-002)
+
+1. **UUID vs SERIAL**: UUID chosen for S3 key pre-generation and distributed system safety (see
+   ADR-002)
 2. **API-generated UUID**: NOT database default. Service layer generates UUID before S3 upload.
 3. **Enum for upload_status**: Three states (pending, uploaded, failed) - simple state machine
 4. **Optional GPS**: Not all photos have GPS (manual uploads from desktop)
 5. **AVIF support**: Future-proofing for compressed format (50% smaller than JPEG)
 
 **Known limitations**:
+
 - UUID takes 16 bytes vs SERIAL 8 bytes (acceptable tradeoff for benefits)
 - No automatic UUID generation in DB (intentional - must be API-generated)
 
 **Next steps after this card**:
+
 - DB012: PhotoProcessingSession model (references this via `source_image_id`)
 - DB013: Detections model (partitioned table, references sessions)
 - ML001: Model Singleton (needs S3Image to store results)
 
 **Questions to validate**:
+
 - Does the service layer generate UUID before S3 upload? (Should be YES)
-- Is there a fallback mechanism if S3 upload succeeds but DB insert fails? (Should be: delete S3 file and retry)
+- Is there a fallback mechanism if S3 upload succeeds but DB insert fails? (Should be: delete S3
+  file and retry)
 
 ## Definition of Done Checklist
 
@@ -293,6 +317,7 @@ S3Image → PhotoProcessingSession → Detections → Estimations → StockMovem
 - [ ] Documentation added (model docstring, field comments)
 
 ## Time Tracking
+
 - **Estimated**: 2 story points
 - **Actual**: TBD (fill after completion)
 - **Started**: TBD

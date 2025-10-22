@@ -1,6 +1,7 @@
 # [CEL001] Celery App Setup
 
 ## Metadata
+
 - **Epic**: epic-008-celery-async
 - **Sprint**: Sprint-04
 - **Priority**: critical ⚡
@@ -8,9 +9,11 @@
 - **Dependencies**: Blocks [CEL002-CEL008], Blocked by [F002]
 
 ## Description
+
 Initialize Celery application with broker (Redis), result backend, and serialization config.
 
 ## Acceptance Criteria
+
 - [ ] Celery app in `app/celery_app.py`
 - [ ] Broker: `redis://localhost:6379/0`
 - [ ] Result backend: `redis://localhost:6379/1`
@@ -19,6 +22,7 @@ Initialize Celery application with broker (Redis), result backend, and serializa
 - [ ] Timezone: UTC
 
 ## Implementation
+
 ```python
 from celery import Celery
 
@@ -40,6 +44,7 @@ app.conf.update(
 ```
 
 ## Testing
+
 - Verify app starts
 - Test task registration
 

@@ -10,7 +10,9 @@
 
 ## Overview
 
-This guide provides comprehensive testing patterns for the SAHIDetectionService - the **most critical innovation** in the ML pipeline that achieves 10x detection improvement (100 → 800+ plants).
+This guide provides comprehensive testing patterns for the SAHIDetectionService - the **most
+critical innovation** in the ML pipeline that achieves 10x detection improvement (100 → 800+
+plants).
 
 ### Architecture Context
 
@@ -819,16 +821,16 @@ class TestSAHIDeviceSelection:
 
 ### Coverage Targets by Module
 
-| Module/Function | Target Coverage | Critical |
-|-----------------|----------------|----------|
-| `detect_in_segmento()` | 100% | ✅ YES |
-| SAHI configuration | 100% | ✅ YES |
-| Coordinate mapping | 100% | ✅ YES |
-| Error handling | 100% | ✅ YES |
-| Model cache integration | 100% | ✅ YES |
-| Black tile optimization | 90% | ⚠️ Important |
-| Small image fallback | 90% | ⚠️ Important |
-| Logging | 80% | Optional |
+| Module/Function         | Target Coverage | Critical     |
+|-------------------------|-----------------|--------------|
+| `detect_in_segmento()`  | 100%            | ✅ YES        |
+| SAHI configuration      | 100%            | ✅ YES        |
+| Coordinate mapping      | 100%            | ✅ YES        |
+| Error handling          | 100%            | ✅ YES        |
+| Model cache integration | 100%            | ✅ YES        |
+| Black tile optimization | 90%             | ⚠️ Important |
+| Small image fallback    | 90%             | ⚠️ Important |
+| Logging                 | 80%             | Optional     |
 
 ### Overall Target: ≥85%
 

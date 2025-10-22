@@ -7,7 +7,8 @@
 
 ## Overview
 
-DemeterAI uses **PostgreSQL 18 with PostGIS 3.3+** as its single source of truth. The database schema is designed for:
+DemeterAI uses **PostgreSQL 18 with PostGIS 3.3+** as its single source of truth. The database
+schema is designed for:
 
 - **Geospatial hierarchy:** 4 levels (warehouse → storage_area → storage_location → storage_bin)
 - **Event sourcing:** `stock_movements` table for full audit trail
@@ -18,40 +19,41 @@ DemeterAI uses **PostgreSQL 18 with PostGIS 3.3+** as its single source of truth
 
 ## Complete Schema
 
-**See:** [../../database/database.mmd](../../database/database.mmd) for the complete Entity-Relationship Diagram (Mermaid ERD)
+**See:** [../../database/database.mmd](../../database/database.mmd) for the complete
+Entity-Relationship Diagram (Mermaid ERD)
 
 **Tables:** 28 total
 
 ### Core Entity Groups
 
 1. **Location Hierarchy (4 levels)**
-   - `warehouses` (greenhouses, tunnels, shadehouses)
-   - `storage_areas` (North/South zones within warehouse)
-   - `storage_locations` (space between columns - photo unit)
-   - `storage_bins` (containers: plugs, boxes, segments)
+    - `warehouses` (greenhouses, tunnels, shadehouses)
+    - `storage_areas` (North/South zones within warehouse)
+    - `storage_locations` (space between columns - photo unit)
+    - `storage_bins` (containers: plugs, boxes, segments)
 
 2. **Inventory & Movements**
-   - `stock_batches` (aggregated state)
-   - `stock_movements` (event sourcing - all transactions)
+    - `stock_batches` (aggregated state)
+    - `stock_movements` (event sourcing - all transactions)
 
 3. **Photo Processing**
-   - `s3_images` (original + processed photos)
-   - `photo_processing_sessions` (ML pipeline results)
-   - `detections` (individual plant locations) **PARTITIONED**
-   - `estimations` (area-based counts) **PARTITIONED**
-   - `classifications` (product + packaging + size)
+    - `s3_images` (original + processed photos)
+    - `photo_processing_sessions` (ML pipeline results)
+    - `detections` (individual plant locations) **PARTITIONED**
+    - `estimations` (area-based counts) **PARTITIONED**
+    - `classifications` (product + packaging + size)
 
 4. **Products & Packaging**
-   - `product_categories` → `product_families` → `products`
-   - `packaging_types` + `materials` + `colors` → `packaging_catalog`
-   - `price_list` (wholesale + retail pricing)
+    - `product_categories` → `product_families` → `products`
+    - `packaging_types` + `materials` + `colors` → `packaging_catalog`
+    - `price_list` (wholesale + retail pricing)
 
 5. **Configuration**
-   - `storage_location_config` (expected product + packaging per location)
-   - `density_parameters` (auto-calibrated from ML detections)
+    - `storage_location_config` (expected product + packaging per location)
+    - `density_parameters` (auto-calibrated from ML detections)
 
 6. **Users**
-   - `users` (admin, supervisor, worker, viewer)
+    - `users` (admin, supervisor, worker, viewer)
 
 ---
 
@@ -59,9 +61,11 @@ DemeterAI uses **PostgreSQL 18 with PostGIS 3.3+** as its single source of truth
 
 ### Decision 1: Database as Source of Truth
 
-**Principle:** ALL business logic references database schema. ML pipeline, API, frontend all derive from DB.
+**Principle:** ALL business logic references database schema. ML pipeline, API, frontend all derive
+from DB.
 
 **Why:**
+
 - Single source of truth prevents inconsistencies
 - Schema changes propagate to all layers
 - Easy to audit and trace data flow
@@ -71,6 +75,7 @@ DemeterAI uses **PostgreSQL 18 with PostGIS 3.3+** as its single source of truth
 **Approach:** Hybrid - `stock_movements` (events) + `stock_batches` (state)
 
 **Why:**
+
 - Full audit trail (every plant movement recorded)
 - Calculate current stock: `SUM(stock_movements.quantity) GROUP BY batch_id`
 - Monthly reconciliation requires historical events
@@ -83,6 +88,7 @@ DemeterAI uses **PostgreSQL 18 with PostGIS 3.3+** as its single source of truth
 **Approach:** UUID generated in API (NOT database SERIAL)
 
 **Why:**
+
 - Pre-generation before DB insert (idempotency)
 - S3 key generation before row exists
 - Prevents race conditions in distributed system
@@ -95,6 +101,7 @@ DemeterAI uses **PostgreSQL 18 with PostGIS 3.3+** as its single source of truth
 **Approach:** Native PostgreSQL partitions (pg_partman)
 
 **Why:**
+
 - 99% of queries filter by date range
 - Partition pruning eliminates 95%+ of data
 - VACUUM 100× faster on partitions
@@ -103,6 +110,7 @@ DemeterAI uses **PostgreSQL 18 with PostGIS 3.3+** as its single source of truth
 **Trade-off:** Schema complexity vs 10-100× query speedup
 
 **Example:**
+
 ```sql
 -- Instead of scanning 10M rows
 SELECT * FROM detections WHERE created_at >= '2025-10-01';
@@ -116,11 +124,13 @@ SELECT * FROM detections_2025_10_01 WHERE created_at >= '2025-10-01';
 **Approach:** `geometry` columns with SP-GiST indexes
 
 **Why:**
+
 - GPS → storage_location lookup via ST_Contains (point-in-polygon)
 - Centroid generation, area calculations
 - Efficient spatial indexing (SP-GiST optimal for non-overlapping polygons)
 
 **Example:**
+
 ```sql
 SELECT id, name
 FROM storage_locations
@@ -203,6 +213,7 @@ SELECT cron.schedule(
 ```
 
 **Result:**
+
 - Queries filtering by date: **10-100× faster**
 - VACUUM time: **100× faster** (only current partition)
 - Storage: Auto-cleanup of old data
@@ -290,6 +301,7 @@ async with pool.acquire() as conn:
 **Tool:** Alembic (bundled with SQLAlchemy)
 
 **Workflow:**
+
 ```bash
 # Create migration
 alembic revision --autogenerate -m "add manual_init movement type"
@@ -305,6 +317,7 @@ alembic downgrade -1
 ```
 
 **Best Practices:**
+
 - Test migrations on staging database first
 - Always have rollback plan
 - Use transactions (default in Alembic)
@@ -329,6 +342,7 @@ server_idle_timeout = 600             # Close idle after 10 min
 ```
 
 **Why:**
+
 - API servers can create 1000s of connections
 - PostgreSQL default: 100 max connections
 - PgBouncer pools connections efficiently

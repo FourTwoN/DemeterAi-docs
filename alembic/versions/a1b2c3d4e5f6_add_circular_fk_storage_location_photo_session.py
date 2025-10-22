@@ -19,8 +19,6 @@ Create Date: 2025-10-22 11:00:00.000000
 """
 from collections.abc import Sequence
 
-import sqlalchemy as sa
-
 from alembic import op  # type: ignore[attr-defined]
 
 # revision identifiers, used by Alembic.
@@ -31,19 +29,20 @@ depends_on: str | Sequence[str] | None = None
 
 
 def upgrade() -> None:
-    """Apply migration: Add circular FK constraint."""
-    # Create the circular foreign key constraint
-    # use_alter=True allows the FK to reference a table that has a FK back to this table
-    op.create_foreign_key(
-        'fk_storage_location_photo_session',
-        'storage_locations',
-        'photo_processing_sessions',
-        ['photo_session_id'],
-        ['id'],
-        ondelete='SET NULL'
-    )
+  """Apply migration: Add circular FK constraint."""
+  # Create the circular foreign key constraint
+  # use_alter=True allows the FK to reference a table that has a FK back to this table
+  op.create_foreign_key(
+      'fk_storage_location_photo_session',
+      'storage_locations',
+      'photo_processing_sessions',
+      ['photo_session_id'],
+      ['id'],
+      ondelete='SET NULL'
+  )
 
 
 def downgrade() -> None:
-    """Revert migration: Remove circular FK constraint."""
-    op.drop_constraint('fk_storage_location_photo_session', 'storage_locations', type_='foreignkey')
+  """Revert migration: Remove circular FK constraint."""
+  op.drop_constraint('fk_storage_location_photo_session', 'storage_locations',
+                     type_='foreignkey')

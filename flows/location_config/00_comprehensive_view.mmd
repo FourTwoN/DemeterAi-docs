@@ -11,311 +11,310 @@ config:
   layout: elk
 ---
 flowchart TB
-    %% ═══════════════════════════════════════════════════════════════════════
-    %% STORAGE LOCATION CONFIGURATION SYSTEM - OVERVIEW
-    %% ═══════════════════════════════════════════════════════════════════════
-    %% Purpose: Executive view of storage location configuration management
-    %% Scope: Two main paths - UPDATE existing vs CREATE new config
-    %% Critical: Historical data integrity
-    %% Updated: 2025-10-08 | Version: 1.0 | Mermaid v11.3.0+
-    %% ═══════════════════════════════════════════════════════════════════════
-
+%% ═══════════════════════════════════════════════════════════════════════
+%% STORAGE LOCATION CONFIGURATION SYSTEM - OVERVIEW
+%% ═══════════════════════════════════════════════════════════════════════
+%% Purpose: Executive view of storage location configuration management
+%% Scope: Two main paths - UPDATE existing vs CREATE new config
+%% Critical: Historical data integrity
+%% Updated: 2025-10-08 | Version: 1.0 | Mermaid v11.3.0+
+%% ═══════════════════════════════════════════════════════════════════════
     START@{ shape: stadium, label: "👨‍💼 Admin Access Configuration
-    Route: /admin/configuration
-
-    View shows:
-    • Warehouse hierarchy
-    • Storage locations with current config
-    • Locations without config (warnings)
-
-    Admin can:
-    • Configure single location
-    • Bulk configure multiple
-    • View configuration history" }
-
-    SELECT_LOCATIONS@{ shape: rect, label: "📍 Select Storage Locations
-    Click one or more:
-    • Individual claro
-    • Multiple claros in cantero
-    • All claros in warehouse
-
-    Selection shows:
-    • Current configuration (if any)
-    • Product + Packaging
-    • Last updated date
-
-    Selected count: N locations" }
-
-    CHOOSE_ACTION@{ shape: diamond, label: "Configuration Action?" }
-
-    %% ═══════════════════════════════════════════════════════════════════════
-    %% PATH 1: UPDATE EXISTING CONFIGURATION
-    %% ═══════════════════════════════════════════════════════════════════════
-
-    subgraph UPDATE_PATH["🔄 UPDATE PATH - Modify Current Config"]
-        direction TB
-
-        UPDATE_FORM@{ shape: rect, label: "📝 Configuration Form
-        Existing values pre-filled:
-        • Product: [Current]
-        • Packaging: [Current]
-        • State: [Current]
-        • Area: [Calculated]
-
-        User modifies fields
-
-        Warning shown:
-        ⚠️ 'Changes will affect current stock
-            Historical data unchanged'" }
-
-        UPDATE_VALIDATE@{ shape: diamond, label: "Validation OK?
-        • Product exists
-        • Packaging exists (if set)
-        • State is valid
-        • Area > 0
-
-        Business rules:
-        • Product-packaging compatible
-        • State matches product" }
-
-        UPDATE_ERROR@{ shape: rect, label: "❌ Validation Error
-        Show specific issue:
-        • Invalid combination
-        • Missing required field
-        • Incompatible state
-
-        User fixes form" }
-
-        UPDATE_CONFIRM@{ shape: rect, label: "✅ Confirmation Dialog
-        'Update configuration for N locations?
-
-        Changes will:
-        • Modify current configuration
-        • Update current stock metadata
-        • NOT affect historical records
-
-        Last photo: 2025-09-01
-        Current stock will be updated'
-
-        [Cancel] [Confirm]" }
-
-        UPDATE_EXECUTE@{ shape: cyl, label: "Execute UPDATE
-        SQL:
-        UPDATE storage_location_config
-        SET
-          product_id = :product_id,
-          packaging_catalog_id = :pkg_id,
-          expected_product_state_id = :state_id,
-          area_cm2 = :area,
-          updated_at = NOW(),
-          notes = :notes
-        WHERE id IN (:config_ids)
-          AND active = true
-
-        ⏱️ ~50ms per location" }
-
-        UPDATE_SUCCESS@{ shape: rect, label: "✅ Update Successful
-        • Configuration updated
-        • Stock metadata refreshed
-        • Audit log created
-
-        Frontend shows:
-        'N locations updated successfully'
-
-        Auto-refresh view" }
-    end
-
-    %% ═══════════════════════════════════════════════════════════════════════
-    %% PATH 2: CREATE NEW CONFIGURATION
-    %% ═══════════════════════════════════════════════════════════════════════
-
-    subgraph CREATE_PATH["➕ CREATE PATH - New Config with History"]
-        direction TB
-
-        CREATE_FORM@{ shape: rect, label: "📝 Configuration Form
-        Fields empty or suggested:
-        • Product: [Select]
-        • Packaging: [Select]
-        • State: [Select]
-        • Area: [Auto-calculated]
-
-        Info shown:
-        ℹ️ 'Creating new configuration
-           Previous config becomes historical
-           Used for historical reporting only'
-
-        Current config shown for reference" }
-
-        CREATE_VALIDATE@{ shape: diamond, label: "Validation OK?
-        Same as UPDATE validation
-
-        Additional check:
-        • Not identical to current config
-          (prevent duplicate)" }
-
-        CREATE_ERROR@{ shape: rect, label: "❌ Validation Error
-        • Identical to current config
-          → Suggest using UPDATE instead
-        • Invalid fields
-          → Show specific errors" }
-
-        CREATE_CONFIRM@{ shape: rect, label: "✅ Confirmation Dialog
-        'Create new configuration for N locations?
-
-        This will:
-        • Preserve current config as historical
-        • Create new active config
-        • Future stock uses new config
-        • Historical stock unchanged
-
-        Current: Cactus + R7
-        New: Suculenta + R10
-
-        [Cancel] [Confirm]" }
-
-        CREATE_TRANSACTION@{ shape: rect, label: "🔄 BEGIN TRANSACTION
-        Atomic operation:
-        1. Deactivate old config
-        2. Insert new config
-        3. Update timestamps
-
-        If any step fails: ROLLBACK" }
-
-        DEACTIVATE_OLD@{ shape: cyl, label: "Deactivate Current Config
-        UPDATE storage_location_config
-        SET
-          active = false,
-          updated_at = NOW()
-        WHERE storage_location_id IN (:ids)
-          AND active = true
-
-        Old config preserved for history
-
-        ⏱️ ~50ms" }
-
-        INSERT_NEW@{ shape: cyl, label: "Insert New Config
-        INSERT INTO storage_location_config
-        (
-          storage_location_id,
-          product_id,
-          packaging_catalog_id,
-          expected_product_state_id,
-          area_cm2,
-          active,
-          notes,
-          created_at
-        )
-        VALUES
-        (...)
-
-        ⏱️ ~50ms per location" }
-
-        CREATE_COMMIT@{ shape: rect, label: "COMMIT TRANSACTION
-        All changes committed
-
-        Result:
-        • Old config: active=false
-        • New config: active=true
-
-        Audit log created" }
-
-        CREATE_SUCCESS@{ shape: rect, label: "✅ Create Successful
-        • New configuration active
-        • Historical config preserved
-        • Future photos use new config
-
-        Frontend shows:
-        'N new configurations created
-         Previous configs archived'
-
-        Auto-refresh view" }
-    end
-
-    %% ═══════════════════════════════════════════════════════════════════════
-    %% FINAL STEPS
-    %% ═══════════════════════════════════════════════════════════════════════
-
-    REFRESH_VIEW@{ shape: rect, label: "🔄 Refresh Frontend View
-    Reload:
-    • Storage location list
-    • Configuration details
-    • Visual indicators
-
-    Highlight updated locations:
-    • Green border for newly configured
-    • Blue badge for updated
-
-    ⏱️ ~500ms" }
-
-    DISPLAY_RESULT@{ shape: stadium, label: "✅ Configuration Complete
-    Admin sees updated hierarchy:
-
-    Warehouse A
-    ├── Cantero Norte
-    │   ├── Claro 1-1-A
-    │   │   Config: Suculenta + R10 ✓
-    │   │   Updated: 2025-10-08 14:30
-    │   └── ...
-
-    Can:
-    • View configuration history
-    • Edit again if needed
-    • Configure more locations
-    • Export configuration report" }
-
-    %% ═══════════════════════════════════════════════════════════════════════
-    %% CONNECTIONS
-    %% ═══════════════════════════════════════════════════════════════════════
-
-    START --> SELECT_LOCATIONS
-    SELECT_LOCATIONS --> CHOOSE_ACTION
-
-    CHOOSE_ACTION -->|Update Existing| UPDATE_FORM
-    CHOOSE_ACTION -->|Create New| CREATE_FORM
-
-    %% Update path
-    UPDATE_FORM --> UPDATE_VALIDATE
-    UPDATE_VALIDATE -->|Invalid| UPDATE_ERROR
-    UPDATE_VALIDATE -->|Valid| UPDATE_CONFIRM
-    UPDATE_ERROR --> UPDATE_FORM
-
-    UPDATE_CONFIRM -->|Confirm| UPDATE_EXECUTE
-    UPDATE_CONFIRM -->|Cancel| SELECT_LOCATIONS
-    UPDATE_EXECUTE --> UPDATE_SUCCESS
-
-    UPDATE_SUCCESS --> REFRESH_VIEW
-
-    %% Create path
-    CREATE_FORM --> CREATE_VALIDATE
-    CREATE_VALIDATE -->|Invalid| CREATE_ERROR
-    CREATE_VALIDATE -->|Valid| CREATE_CONFIRM
-    CREATE_ERROR --> CREATE_FORM
-
-    CREATE_CONFIRM -->|Confirm| CREATE_TRANSACTION
-    CREATE_CONFIRM -->|Cancel| SELECT_LOCATIONS
-
-    CREATE_TRANSACTION --> DEACTIVATE_OLD
-    DEACTIVATE_OLD --> INSERT_NEW
-    INSERT_NEW --> CREATE_COMMIT
-    CREATE_COMMIT --> CREATE_SUCCESS
-
-    CREATE_SUCCESS --> REFRESH_VIEW
-
-    %% Final
-    REFRESH_VIEW --> DISPLAY_RESULT
-
-    %% ═══════════════════════════════════════════════════════════════════════
-    %% STYLING
-    %% ═══════════════════════════════════════════════════════════════════════
-
-    classDef updateStyle fill:#E3F2FD,stroke:#1976D2,stroke-width:2px
-    classDef createStyle fill:#F3E5F5,stroke:#7B1FA2,stroke-width:2px
-    classDef dbStyle fill:#E0F2F1,stroke:#00796B,stroke-width:2px
-    classDef successStyle fill:#E8F5E9,stroke:#388E3C,stroke-width:2px
-    classDef errorStyle fill:#FFEBEE,stroke:#C62828,stroke-width:2px
-
-    class UPDATE_FORM,UPDATE_VALIDATE,UPDATE_CONFIRM,UPDATE_EXECUTE updateStyle
-    class CREATE_FORM,CREATE_VALIDATE,CREATE_CONFIRM,CREATE_TRANSACTION createStyle
-    class DEACTIVATE_OLD,INSERT_NEW,CREATE_COMMIT,UPDATE_EXECUTE dbStyle
-    class UPDATE_SUCCESS,CREATE_SUCCESS,DISPLAY_RESULT successStyle
-    class UPDATE_ERROR,CREATE_ERROR errorStyle
+Route: /admin/configuration
+
+View shows:
+• Warehouse hierarchy
+• Storage locations with current config
+• Locations without config (warnings)
+
+Admin can:
+• Configure single location
+• Bulk configure multiple
+• View configuration history" }
+
+SELECT_LOCATIONS@{ shape: rect, label: "📍 Select Storage Locations
+Click one or more:
+• Individual claro
+• Multiple claros in cantero
+• All claros in warehouse
+
+Selection shows:
+• Current configuration (if any)
+• Product + Packaging
+• Last updated date
+
+Selected count: N locations" }
+
+CHOOSE_ACTION@{ shape: diamond, label: "Configuration Action?" }
+
+%% ═══════════════════════════════════════════════════════════════════════
+%% PATH 1: UPDATE EXISTING CONFIGURATION
+%% ═══════════════════════════════════════════════════════════════════════
+
+subgraph UPDATE_PATH["🔄 UPDATE PATH - Modify Current Config"]
+direction TB
+
+UPDATE_FORM@{ shape: rect, label: "📝 Configuration Form
+Existing values pre-filled:
+• Product: [Current]
+• Packaging: [Current]
+• State: [Current]
+• Area: [Calculated]
+
+User modifies fields
+
+Warning shown:
+⚠️ 'Changes will affect current stock
+Historical data unchanged'" }
+
+UPDATE_VALIDATE@{ shape: diamond, label: "Validation OK?
+• Product exists
+• Packaging exists (if set)
+• State is valid
+• Area > 0
+
+Business rules:
+• Product-packaging compatible
+• State matches product" }
+
+UPDATE_ERROR@{ shape: rect, label: "❌ Validation Error
+Show specific issue:
+• Invalid combination
+• Missing required field
+• Incompatible state
+
+User fixes form" }
+
+UPDATE_CONFIRM@{ shape: rect, label: "✅ Confirmation Dialog
+'Update configuration for N locations?
+
+Changes will:
+• Modify current configuration
+• Update current stock metadata
+• NOT affect historical records
+
+Last photo: 2025-09-01
+Current stock will be updated'
+
+[Cancel] [Confirm]" }
+
+UPDATE_EXECUTE@{ shape: cyl, label: "Execute UPDATE
+SQL:
+UPDATE storage_location_config
+SET
+product_id = :product_id,
+packaging_catalog_id = :pkg_id,
+expected_product_state_id = :state_id,
+area_cm2 = :area,
+updated_at = NOW(),
+notes = :notes
+WHERE id IN (:config_ids)
+AND active = true
+
+⏱️ ~50ms per location" }
+
+UPDATE_SUCCESS@{ shape: rect, label: "✅ Update Successful
+• Configuration updated
+• Stock metadata refreshed
+• Audit log created
+
+Frontend shows:
+'N locations updated successfully'
+
+Auto-refresh view" }
+end
+
+%% ═══════════════════════════════════════════════════════════════════════
+%% PATH 2: CREATE NEW CONFIGURATION
+%% ═══════════════════════════════════════════════════════════════════════
+
+subgraph CREATE_PATH["➕ CREATE PATH - New Config with History"]
+direction TB
+
+CREATE_FORM@{ shape: rect, label: "📝 Configuration Form
+Fields empty or suggested:
+• Product: [Select]
+• Packaging: [Select]
+• State: [Select]
+• Area: [Auto-calculated]
+
+Info shown:
+ℹ️ 'Creating new configuration
+Previous config becomes historical
+Used for historical reporting only'
+
+Current config shown for reference" }
+
+CREATE_VALIDATE@{ shape: diamond, label: "Validation OK?
+Same as UPDATE validation
+
+Additional check:
+• Not identical to current config
+(prevent duplicate)" }
+
+CREATE_ERROR@{ shape: rect, label: "❌ Validation Error
+• Identical to current config
+→ Suggest using UPDATE instead
+• Invalid fields
+→ Show specific errors" }
+
+CREATE_CONFIRM@{ shape: rect, label: "✅ Confirmation Dialog
+'Create new configuration for N locations?
+
+This will:
+• Preserve current config as historical
+• Create new active config
+• Future stock uses new config
+• Historical stock unchanged
+
+Current: Cactus + R7
+New: Suculenta + R10
+
+[Cancel] [Confirm]" }
+
+CREATE_TRANSACTION@{ shape: rect, label: "🔄 BEGIN TRANSACTION
+Atomic operation:
+1. Deactivate old config
+2. Insert new config
+3. Update timestamps
+
+If any step fails: ROLLBACK" }
+
+DEACTIVATE_OLD@{ shape: cyl, label: "Deactivate Current Config
+UPDATE storage_location_config
+SET
+active = false,
+updated_at = NOW()
+WHERE storage_location_id IN (:ids)
+AND active = true
+
+Old config preserved for history
+
+⏱️ ~50ms" }
+
+INSERT_NEW@{ shape: cyl, label: "Insert New Config
+INSERT INTO storage_location_config
+(
+storage_location_id,
+product_id,
+packaging_catalog_id,
+expected_product_state_id,
+area_cm2,
+active,
+notes,
+created_at
+)
+VALUES
+(...)
+
+⏱️ ~50ms per location" }
+
+CREATE_COMMIT@{ shape: rect, label: "COMMIT TRANSACTION
+All changes committed
+
+Result:
+• Old config: active=false
+• New config: active=true
+
+Audit log created" }
+
+CREATE_SUCCESS@{ shape: rect, label: "✅ Create Successful
+• New configuration active
+• Historical config preserved
+• Future photos use new config
+
+Frontend shows:
+'N new configurations created
+Previous configs archived'
+
+Auto-refresh view" }
+end
+
+%% ═══════════════════════════════════════════════════════════════════════
+%% FINAL STEPS
+%% ═══════════════════════════════════════════════════════════════════════
+
+REFRESH_VIEW@{ shape: rect, label: "🔄 Refresh Frontend View
+Reload:
+• Storage location list
+• Configuration details
+• Visual indicators
+
+Highlight updated locations:
+• Green border for newly configured
+• Blue badge for updated
+
+⏱️ ~500ms" }
+
+DISPLAY_RESULT@{ shape: stadium, label: "✅ Configuration Complete
+Admin sees updated hierarchy:
+
+Warehouse A
+├── Cantero Norte
+│ ├── Claro 1-1-A
+│ │ Config: Suculenta + R10 ✓
+│ │ Updated: 2025-10-08 14:30
+│   └── ...
+
+Can:
+• View configuration history
+• Edit again if needed
+• Configure more locations
+• Export configuration report" }
+
+%% ═══════════════════════════════════════════════════════════════════════
+%% CONNECTIONS
+%% ═══════════════════════════════════════════════════════════════════════
+
+START --> SELECT_LOCATIONS
+SELECT_LOCATIONS --> CHOOSE_ACTION
+
+CHOOSE_ACTION -->|Update Existing|UPDATE_FORM
+CHOOSE_ACTION -->|Create New|CREATE_FORM
+
+%% Update path
+UPDATE_FORM --> UPDATE_VALIDATE
+UPDATE_VALIDATE -->|Invalid| UPDATE_ERROR
+UPDATE_VALIDATE -->|Valid|UPDATE_CONFIRM
+UPDATE_ERROR --> UPDATE_FORM
+
+UPDATE_CONFIRM -->|Confirm|UPDATE_EXECUTE
+UPDATE_CONFIRM -->|Cancel|SELECT_LOCATIONS
+UPDATE_EXECUTE --> UPDATE_SUCCESS
+
+UPDATE_SUCCESS --> REFRESH_VIEW
+
+%% Create path
+CREATE_FORM --> CREATE_VALIDATE
+CREATE_VALIDATE -->|Invalid|CREATE_ERROR
+CREATE_VALIDATE -->|Valid|CREATE_CONFIRM
+CREATE_ERROR --> CREATE_FORM
+
+CREATE_CONFIRM -->|Confirm|CREATE_TRANSACTION
+CREATE_CONFIRM -->|Cancel|SELECT_LOCATIONS
+
+CREATE_TRANSACTION --> DEACTIVATE_OLD
+DEACTIVATE_OLD --> INSERT_NEW
+INSERT_NEW --> CREATE_COMMIT
+CREATE_COMMIT --> CREATE_SUCCESS
+
+CREATE_SUCCESS --> REFRESH_VIEW
+
+%% Final
+REFRESH_VIEW --> DISPLAY_RESULT
+
+%% ═══════════════════════════════════════════════════════════════════════
+%% STYLING
+%% ═══════════════════════════════════════════════════════════════════════
+
+classDef updateStyle fill: #E3F2FD, stroke: #1976D2, stroke-width: 2px
+classDef createStyle fill: #F3E5F5, stroke: #7B1FA2, stroke-width: 2px
+classDef dbStyle fill: #E0F2F1, stroke: #00796B, stroke-width: 2px
+classDef successStyle fill: #E8F5E9, stroke: #388E3C, stroke-width: 2px
+classDef errorStyle fill: #FFEBEE, stroke: #C62828, stroke-width: 2px
+
+class UPDATE_FORM, UPDATE_VALIDATE,UPDATE_CONFIRM, UPDATE_EXECUTE updateStyle
+class CREATE_FORM, CREATE_VALIDATE,CREATE_CONFIRM, CREATE_TRANSACTION createStyle
+class DEACTIVATE_OLD, INSERT_NEW,CREATE_COMMIT, UPDATE_EXECUTE dbStyle
+class UPDATE_SUCCESS, CREATE_SUCCESS,DISPLAY_RESULT successStyle
+class UPDATE_ERROR, CREATE_ERROR errorStyle

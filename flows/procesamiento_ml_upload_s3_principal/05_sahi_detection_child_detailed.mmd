@@ -6,604 +6,603 @@ version: "1.0.0"
 mermaid_version: "v11.3.0+"
 description: "Ultra-detailed subflow: SAHI slicing, YOLO detection, band-based plant density estimation algorithm with auto-calibration"
 parent_diagram: "01_complete_pipeline_v4.mmd"
-related_diagrams: ["04_ml_parent_segmentation_detailed.mmd", "06_boxes_plugs_detection_detailed.mmd"]
+related_diagrams: [ "04_ml_parent_segmentation_detailed.mmd", "06_boxes_plugs_detection_detailed.mmd" ]
 ---
 
 flowchart TD
-    %% =================================================================
-    %% DIAGRAM 05: SAHI DETECTION CHILD TASK - BAND-BASED ESTIMATION
-    %% =================================================================
-    %%
-    %% PURPOSE:
-    %% This diagram shows the CRITICAL INNOVATION of DemeterAI:
-    %% Band-based plant density estimation using SAHI (Slicing Aided Hyper Inference)
-    %%
-    %% SCOPE: Single Celery child task spawned by ML parent (diagram 04)
-    %% INPUT: image_id_pk (UUID), slice_data (S3 URL, dimensions, GPS)
-    %% OUTPUT: estimated_plant_count, confidence_band, band_densities
-    %%
-    %% KEY CONCEPTS:
-    %% - SAHI library: Slice large images for better small-object detection
-    %% - Band-based estimation: Divide remaining area into 5 horizontal bands
-    %% - Auto-calibration: Learn density_parameters from real detections
-    %% - Graceful degradation: Warning states instead of failures
-    %%
-    %% PERFORMANCE TARGET: ~15-30s per image (GPU-bound)
-    %% =================================================================
-
+%% =================================================================
+%% DIAGRAM 05: SAHI DETECTION CHILD TASK - BAND-BASED ESTIMATION
+%% =================================================================
+%%
+%% PURPOSE:
+%% This diagram shows the CRITICAL INNOVATION of DemeterAI:
+%% Band-based plant density estimation using SAHI (Slicing Aided Hyper Inference)
+%%
+%% SCOPE: Single Celery child task spawned by ML parent (diagram 04)
+%% INPUT: image_id_pk (UUID), slice_data (S3 URL, dimensions, GPS)
+%% OUTPUT: estimated_plant_count, confidence_band, band_densities
+%%
+%% KEY CONCEPTS:
+%% - SAHI library: Slice large images for better small-object detection
+%% - Band-based estimation: Divide remaining area into 5 horizontal bands
+%% - Auto-calibration: Learn density_parameters from real detections
+%% - Graceful degradation: Warning states instead of failures
+%%
+%% PERFORMANCE TARGET: ~15-30s per image (GPU-bound)
+%% =================================================================
     START@{ shape: stadium, label: "🚀 SAHI Detection Child Task
-    Celery Worker: gpu_pool
-    Queue: segmentation_queue
-    Concurrency: solo (1 per GPU)
-    ⏱️ Target: 15-30s per image" }
+Celery Worker: gpu_pool
+Queue: segmentation_queue
+Concurrency: solo (1 per GPU)
+⏱️ Target: 15-30s per image" }
 
-    %% =================================================================
-    %% SECTION 1: TASK INITIALIZATION & MODEL LOADING
-    %% =================================================================
+%% =================================================================
+%% SECTION 1: TASK INITIALIZATION & MODEL LOADING
+%% =================================================================
 
-    START --> TASK_INIT
+START --> TASK_INIT
 
-    TASK_INIT@{ shape: subproc, label: "📦 Task Initialization
-    Function: detect_plants_sahi_child(image_id_pk, slice_data)
+TASK_INIT@{ shape: subproc, label: "📦 Task Initialization
+Function: detect_plants_sahi_child(image_id_pk, slice_data)
 
-    Input Parameters:
-    - image_id_pk: UUID (Primary Key)
-    - slice_data: dict {
-        's3_url': str,
-        'dimensions': (width, height),
-        'gps_coords': (lat, lon),
-        'area_m2': float,
-        'band_config_id': UUID
-    }
+Input Parameters:
+- image_id_pk: UUID (Primary Key)
+- slice_data: dict {
+'s3_url': str,
+'dimensions': (width, height),
+'gps_coords': (lat, lon),
+'area_m2': float,
+'band_config_id': UUID
+}
 
-    ⏱️ ~1ms initialization" }
-
-    TASK_INIT --> GET_MODEL
-
-    GET_MODEL@{ shape: subproc, label: "🧠 Get Detection Model (Singleton Pattern)
-
-    Python Code:
-    worker_id = os.getpid() % num_gpus
-    model_key = f'yolo_v11_det_{worker_id}'
+⏱️ ~1ms initialization" }
+
+TASK_INIT --> GET_MODEL
+
+GET_MODEL@{ shape: subproc, label: "🧠 Get Detection Model (Singleton Pattern)
+
+Python Code:
+worker_id = os.getpid() % num_gpus
+model_key = f'yolo_v11_det_{worker_id}'
 
-    if model_key not in model_cache:
-        model = YOLO('yolo11m.pt')  # Detection model
-        model.to(f'cuda:{worker_id}')
-        model.fuse()  # Optimize layers
-        model_cache[model_key] = model
+if model_key not in model_cache:
+model = YOLO('yolo11m.pt') # Detection model
+model.to(f'cuda:{worker_id}')
+model.fuse() # Optimize layers
+model_cache[model_key] = model
 
-    model = model_cache[model_key]
-
-    ⏱️ First call: ~3s (load from disk)
-    ⏱️ Cached calls: ~0.1ms (in-memory)
-    ♻️ Singleton per GPU worker" }
-
-    GET_MODEL --> LOAD_BAND_CONFIG
-
-    LOAD_BAND_CONFIG@{ shape: cyl, label: "🗄️ SELECT band_config
-
-    Query:
-    SELECT
-        density_parameters,
-        confidence_threshold,
-        min_detections_per_band,
-        calibration_status,
-        last_calibrated_at
-    FROM band_configurations
-    WHERE id = slice_data['band_config_id']
-
-    Result:
-    - density_parameters: dict {
-        'band_1': 0.8,  # Top band (sparse)
-        'band_2': 1.2,
-        'band_3': 1.5,  # Middle (dense)
-        'band_4': 1.2,
-        'band_5': 0.9   # Bottom (sparse)
-    }
-    - confidence_threshold: 0.45
-
-    ⏱️ ~2ms (indexed query)" }
-
-    LOAD_BAND_CONFIG --> DOWNLOAD_S3
-
-    %% =================================================================
-    %% SECTION 2: IMAGE DOWNLOAD & PREPROCESSING
-    %% =================================================================
-
-    DOWNLOAD_S3@{ shape: subproc, label: "📥 Download Image from S3
-
-    Python Code:
-    s3_client.download_fileobj(
-        Bucket=AWS_BUCKET,
-        Key=slice_data['s3_url'],
-        Fileobj=buffer
-    )
-
-    img = Image.open(buffer)
-    img_array = np.array(img)
-
-    Optimization:
-    - Stream to memory (no disk I/O)
-    - Direct NumPy conversion
-
-    ⏱️ ~500ms-2s (depends on size)
-    ⚡ I/O-bound (not GPU)" }
-
-    DOWNLOAD_S3 --> CHECK_IMG_SIZE
-
-    CHECK_IMG_SIZE@{ shape: diamond, label: "Image > 2000px?" }
-
-    CHECK_IMG_SIZE -->|Yes| INIT_SAHI
-    CHECK_IMG_SIZE -->|No| DIRECT_YOLO
-
-    %% =================================================================
-    %% SECTION 3A: SAHI SLICING PATH (Large Images)
-    %% =================================================================
-
-    INIT_SAHI@{ shape: subproc, label: "✂️ Initialize SAHI Slicing
-
-    from sahi import AutoDetectionModel
-    from sahi.predict import get_sliced_prediction
-
-    detection_model = AutoDetectionModel.from_pretrained(
-        model_type='yolov8',
-        model=model,  # Our cached YOLO model
-        confidence_threshold=0.45,
-        device=f'cuda:{worker_id}'
-    )
-
-    Configuration:
-    - slice_height: 640
-    - slice_width: 640
-    - overlap_height_ratio: 0.2  # 20% overlap
-    - overlap_width_ratio: 0.2
-    - postprocess_type: 'NMS'  # Non-Maximum Suppression
-    - postprocess_match_threshold: 0.5
-
-    ⏱️ ~10ms initialization" }
-
-    INIT_SAHI --> SAHI_SLICE
-
-    SAHI_SLICE@{ shape: subproc, label: "🔪 Perform Sliced Prediction
-
-    Python Code:
-    result = get_sliced_prediction(
-        img_array,
-        detection_model,
-        slice_height=640,
-        slice_width=640,
-        overlap_height_ratio=0.2,
-        overlap_width_ratio=0.2,
-        verbose=0
-    )
-
-    How SAHI Works:
-    1. Divide image into 640x640 overlapping tiles
-    2. Run YOLO detection on each tile
-    3. Merge predictions with NMS (remove duplicates)
-    4. Return unified bounding boxes
-
-    Example: 4000x3000 image
-    → ~42 slices (7 cols × 6 rows)
-    → Each slice: ~50ms inference
-    → Total: ~2.1s for all slices
-
-    ⏱️ ~2-8s (depends on image size)
-    🔥 CRITICAL: GPU-intensive
-    ⚡ Could parallelize across GPUs in future" }
-
-    SAHI_SLICE --> EXTRACT_DETECTIONS
-
-    %% =================================================================
-    %% SECTION 3B: DIRECT YOLO PATH (Small Images)
-    %% =================================================================
-
-    DIRECT_YOLO@{ shape: subproc, label: "🎯 Direct YOLO Detection
-
-    Python Code:
-    results = model.predict(
-        img_array,
-        conf=0.45,
-        iou=0.5,
-        verbose=False
-    )
-
-    # Extract bounding boxes
-    detections = []
-    for box in results[0].boxes:
-        detections.append({
-            'bbox': box.xyxy[0].cpu().numpy(),
-            'confidence': float(box.conf),
-            'class_id': int(box.cls)
-        })
-
-    ⏱️ ~50-200ms (GPU inference)
-    ⚡ Single-pass detection" }
-
-    DIRECT_YOLO --> EXTRACT_DETECTIONS
-
-    %% =================================================================
-    %% SECTION 4: DETECTION PROCESSING & FILTERING
-    %% =================================================================
-
-    EXTRACT_DETECTIONS@{ shape: subproc, label: "📊 Extract & Filter Detections
-
-    Python Code:
-    detections = []
-    for pred in result.object_prediction_list:  # SAHI path
-        if pred.score.value >= confidence_threshold:
-            detections.append({
-                'bbox': pred.bbox.to_xyxy(),
-                'confidence': pred.score.value,
-                'class_name': pred.category.name,
-                'area_px': pred.bbox.area
-            })
-
-    Filtering Rules:
-    - confidence >= 0.45
-    - class_name == 'plant' (ignore other classes)
-    - area_px >= 100 (minimum size filter)
-    - bbox not on image edge (avoid truncated plants)
-
-    ⏱️ ~5-20ms (CPU-bound list comprehension)
-    ⚡ Vectorized NumPy operations" }
-
-    EXTRACT_DETECTIONS --> CHECK_DETECTIONS
-
-    CHECK_DETECTIONS@{ shape: diamond, label: "Detections > 0?" }
-
-    CHECK_DETECTIONS -->|No| NO_DETECTIONS_WARNING
-    CHECK_DETECTIONS -->|Yes| CALCULATE_BANDS
-
-    NO_DETECTIONS_WARNING@{ shape: subproc, label: "⚠️ No Detections Found
-
-    Possible Causes:
-    1. Image quality too poor
-    2. No plants in field
-    3. Model confidence threshold too high
-    4. Wrong model loaded
-
-    Action: Set warning state
-    warning_state = 'no_detections_found'
-    estimated_count = 0
-    confidence_band = 'UNKNOWN'
-
-    ⏱️ ~1ms" }
-
-    NO_DETECTIONS_WARNING --> SAVE_RESULTS
-
-    %% =================================================================
-    %% SECTION 5: BAND-BASED ESTIMATION (THE CRITICAL INNOVATION)
-    %% =================================================================
-
-    CALCULATE_BANDS@{ shape: subproc, label: "📏 Calculate Band Boundaries
-
-    Python Code:
-    img_height = img_array.shape[0]
-    band_height = img_height / 5  # Divide into 5 horizontal bands
-
-    bands = []
-    for i in range(5):
-        band = {
-            'id': i + 1,
-            'y_start': int(i * band_height),
-            'y_end': int((i + 1) * band_height),
-            'detections': [],
-            'density_param': density_parameters[f'band_{i+1}']
-        }
-        bands.append(band)
-
-    Visual Example (4000x3000 image):
-    ┌─────────────────────┐ y=0
-    │ Band 1 (y: 0-600)   │ Top - Perspective far (sparse)
-    ├─────────────────────┤ y=600
-    │ Band 2 (y: 600-1200)│
-    ├─────────────────────┤ y=1200
-    │ Band 3 (y: 1200-1800)│ Middle - Optimal view (dense)
-    ├─────────────────────┤ y=1800
-    │ Band 4 (y: 1800-2400)│
-    ├─────────────────────┤ y=2400
-    │ Band 5 (y: 2400-3000)│ Bottom - Perspective near (sparse)
-    └─────────────────────┘ y=3000
-
-    ⏱️ ~1ms (simple arithmetic)" }
-
-    CALCULATE_BANDS --> ASSIGN_TO_BANDS
-
-    ASSIGN_TO_BANDS@{ shape: subproc, label: "🎯 Assign Detections to Bands
-
-    Python Code:
-    for detection in detections:
-        # Get center Y coordinate of bounding box
-        bbox = detection['bbox']
-        center_y = (bbox[1] + bbox[3]) / 2
-
-        # Find which band contains this detection
-        for band in bands:
-            if band['y_start'] <= center_y < band['y_end']:
-                band['detections'].append(detection)
-                break
-
-    Result Example:
-    Band 1: 12 detections (sparse, perspective far)
-    Band 2: 34 detections
-    Band 3: 58 detections (dense, optimal view)
-    Band 4: 41 detections
-    Band 5: 19 detections (sparse, perspective near)
-
-    Total: 164 actual detections
-
-    ⏱️ ~2-10ms (O(n) iteration)" }
-
-    ASSIGN_TO_BANDS --> ESTIMATE_PER_BAND
-
-    ESTIMATE_PER_BAND@{ shape: subproc, label: "🧮 Estimate Count Per Band
-
-    THE CRITICAL ALGORITHM:
-
-    Python Code:
-    for band in bands:
-        detected_count = len(band['detections'])
-        density_param = band['density_param']
-
-        # Apply density correction
-        # density_param > 1.0: Detected less than actual (multiply)
-        # density_param < 1.0: Detected more than actual (divide)
-        estimated_count = detected_count * density_param
-
-        band['detected'] = detected_count
-        band['estimated'] = round(estimated_count)
-        band['confidence'] = calculate_confidence(detected_count)
-
-    Example Calculation:
-    Band 1: 12 × 0.8 = 9.6 → 10 plants
-    Band 2: 34 × 1.2 = 40.8 → 41 plants
-    Band 3: 58 × 1.5 = 87.0 → 87 plants (CRITICAL: underdetection)
-    Band 4: 41 × 1.2 = 49.2 → 49 plants
-    Band 5: 19 × 0.9 = 17.1 → 17 plants
-
-    Total Estimated: 204 plants (vs 164 detected)
-
-    WHY THIS WORKS:
-    - Middle bands: Plants smaller in image (underdetection) → multiply
-    - Top/bottom: Perspective distortion → adjust
-    - Learned from calibration data
-
-    ⏱️ ~1ms (simple math)" }
-
-    ESTIMATE_PER_BAND --> SUM_TOTAL
-
-    SUM_TOTAL@{ shape: subproc, label: "➕ Sum Total Estimate
-
-    Python Code:
-    total_estimated = sum(band['estimated'] for band in bands)
-    total_detected = sum(band['detected'] for band in bands)
-
-    # Calculate overall confidence
-    confidence_band = calculate_overall_confidence(bands)
-
-    Confidence Calculation:
-    if all bands have >= 10 detections:
-        confidence = 'HIGH'
-    elif most bands have >= 5 detections:
-        confidence = 'MEDIUM'
-    else:
-        confidence = 'LOW'
-
-    Result:
-    - total_estimated: 204
-    - total_detected: 164
-    - confidence_band: 'HIGH'
-    - correction_factor: 1.24 (204/164)
-
-    ⏱️ ~1ms" }
-
-    SUM_TOTAL --> CHECK_CALIBRATION_NEEDED
-
-    %% =================================================================
-    %% SECTION 6: AUTO-CALIBRATION (Learning System)
-    %% =================================================================
-
-    CHECK_CALIBRATION_NEEDED@{ shape: diamond, label: "Calibration
-    status ==
-    'needs_learning'?" }
-
-    CHECK_CALIBRATION_NEEDED -->|Yes| AUTO_CALIBRATE
-    CHECK_CALIBRATION_NEEDED -->|No| SAVE_RESULTS
-
-    AUTO_CALIBRATE@{ shape: subproc, label: "🎓 Auto-Calibration Algorithm
-
-    TRIGGERED WHEN:
-    - New band_config created
-    - After 50 detections in same field
-    - User manually requests recalibration
-
-    Python Code:
-    # Collect statistics from recent detections
-    recent_detections = db.query(
-        SELECT band_id, detected_count, manual_count
-        FROM detection_history
-        WHERE band_config_id = current_config
-        AND manual_count IS NOT NULL  # User verified
-        LIMIT 100
-    )
-
-    # Calculate optimal density parameters
-    new_params = {}
-    for band_id in range(1, 6):
-        band_data = recent_detections[band_id]
-
-        # density_param = actual / detected
-        avg_actual = mean(band_data['manual_count'])
-        avg_detected = mean(band_data['detected_count'])
-
-        new_params[f'band_{band_id}'] = avg_actual / avg_detected
-
-    # Update database
-    UPDATE band_configurations
-    SET density_parameters = new_params,
-        calibration_status = 'calibrated',
-        last_calibrated_at = NOW()
-    WHERE id = current_config
-
-    Example Learning:
-    Before: [1.0, 1.0, 1.0, 1.0, 1.0] (default)
-    After:  [0.8, 1.2, 1.5, 1.2, 0.9] (learned)
-
-    Accuracy Improvement:
-    Before calibration: ±30% error
-    After calibration:  ±8% error
-
-    ⏱️ ~50-100ms (UPDATE query)
-    ♻️ Runs once per field after initial learning period" }
-
-    AUTO_CALIBRATE --> SAVE_RESULTS
-
-    %% =================================================================
-    %% SECTION 7: SAVE RESULTS TO DATABASE (Bulk Insert Pattern)
-    %% =================================================================
-
-    SAVE_RESULTS@{ shape: subproc, label: "💾 Prepare Bulk Insert Data
-
-    Python Code:
-    # Prepare detection records
-    detection_records = []
-    for band in bands:
-        for det in band['detections']:
-            record = {
-                'id': uuid.uuid4(),
-                'image_id': image_id_pk,
-                'band_id': band['id'],
-                'bbox': det['bbox'].tolist(),
-                'confidence': det['confidence'],
-                'area_px': det['area_px'],
-                'created_at': datetime.utcnow()
-            }
-            detection_records.append(record)
-
-    # Prepare summary record
-    summary_record = {
-        'image_id': image_id_pk,
-        'total_detected': total_detected,
-        'total_estimated': total_estimated,
-        'confidence_band': confidence_band,
-        'band_breakdown': {
-            f'band_{i+1}': {
-                'detected': bands[i]['detected'],
-                'estimated': bands[i]['estimated']
-            } for i in range(5)
-        },
-        'processing_time_s': time.time() - start_time,
-        'model_version': 'yolo11m',
-        'sahi_used': sahi_was_used
-    }
-
-    ⏱️ ~2-5ms (data preparation)" }
-
-    SAVE_RESULTS --> BULK_INSERT
-
-    BULK_INSERT@{ shape: cyl, label: "🗄️ Bulk INSERT Detections
-
-    Query (SQLAlchemy):
-    session.bulk_insert_mappings(
-        Detection,
-        detection_records
-    )
-
-    session.add(DetectionSummary(**summary_record))
-
-    await session.commit()
-
-    Performance:
-    - 164 detections inserted in single transaction
-    - Batch insert 50x faster than individual INSERTs
-
-    Future Optimization (asyncpg):
-    await conn.executemany(
-        'INSERT INTO detections VALUES ($1, $2, ...)',
-        detection_records
-    )
-    # asyncpg is 3x faster than SQLAlchemy ORM
-
-    ⏱️ ~10-30ms (depends on detection count)
-    🔥 CRITICAL: Database I/O" }
-
-    BULK_INSERT --> UPDATE_STATUS
-
-    UPDATE_STATUS@{ shape: cyl, label: "🗄️ UPDATE Image Status
-
-    Query:
-    UPDATE s3_images
-    SET
-        detection_status = 'completed',
-        detection_completed_at = NOW(),
-        plant_count_estimated = total_estimated,
-        confidence_band = confidence_band
-    WHERE id = image_id_pk
-
-    ⏱️ ~3ms (indexed UPDATE)" }
-
-    UPDATE_STATUS --> RETURN_RESULT
-
-    %% =================================================================
-    %% SECTION 8: RETURN TO PARENT (Celery Chord)
-    %% =================================================================
-
-    RETURN_RESULT@{ shape: subproc, label: "📤 Return Result to Parent
-
-    Python Code:
-    return {
-        'image_id': str(image_id_pk),
-        'status': 'success',
-        'estimated_count': total_estimated,
-        'detected_count': total_detected,
-        'confidence': confidence_band,
-        'processing_time': processing_time,
-        'bands': [
-            {
-                'band_id': i+1,
-                'detected': bands[i]['detected'],
-                'estimated': bands[i]['estimated']
-            } for i in range(5)
-        ],
-        'warning_state': warning_state  # None if OK
-    }
-
-    This result goes to:
-    - Celery Chord callback (aggregate all children)
-    - Parent task for session-level summary
-
-    ⏱️ ~1ms (return statement)" }
-
-    RETURN_RESULT --> END
-
-    END@{ shape: stadium, label: "✅ Task Complete
-
-    Total Time: 15-30s
-    Breakdown:
-    - Model load: 0.1ms (cached)
-    - S3 download: 1s
-    - SAHI slicing: 3s
-    - Band estimation: 5ms
-    - DB save: 20ms
-    - GPU inference: 95% of time
-
-    Success Criteria:
-    ✓ Plant count estimated
-    ✓ Confidence calculated
-    ✓ Results persisted to DB
-    ✓ Parent notified" }
-
-    %% =================================================================
-    %% STYLING
-    %% =================================================================
-
-    classDef criticalNode fill:#ff6b6b,stroke:#c92a2a,stroke-width:3px,color:#fff
-    classDef gpuNode fill:#9775fa,stroke:#5f3dc4,stroke-width:2px,color:#fff
-    classDef dbNode fill:#4dabf7,stroke:#1971c2,stroke-width:2px,color:#fff
-    classDef warningNode fill:#ffd43b,stroke:#fab005,stroke-width:2px,color:#000
-
-    class SAHI_SLICE,ESTIMATE_PER_BAND criticalNode
-    class GET_MODEL,DIRECT_YOLO gpuNode
-    class LOAD_BAND_CONFIG,BULK_INSERT,UPDATE_STATUS dbNode
-    class NO_DETECTIONS_WARNING,AUTO_CALIBRATE warningNode
+model = model_cache[model_key]
+
+⏱️ First call: ~3s (load from disk)
+⏱️ Cached calls: ~0.1ms (in-memory)
+♻️ Singleton per GPU worker" }
+
+GET_MODEL --> LOAD_BAND_CONFIG
+
+LOAD_BAND_CONFIG@{ shape: cyl, label: "🗄️ SELECT band_config
+
+Query:
+SELECT
+density_parameters,
+confidence_threshold,
+min_detections_per_band,
+calibration_status,
+last_calibrated_at
+FROM band_configurations
+WHERE id = slice_data['band_config_id']
+
+Result:
+- density_parameters: dict {
+'band_1': 0.8, # Top band (sparse)
+'band_2': 1.2,
+'band_3': 1.5, # Middle (dense)
+'band_4': 1.2,
+'band_5': 0.9 # Bottom (sparse)
+}
+- confidence_threshold: 0.45
+
+⏱️ ~2ms (indexed query)" }
+
+LOAD_BAND_CONFIG --> DOWNLOAD_S3
+
+%% =================================================================
+%% SECTION 2: IMAGE DOWNLOAD & PREPROCESSING
+%% =================================================================
+
+DOWNLOAD_S3@{ shape: subproc, label: "📥 Download Image from S3
+
+Python Code:
+s3_client.download_fileobj(
+Bucket=AWS_BUCKET,
+Key=slice_data['s3_url'],
+Fileobj=buffer
+)
+
+img = Image.open(buffer)
+img_array = np.array(img)
+
+Optimization:
+- Stream to memory (no disk I/O)
+- Direct NumPy conversion
+
+⏱️ ~500ms-2s (depends on size)
+⚡ I/O-bound (not GPU)" }
+
+DOWNLOAD_S3 --> CHECK_IMG_SIZE
+
+CHECK_IMG_SIZE@{ shape: diamond, label: "Image > 2000px?" }
+
+CHECK_IMG_SIZE -->|Yes|INIT_SAHI
+CHECK_IMG_SIZE -->|No| DIRECT_YOLO
+
+%% =================================================================
+%% SECTION 3A: SAHI SLICING PATH (Large Images)
+%% =================================================================
+
+INIT_SAHI@{ shape: subproc, label: "✂️ Initialize SAHI Slicing
+
+from sahi import AutoDetectionModel
+from sahi.predict import get_sliced_prediction
+
+detection_model = AutoDetectionModel.from_pretrained(
+model_type='yolov8',
+model=model, # Our cached YOLO model
+confidence_threshold=0.45,
+device=f'cuda:{worker_id}'
+)
+
+Configuration:
+- slice_height: 640
+- slice_width: 640
+- overlap_height_ratio: 0.2 # 20% overlap
+- overlap_width_ratio: 0.2
+- postprocess_type: 'NMS' # Non-Maximum Suppression
+- postprocess_match_threshold: 0.5
+
+⏱️ ~10ms initialization" }
+
+INIT_SAHI --> SAHI_SLICE
+
+SAHI_SLICE@{ shape: subproc, label: "🔪 Perform Sliced Prediction
+
+Python Code:
+result = get_sliced_prediction(
+img_array,
+detection_model,
+slice_height=640,
+slice_width=640,
+overlap_height_ratio=0.2,
+overlap_width_ratio=0.2,
+verbose=0
+)
+
+How SAHI Works:
+1. Divide image into 640x640 overlapping tiles
+2. Run YOLO detection on each tile
+3. Merge predictions with NMS (remove duplicates)
+4. Return unified bounding boxes
+
+Example: 4000x3000 image
+→ ~42 slices (7 cols × 6 rows)
+→ Each slice: ~50ms inference
+→ Total: ~2.1s for all slices
+
+⏱️ ~2-8s (depends on image size)
+🔥 CRITICAL: GPU-intensive
+⚡ Could parallelize across GPUs in future" }
+
+SAHI_SLICE --> EXTRACT_DETECTIONS
+
+%% =================================================================
+%% SECTION 3B: DIRECT YOLO PATH (Small Images)
+%% =================================================================
+
+DIRECT_YOLO@{ shape: subproc, label: "🎯 Direct YOLO Detection
+
+Python Code:
+results = model.predict(
+img_array,
+conf=0.45,
+iou=0.5,
+verbose=False
+)
+
+# Extract bounding boxes
+detections = []
+for box in results[0].boxes:
+detections.append({
+'bbox': box.xyxy[0].cpu().numpy(),
+'confidence': float(box.conf),
+'class_id': int(box.cls)
+})
+
+⏱️ ~50-200ms (GPU inference)
+⚡ Single-pass detection" }
+
+DIRECT_YOLO --> EXTRACT_DETECTIONS
+
+%% =================================================================
+%% SECTION 4: DETECTION PROCESSING & FILTERING
+%% =================================================================
+
+EXTRACT_DETECTIONS@{ shape: subproc, label: "📊 Extract & Filter Detections
+
+Python Code:
+detections = []
+for pred in result.object_prediction_list: # SAHI path
+if pred.score.value >= confidence_threshold:
+detections.append({
+'bbox': pred.bbox.to_xyxy(),
+'confidence': pred.score.value,
+'class_name': pred.category.name,
+'area_px': pred.bbox.area
+})
+
+Filtering Rules:
+- confidence >= 0.45
+- class_name == 'plant' (ignore other classes)
+- area_px >= 100 (minimum size filter)
+- bbox not on image edge (avoid truncated plants)
+
+⏱️ ~5-20ms (CPU-bound list comprehension)
+⚡ Vectorized NumPy operations" }
+
+EXTRACT_DETECTIONS --> CHECK_DETECTIONS
+
+CHECK_DETECTIONS@{ shape: diamond, label: "Detections > 0?" }
+
+CHECK_DETECTIONS -->|No|NO_DETECTIONS_WARNING
+CHECK_DETECTIONS -->|Yes|CALCULATE_BANDS
+
+NO_DETECTIONS_WARNING@{ shape: subproc, label: "⚠️ No Detections Found
+
+Possible Causes:
+1. Image quality too poor
+2. No plants in field
+3. Model confidence threshold too high
+4. Wrong model loaded
+
+Action: Set warning state
+warning_state = 'no_detections_found'
+estimated_count = 0
+confidence_band = 'UNKNOWN'
+
+⏱️ ~1ms" }
+
+NO_DETECTIONS_WARNING --> SAVE_RESULTS
+
+%% =================================================================
+%% SECTION 5: BAND-BASED ESTIMATION (THE CRITICAL INNOVATION)
+%% =================================================================
+
+CALCULATE_BANDS@{ shape: subproc, label: "📏 Calculate Band Boundaries
+
+Python Code:
+img_height = img_array.shape[0]
+band_height = img_height / 5 # Divide into 5 horizontal bands
+
+bands = []
+for i in range(5):
+band = {
+'id': i + 1,
+'y_start': int(i * band_height),
+'y_end': int((i + 1) * band_height),
+'detections': [],
+'density_param': density_parameters[f'band_{i+1}']
+}
+bands.append(band)
+
+Visual Example (4000x3000 image):
+┌─────────────────────┐ y=0
+│ Band 1 (y: 0-600) │ Top - Perspective far (sparse)
+├─────────────────────┤ y=600
+│ Band 2 (y: 600-1200)│
+├─────────────────────┤ y=1200
+│ Band 3 (y: 1200-1800)│ Middle - Optimal view (dense)
+├─────────────────────┤ y=1800
+│ Band 4 (y: 1800-2400)│
+├─────────────────────┤ y=2400
+│ Band 5 (y: 2400-3000)│ Bottom - Perspective near (sparse)
+└─────────────────────┘ y=3000
+
+⏱️ ~1ms (simple arithmetic)" }
+
+CALCULATE_BANDS --> ASSIGN_TO_BANDS
+
+ASSIGN_TO_BANDS@{ shape: subproc, label: "🎯 Assign Detections to Bands
+
+Python Code:
+for detection in detections:
+# Get center Y coordinate of bounding box
+bbox = detection['bbox']
+center_y = (bbox[1] + bbox[3]) / 2
+
+# Find which band contains this detection
+for band in bands:
+if band['y_start'] <= center_y < band['y_end']:
+band['detections'].append(detection)
+break
+
+Result Example:
+Band 1: 12 detections (sparse, perspective far)
+Band 2: 34 detections
+Band 3: 58 detections (dense, optimal view)
+Band 4: 41 detections
+Band 5: 19 detections (sparse, perspective near)
+
+Total: 164 actual detections
+
+⏱️ ~2-10ms (O(n) iteration)" }
+
+ASSIGN_TO_BANDS --> ESTIMATE_PER_BAND
+
+ESTIMATE_PER_BAND@{ shape: subproc, label: "🧮 Estimate Count Per Band
+
+THE CRITICAL ALGORITHM:
+
+Python Code:
+for band in bands:
+detected_count = len(band['detections'])
+density_param = band['density_param']
+
+# Apply density correction
+# density_param > 1.0: Detected less than actual (multiply)
+# density_param < 1.0: Detected more than actual (divide)
+estimated_count = detected_count * density_param
+
+band['detected'] = detected_count
+band['estimated'] = round(estimated_count)
+band['confidence'] = calculate_confidence(detected_count)
+
+Example Calculation:
+Band 1: 12 × 0.8 = 9.6 → 10 plants
+Band 2: 34 × 1.2 = 40.8 → 41 plants
+Band 3: 58 × 1.5 = 87.0 → 87 plants (CRITICAL: underdetection)
+Band 4: 41 × 1.2 = 49.2 → 49 plants
+Band 5: 19 × 0.9 = 17.1 → 17 plants
+
+Total Estimated: 204 plants (vs 164 detected)
+
+WHY THIS WORKS:
+- Middle bands: Plants smaller in image (underdetection) → multiply
+- Top/bottom: Perspective distortion → adjust
+- Learned from calibration data
+
+⏱️ ~1ms (simple math)" }
+
+ESTIMATE_PER_BAND --> SUM_TOTAL
+
+SUM_TOTAL@{ shape: subproc, label: "➕ Sum Total Estimate
+
+Python Code:
+total_estimated = sum(band['estimated'] for band in bands)
+total_detected = sum(band['detected'] for band in bands)
+
+# Calculate overall confidence
+confidence_band = calculate_overall_confidence(bands)
+
+Confidence Calculation:
+if all bands have >= 10 detections:
+confidence = 'HIGH'
+elif most bands have >= 5 detections:
+confidence = 'MEDIUM'
+else:
+confidence = 'LOW'
+
+Result:
+- total_estimated: 204
+- total_detected: 164
+- confidence_band: 'HIGH'
+- correction_factor: 1.24 (204/164)
+
+⏱️ ~1ms" }
+
+SUM_TOTAL --> CHECK_CALIBRATION_NEEDED
+
+%% =================================================================
+%% SECTION 6: AUTO-CALIBRATION (Learning System)
+%% =================================================================
+
+CHECK_CALIBRATION_NEEDED@{ shape: diamond, label: "Calibration
+status ==
+'needs_learning'?" }
+
+CHECK_CALIBRATION_NEEDED -->|Yes|AUTO_CALIBRATE
+CHECK_CALIBRATION_NEEDED -->|No| SAVE_RESULTS
+
+AUTO_CALIBRATE@{ shape: subproc, label: "🎓 Auto-Calibration Algorithm
+
+TRIGGERED WHEN:
+- New band_config created
+- After 50 detections in same field
+- User manually requests recalibration
+
+Python Code:
+# Collect statistics from recent detections
+recent_detections = db.query(
+SELECT band_id, detected_count, manual_count
+FROM detection_history
+WHERE band_config_id = current_config
+AND manual_count IS NOT NULL # User verified
+LIMIT 100
+)
+
+# Calculate optimal density parameters
+new_params = {}
+for band_id in range(1, 6):
+band_data = recent_detections[band_id]
+
+# density_param = actual / detected
+avg_actual = mean(band_data['manual_count'])
+avg_detected = mean(band_data['detected_count'])
+
+new_params[f'band_{band_id}'] = avg_actual / avg_detected
+
+# Update database
+UPDATE band_configurations
+SET density_parameters = new_params,
+calibration_status = 'calibrated',
+last_calibrated_at = NOW()
+WHERE id = current_config
+
+Example Learning:
+Before: [1.0, 1.0, 1.0, 1.0, 1.0] (default)
+After: [0.8, 1.2, 1.5, 1.2, 0.9] (learned)
+
+Accuracy Improvement:
+Before calibration: ±30% error
+After calibration: ±8% error
+
+⏱️ ~50-100ms (UPDATE query)
+♻️ Runs once per field after initial learning period" }
+
+AUTO_CALIBRATE --> SAVE_RESULTS
+
+%% =================================================================
+%% SECTION 7: SAVE RESULTS TO DATABASE (Bulk Insert Pattern)
+%% =================================================================
+
+SAVE_RESULTS@{ shape: subproc, label: "💾 Prepare Bulk Insert Data
+
+Python Code:
+# Prepare detection records
+detection_records = []
+for band in bands:
+for det in band['detections']:
+record = {
+'id': uuid.uuid4(),
+'image_id': image_id_pk,
+'band_id': band['id'],
+'bbox': det['bbox'].tolist(),
+'confidence': det['confidence'],
+'area_px': det['area_px'],
+'created_at': datetime.utcnow()
+}
+detection_records.append(record)
+
+# Prepare summary record
+summary_record = {
+'image_id': image_id_pk,
+'total_detected': total_detected,
+'total_estimated': total_estimated,
+'confidence_band': confidence_band,
+'band_breakdown': {
+f'band_{i+1}': {
+'detected': bands[i]['detected'],
+'estimated': bands[i]['estimated']
+} for i in range(5)
+},
+'processing_time_s': time.time() - start_time,
+'model_version': 'yolo11m',
+'sahi_used': sahi_was_used
+}
+
+⏱️ ~2-5ms (data preparation)" }
+
+SAVE_RESULTS --> BULK_INSERT
+
+BULK_INSERT@{ shape: cyl, label: "🗄️ Bulk INSERT Detections
+
+Query (SQLAlchemy):
+session.bulk_insert_mappings(
+Detection,
+detection_records
+)
+
+session.add(DetectionSummary(**summary_record))
+
+await session.commit()
+
+Performance:
+- 164 detections inserted in single transaction
+- Batch insert 50x faster than individual INSERTs
+
+Future Optimization (asyncpg):
+await conn.executemany(
+'INSERT INTO detections VALUES ($1, $2, ...)',
+detection_records
+)
+# asyncpg is 3x faster than SQLAlchemy ORM
+
+⏱️ ~10-30ms (depends on detection count)
+🔥 CRITICAL: Database I/O" }
+
+BULK_INSERT --> UPDATE_STATUS
+
+UPDATE_STATUS@{ shape: cyl, label: "🗄️ UPDATE Image Status
+
+Query:
+UPDATE s3_images
+SET
+detection_status = 'completed',
+detection_completed_at = NOW(),
+plant_count_estimated = total_estimated,
+confidence_band = confidence_band
+WHERE id = image_id_pk
+
+⏱️ ~3ms (indexed UPDATE)" }
+
+UPDATE_STATUS --> RETURN_RESULT
+
+%% =================================================================
+%% SECTION 8: RETURN TO PARENT (Celery Chord)
+%% =================================================================
+
+RETURN_RESULT@{ shape: subproc, label: "📤 Return Result to Parent
+
+Python Code:
+return {
+'image_id': str(image_id_pk),
+'status': 'success',
+'estimated_count': total_estimated,
+'detected_count': total_detected,
+'confidence': confidence_band,
+'processing_time': processing_time,
+'bands': [
+{
+'band_id': i+1,
+'detected': bands[i]['detected'],
+'estimated': bands[i]['estimated']
+} for i in range(5)
+],
+'warning_state': warning_state # None if OK
+}
+
+This result goes to:
+- Celery Chord callback (aggregate all children)
+- Parent task for session-level summary
+
+⏱️ ~1ms (return statement)" }
+
+RETURN_RESULT --> END
+
+END@{ shape: stadium, label: "✅ Task Complete
+
+Total Time: 15-30s
+Breakdown:
+- Model load: 0.1ms (cached)
+- S3 download: 1s
+- SAHI slicing: 3s
+- Band estimation: 5ms
+- DB save: 20ms
+- GPU inference: 95% of time
+
+Success Criteria:
+✓ Plant count estimated
+✓ Confidence calculated
+✓ Results persisted to DB
+✓ Parent notified" }
+
+%% =================================================================
+%% STYLING
+%% =================================================================
+
+classDef criticalNode fill: #ff6b6b,stroke: #c92a2a, stroke-width: 3px, color:#fff
+classDef gpuNode fill: #9775fa, stroke:#5f3dc4, stroke-width: 2px, color: #fff
+classDef dbNode fill: #4dabf7, stroke: #1971c2,stroke-width: 2px, color: #fff
+classDef warningNode fill: #ffd43b, stroke: #fab005, stroke-width:2px, color: #000
+
+class SAHI_SLICE,ESTIMATE_PER_BAND criticalNode
+class GET_MODEL, DIRECT_YOLO gpuNode
+class LOAD_BAND_CONFIG, BULK_INSERT,UPDATE_STATUS dbNode
+class NO_DETECTIONS_WARNING, AUTO_CALIBRATE warningNode

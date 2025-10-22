@@ -10,18 +10,21 @@
 
 ## Task Overview
 
-Implement OpenTelemetry instrumentation for FastAPI, SQLAlchemy, and Celery to export traces, logs, and metrics to existing OTLP LGTM stack (user already has running stack).
+Implement OpenTelemetry instrumentation for FastAPI, SQLAlchemy, and Celery to export traces, logs,
+and metrics to existing OTLP LGTM stack (user already has running stack).
 
 ---
 
 ## Current State Analysis
 
 **Existing Observability**:
+
 - Structured JSON logging with correlation IDs (app/core/logging.py)
 - CorrelationIdMiddleware in app/main.py
 - Health check endpoint at /health
 
 **Missing**:
+
 - OpenTelemetry SDK integration
 - OTLP exporter configuration
 - Automatic instrumentation for FastAPI, SQLAlchemy
@@ -30,6 +33,7 @@ Implement OpenTelemetry instrumentation for FastAPI, SQLAlchemy, and Celery to e
 - Connection to user's existing OTLP receiver
 
 **User Context**:
+
 - User has OTLP LGTM stack running (docker ps shows active containers)
 - Need to export to existing stack (NOT deploy new Grafana/Prometheus)
 - Stack likely listening on standard OTLP ports (4317 gRPC, 4318 HTTP)
@@ -42,10 +46,14 @@ Implement OpenTelemetry instrumentation for FastAPI, SQLAlchemy, and Celery to e
 **Pattern**: OpenTelemetry SDK → OTLP Exporter → External LGTM Stack
 
 **Dependencies**:
-- New packages: `opentelemetry-api`, `opentelemetry-sdk`, `opentelemetry-exporter-otlp`, `opentelemetry-instrumentation-fastapi`, `opentelemetry-instrumentation-sqlalchemy`, `opentelemetry-instrumentation-celery`
+
+- New packages: `opentelemetry-api`, `opentelemetry-sdk`, `opentelemetry-exporter-otlp`,
+  `opentelemetry-instrumentation-fastapi`, `opentelemetry-instrumentation-sqlalchemy`,
+  `opentelemetry-instrumentation-celery`
 - Environment variables: OTEL_EXPORTER_OTLP_ENDPOINT, OTEL_SERVICE_NAME
 
 **Files to Create/Modify**:
+
 - [ ] `app/core/telemetry.py` (create - OpenTelemetry setup)
 - [ ] `app/main.py` (modify - integrate OTEL middleware)
 - [ ] `requirements.txt` (modify - add OTEL dependencies)
@@ -60,6 +68,7 @@ Implement OpenTelemetry instrumentation for FastAPI, SQLAlchemy, and Celery to e
 ### Phase 1: Add Dependencies
 
 **Add to requirements.txt**:
+
 ```
 opentelemetry-api==1.25.0
 opentelemetry-sdk==1.25.0
@@ -73,6 +82,7 @@ opentelemetry-instrumentation-requests==0.46b0
 ### Phase 2: Create app/core/telemetry.py
 
 **Responsibilities**:
+
 - Initialize OpenTelemetry SDK
 - Configure OTLP exporter (gRPC or HTTP)
 - Set up TracerProvider, MeterProvider
@@ -80,6 +90,7 @@ opentelemetry-instrumentation-requests==0.46b0
 - Export to user's OTLP endpoint
 
 **Key Functions**:
+
 ```python
 def setup_telemetry(app: FastAPI) -> None:
     """Initialize OpenTelemetry instrumentation for FastAPI."""
@@ -109,6 +120,7 @@ def setup_telemetry(app: FastAPI) -> None:
 ### Phase 3: Update app/core/config.py
 
 **Add OTEL configuration**:
+
 ```python
 class Settings(BaseSettings):
     # ... existing fields ...
@@ -123,6 +135,7 @@ class Settings(BaseSettings):
 ### Phase 4: Integrate into app/main.py
 
 **Add after app creation, before middleware registration**:
+
 ```python
 from app.core.telemetry import setup_telemetry
 
@@ -140,6 +153,7 @@ app.add_middleware(CorrelationIdMiddleware)
 ### Phase 5: Update .env.example
 
 **Add OTEL variables**:
+
 ```bash
 # =============================================================================
 # OpenTelemetry Configuration (Observability)
@@ -162,6 +176,7 @@ APP_ENV=development
 ### Phase 6: Integration Testing
 
 **Create tests/integration/test_telemetry.py**:
+
 ```python
 """Test OpenTelemetry integration."""
 import pytest
@@ -261,11 +276,13 @@ pytest tests/integration/test_telemetry.py -v
 ## Verification Checklist
 
 **In Application Logs**:
+
 - [ ] "OpenTelemetry initialized successfully" message
 - [ ] No OTLP exporter errors
 - [ ] Trace IDs logged with correlation IDs
 
 **In User's Grafana/Jaeger**:
+
 - [ ] Service "demeterai-api" visible
 - [ ] HTTP requests traced (GET /health, API endpoints)
 - [ ] Database queries traced (SQLAlchemy spans)

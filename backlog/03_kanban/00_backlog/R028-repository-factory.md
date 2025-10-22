@@ -1,6 +1,7 @@
 # R028: Repository Factory & Dependency Injection
 
 ## Metadata
+
 - **Epic**: [epic-003-repositories.md](../../02_epics/epic-003-repositories.md)
 - **Sprint**: Sprint-01
 - **Status**: `backlog`
@@ -9,24 +10,33 @@
 - **Area**: `repositories`
 - **Assignee**: TBD
 - **Dependencies**:
-  - Blocks: [S001-S023] (ALL services need repositories)
-  - Blocked by: [F006, R027, R001-R026]
+    - Blocks: [S001-S023] (ALL services need repositories)
+    - Blocked by: [F006, R027, R001-R026]
 
 ## Related Documentation
-- **Engineering Plan**: [../../engineering_plan/backend/repository_layer.md](../../engineering_plan/backend/repository_layer.md)
-- **Architecture**: [../../engineering_plan/03_architecture_overview.md](../../engineering_plan/03_architecture_overview.md)
+
+- **Engineering Plan
+  **: [../../engineering_plan/backend/repository_layer.md](../../engineering_plan/backend/repository_layer.md)
+- **Architecture
+  **: [../../engineering_plan/03_architecture_overview.md](../../engineering_plan/03_architecture_overview.md)
 
 ## Description
 
-**What**: Implement repository factory pattern and FastAPI dependency injection for all repositories.
+**What**: Implement repository factory pattern and FastAPI dependency injection for all
+repositories.
 
-**Why**: Services need repository instances with proper session management. Factory pattern + dependency injection ensures: (1) proper transaction scope, (2) automatic session cleanup, (3) testability via mock repositories.
+**Why**: Services need repository instances with proper session management. Factory pattern +
+dependency injection ensures: (1) proper transaction scope, (2) automatic session cleanup, (3)
+testability via mock repositories.
 
-**Context**: FastAPI dependency injection integrates with SQLAlchemy async sessions. Each request gets dedicated session. Repositories injected into service layer.
+**Context**: FastAPI dependency injection integrates with SQLAlchemy async sessions. Each request
+gets dedicated session. Repositories injected into service layer.
 
 ## Acceptance Criteria
 
-- [ ] **AC1**: Factory function `get_repository(repo_class: Type[AsyncRepository], session: AsyncSession)` returns repository instance
+- [ ] **AC1**: Factory function
+  `get_repository(repo_class: Type[AsyncRepository], session: AsyncSession)` returns repository
+  instance
 - [ ] **AC2**: FastAPI dependency `get_db_session()` yields async session with cleanup
 - [ ] **AC3**: Individual dependency functions for each repository (e.g., `get_warehouse_repo()`)
 - [ ] **AC4**: Repository dependencies properly typed for IDE autocomplete
@@ -98,6 +108,7 @@ async def get_warehouse_by_code(
 ## Testing Requirements
 
 **Unit Tests**:
+
 ```python
 @pytest.mark.asyncio
 async def test_get_db_session_cleanup(db_session):
@@ -137,6 +148,7 @@ async def test_get_warehouse_repo_dependency(db_session):
 - [ ] Documentation: dependency injection guide
 
 ## Time Tracking
+
 - **Estimated**: 3 story points (~6 hours)
 - **Actual**: TBD
 

@@ -7,9 +7,11 @@
 
 ## Overview
 
-This document explains how the 6 agents work together to implement tasks in the DemeterAI v2.0 project.
+This document explains how the 6 agents work together to implement tasks in the DemeterAI v2.0
+project.
 
 **The Agents**:
+
 1. **Scrum Master** - Project state and backlog management
 2. **Team Leader** - Task planning and quality gates
 3. **Python Expert** - Code implementation
@@ -26,6 +28,7 @@ This document explains how the 6 agents work together to implement tasks in the 
 **Trigger**: User wants to start working or plan an epic
 
 **Scrum Master Actions**:
+
 ```bash
 # 1. Read current sprint
 cat backlog/01_sprints/sprint-03-services/sprint-goal.md
@@ -41,6 +44,7 @@ echo "Sprint 03: 42 tasks, 5 ready, 3 in-progress, 2 blocked"
 ```
 
 **Output**: State report showing:
+
 - Current sprint and goals
 - Tasks ready for implementation
 - Tasks in progress
@@ -56,6 +60,7 @@ echo "Sprint 03: 42 tasks, 5 ready, 3 in-progress, 2 blocked"
 **Trigger**: Scrum Master delegates a task from `01_ready/`
 
 **Team Leader Actions**:
+
 ```bash
 # 1. Read task file
 cat backlog/03_kanban/01_ready/S001-stock-movement-service.md
@@ -279,6 +284,7 @@ EOF
 **Trigger**: Both Python Expert and Testing Expert report completion
 
 **Team Leader Actions**:
+
 ```bash
 # 1. Review Python Expert's code
 cat app/services/stock_movement_service.py
@@ -328,6 +334,7 @@ mv backlog/03_kanban/02_in-progress/S001-*.md backlog/03_kanban/03_code-review/
 ```
 
 **If issues found**:
+
 ```bash
 # Append changes requested
 cat >> backlog/03_kanban/02_in-progress/S001-*.md <<EOF
@@ -352,6 +359,7 @@ EOF
 **Trigger**: Code review approved, moving to `04_testing/`
 
 **Team Leader Actions**:
+
 ```bash
 # Move to testing stage
 mv backlog/03_kanban/03_code-review/S001-*.md backlog/03_kanban/04_testing/
@@ -441,6 +449,7 @@ EOF
 **Trigger**: Team Leader approves completion
 
 **Git Commit Agent Actions**:
+
 ```bash
 # 1. Review changes
 git status
@@ -484,6 +493,7 @@ EOF
 **Trigger**: Git commit created
 
 **Team Leader Actions**:
+
 ```bash
 # 1. Move to done
 mv backlog/03_kanban/04_testing/S001-*.md backlog/03_kanban/05_done/
@@ -521,6 +531,7 @@ EOF
 **Trigger**: Team Leader reports completion
 
 **Scrum Master Actions**:
+
 ```bash
 # 1. Read completion note
 cat backlog/03_kanban/05_done/S001-*.md | grep "Dependencies Unblocked"
@@ -546,6 +557,7 @@ echo "Sprint 03 Progress: 1 task complete, S002 now ready"
 ### Team Leader → Python Expert
 
 **Format**:
+
 ```markdown
 ## Team Leader → Python Expert (YYYY-MM-DD)
 Task file: backlog/03_kanban/02_in-progress/S001-*.md
@@ -570,6 +582,7 @@ Start now (parallel with Testing Expert)
 ### Team Leader → Testing Expert
 
 **Format**:
+
 ```markdown
 ## Team Leader → Testing Expert (YYYY-MM-DD)
 Task file: backlog/03_kanban/02_in-progress/S001-*.md
@@ -590,6 +603,7 @@ Start now (parallel with Python Expert)
 ### Python Expert → Team Leader
 
 **Format**:
+
 ```markdown
 ## Python Expert → Team Leader (YYYY-MM-DD)
 Status: COMPLETE
@@ -609,6 +623,7 @@ Ready for review.
 ### Testing Expert → Team Leader
 
 **Format**:
+
 ```markdown
 ## Testing Expert → Team Leader (YYYY-MM-DD)
 Status: COMPLETE
@@ -635,6 +650,7 @@ Ready for review.
 ### When Python Expert is Blocked
 
 **Python Expert**:
+
 ```markdown
 ## Python Expert → Database Expert (YYYY-MM-DD)
 BLOCKED: Need schema clarification
@@ -647,6 +663,7 @@ Urgency: HIGH (blocking implementation)
 ```
 
 **Database Expert**:
+
 ```markdown
 ## Database Expert → Python Expert (YYYY-MM-DD)
 Answer: storage_location_id is UUID
@@ -664,6 +681,7 @@ Unblocked.
 ### When Quality Gates Fail
 
 **Team Leader**:
+
 ```markdown
 ## Team Leader Quality Gate FAILURE (YYYY-MM-DD)
 
@@ -686,12 +704,14 @@ Task remains in 04_testing/ until fixed.
 ### Anti-Pattern 1: Skipping Mini-Plan
 
 ❌ **WRONG**:
+
 ```
 User: "Implement S001"
 Team Leader: [immediately spawns Python Expert]
 ```
 
 ✅ **CORRECT**:
+
 ```
 User: "Implement S001"
 Team Leader: [reads task, reads existing code, creates Mini-Plan]
@@ -701,6 +721,7 @@ Team Leader: [spawns Python Expert with detailed plan]
 ### Anti-Pattern 2: Sequential Instead of Parallel
 
 ❌ **WRONG**:
+
 ```
 Team Leader: [spawns Python Expert]
 [waits 3 hours]
@@ -710,6 +731,7 @@ Total: 5 hours
 ```
 
 ✅ **CORRECT**:
+
 ```
 Team Leader: [spawns Python Expert + Testing Expert simultaneously]
 [both work in parallel for 3 hours]
@@ -719,12 +741,14 @@ Total: 3 hours
 ### Anti-Pattern 3: Assuming Code Exists
 
 ❌ **WRONG**:
+
 ```python
 # Python Expert assumes ConfigService has get_by_location()
 config = await self.config_service.get_by_location(...)  # May not exist!
 ```
 
 ✅ **CORRECT**:
+
 ```bash
 # Python Expert reads existing code first
 cat app/services/config_service.py | grep "def get"
@@ -735,12 +759,14 @@ cat app/services/config_service.py | grep "def get"
 ### Anti-Pattern 4: Marking Tests as Passing Without Running
 
 ❌ **WRONG**:
+
 ```markdown
 Test Results:
 - Unit tests: ✅ 12/12 passed (assumed)
 ```
 
 ✅ **CORRECT**:
+
 ```bash
 # Testing Expert ACTUALLY runs tests
 pytest tests/unit/services/test_stock_movement_service.py -v

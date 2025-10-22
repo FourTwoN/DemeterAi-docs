@@ -11,32 +11,35 @@ Break epic `{{epic-id}}` into atomic tasks and prepare them for implementation.
 ## Steps
 
 1. **Read Epic File**:
+
 ```bash
 cat backlog/02_epics/{{epic-id}}-*.md
 ```
 
 2. **Extract Card List**:
-   - Identify all cards (e.g., S001-S042 for services epic)
-   - Note story points per card
-   - Total points for epic
+    - Identify all cards (e.g., S001-S042 for services epic)
+    - Note story points per card
+    - Total points for epic
 
 3. **Analyze Dependencies**:
-   - Check "Dependencies" section in epic file
-   - Identify which cards are blocked by others
-   - Note which cards are unblocked and ready to start
+    - Check "Dependencies" section in epic file
+    - Identify which cards are blocked by others
+    - Note which cards are unblocked and ready to start
 
 4. **Prioritize Tasks**:
-   - Critical path cards (⚡⚡ symbol) → highest priority
-   - Unblocked cards → move to `01_ready/`
-   - Blocked cards → remain in `00_backlog/`
+    - Critical path cards (⚡⚡ symbol) → highest priority
+    - Unblocked cards → move to `01_ready/`
+    - Blocked cards → remain in `00_backlog/`
 
 5. **Move Unblocked Tasks**:
+
 ```bash
 # Move first batch of unblocked tasks
 mv backlog/03_kanban/00_backlog/[CARD-ID]-*.md backlog/03_kanban/01_ready/
 ```
 
 6. **Update Status**:
+
 ```bash
 cat >> backlog/03_kanban/DATABASE_CARDS_STATUS.md <<EOF
 
@@ -63,16 +66,17 @@ EOF
 ```
 
 7. **Report Results**:
-   - List cards moved to ready
-   - List cards still blocked
-   - Highlight critical path items
-   - Provide epic completion ETA
+    - List cards moved to ready
+    - List cards still blocked
+    - Highlight critical path items
+    - Provide epic completion ETA
 
 ## Example
 
 **Command**: `/plan-epic epic-004`
 
 **Output**:
+
 ```
 Reading epic-004-services.md...
 
@@ -106,6 +110,7 @@ mv backlog/03_kanban/00_backlog/S031-*.md backlog/03_kanban/01_ready/
 Updated DATABASE_CARDS_STATUS.md
 
 Status:
+
 - Ready: 5 cards (30 points)
 - Blocked: 37 cards (180 points)
 - Critical path items: 2 (S023, S031)
@@ -113,4 +118,5 @@ Status:
 Epic completion ETA: 3-4 sprints (with parallel development)
 
 Next action: Team Leader can start with S001 or S023 (critical)
+
 ```

@@ -1,6 +1,7 @@
 # [F012] Docker Compose - Multi-Service Orchestration
 
 ## Metadata
+
 - **Epic**: epic-001-foundation.md
 - **Sprint**: Sprint-00 (Week 1-2)
 - **Status**: `backlog`
@@ -9,32 +10,40 @@
 - **Area**: `foundation`
 - **Assignee**: TBD
 - **Dependencies**:
-  - Blocks: [Local development for all developers]
-  - Blocked by: [F001, F002, F011]
+    - Blocks: [Local development for all developers]
+    - Blocked by: [F001, F002, F011]
 
 ## Related Documentation
+
 - **Deployment**: ../../engineering_plan/deployment/README.md#docker-compose-architecture
 - **Tech Stack**: ../../backlog/00_foundation/tech-stack.md#deployment--containers
 
 ## Description
 
-Create docker-compose.yml orchestrating all services (PostgreSQL 18 + PostGIS, Redis 7, FastAPI, Celery workers) with proper networking, volumes, and dependency management for local development.
+Create docker-compose.yml orchestrating all services (PostgreSQL 18 + PostGIS, Redis 7, FastAPI,
+Celery workers) with proper networking, volumes, and dependency management for local development.
 
-**What**: Implement docker-compose.yml v3.8+ with 9 services: db (PostgreSQL + PostGIS), redis, api (FastAPI), celery_gpu_0, celery_cpu, celery_io, flower (monitoring), prometheus, grafana. Configure health checks, restart policies, and shared volumes.
+**What**: Implement docker-compose.yml v3.8+ with 9 services: db (PostgreSQL + PostGIS), redis,
+api (FastAPI), celery_gpu_0, celery_cpu, celery_io, flower (monitoring), prometheus, grafana.
+Configure health checks, restart policies, and shared volumes.
 
-**Why**: `docker-compose up` gives every developer a working environment in 1 command. No manual PostgreSQL/Redis installation. Consistent environments prevent "works on my machine" issues. Mimics production architecture locally.
+**Why**: `docker-compose up` gives every developer a working environment in 1 command. No manual
+PostgreSQL/Redis installation. Consistent environments prevent "works on my machine" issues. Mimics
+production architecture locally.
 
-**Context**: Team of 10 developers need identical environments. Manual setup (PostgreSQL, PostGIS, Redis, Celery) takes hours and is error-prone. docker-compose provides reproducible environments in 5 minutes.
+**Context**: Team of 10 developers need identical environments. Manual setup (PostgreSQL, PostGIS,
+Redis, Celery) takes hours and is error-prone. docker-compose provides reproducible environments in
+5 minutes.
 
 ## Acceptance Criteria
 
 - [ ] **AC1**: `docker-compose.yml` created with all services:
-  - `db`: PostgreSQL 18 + PostGIS 3.3
-  - `redis`: Redis 7.x
-  - `api`: FastAPI server (port 8000)
-  - `celery_cpu`: CPU worker (prefork pool)
-  - `celery_io`: I/O worker (gevent pool)
-  - `flower`: Celery monitoring (port 5555)
+    - `db`: PostgreSQL 18 + PostGIS 3.3
+    - `redis`: Redis 7.x
+    - `api`: FastAPI server (port 8000)
+    - `celery_cpu`: CPU worker (prefork pool)
+    - `celery_io`: I/O worker (gevent pool)
+    - `flower`: Celery monitoring (port 5555)
 
 - [ ] **AC2**: Health checks configured for all services:
   ```yaml
@@ -56,8 +65,8 @@ Create docker-compose.yml orchestrating all services (PostgreSQL 18 + PostGIS, R
   ```
 
 - [ ] **AC4**: Persistent volumes for data:
-  - `postgres_data`: Database persistence
-  - `redis_data`: Redis persistence (optional)
+    - `postgres_data`: Database persistence
+    - `redis_data`: Redis persistence (optional)
 
 - [ ] **AC5**: Environment variables from .env:
   ```yaml
@@ -84,6 +93,7 @@ Create docker-compose.yml orchestrating all services (PostgreSQL 18 + PostGIS, R
 ## Technical Implementation Notes
 
 ### Architecture
+
 - Layer: Foundation (Orchestration)
 - Dependencies: Docker Compose 2.x, Dockerfile (F011)
 - Design pattern: Service orchestration, infrastructure as code
@@ -91,6 +101,7 @@ Create docker-compose.yml orchestrating all services (PostgreSQL 18 + PostGIS, R
 ### Code Hints
 
 **docker-compose.yml structure:**
+
 ```yaml
 version: '3.8'
 
@@ -267,6 +278,7 @@ networks:
 ```
 
 **.env.example (reference):**
+
 ```env
 # Database
 DATABASE_URL=postgresql+asyncpg://demeter:demeter_dev_password@db:5432/demeterai
@@ -295,6 +307,7 @@ LOG_LEVEL=DEBUG
 **Unit Tests**: N/A (orchestration configuration)
 
 **Integration Tests**:
+
 - [ ] Test all services start:
   ```bash
   docker-compose up -d
@@ -331,6 +344,7 @@ LOG_LEVEL=DEBUG
   ```
 
 **Test Command**:
+
 ```bash
 # Full integration test
 docker-compose up -d
@@ -341,6 +355,7 @@ docker-compose down
 ```
 
 ### Performance Expectations
+
 - Initial startup: <2 minutes (image pulls + health checks)
 - Subsequent startup: <30 seconds (cached images)
 - Database ready: <10 seconds
@@ -349,28 +364,29 @@ docker-compose down
 ## Handover Briefing
 
 **For the next developer:**
+
 - **Context**: This is the foundation for local development - every developer uses this
 - **Key decisions**:
-  - PostgreSQL 18 official postgis/postgis image (includes PostGIS 3.3)
-  - Redis alpine variant (smaller image, same functionality)
-  - Health checks with `condition: service_healthy` (ensures proper startup order)
-  - Separate workers for CPU vs I/O tasks (different pool types)
-  - Flower monitoring (essential for debugging Celery tasks)
-  - Persistent volumes (data survives `docker-compose down`)
-  - Network named `demeterai-network` (explicit networking)
+    - PostgreSQL 18 official postgis/postgis image (includes PostGIS 3.3)
+    - Redis alpine variant (smaller image, same functionality)
+    - Health checks with `condition: service_healthy` (ensures proper startup order)
+    - Separate workers for CPU vs I/O tasks (different pool types)
+    - Flower monitoring (essential for debugging Celery tasks)
+    - Persistent volumes (data survives `docker-compose down`)
+    - Network named `demeterai-network` (explicit networking)
 - **Known limitations**:
-  - GPU workers not included (requires NVIDIA Docker, manual setup)
-  - No SSL/TLS (development only)
-  - Passwords hardcoded in compose file (not for production)
-  - No scaling configuration (use K8s for production)
+    - GPU workers not included (requires NVIDIA Docker, manual setup)
+    - No SSL/TLS (development only)
+    - Passwords hardcoded in compose file (not for production)
+    - No scaling configuration (use K8s for production)
 - **Next steps after this card**:
-  - All developers run `docker-compose up -d` to start working
-  - DEP001-DEP012: Production docker-compose.prod.yml
-  - Sprint 05: Add Prometheus + Grafana services
+    - All developers run `docker-compose up -d` to start working
+    - DEP001-DEP012: Production docker-compose.prod.yml
+    - Sprint 05: Add Prometheus + Grafana services
 - **Questions to ask**:
-  - Should we add MinIO for S3-compatible storage? (avoid AWS in dev)
-  - Should we add PgAdmin for database GUI? (easier than psql)
-  - Should we add nginx reverse proxy? (production-like routing)
+    - Should we add MinIO for S3-compatible storage? (avoid AWS in dev)
+    - Should we add PgAdmin for database GUI? (easier than psql)
+    - Should we add nginx reverse proxy? (production-like routing)
 
 ## Definition of Done Checklist
 
@@ -385,6 +401,7 @@ docker-compose down
 - [ ] All team members can run `docker-compose up` successfully
 
 ## Time Tracking
+
 - **Estimated**: 5 story points
 - **Actual**: TBD (fill after completion)
 - **Started**: TBD

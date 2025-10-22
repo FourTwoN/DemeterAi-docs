@@ -2,7 +2,9 @@
 
 ## Purpose
 
-This diagram shows the ultra-detailed implementation of the Celery S3 upload task with **circuit breaker pattern** to prevent API exhaustion during AWS outages, including EXIF extraction, thumbnail generation, and AVIF compression.
+This diagram shows the ultra-detailed implementation of the Celery S3 upload task with **circuit
+breaker pattern** to prevent API exhaustion during AWS outages, including EXIF extraction, thumbnail
+generation, and AVIF compression.
 
 ## Scope
 
@@ -32,7 +34,8 @@ Complete S3 upload task including:
 
 **Problem**: During AWS S3 outages, thousands of tasks retry S3 API calls, making the problem worse.
 
-**Solution**: Circuit breaker stops all S3 calls after threshold failures, gives AWS time to recover.
+**Solution**: Circuit breaker stops all S3 calls after threshold failures, gives AWS time to
+recover.
 
 ### State Machine
 
@@ -49,17 +52,20 @@ CLOSED (Recovered)
 ### States
 
 **🟢 CLOSED** (Normal operation):
+
 - All requests go through
 - Record successes and failures
 - If failure rate ≥ 50% → OPEN
 
 **🔴 OPEN** (Circuit tripped):
+
 - Reject ALL requests immediately
 - Raise `CircuitBreakerOpenError`
 - Schedule retry after 60s
 - After timeout → HALF_OPEN
 
 **🟡 HALF_OPEN** (Testing):
+
 - Allow test requests through
 - If success → CLOSED
 - If failure → OPEN
@@ -119,6 +125,7 @@ def convert_gps_to_decimal(coord, ref):
 **Target**: 400x400 max, preserving aspect ratio
 
 **Example**:
+
 - Original: 3000x2000 → Thumbnail: 400x267
 - Original: 1000x2000 → Thumbnail: 200x400
 
@@ -182,11 +189,13 @@ self.retry(countdown=int(delay))
 ```
 
 **Why Jitter?**
+
 - Prevents "thundering herd" problem
 - Spreads out retry attempts
 - Reduces load spikes on recovery
 
 **Example delays**:
+
 - Retry 0: 0-60s (random)
 - Retry 1: 0-120s (random)
 - Retry 2: 0-240s (random)
@@ -194,40 +203,44 @@ self.retry(countdown=int(delay))
 
 ## Performance
 
-| Step | Duration | Notes |
-|------|----------|-------|
-| Circuit check | ~1ms | In-memory state |
-| DB query | ~5-10ms | UUID PK lookup (fast) |
-| Read temp file | ~10ms | Disk I/O |
-| EXIF extraction | ~20-30ms | PIL parsing |
-| S3 upload original | ~200-500ms | Network I/O (varies) |
-| Thumbnail generation | ~50ms | CPU (Pillow) |
-| AVIF compression | ~100ms | CPU-intensive |
-| S3 upload thumbnail | ~100ms | Small file |
-| DB UPDATE | ~30ms | PostgreSQL |
-| **Total per image** | **~500-900ms** | Varies by network |
-| **Total per chunk (20)** | **~10-18s** | Parallel processing possible |
+| Step                     | Duration       | Notes                        |
+|--------------------------|----------------|------------------------------|
+| Circuit check            | ~1ms           | In-memory state              |
+| DB query                 | ~5-10ms        | UUID PK lookup (fast)        |
+| Read temp file           | ~10ms          | Disk I/O                     |
+| EXIF extraction          | ~20-30ms       | PIL parsing                  |
+| S3 upload original       | ~200-500ms     | Network I/O (varies)         |
+| Thumbnail generation     | ~50ms          | CPU (Pillow)                 |
+| AVIF compression         | ~100ms         | CPU-intensive                |
+| S3 upload thumbnail      | ~100ms         | Small file                   |
+| DB UPDATE                | ~30ms          | PostgreSQL                   |
+| **Total per image**      | **~500-900ms** | Varies by network            |
+| **Total per chunk (20)** | **~10-18s**    | Parallel processing possible |
 
 ## Error Handling
 
 ### Graceful Degradation
 
 **Missing GPS**: Warning, not error
+
 - Continue with upload
 - Mark as 'ready'
 - Set `error_details` for manual fix
 
 **AVIF Fails**: Fallback to WebP
+
 - Log warning
 - Use WebP compression instead
 - Still ~30% smaller than JPEG
 
 **S3 Fails**: Retry with backoff
+
 - Move file to `/tmp/failed_uploads/`
 - Preserve for manual retry
 - Exponential backoff
 
 **Circuit Opens**: Reject immediately
+
 - Don't waste time on doomed requests
 - Schedule retry after recovery timeout
 - Alert ops team
@@ -242,6 +255,7 @@ self.retry(countdown=int(delay))
 ## How It Fits in the System
 
 This task runs **in parallel** with ML processing:
+
 - Triggered by API after photo upload
 - Runs on **gevent pool** (I/O workers, not GPU)
 - Processes chunks of 20 images

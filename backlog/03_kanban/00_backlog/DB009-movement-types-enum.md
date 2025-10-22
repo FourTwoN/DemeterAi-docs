@@ -1,6 +1,7 @@
 # [DB009] Movement types enum (foto, manual_init, plantado, etc)
 
 ## Metadata
+
 - **Epic**: epic-002-database-models
 - **Sprint**: Sprint-01
 - **Priority**: high
@@ -8,9 +9,12 @@
 - **Dependencies**: Blocks [DB007]
 
 ## Description
-Movement types enum (foto, manual_init, plantado, etc). SQLAlchemy model following Clean Architecture patterns.
+
+Movement types enum (foto, manual_init, plantado, etc). SQLAlchemy model following Clean
+Architecture patterns.
 
 ## Acceptance Criteria
+
 - [ ] Model created in app/models/movement-types-enum.py
 - [ ] All columns defined with correct types
 - [ ] Relationships configured with lazy loading strategy
@@ -19,14 +23,17 @@ Movement types enum (foto, manual_init, plantado, etc). SQLAlchemy model followi
 - [ ] Unit tests ≥75% coverage
 
 ## Implementation Notes
+
 See database/database.mmd ERD for complete schema.
 
 ## Testing
+
 - Test model creation
 - Test relationships
 - Test constraints
 
 ## Handover
+
 Standard SQLAlchemy model. Follow DB011-DB014 patterns.
 
 ---

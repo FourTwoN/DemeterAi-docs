@@ -10,7 +10,8 @@
 
 ## Goal
 
-Implement storage location configuration system with product/packaging assignment, density parameter auto-calibration, and validation rules for manual initialization.
+Implement storage location configuration system with product/packaging assignment, density parameter
+auto-calibration, and validation rules for manual initialization.
 
 ---
 
@@ -28,6 +29,7 @@ Implement storage location configuration system with product/packaging assignmen
 ## Cards List (7 cards, 35 points)
 
 ### Config CRUD (15 points)
+
 - **CONFIG001**: Create location config (5pts)
 - **CONFIG002**: Update location config (3pts)
 - **CONFIG003**: Get config by location (2pts)
@@ -35,12 +37,14 @@ Implement storage location configuration system with product/packaging assignmen
 - **CONFIG005**: List all configs (filtered) (3pts)
 
 ### Density Parameters (12 points)
+
 - **CONFIG006**: Density param CRUD (3pts)
 - **CONFIG007**: Auto-calibration from ML results (5pts)
 - **CONFIG008**: Manual calibration (3pts)
 - **CONFIG009**: Param history tracking (1pt)
 
 ### Bulk Operations (8 points)
+
 - **CONFIG010**: Bulk import from Excel (5pts)
 - **CONFIG011**: Config validation rules (3pts)
 
@@ -56,6 +60,7 @@ Implement storage location configuration system with product/packaging assignmen
 ## Technical Approach
 
 **Configuration Validation**:
+
 ```python
 async def validate_config(location_id: int, product_id: int):
     config = await config_repo.get_by_location(location_id)
@@ -71,6 +76,7 @@ async def validate_config(location_id: int, product_id: int):
 ```
 
 **Auto-Calibration** (from ML detections):
+
 ```python
 # After 10+ photos processed for a location
 detections = await detection_repo.get_recent(location_id, limit=100)

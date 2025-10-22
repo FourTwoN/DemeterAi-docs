@@ -1,6 +1,7 @@
 # [DB025] Density parameters for estimation
 
 ## Metadata
+
 - **Epic**: epic-002-database-models
 - **Sprint**: Sprint-01
 - **Priority**: high
@@ -8,9 +9,11 @@
 - **Dependencies**: Blocks [ML006]
 
 ## Description
+
 Density parameters for estimation. SQLAlchemy model following Clean Architecture patterns.
 
 ## Acceptance Criteria
+
 - [ ] Model created in app/models/density-parameters.py
 - [ ] All columns defined with correct types
 - [ ] Relationships configured with lazy loading strategy
@@ -19,14 +22,17 @@ Density parameters for estimation. SQLAlchemy model following Clean Architecture
 - [ ] Unit tests ≥75% coverage
 
 ## Implementation Notes
+
 See database/database.mmd ERD for complete schema.
 
 ## Testing
+
 - Test model creation
 - Test relationships
 - Test constraints
 
 ## Handover
+
 Standard SQLAlchemy model. Follow DB011-DB014 patterns.
 
 ---

@@ -205,7 +205,7 @@ class SAHIDetectionService:
         # Validate image dimensions
         if img_width <= 0 or img_height <= 0:
             raise ValueError(
-                f"Invalid image dimensions: {img_width}×{img_height}. " f"Image may be corrupted."
+                f"Invalid image dimensions: {img_width}×{img_height}. Image may be corrupted."
             )
 
         # Handle small images (direct detection without tiling)
@@ -220,7 +220,7 @@ class SAHIDetectionService:
         # Get model from singleton (lazy load)
         if self._model is None:
             logger.info(
-                f"Loading detection model for worker {self._worker_id} " f"(lazy initialization)"
+                f"Loading detection model for worker {self._worker_id} (lazy initialization)"
             )
             self._model = ModelCache.get_model("detect", self._worker_id)
             logger.info("Detection model loaded successfully")
@@ -354,7 +354,7 @@ class SAHIDetectionService:
         """
         # Get model from singleton if not already loaded
         if self._model is None:
-            logger.info(f"Loading detection model for worker {self._worker_id} " f"(fallback mode)")
+            logger.info(f"Loading detection model for worker {self._worker_id} (fallback mode)")
             self._model = ModelCache.get_model("detect", self._worker_id)
 
         # Run direct YOLO prediction

@@ -1,6 +1,7 @@
 # S007: StockMovementService
 
 ## Metadata
+
 - **Epic**: [epic-004-services.md](../../02_epics/epic-004-services.md)
 - **Sprint**: Sprint-03
 - **Status**: `backlog`
@@ -9,25 +10,33 @@
 - **Area**: `services/stock`
 - **Assignee**: TBD
 - **Dependencies**:
-  - Blocks: [S008, S011, S012, C007]
-  - Blocked by: [R007, S003, S008, S009, S036]
+    - Blocks: [S008, S011, S012, C007]
+    - Blocked by: [R007, S003, S008, S009, S036]
 
 ## Related Documentation
-- **Engineering Plan**: [../../engineering_plan/workflows/README.md](../../engineering_plan/workflows/README.md)
-- **Architecture**: [../../engineering_plan/03_architecture_overview.md](../../engineering_plan/03_architecture_overview.md)
-- **Manual Init Workflow**: [../../flows/manual_stock_initialization/](../../flows/manual_stock_initialization/)
+
+- **Engineering Plan
+  **: [../../engineering_plan/workflows/README.md](../../engineering_plan/workflows/README.md)
+- **Architecture
+  **: [../../engineering_plan/03_architecture_overview.md](../../engineering_plan/03_architecture_overview.md)
+- **Manual Init Workflow
+  **: [../../flows/manual_stock_initialization/](../../flows/manual_stock_initialization/)
 
 ## Description
 
-**What**: Implement `StockMovementService` for **manual stock initialization**, movement tracking (plantado, muerte, trasplante, venta), and reconciliation logic.
+**What**: Implement `StockMovementService` for **manual stock initialization**, movement tracking (
+plantado, muerte, trasplante, venta), and reconciliation logic.
 
 **Why**: StockMovementService is the **CORE of the stock management system**. It handles:
+
 1. **Manual stock initialization** (alternative to photo-based init)
 2. **Monthly movements** (plantings, deaths, transplants)
 3. **Sales calculation** (month-end reconciliation)
 4. **Movement validation** (business rules via S009)
 
-**Context**: Clean Architecture Application Layer. **CRITICAL SERVICE** - orchestrates S003 (location validation), S008 (batch creation), S009 (movement validation), and S036 (config validation). This service implements the **monthly reconciliation workflow**.
+**Context**: Clean Architecture Application Layer. **CRITICAL SERVICE** - orchestrates S003 (
+location validation), S008 (batch creation), S009 (movement validation), and S036 (config
+validation). This service implements the **monthly reconciliation workflow**.
 
 ## Acceptance Criteria
 
@@ -339,6 +348,7 @@
 ## Technical Implementation Notes
 
 ### Architecture
+
 - **Layer**: Application (Service)
 - **Dependencies**: R007 (StockMovementRepository), S003, S008, S009, S036
 - **Design Pattern**: Orchestration service with transaction boundaries
@@ -347,6 +357,7 @@
 ### Code Hints
 
 **Transaction boundary:**
+
 ```python
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -362,6 +373,7 @@ async def create_manual_initialization(self, request):
 ### Testing Requirements
 
 **Unit Tests**:
+
 ```python
 @pytest.mark.asyncio
 async def test_manual_init_with_config_validation():
@@ -444,6 +456,7 @@ async def test_calculate_sales():
 **Coverage Target**: ≥90%
 
 ### Performance Expectations
+
 - `create_manual_initialization`: <100ms (includes validation + batch creation)
 - `create_movement`: <50ms
 - `calculate_sales`: <200ms (aggregation query)
@@ -453,9 +466,11 @@ async def test_calculate_sales():
 
 **For the next developer:**
 
-**Context**: StockMovementService is the **CORE of stock management**. Implements manual initialization (alternative to photo-based) and monthly reconciliation workflow.
+**Context**: StockMovementService is the **CORE of stock management**. Implements manual
+initialization (alternative to photo-based) and monthly reconciliation workflow.
 
 **Key decisions made**:
+
 1. **Config validation MANDATORY**: Manual init requires matching product/packaging in config
 2. **Transaction boundaries**: Movement + batch creation in single transaction
 3. **Sales calculation**: Formula-based (start + movements - end)
@@ -463,16 +478,19 @@ async def test_calculate_sales():
 5. **Service orchestration**: Calls S003, S008, S009, S036 (NOT repositories)
 
 **Known limitations**:
+
 - Sales calculation assumes no concurrent modifications to stock
 - Reverse movement creates new entry (doesn't delete original)
 - No bulk movement creation (create individually)
 
 **Next steps**:
+
 - S008: StockBatchService (aggregates movements into batches)
 - S009: MovementValidationService (business rules)
 - S011: ReconciliationService (month-end workflow)
 
 **Questions to validate**:
+
 - Should manual init allow quantity = 0 (empty location)?
 - How to handle concurrent movements to same location?
 - Should sales calculation detect negative stock?
@@ -488,6 +506,7 @@ async def test_calculate_sales():
 - [ ] PR reviewed (2+ approvals)
 
 ## Time Tracking
+
 - **Estimated**: 8 story points (~16 hours)
 - **Actual**: TBD
 

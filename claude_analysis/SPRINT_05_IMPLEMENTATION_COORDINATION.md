@@ -9,7 +9,8 @@
 
 ## Overview
 
-This document coordinates parallel implementation of Sprint 5 tasks between Python Expert and Testing Expert. All mini-plans are complete and ready for execution.
+This document coordinates parallel implementation of Sprint 5 tasks between Python Expert and
+Testing Expert. All mini-plans are complete and ready for execution.
 
 ---
 
@@ -31,29 +32,31 @@ All mini-plans are located in `/home/lucasg/proyectos/DemeterDocs/backlog/03_kan
 ### Phase 1: Foundational Tasks (Can Run in Parallel)
 
 **Task Group A - Python Expert**:
+
 - [ ] **OBS001**: OpenTelemetry Setup (10 points)
-  - Create `app/core/telemetry.py`
-  - Update `app/core/config.py` with OTEL settings
-  - Update `app/main.py` to integrate OTEL
-  - Add dependencies to `requirements.txt`
-  - Update `.env.example`
+    - Create `app/core/telemetry.py`
+    - Update `app/core/config.py` with OTEL settings
+    - Update `app/main.py` to integrate OTEL
+    - Add dependencies to `requirements.txt`
+    - Update `.env.example`
 
 - [ ] **OBS002**: Prometheus Metrics (6 points)
-  - Create `app/core/metrics.py`
-  - Update `app/main.py` to expose `/metrics`
-  - Add dependencies to `requirements.txt`
-  - Instrument business logic (stock service, ML service)
+    - Create `app/core/metrics.py`
+    - Update `app/main.py` to expose `/metrics`
+    - Add dependencies to `requirements.txt`
+    - Instrument business logic (stock service, ML service)
 
 - [ ] **AUTH001**: Auth0 Integration (8 points)
-  - Create `app/core/auth.py` (JWT verification)
-  - Create `app/core/security.py` (password hashing)
-  - Create `app/core/dependencies.py` (auth dependencies)
-  - Create `app/controllers/auth_controller.py` (login/logout endpoints)
-  - Create `app/schemas/auth.py` (Token, UserLogin schemas)
-  - Update `app/core/config.py` with Auth0 settings
-  - Update `.env.example`
+    - Create `app/core/auth.py` (JWT verification)
+    - Create `app/core/security.py` (password hashing)
+    - Create `app/core/dependencies.py` (auth dependencies)
+    - Create `app/controllers/auth_controller.py` (login/logout endpoints)
+    - Create `app/schemas/auth.py` (Token, UserLogin schemas)
+    - Update `app/core/config.py` with Auth0 settings
+    - Update `.env.example`
 
 **Task Group B - Testing Expert** (parallel):
+
 - [ ] Create integration tests for OTEL (`tests/integration/test_telemetry.py`)
 - [ ] Create integration tests for metrics (`tests/integration/test_metrics.py`)
 - [ ] Create integration tests for auth (`tests/integration/test_auth.py`)
@@ -66,6 +69,7 @@ All mini-plans are located in `/home/lucasg/proyectos/DemeterDocs/backlog/03_kan
 ### Phase 2: Infrastructure Tasks (Sequential, Python Expert)
 
 **DEP001**: Docker Optimization (5 points)
+
 - [ ] Check if Celery app exists (`app/celery_app.py`)
 - [ ] Create `docker-compose.prod.yml`
 - [ ] Update `.dockerignore`
@@ -73,6 +77,7 @@ All mini-plans are located in `/home/lucasg/proyectos/DemeterDocs/backlog/03_kan
 - [ ] Test production Docker Compose
 
 **DEP002**: GitHub Actions CI/CD (7 points)
+
 - [ ] Create `requirements-dev.txt`
 - [ ] Create/update `pyproject.toml` (ruff, black, mypy config)
 - [ ] Create `.github/workflows/ci.yml`
@@ -86,6 +91,7 @@ All mini-plans are located in `/home/lucasg/proyectos/DemeterDocs/backlog/03_kan
 ### Phase 3: Documentation (Python Expert or Technical Writer)
 
 **DEP003**: Deployment Runbook (5 points)
+
 - [ ] Create `DEPLOYMENT_GUIDE.md`
 - [ ] Create `OPERATIONS_RUNBOOK.md`
 - [ ] Create `TROUBLESHOOTING.md`
@@ -121,16 +127,27 @@ Phase 3 (Sequential):
 **Start with Phase 1, Task Group A**
 
 Read mini-plans in this order:
-1. `/home/lucasg/proyectos/DemeterDocs/backlog/03_kanban/01_ready/OBS001-opentelemetry-setup-mini-plan.md`
-2. `/home/lucasg/proyectos/DemeterDocs/backlog/03_kanban/01_ready/OBS002-prometheus-metrics-mini-plan.md`
-3. `/home/lucasg/proyectos/DemeterDocs/backlog/03_kanban/01_ready/AUTH001-auth0-integration-mini-plan.md`
+
+1.
+
+`/home/lucasg/proyectos/DemeterDocs/backlog/03_kanban/01_ready/OBS001-opentelemetry-setup-mini-plan.md`
+
+2.
+
+`/home/lucasg/proyectos/DemeterDocs/backlog/03_kanban/01_ready/OBS002-prometheus-metrics-mini-plan.md`
+
+3.
+
+`/home/lucasg/proyectos/DemeterDocs/backlog/03_kanban/01_ready/AUTH001-auth0-integration-mini-plan.md`
 
 **Implementation Order** (within Phase 1):
+
 1. Start with **OBS002 (Prometheus)** - simplest, no external dependencies
 2. Then **OBS001 (OpenTelemetry)** - depends on Prometheus client
 3. Finally **AUTH001 (Auth0)** - requires Auth0 account setup
 
 **Key Rules**:
+
 - Follow Clean Architecture patterns
 - Add type hints to all functions
 - Use async/await correctly
@@ -138,6 +155,7 @@ Read mini-plans in this order:
 - Test each component as you build it
 
 **Expected Deliverables**:
+
 - [ ] `app/core/telemetry.py` (~150 lines)
 - [ ] `app/core/metrics.py` (~200 lines)
 - [ ] `app/core/auth.py` (~180 lines)
@@ -155,17 +173,31 @@ Read mini-plans in this order:
 **Start simultaneously with Python Expert's Phase 1**
 
 Read mini-plans in this order:
-1. `/home/lucasg/proyectos/DemeterDocs/backlog/03_kanban/01_ready/OBS002-prometheus-metrics-mini-plan.md` (Testing Procedure section)
-2. `/home/lucasg/proyectos/DemeterDocs/backlog/03_kanban/01_ready/OBS001-opentelemetry-setup-mini-plan.md` (Testing Procedure section)
-3. `/home/lucasg/proyectos/DemeterDocs/backlog/03_kanban/01_ready/AUTH001-auth0-integration-mini-plan.md` (Testing Procedure section)
+
+1.
+
+`/home/lucasg/proyectos/DemeterDocs/backlog/03_kanban/01_ready/OBS002-prometheus-metrics-mini-plan.md` (
+Testing Procedure section)
+
+2.
+
+`/home/lucasg/proyectos/DemeterDocs/backlog/03_kanban/01_ready/OBS001-opentelemetry-setup-mini-plan.md` (
+Testing Procedure section)
+
+3.
+
+`/home/lucasg/proyectos/DemeterDocs/backlog/03_kanban/01_ready/AUTH001-auth0-integration-mini-plan.md` (
+Testing Procedure section)
 
 **Testing Strategy**:
+
 - Create integration tests (use real database, NOT mocks)
 - Test against Python Expert's implementations
 - Coordinate to get method signatures early
 - Run tests locally before CI
 
 **Expected Deliverables**:
+
 - [ ] `tests/integration/test_metrics.py` (~100 lines)
 - [ ] `tests/integration/test_telemetry.py` (~120 lines)
 - [ ] `tests/integration/test_auth.py` (~150 lines)
@@ -177,6 +209,7 @@ Read mini-plans in this order:
 ## Quality Gates (Before Completion)
 
 **Gate 1: Code Compiles and Imports Work**
+
 ```bash
 python -c "from app.core.telemetry import setup_telemetry; print('✅ Telemetry OK')"
 python -c "from app.core.metrics import setup_metrics; print('✅ Metrics OK')"
@@ -184,6 +217,7 @@ python -c "from app.core.auth import get_current_user; print('✅ Auth OK')"
 ```
 
 **Gate 2: All Tests Pass**
+
 ```bash
 pytest tests/unit/ -v
 pytest tests/integration/ -v
@@ -191,11 +225,13 @@ echo $?  # Must be 0
 ```
 
 **Gate 3: Coverage ≥80%**
+
 ```bash
 pytest tests/ --cov=app.core.telemetry --cov=app.core.metrics --cov=app.core.auth --cov-report=term-missing
 ```
 
 **Gate 4: Docker Build Succeeds**
+
 ```bash
 docker build -t demeterai:latest .
 docker images demeterai:latest | grep -E "(SIZE|demeterai)"
@@ -203,6 +239,7 @@ docker images demeterai:latest | grep -E "(SIZE|demeterai)"
 ```
 
 **Gate 5: docker-compose up Works**
+
 ```bash
 docker-compose -f docker-compose.prod.yml up -d
 sleep 10
@@ -212,6 +249,7 @@ docker-compose -f docker-compose.prod.yml down
 ```
 
 **Gate 6: OpenTelemetry Connects**
+
 ```bash
 # Start application with OTEL enabled
 OTEL_ENABLED=true uvicorn app.main:app --reload &
@@ -227,12 +265,14 @@ kill %1
 ```
 
 **Gate 7: Prometheus Metrics Exposed**
+
 ```bash
 curl http://localhost:8000/metrics | grep "demeter_"
 # Should show custom metrics
 ```
 
 **Gate 8: GitHub Actions CI Passes** (after push)
+
 ```bash
 git push origin main
 # Check GitHub Actions: all jobs must pass
@@ -243,22 +283,27 @@ git push origin main
 ## Risk Mitigation
 
 **Risk 1: OTLP endpoint not available**
+
 - **Mitigation**: Make OTEL_ENABLED configurable (default: false for development)
 - **Fallback**: Disable OTEL if endpoint unavailable
 
 **Risk 2: Auth0 account setup delays**
+
 - **Mitigation**: Use mock JWT tokens for testing
 - **Fallback**: Implement local JWT signing (already in plan)
 
 **Risk 3: Docker image size >500MB**
+
 - **Mitigation**: Multi-stage build already implemented
 - **Optimization**: Remove unnecessary packages, use slim base image
 
 **Risk 4: Celery app doesn't exist**
+
 - **Mitigation**: Keep Celery workers commented out in docker-compose
 - **Documentation**: Add TODO note in deployment guide
 
 **Risk 5: Tests fail with new dependencies**
+
 - **Mitigation**: Testing Expert verifies all existing tests still pass
 - **Fix**: Update fixtures if needed
 
@@ -267,6 +312,7 @@ git push origin main
 ## Communication Protocol
 
 **Python Expert Status Updates** (every 30 minutes):
+
 ```markdown
 ## Status Update (HH:MM)
 - OBS001: 60% complete (telemetry.py created, testing OTLP export)
@@ -276,6 +322,7 @@ git push origin main
 ```
 
 **Testing Expert Status Updates** (every 30 minutes):
+
 ```markdown
 ## Status Update (HH:MM)
 - test_metrics.py: 100% complete (all tests passing)
@@ -285,6 +332,7 @@ git push origin main
 ```
 
 **Team Leader Reviews** (hourly):
+
 - Check status updates from both experts
 - Unblock dependencies
 - Run quality gate checks
@@ -295,6 +343,7 @@ git push origin main
 ## Completion Checklist
 
 **Phase 1 Complete When**:
+
 - [ ] All Phase 1 code committed
 - [ ] All Phase 1 tests passing
 - [ ] Coverage ≥80% for new modules
@@ -302,17 +351,20 @@ git push origin main
 - [ ] Application starts without errors
 
 **Phase 2 Complete When**:
+
 - [ ] docker-compose.prod.yml works
 - [ ] Docker image <500MB
 - [ ] GitHub Actions workflows created
 - [ ] CI pipeline passes
 
 **Phase 3 Complete When**:
+
 - [ ] All documentation files created
 - [ ] README.md updated
 - [ ] Deployment guide validated (someone follows it successfully)
 
 **Sprint 5 Complete When**:
+
 - [ ] All quality gates passed
 - [ ] All tasks moved to `05_done/`
 - [ ] Git commit created with all changes
@@ -323,10 +375,12 @@ git push origin main
 ## Estimated Timeline
 
 **Day 1** (8 hours):
+
 - Morning: Phase 1 (Python Expert + Testing Expert in parallel)
 - Afternoon: Complete Phase 1, start Phase 2
 
 **Day 2** (8 hours):
+
 - Morning: Complete Phase 2 (Docker + CI/CD)
 - Afternoon: Phase 3 (Documentation) + Quality Gates
 

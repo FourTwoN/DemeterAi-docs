@@ -374,10 +374,4 @@ class PackagingCatalog(Base):
         Example:
             <PackagingCatalog(id=1, sku='POT-PLAST-BLK-10CM', name='10cm Black Plastic Pot')>
         """
-        return (
-            f"<PackagingCatalog("
-            f"id={self.id}, "
-            f"sku='{self.sku}', "
-            f"name='{self.name}'"
-            f")>"
-        )
+        return f"<PackagingCatalog(id={self.id}, sku='{self.sku}', name='{self.name}')>"

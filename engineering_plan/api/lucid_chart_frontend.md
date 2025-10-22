@@ -1,6 +1,7 @@
 # Frontend Functional Spec (tidied from Lucidchart CSV)
 
-> Documento de referencia para implementar vistas, formularios y llamadas al backend. Usa los mismos nombres de campo del CSV para evitar confusiones con el equipo.
+> Documento de referencia para implementar vistas, formularios y llamadas al backend. Usa los mismos
+> nombres de campo del CSV para evitar confusiones con el equipo.
 
 ---
 
@@ -30,17 +31,20 @@
 ### Listado de naves
 
 * **GET**:
-  `Nombre`, `Estado`, `Descripcion Estado`, `Coordenadas`, `Cantidad de Claros`, `Plantas`, `Superficie`, `NaveID`
+  `Nombre`, `Estado`, `Descripcion Estado`, `Coordenadas`, `Cantidad de Claros`, `Plantas`,
+  `Superficie`, `NaveID`
 
 ### Detalle / Resumen por nave
 
 * **GET**:
-  `Nombre nave`, `Macetas Totales`, `Valor potencial`, `Movimiento ultimo mes`, `ultima actualizacion`, `Claros`
+  `Nombre nave`, `Macetas Totales`, `Valor potencial`, `Movimiento ultimo mes`,
+  `ultima actualizacion`, `Claros`
 
 ### Mapa / Vista geográfica
 
 * **GET**:
-  `Coordenadas`, `Nombre naves`, `Nombre claros (N y S)`, `plantas por claros`, `maceta por claros`, `Tipo de plantas`
+  `Coordenadas`, `Nombre naves`, `Nombre claros (N y S)`, `plantas por claros`, `maceta por claros`,
+  `Tipo de plantas`
 
 ### Crear nave
 
@@ -54,16 +58,19 @@
 ### Detalle de claro
 
 * **GET**:
-  `Ubicacion?`, `Nombre`, `cantidad de Plantas`, `Codigo Maceta`, `Valor estimado`, `Ultima actualizaciopn`, `Diferencia ultima actualizacion (+5,-2)`
+  `Ubicacion?`, `Nombre`, `cantidad de Plantas`, `Codigo Maceta`, `Valor estimado`,
+  `Ultima actualizaciopn`, `Diferencia ultima actualizacion (+5,-2)`
 
 ### Acciones sobre claros (movimientos)
 
 * **POST/INGRESO**: `Claro Destino`, `Tipo de planta`, `cantidad`, `maceta`, `observaciones`
 * **POST/REPLANTE**: `Claro Destino`, `Tipo de planta`, `cantidad`, `maceta`, `observaciones`
-* **POST/TRANSPLANTE**: `Claro Origen`, `Claro Destino`, `Tipo de planta`, `cantidad`, `maceta`, `observaciones`
+* **POST/TRANSPLANTE**: `Claro Origen`, `Claro Destino`, `Tipo de planta`, `cantidad`, `maceta`,
+  `observaciones`
 * **POST/MUERTE**: `Claro Origen`, `Tipo de planta`, `cantidad`, `observaciones`
 
-> **Nota UI**: Cada acción va como formulario modal sobre el detalle del claro, con historial de movimientos y balance (+/−) en la tarjeta del claro.
+> **Nota UI**: Cada acción va como formulario modal sobre el detalle del claro, con historial de
+> movimientos y balance (+/−) en la tarjeta del claro.
 
 ---
 
@@ -96,13 +103,14 @@
 ### Métricas / Detalle por elemento (imagen/lote)
 
 * **GET**:
-  `Foto + historial_ID?`, `nro detecciones`, `nro ingreso manual`, `trazabilidad`, `COmparativa ultimo mes`
+  `Foto + historial_ID?`, `nro detecciones`, `nro ingreso manual`, `trazabilidad`,
+  `COmparativa ultimo mes`
 
 ### Evolución visual
 
 * **GET / UI idea**: “A medida que cambian las fotos mostrar la evolución”
 
-  * **Gráfico sugerido**: diagrama de puntos con `cantidad de plantas` por fecha (historial_ID)
+    * **Gráfico sugerido**: diagrama de puntos con `cantidad de plantas` por fecha (historial_ID)
 
 ### Control de calidad / Correcciones
 
@@ -142,15 +150,19 @@
 
 * **POST**: `claroID (pueden ser varios)`, `Maceta`, `Tipo planta`
 
-> **UI**: selector múltiple de `claroID`, dropdown de `Maceta` y `Tipo planta`, vista previa del impacto.
+> **UI**: selector múltiple de `claroID`, dropdown de `Maceta` y `Tipo planta`, vista previa del
+> impacto.
 
 ---
 
 ## 9) Observaciones de diseño (del CSV)
 
-* Varias entradas marcadas como **GET/POST/PATCH** representan **vistas** y **formularios** junto a los **campos esperados**.
-* Los “User Image” del CSV son **actores/avatares** sin datos adicionales: no requieren UI específica.
-* Se suprimió contenido no profesional presente en el CSV original para mantener el documento técnico.
+* Varias entradas marcadas como **GET/POST/PATCH** representan **vistas** y **formularios** junto a
+  los **campos esperados**.
+* Los “User Image” del CSV son **actores/avatares** sin datos adicionales: no requieren UI
+  específica.
+* Se suprimió contenido no profesional presente en el CSV original para mantener el documento
+  técnico.
 
 ---
 
@@ -159,26 +171,26 @@
 1. **Login / Registro / TYC**
 2. **Dashboard de Naves**
 
-   * Listado de naves
-   * Detalle de nave (resumen + mapa)
-   * Crear nave
+    * Listado de naves
+    * Detalle de nave (resumen + mapa)
+    * Crear nave
 3. **Claros**
 
-   * Detalle de claro
-   * Movimientos: Ingreso, Replante, Transplante, Muerte
-   * Carga masiva por `claroID`
+    * Detalle de claro
+    * Movimientos: Ingreso, Replante, Transplante, Muerte
+    * Carga masiva por `claroID`
 4. **Catálogo de Macetas** (CRUD)
 5. **Imágenes & Detecciones**
 
-   * Subir imagen
-   * Métricas e historial
-   * Correcciones y comparación (con/sin detección)
-   * Evolución (gráfico de puntos)
+    * Subir imagen
+    * Métricas e historial
+    * Correcciones y comparación (con/sin detección)
+    * Evolución (gráfico de puntos)
 6. **Jobs**
 7. **Administración**
 
-   * Usuarios (listado y edición)
-   * Editar usuario (admin)
+    * Usuarios (listado y edición)
+    * Editar usuario (admin)
 
 ---
 
@@ -206,4 +218,5 @@
 
 ---
 
-> **Listo:** esto condensa y ordena todo lo que estaba en el CSV en una guía directa para el frontend. Si querés, lo paso a issues/epics con criterios de aceptación.
+> **Listo:** esto condensa y ordena todo lo que estaba en el CSV en una guía directa para el
+> frontend. Si querés, lo paso a issues/epics con criterios de aceptación.

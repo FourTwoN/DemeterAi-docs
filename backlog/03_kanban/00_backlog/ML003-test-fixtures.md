@@ -9,7 +9,8 @@
 
 ## Overview
 
-This document provides complete `conftest.py` files and fixture patterns for both unit and integration tests.
+This document provides complete `conftest.py` files and fixture patterns for both unit and
+integration tests.
 
 ---
 

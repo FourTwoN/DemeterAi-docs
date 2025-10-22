@@ -97,8 +97,10 @@ def create_celery_app() -> Celery:
             "health_check_interval": 30,  # Health check every 30 seconds
         },
         # Result backend retry configuration
-        result_backend_retry_on_timeout=True,  # Retry result operations on timeout
-        result_backend_transport_retry_on_timeout=True,  # Retry transport on timeout
+        result_backend_retry_on_timeout=True,
+        # Retry result operations on timeout
+        result_backend_transport_retry_on_timeout=True,
+        # Retry transport on timeout
         # Redis max connections (applies to both broker and backend)
         redis_max_connections=100,  # Global max Redis connections
         redis_socket_timeout=5,  # 5 second socket timeout for Redis operations
@@ -132,7 +134,6 @@ def create_celery_app() -> Celery:
 # - Task definitions: from app.celery_app import app
 # - FastAPI integration: for checking task status
 app = create_celery_app()
-
 
 # CEL003: Worker Topology Configuration
 # =====================================

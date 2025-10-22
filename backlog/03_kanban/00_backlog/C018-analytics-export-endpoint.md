@@ -1,6 +1,7 @@
 # [C018] Export Analytics - POST /api/analytics/export
 
 ## Metadata
+
 - **Epic**: epic-003-backend-implementation.md
 - **Sprint**: Sprint-05
 - **Status**: `backlog`
@@ -49,6 +50,7 @@ async def export_analytics(
 **Coverage Target**: ≥80%
 
 ## Time Tracking
+
 - **Estimated**: 2 story points
 
 ---

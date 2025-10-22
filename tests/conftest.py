@@ -119,9 +119,10 @@ async def db_session():
             await conn.execute(text("ALTER TABLE warehouses DROP COLUMN IF EXISTS area_m2 CASCADE"))
             await conn.execute(
                 text("""
-                ALTER TABLE warehouses ADD COLUMN area_m2 NUMERIC(10,2)
-                GENERATED ALWAYS AS (ST_Area(geojson_coordinates::geography)) STORED
-            """)
+               ALTER TABLE warehouses
+                   ADD COLUMN area_m2 NUMERIC(10, 2)
+                       GENERATED ALWAYS AS (ST_Area(geojson_coordinates::geography)) STORED
+               """)
             )
         except Exception:
             pass  # Column conversion failed, but tests can still run
@@ -130,23 +131,28 @@ async def db_session():
             # Warehouses: centroid trigger function
             await conn.execute(
                 text("""
-                CREATE OR REPLACE FUNCTION update_warehouse_centroid()
+               CREATE
+               OR REPLACE FUNCTION update_warehouse_centroid()
                 RETURNS TRIGGER AS $$
-                BEGIN
-                    NEW.centroid = ST_Centroid(NEW.geojson_coordinates);
-                    RETURN NEW;
-                END;
-                $$ LANGUAGE plpgsql;
-            """)
+               BEGIN
+                    NEW.centroid
+               = ST_Centroid(NEW.geojson_coordinates);
+               RETURN NEW;
+               END;
+                $$
+               LANGUAGE plpgsql;
+               """)
             )
             # Create trigger
             await conn.execute(
                 text("""
-                CREATE TRIGGER IF NOT EXISTS trg_warehouse_centroid
-                BEFORE INSERT OR UPDATE OF geojson_coordinates ON warehouses
-                FOR EACH ROW
-                EXECUTE FUNCTION update_warehouse_centroid();
-            """)
+               CREATE TRIGGER IF NOT EXISTS trg_warehouse_centroid
+                BEFORE INSERT OR
+               UPDATE OF geojson_coordinates
+               ON warehouses
+                   FOR EACH ROW
+                   EXECUTE FUNCTION update_warehouse_centroid();
+               """)
             )
         except Exception:
             pass  # Trigger might already exist
@@ -158,10 +164,10 @@ async def db_session():
             )
             await conn.execute(
                 text("""
-                ALTER TABLE storage_areas
-                ADD COLUMN area_m2 NUMERIC(10,2)
-                GENERATED ALWAYS AS (ST_Area(geojson_coordinates::geography)) STORED
-            """)
+               ALTER TABLE storage_areas
+                   ADD COLUMN area_m2 NUMERIC(10, 2)
+                       GENERATED ALWAYS AS (ST_Area(geojson_coordinates::geography)) STORED
+               """)
             )
         except Exception:
             pass
@@ -170,23 +176,28 @@ async def db_session():
             # StorageAreas: centroid trigger function
             await conn.execute(
                 text("""
-                CREATE OR REPLACE FUNCTION update_storage_area_centroid()
+               CREATE
+               OR REPLACE FUNCTION update_storage_area_centroid()
                 RETURNS TRIGGER AS $$
-                BEGIN
-                    NEW.centroid = ST_Centroid(NEW.geojson_coordinates);
-                    RETURN NEW;
-                END;
-                $$ LANGUAGE plpgsql;
-            """)
+               BEGIN
+                    NEW.centroid
+               = ST_Centroid(NEW.geojson_coordinates);
+               RETURN NEW;
+               END;
+                $$
+               LANGUAGE plpgsql;
+               """)
             )
             # Create trigger
             await conn.execute(
                 text("""
-                CREATE TRIGGER IF NOT EXISTS trg_storage_area_centroid
-                BEFORE INSERT OR UPDATE OF geojson_coordinates ON storage_areas
-                FOR EACH ROW
-                EXECUTE FUNCTION update_storage_area_centroid();
-            """)
+               CREATE TRIGGER IF NOT EXISTS trg_storage_area_centroid
+                BEFORE INSERT OR
+               UPDATE OF geojson_coordinates
+               ON storage_areas
+                   FOR EACH ROW
+                   EXECUTE FUNCTION update_storage_area_centroid();
+               """)
             )
         except Exception:
             pass
@@ -198,10 +209,10 @@ async def db_session():
             )
             await conn.execute(
                 text("""
-                ALTER TABLE storage_locations
-                ADD COLUMN area_m2 NUMERIC(10,2)
-                GENERATED ALWAYS AS (0) STORED
-            """)
+               ALTER TABLE storage_locations
+                   ADD COLUMN area_m2 NUMERIC(10, 2)
+                       GENERATED ALWAYS AS (0) STORED
+               """)
             )
         except Exception:
             pass
@@ -210,23 +221,28 @@ async def db_session():
             # StorageLocations: centroid = coordinates (for POINT geometries)
             await conn.execute(
                 text("""
-                CREATE OR REPLACE FUNCTION update_storage_location_centroid()
+               CREATE
+               OR REPLACE FUNCTION update_storage_location_centroid()
                 RETURNS TRIGGER AS $$
-                BEGIN
-                    NEW.centroid = NEW.geojson_coordinates;
-                    RETURN NEW;
-                END;
-                $$ LANGUAGE plpgsql;
-            """)
+               BEGIN
+                    NEW.centroid
+               = NEW.geojson_coordinates;
+               RETURN NEW;
+               END;
+                $$
+               LANGUAGE plpgsql;
+               """)
             )
             # Create trigger
             await conn.execute(
                 text("""
-                CREATE TRIGGER IF NOT EXISTS trg_storage_location_centroid
-                BEFORE INSERT OR UPDATE OF geojson_coordinates ON storage_locations
-                FOR EACH ROW
-                EXECUTE FUNCTION update_storage_location_centroid();
-            """)
+               CREATE TRIGGER IF NOT EXISTS trg_storage_location_centroid
+                BEFORE INSERT OR
+               UPDATE OF geojson_coordinates
+               ON storage_locations
+                   FOR EACH ROW
+                   EXECUTE FUNCTION update_storage_location_centroid();
+               """)
             )
         except Exception:
             pass

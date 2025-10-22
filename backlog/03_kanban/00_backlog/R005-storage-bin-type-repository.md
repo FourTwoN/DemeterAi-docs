@@ -1,6 +1,7 @@
 # R005: Storage Bin Type Repository
 
 ## Metadata
+
 - **Epic**: [epic-003-repositories.md](../../02_epics/epic-003-repositories.md)
 - **Sprint**: Sprint-01
 - **Status**: `backlog`
@@ -9,27 +10,35 @@
 - **Area**: `repositories`
 - **Assignee**: TBD
 - **Dependencies**:
-  - Blocks: [R004, R026]
-  - Blocked by: [F006, F007, DB005]
+    - Blocks: [R004, R026]
+    - Blocked by: [F006, F007, DB005]
 
 ## Related Documentation
-- **Engineering Plan**: [../../engineering_plan/backend/repository_layer.md](../../engineering_plan/backend/repository_layer.md)
+
+- **Engineering Plan
+  **: [../../engineering_plan/backend/repository_layer.md](../../engineering_plan/backend/repository_layer.md)
 - **Database ERD**: [../../database/database.mmd](../../database/database.mmd#L59-L74)
-- **Architecture**: [../../engineering_plan/03_architecture_overview.md](../../engineering_plan/03_architecture_overview.md)
+- **Architecture
+  **: [../../engineering_plan/03_architecture_overview.md](../../engineering_plan/03_architecture_overview.md)
 
 ## Description
 
-**What**: Implement repository class for `storage_bin_types` table with CRUD operations and category filtering.
+**What**: Implement repository class for `storage_bin_types` table with CRUD operations and category
+filtering.
 
-**Why**: Storage bin types define container categories (plug trays, seedling trays, boxes, segments, pots) with capacity metadata. Repository provides lookup by code and category filtering for ML classification and capacity planning.
+**Why**: Storage bin types define container categories (plug trays, seedling trays, boxes, segments,
+pots) with capacity metadata. Repository provides lookup by code and category filtering for ML
+classification and capacity planning.
 
-**Context**: Master data table defining container types. Used by ML pipeline to classify detected bins and calculate plant density. Each type has dimensions and capacity metadata.
+**Context**: Master data table defining container types. Used by ML pipeline to classify detected
+bins and calculate plant density. Each type has dimensions and capacity metadata.
 
 ## Acceptance Criteria
 
 - [ ] **AC1**: `StorageBinTypeRepository` class inherits from `AsyncRepository[StorageBinType]`
 - [ ] **AC2**: Implements `get_by_code(code: str)` method with unique constraint validation
-- [ ] **AC3**: Implements `get_by_category(category: str)` for filtering (plug/seedling_tray/box/segment/pot)
+- [ ] **AC3**: Implements `get_by_category(category: str)` for filtering (
+  plug/seedling_tray/box/segment/pot)
 - [ ] **AC4**: Implements `get_grid_types()` for grid-based containers (rows × columns)
 - [ ] **AC5**: Implements `calculate_capacity(type_id: int)` for capacity calculations
 - [ ] **AC6**: Query performance: <10ms for all queries (small lookup table)
@@ -37,11 +46,13 @@
 ## Technical Implementation Notes
 
 ### Architecture
+
 - **Layer**: Infrastructure (Repository)
 - **Dependencies**: F006 (Database connection), DB005 (StorageBinType model)
 - **Design Pattern**: Repository pattern, inherits AsyncRepository
 
 ### Code Hints
+
 ```python
 from typing import Optional, List
 from sqlalchemy import select
@@ -130,6 +141,7 @@ class StorageBinTypeRepository(AsyncRepository[StorageBinType]):
 ### Testing Requirements
 
 **Unit Tests**:
+
 ```python
 @pytest.mark.asyncio
 async def test_storage_bin_type_repo_get_by_code(db_session, sample_bin_type):
@@ -194,6 +206,7 @@ async def test_storage_bin_type_repo_calculate_capacity(db_session, grid_bin_typ
 **Coverage Target**: ≥85%
 
 ### Performance Expectations
+
 - All queries: <10ms (small lookup table, ~20-50 rows)
 - Category filtering: <5ms (indexed category column)
 - Dimension search: <15ms (indexed length_cm, width_cm)
@@ -201,19 +214,21 @@ async def test_storage_bin_type_repo_calculate_capacity(db_session, grid_bin_typ
 ## Handover Briefing
 
 **For the next developer:**
-- **Context**: Master data defining container types. Critical for ML classification and capacity planning
+
+- **Context**: Master data defining container types. Critical for ML classification and capacity
+  planning
 - **Key decisions**:
-  - Category enum: plug/seedling_tray/box/segment/pot (validated at model level)
-  - Grid containers have rows × columns → auto-calculate capacity
-  - Non-grid containers have explicit capacity field
-  - Dimensions used by ML to match detected bins to types
+    - Category enum: plug/seedling_tray/box/segment/pot (validated at model level)
+    - Grid containers have rows × columns → auto-calculate capacity
+    - Non-grid containers have explicit capacity field
+    - Dimensions used by ML to match detected bins to types
 - **Known limitations**:
-  - Capacity calculation assumes all grid cells usable (no adjustments for edge cells)
-  - Dimension matching is simple range query (no tolerance/fuzzy matching)
+    - Capacity calculation assumes all grid cells usable (no adjustments for edge cells)
+    - Dimension matching is simple range query (no tolerance/fuzzy matching)
 - **Next steps**: R004 uses this for bin type lookups, R026 for density parameters
 - **Questions to validate**:
-  - Should category be an enum type or varchar?
-  - Are dimension columns indexed for ML queries?
+    - Should category be an enum type or varchar?
+    - Are dimension columns indexed for ML queries?
 
 ## Definition of Done Checklist
 
@@ -229,6 +244,7 @@ async def test_storage_bin_type_repo_calculate_capacity(db_session, grid_bin_typ
 - [ ] Performance benchmarks documented
 
 ## Time Tracking
+
 - **Estimated**: 1 story point (~2 hours)
 - **Actual**: TBD
 - **Started**: TBD

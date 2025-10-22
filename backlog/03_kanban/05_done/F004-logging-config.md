@@ -1,6 +1,7 @@
 # [F004] Logging Configuration - Structured JSON + Correlation IDs
 
 ## Metadata
+
 - **Epic**: epic-001-foundation.md
 - **Sprint**: Sprint-00 (Week 1-2)
 - **Status**: `backlog`
@@ -9,30 +10,38 @@
 - **Area**: `foundation`
 - **Assignee**: TBD
 - **Dependencies**:
-  - Blocks**: [All cards requiring logging]
-  - Blocked by: [F001, F002, F003]
+    - Blocks**: [All cards requiring logging]
+    - Blocked by: [F001, F002, F003]
 
 ## Related Documentation
+
 - **Architecture**: ../../engineering_plan/03_architecture_overview.md#error-handling-strategy
 - **Tech Stack**: ../../backlog/00_foundation/tech-stack.md#monitoring--observability
 - **Conventions**: ../../backlog/00_foundation/conventions.md#logging-standards
 
 ## Description
 
-Implement centralized logging configuration with structured JSON output, correlation IDs for request tracing, and configurable log levels for different environments.
+Implement centralized logging configuration with structured JSON output, correlation IDs for request
+tracing, and configurable log levels for different environments.
 
-**What**: Create `app/core/logging.py` with logging setup supporting structured JSON format (for Prometheus/Loki), correlation ID injection (trace requests across services), and environment-based log levels (DEBUG in dev, INFO in prod).
+**What**: Create `app/core/logging.py` with logging setup supporting structured JSON format (for
+Prometheus/Loki), correlation ID injection (trace requests across services), and environment-based
+log levels (DEBUG in dev, INFO in prod).
 
-**Why**: Structured logging enables automated log parsing and filtering in production. Correlation IDs allow tracing a single request through the entire system (API → Celery → Database). Centralized config prevents scattered print() statements.
+**Why**: Structured logging enables automated log parsing and filtering in production. Correlation
+IDs allow tracing a single request through the entire system (API → Celery → Database). Centralized
+config prevents scattered print() statements.
 
-**Context**: DemeterAI processes photos asynchronously (API → Celery workers → Database). Without correlation IDs, debugging a failed photo is impossible. Structured JSON logs integrate with Prometheus/Grafana stack (Sprint 05).
+**Context**: DemeterAI processes photos asynchronously (API → Celery workers → Database). Without
+correlation IDs, debugging a failed photo is impossible. Structured JSON logs integrate with
+Prometheus/Grafana stack (Sprint 05).
 
 ## Acceptance Criteria
 
 - [x] **AC1**: `app/core/logging.py` created with `setup_logging()` function:
-  - Accepts `log_level` parameter (DEBUG, INFO, WARNING, ERROR)
-  - Configures root logger and all app loggers
-  - Returns configured logger instance
+    - Accepts `log_level` parameter (DEBUG, INFO, WARNING, ERROR)
+    - Configures root logger and all app loggers
+    - Returns configured logger instance
 
 - [x] **AC2**: Structured JSON output format:
   ```json
@@ -48,16 +57,16 @@ Implement centralized logging configuration with structured JSON output, correla
   ```
 
 - [x] **AC3**: Correlation ID middleware for FastAPI:
-  - Generates UUID for each request
-  - Injects into logger context
-  - Returns in response header: `X-Correlation-ID`
-  - Propagates to Celery tasks
+    - Generates UUID for each request
+    - Injects into logger context
+    - Returns in response header: `X-Correlation-ID`
+    - Propagates to Celery tasks
 
 - [x] **AC4**: Environment-based log levels:
-  - Development: DEBUG (all logs)
-  - Staging: INFO (exclude debug)
-  - Production: WARNING (only warnings/errors)
-  - Configured via `.env`: `LOG_LEVEL=DEBUG`
+    - Development: DEBUG (all logs)
+    - Staging: INFO (exclude debug)
+    - Production: WARNING (only warnings/errors)
+    - Configured via `.env`: `LOG_LEVEL=DEBUG`
 
 - [x] **AC5**: Logger usage in code:
   ```python
@@ -71,12 +80,13 @@ Implement centralized logging configuration with structured JSON output, correla
   ```
 
 - [x] **AC6**: No print() statements allowed:
-  - Pre-commit hook blocks print() in `app/` directory
-  - All output via logger only
+    - Pre-commit hook blocks print() in `app/` directory
+    - All output via logger only
 
 ## Technical Implementation Notes
 
 ### Architecture
+
 - Layer: Foundation (Core Infrastructure)
 - Dependencies: Python logging, structlog (structured logging), FastAPI middleware
 - Design pattern: Singleton logger factory, middleware injection
@@ -84,6 +94,7 @@ Implement centralized logging configuration with structured JSON output, correla
 ### Code Hints
 
 **app/core/logging.py structure:**
+
 ```python
 import logging
 import structlog
@@ -128,6 +139,7 @@ def set_correlation_id(correlation_id: str):
 ```
 
 **FastAPI middleware (app/main.py):**
+
 ```python
 from app.core.logging import set_correlation_id
 
@@ -142,6 +154,7 @@ async def correlation_id_middleware(request: Request, call_next):
 ```
 
 **Celery task integration:**
+
 ```python
 from app.core.logging import set_correlation_id
 
@@ -155,6 +168,7 @@ def process_photo(self, photo_id: int, correlation_id: str):
 ### Testing Requirements
 
 **Unit Tests**:
+
 - [ ] Test logger configuration:
   ```python
   def test_setup_logging_debug_level():
@@ -172,6 +186,7 @@ def process_photo(self, photo_id: int, correlation_id: str):
   ```
 
 **Integration Tests**:
+
 - [ ] Test correlation ID middleware:
   ```python
   @pytest.mark.asyncio
@@ -188,11 +203,13 @@ def process_photo(self, photo_id: int, correlation_id: str):
   ```
 
 **Test Command**:
+
 ```bash
 pytest tests/core/test_logging.py -v --cov=app/core/logging
 ```
 
 ### Performance Expectations
+
 - Logging overhead: <1ms per log statement
 - JSON serialization: <0.5ms
 - Middleware overhead: <0.2ms per request
@@ -200,22 +217,23 @@ pytest tests/core/test_logging.py -v --cov=app/core/logging
 ## Handover Briefing
 
 **For the next developer:**
+
 - **Context**: This is the foundation for observability - all logs go through this system
 - **Key decisions**:
-  - Using `structlog` (structured logging) instead of stdlib logging (better JSON support)
-  - Correlation IDs use Python `contextvars` (thread-safe for async)
-  - Log levels controlled by environment variable (12-factor app principle)
-  - OpenTelemetry integration deferred to Sprint 05 (OBS cards)
+    - Using `structlog` (structured logging) instead of stdlib logging (better JSON support)
+    - Correlation IDs use Python `contextvars` (thread-safe for async)
+    - Log levels controlled by environment variable (12-factor app principle)
+    - OpenTelemetry integration deferred to Sprint 05 (OBS cards)
 - **Known limitations**:
-  - Celery workers need manual correlation ID propagation (passed as task arg)
-  - Log rotation handled by container orchestration (not application)
+    - Celery workers need manual correlation ID propagation (passed as task arg)
+    - Log rotation handled by container orchestration (not application)
 - **Next steps after this card**:
-  - F005: Exception taxonomy (uses this logging system)
-  - All services will import `get_logger(__name__)` for logging
-  - OBS001-OBS010: Integrate with Prometheus/Loki/Grafana
+    - F005: Exception taxonomy (uses this logging system)
+    - All services will import `get_logger(__name__)` for logging
+    - OBS001-OBS010: Integrate with Prometheus/Loki/Grafana
 - **Questions to ask**:
-  - Should we add log sampling for high-volume operations? (reduce costs)
-  - Should we redact sensitive fields automatically? (e.g., passwords in logs)
+    - Should we add log sampling for high-volume operations? (reduce costs)
+    - Should we redact sensitive fields automatically? (e.g., passwords in logs)
 
 ## Definition of Done Checklist
 
@@ -228,6 +246,7 @@ pytest tests/core/test_logging.py -v --cov=app/core/logging
 - [x] Pre-commit hook blocks print() statements
 
 ## Time Tracking
+
 - **Estimated**: 5 story points
 - **Actual**: 5 story points
 - **Started**: 2025-10-13
@@ -245,45 +264,46 @@ pytest tests/core/test_logging.py -v --cov=app/core/logging
 
 ### Implementation Summary
 
-Successfully implemented structured JSON logging with correlation ID tracking for DemeterAI v2.0. All acceptance criteria met and quality gates passed.
+Successfully implemented structured JSON logging with correlation ID tracking for DemeterAI v2.0.
+All acceptance criteria met and quality gates passed.
 
 ### Deliverables
 
 **Files Created/Modified:**
 
 1. **app/core/logging.py** (185 lines)
-   - `setup_logging()`: Configures structlog with JSON output
-   - `get_logger()`: Returns bound logger for modules
-   - `set_correlation_id()`: Thread-safe correlation ID management
-   - `get_correlation_id()`: Retrieve current correlation ID
-   - `clear_correlation_id()`: Cleanup for tests/workers
+    - `setup_logging()`: Configures structlog with JSON output
+    - `get_logger()`: Returns bound logger for modules
+    - `set_correlation_id()`: Thread-safe correlation ID management
+    - `get_correlation_id()`: Retrieve current correlation ID
+    - `clear_correlation_id()`: Cleanup for tests/workers
 
 2. **app/core/config.py** (35 lines)
-   - Pydantic Settings-based configuration
-   - `LOG_LEVEL` environment variable support
-   - 12-factor app compliant
+    - Pydantic Settings-based configuration
+    - `LOG_LEVEL` environment variable support
+    - 12-factor app compliant
 
 3. **app/main.py** (78 lines)
-   - FastAPI application with logging setup
-   - `CorrelationIdMiddleware`: UUID generation and injection
-   - X-Correlation-ID response headers
-   - Request/response logging
+    - FastAPI application with logging setup
+    - `CorrelationIdMiddleware`: UUID generation and injection
+    - X-Correlation-ID response headers
+    - Request/response logging
 
 4. **.env.example** (42 lines)
-   - LOG_LEVEL configuration example
-   - Future config placeholders (database, Redis, S3, ML)
+    - LOG_LEVEL configuration example
+    - Future config placeholders (database, Redis, S3, ML)
 
 5. **tests/core/test_logging.py** (283 lines)
-   - 18 unit tests covering all functionality
-   - 100% coverage on app/core/logging.py
-   - Tests for JSON output, correlation IDs, log levels, extra fields
+    - 18 unit tests covering all functionality
+    - 100% coverage on app/core/logging.py
+    - Tests for JSON output, correlation IDs, log levels, extra fields
 
 6. **.pre-commit-config.yaml** (updated)
-   - Added local hook to block print() in app/ directory
-   - Verified blocking behavior
+    - Added local hook to block print() in app/ directory
+    - Verified blocking behavior
 
 7. **requirements.txt** (updated)
-   - Added structlog==25.4.0
+    - Added structlog==25.4.0
 
 ### Test Results
 
@@ -293,6 +313,7 @@ Coverage: 100% on app/core/logging.py
 ```
 
 **Test Coverage:**
+
 - Logger configuration (3 tests)
 - Correlation ID management (4 tests)
 - Structured JSON output (5 tests)
@@ -409,6 +430,7 @@ def process_photo(self, photo_id: int, correlation_id: str):
 ### Dependencies Unblocked
 
 All cards requiring logging can now proceed:
+
 - F005: Exception Taxonomy
 - All service cards (S001-S042)
 - All ML pipeline cards (ML001-ML012)

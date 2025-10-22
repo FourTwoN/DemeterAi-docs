@@ -1,6 +1,7 @@
 # [C026] Login Endpoint - POST /api/auth/login
 
 ## Metadata
+
 - **Epic**: epic-003-backend-implementation.md
 - **Sprint**: Sprint-02 (Week 5-6)
 - **Status**: `backlog`
@@ -9,8 +10,8 @@
 - **Area**: `backend/controllers`
 - **Assignee**: TBD
 - **Dependencies**:
-  - Blocks: [SCH009, SCH019]
-  - Blocked by: [SVC012-user-service, DB028-users-model]
+    - Blocks: [SCH009, SCH019]
+    - Blocked by: [SVC012-user-service, DB028-users-model]
 
 ## Description
 
@@ -54,6 +55,7 @@ async def login(
 **Coverage Target**: ≥90%
 
 ## Time Tracking
+
 - **Estimated**: 2 story points
 
 ---

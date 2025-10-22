@@ -12,11 +12,13 @@
 **What**: Users table stores authentication credentials and role-based permissions
 **Why**: Foundation for audit trails, user actions, and access control
 **Where in System**:
+
 ```
 User Auth → JWT Token → API Request → User ID → Audit Trail (stock_movements, photo_sessions)
 ```
 
-**Key Insight**: This is NOT a full auth system (no OAuth, social login) - just basic user management for internal staff
+**Key Insight**: This is NOT a full auth system (no OAuth, social login) - just basic user
+management for internal staff
 
 ---
 
@@ -112,6 +114,7 @@ class User(Base):
 ```
 
 **Key Decisions**:
+
 - `email` unique + indexed: Primary login identifier
 - `password_hash`: bcrypt format (60 chars, $2b$ prefix)
 - `role` enum: 4 levels (admin > supervisor > worker > viewer)
@@ -172,10 +175,12 @@ def downgrade():
 ```
 
 **Seed Data**:
+
 - Default admin: `admin@demeter.ai` / `admin123` (bcrypt hashed)
 - **IMPORTANT**: Change password in production!
 
 **Indexes Rationale**:
+
 - `email` unique: Login lookup
 - `role`: Filter by role (admin actions, reports)
 - `active`: Filter active users only
@@ -187,6 +192,7 @@ def downgrade():
 #### Unit Tests (`tests/unit/models/test_user.py`)
 
 **Test Cases** (14 tests):
+
 1. `test_user_creation` - Basic instantiation
 2. `test_email_validation_valid` - Valid email formats
 3. `test_email_validation_invalid` - Invalid email formats
@@ -205,6 +211,7 @@ def downgrade():
 #### Integration Tests (`tests/integration/test_user_db.py`)
 
 **Test Cases** (10 tests):
+
 1. `test_insert_user_with_all_fields`
 2. `test_insert_user_with_minimal_fields`
 3. `test_query_by_email`
@@ -252,6 +259,7 @@ ROLE_PERMISSIONS = {
 ```
 
 **Usage** (in service layer):
+
 ```python
 def check_permission(user: User, action: str):
     if user.role == 'admin':
@@ -264,6 +272,7 @@ def check_permission(user: User, action: str):
 ## Execution Checklist
 
 ### Python Expert Tasks (25 min)
+
 - [ ] Create `app/models/user.py` with complete model
 - [ ] Add email validation (regex pattern)
 - [ ] Add password_hash validation (bcrypt format)
@@ -276,6 +285,7 @@ def check_permission(user: User, action: str):
 - [ ] Run pre-commit hooks (ruff, mypy)
 
 ### Testing Expert Tasks (20 min, PARALLEL)
+
 - [ ] Write 14 unit tests in `test_user.py`
 - [ ] Write 10 integration tests in `test_user_db.py`
 - [ ] Test email validation (valid/invalid formats)
@@ -289,6 +299,7 @@ def check_permission(user: User, action: str):
 - [ ] All tests pass
 
 ### Team Leader Review (5 min)
+
 - [ ] Verify ERD alignment (database.mmd line 195-206)
 - [ ] Check email uniqueness (unique constraint)
 - [ ] Validate role enum (4 values)
@@ -301,53 +312,53 @@ def check_permission(user: User, action: str):
 ## Known Edge Cases
 
 1. **Duplicate email (case-insensitive)**
-   - Scenario: "user@example.com" vs "User@Example.Com"
-   - Solution: Normalize to lowercase in validation
-   - Test: INSERT both, expect unique constraint violation
+    - Scenario: "user@example.com" vs "User@Example.Com"
+    - Solution: Normalize to lowercase in validation
+    - Test: INSERT both, expect unique constraint violation
 
 2. **Inactive user login attempt**
-   - Scenario: User with active=False tries to login
-   - Solution: Auth service checks active flag before JWT generation
-   - Model: Just store flag, business logic in service
+    - Scenario: User with active=False tries to login
+    - Solution: Auth service checks active flag before JWT generation
+    - Model: Just store flag, business logic in service
 
 3. **NULL last_login for new users**
-   - Scenario: User created but never logged in
-   - Solution: Allow NULL (nullable=True)
-   - Update: Set last_login on first successful login
+    - Scenario: User created but never logged in
+    - Solution: Allow NULL (nullable=True)
+    - Update: Set last_login on first successful login
 
 4. **Password hash storage (NOT plain text)**
-   - Scenario: Developer accidentally stores plain text password
-   - Solution: Validation checks bcrypt format ($2b$ prefix, 60 chars)
-   - Service: Use bcrypt.hashpw() before storing
+    - Scenario: Developer accidentally stores plain text password
+    - Solution: Validation checks bcrypt format ($2b$ prefix, 60 chars)
+    - Service: Use bcrypt.hashpw() before storing
 
 5. **Orphaned relationships when user deleted**
-   - Scenario: Delete user, what happens to their stock_movements?
-   - Solution: Use SET NULL on FKs (audit trail preserved, user anonymized)
-   - Alternative: Soft delete (active=False) instead of DELETE
+    - Scenario: Delete user, what happens to their stock_movements?
+    - Solution: Use SET NULL on FKs (audit trail preserved, user anonymized)
+    - Alternative: Soft delete (active=False) instead of DELETE
 
 ---
 
 ## Security Considerations
 
 1. **Password Hashing**:
-   - Use bcrypt with cost factor 12 (balance security vs performance)
-   - Never store plain text passwords
-   - Validate hash format in model (60 chars, $2b$ prefix)
+    - Use bcrypt with cost factor 12 (balance security vs performance)
+    - Never store plain text passwords
+    - Validate hash format in model (60 chars, $2b$ prefix)
 
 2. **Email Privacy**:
-   - Store emails in lowercase (consistent lookup)
-   - Consider PII regulations (GDPR, CCPA) for data retention
-   - Implement soft delete (active=False) to preserve audit trail
+    - Store emails in lowercase (consistent lookup)
+    - Consider PII regulations (GDPR, CCPA) for data retention
+    - Implement soft delete (active=False) to preserve audit trail
 
 3. **Role Escalation**:
-   - Only admins can change user roles (enforce in service layer)
-   - Log all role changes for audit
-   - Prevent self-role-escalation (admin promoting themselves)
+    - Only admins can change user roles (enforce in service layer)
+    - Log all role changes for audit
+    - Prevent self-role-escalation (admin promoting themselves)
 
 4. **Session Management**:
-   - last_login tracks activity
-   - Consider adding "last_logout" for session duration tracking
-   - JWT tokens should check active flag (reject inactive users)
+    - last_login tracks activity
+    - Consider adding "last_logout" for session duration tracking
+    - JWT tokens should check active flag (reject inactive users)
 
 ---
 
@@ -405,11 +416,14 @@ def check_permission(user: User, action: str):
 ---
 
 ## Python Expert Progress (2025-10-14 12:10)
+
 **Status**: ✅ COMPLETE - Ready for Testing Expert
 
 ### Completed (25 minutes)
+
 - [✅] Created `app/models/user.py` (388 lines)
-- [✅] Implemented User model with all fields (id, email, password_hash, first_name, last_name, role, active, last_login, created_at, updated_at)
+- [✅] Implemented User model with all fields (id, email, password_hash, first_name, last_name, role,
+  active, last_login, created_at, updated_at)
 - [✅] Added UserRoleEnum class (admin, supervisor, worker, viewer)
 - [✅] Email validation with regex pattern + lowercase normalization
 - [✅] Password hash validation (bcrypt $2b$12$ format, 60 chars)
@@ -419,16 +433,18 @@ def check_permission(user: User, action: str):
 - [✅] Migration creates indexes (email unique, role, active)
 - [✅] Migration seeds default admin user (admin@demeter.ai / admin123)
 - [✅] Updated `app/models/__init__.py` with User export
-- [✅] All relationships COMMENTED OUT (not ready: StockMovement, PhotoProcessingSession, S3Image, ProductSampleImage)
+- [✅] All relationships COMMENTED OUT (not ready: StockMovement, PhotoProcessingSession, S3Image,
+  ProductSampleImage)
 - [✅] mypy --strict: PASS (no issues)
 - [✅] ruff check: PASS (all checks passed)
 - [✅] Manual validation tests: PASS
-  - Email normalization: "TEST@EXAMPLE.COM" → "test@example.com" ✅
-  - Invalid email rejected: "invalid-email" → ValueError ✅
-  - Plain text password rejected: "plain_text_password" → ValueError ✅
-  - Full name property: "Test User" ✅
+    - Email normalization: "TEST@EXAMPLE.COM" → "test@example.com" ✅
+    - Invalid email rejected: "invalid-email" → ValueError ✅
+    - Plain text password rejected: "plain_text_password" → ValueError ✅
+    - Full name property: "Test User" ✅
 
 ### Architecture Compliance
+
 - [✅] Service→Service pattern: N/A (model only, no services yet)
 - [✅] Type hints: All public methods have type hints
 - [✅] Async/await: N/A (SQLAlchemy model)
@@ -437,13 +453,17 @@ def check_permission(user: User, action: str):
 - [✅] Dependency injection: N/A (model only)
 
 ### Files Created
+
 1. `/home/lucasg/proyectos/DemeterDocs/app/models/user.py` (388 lines)
-2. `/home/lucasg/proyectos/DemeterDocs/alembic/versions/6kp8m3q9n5rt_create_users_table.py` (148 lines)
+2. `/home/lucasg/proyectos/DemeterDocs/alembic/versions/6kp8m3q9n5rt_create_users_table.py` (148
+   lines)
 
 ### Files Modified
+
 1. `/home/lucasg/proyectos/DemeterDocs/app/models/__init__.py` (added User, UserRoleEnum exports)
 
 ### Key Decisions
+
 1. **Email normalization**: Auto-convert to lowercase in @validates decorator
 2. **Bcrypt validation**: Strict format check ($2b$ prefix, 60 chars) prevents plain text storage
 3. **Soft delete**: active flag instead of DELETE (preserves audit trail)
@@ -451,6 +471,7 @@ def check_permission(user: User, action: str):
 5. **Relationships**: ALL commented out (DB007, DB010, DB012, DB020 not ready)
 
 ### Next Steps (Testing Expert)
+
 - [ ] Write 14 unit tests (`tests/unit/models/test_user.py`)
 - [ ] Write 10 integration tests (`tests/integration/test_user_db.py`)
 - [ ] Test email validation (valid/invalid formats)

@@ -6,7 +6,9 @@
 
 ## Purpose
 
-This diagram provides an **executive-level view** of the complete warehouse map navigation system, enabling users to visualize warehouses geographically, explore internal structures, view storage locations, and analyze historical data with progressive detail levels.
+This diagram provides an **executive-level view** of the complete warehouse map navigation system,
+enabling users to visualize warehouses geographically, explore internal structures, view storage
+locations, and analyze historical data with progressive detail levels.
 
 ## Scope
 
@@ -17,61 +19,66 @@ This diagram provides an **executive-level view** of the complete warehouse map 
 
 ## What It Represents
 
-The diagram illustrates a **three-tier progressive detail system** for warehouse visualization and navigation:
+The diagram illustrates a **three-tier progressive detail system** for warehouse visualization and
+navigation:
 
 ### 1. Map Overview (Level 1) - Geographic View
+
 **User goal:** See all warehouses on a map with summary metrics
 
 - **PostGIS polygon rendering**: All warehouses displayed as colored polygons
 - **Summary metrics per warehouse**:
-  - Total errors count
-  - Total claros (storage_locations) count
-  - Total naves (storage_areas) count
+    - Total errors count
+    - Total claros (storage_locations) count
+    - Total naves (storage_areas) count
 - **Interactive map**: Click warehouse polygon → drill down to internal view
 - **Technology**: React + Leaflet + PostGIS GeoJSON
 
 ### 2. Warehouse Internal Structure (Level 2) - Storage Areas View
+
 **User goal:** Explore internal organization of selected warehouse
 
 - **Storage areas (canteros)**: Display areas by position (Norte, Sur, Este, Oeste, Centro)
 - **Storage locations grid**: All claros within selected warehouse
 - **Preview cards** for each storage_location showing:
-  - Quantity (total plants)
-  - Maceta type (pot/container type)
-  - Current value (monetary value)
-  - Última foto (last photo timestamp)
-  - Increase/decrease indicators (compared to previous photo)
-  - Valor potencial (potential value based on growth)
+    - Quantity (total plants)
+    - Maceta type (pot/container type)
+    - Current value (monetary value)
+    - Última foto (last photo timestamp)
+    - Increase/decrease indicators (compared to previous photo)
+    - Valor potencial (potential value based on growth)
 - **Click action**: Click preview card → full detail view
 
 ### 3. Storage Location Detail (Level 3) - Full Detail View
+
 **User goal:** See complete information about a specific storage_location
 
 - **Processed image**: Latest photo with ML detections (bounding boxes)
 - **Detection results**:
-  - Total quantity by category (cactus, suculenta, injerto)
-  - Empty containers count
-  - Average confidence score
+    - Total quantity by category (cactus, suculenta, injerto)
+    - Empty containers count
+    - Average confidence score
 - **Financial data**:
-  - Current price per unit
-  - Total cost (quantity × price)
-  - Potential value (estimated future value)
+    - Current price per unit
+    - Total cost (quantity × price)
+    - Potential value (estimated future value)
 - **Container data**: Maceta types distribution
 - **Quality metrics**: Quality score with optional graphs
 - **Navigation options**: Configure location, view analytics
 
 ### 4. Historical Timeline (Level 4) - Evolution Over Time
+
 **User goal:** Track storage_location changes over time
 
 - **Photo periods**: Fotos taken every 3 months
 - **Per period metrics**:
-  - Fecha (date)
-  - Cantidad inicial (starting quantity)
-  - Muertes (deaths/losses)
-  - Transplantes (transplants out)
-  - Plantados (new plantings)
-  - Cantidad vendida (quantity sold)
-  - Cantidad final (ending quantity)
+    - Fecha (date)
+    - Cantidad inicial (starting quantity)
+    - Muertes (deaths/losses)
+    - Transplantes (transplants out)
+    - Plantados (new plantings)
+    - Cantidad vendida (quantity sold)
+    - Cantidad final (ending quantity)
 - **Full traceability**: Complete audit trail
 - **Visual timeline**: Graph showing quantity evolution
 
@@ -80,18 +87,21 @@ The diagram illustrates a **three-tier progressive detail system** for warehouse
 ### Level 1: Map Overview Features
 
 **Geographic Visualization:**
+
 - PostGIS polygons for each warehouse (stored as geometry type)
 - Color coding by warehouse type (greenhouse, shadehouse, open_field, tunnel)
 - Hover tooltip showing warehouse name and summary stats
 - Zoom/pan controls for large facilities
 
 **Summary Metrics:**
+
 - **Errors count**: Total processing errors or warnings
 - **Claros count**: Total storage_locations in warehouse
 - **Naves count**: Total storage_areas in warehouse
 - **Active status**: Visual indicator for active/inactive warehouses
 
 **Performance Optimization:**
+
 - **Bulk load on app init**: Load all warehouse + internal structure data at once
 - **Materialized views**: Pre-aggregated metrics for fast rendering
 - **GeoJSON caching**: Cache polygon coordinates (rarely change)
@@ -100,11 +110,13 @@ The diagram illustrates a **three-tier progressive detail system** for warehouse
 ### Level 2: Warehouse Internal Structure Features
 
 **Storage Areas Display:**
+
 - Grid or map layout showing canteros (N, S, E, O, C)
 - Color coding by utilization rate
 - Click area to filter storage_locations
 
 **Storage Location Preview Cards:**
+
 - **Thumbnail**: Small image from última foto
 - **Quantity badge**: Current plant count with trend arrow (↑↓)
 - **Maceta icon**: Visual indicator of container type
@@ -113,11 +125,13 @@ The diagram illustrates a **three-tier progressive detail system** for warehouse
 - **Status indicator**: Color badge (green=healthy, yellow=warning, red=error)
 
 **Filtering & Search:**
+
 - Filter by storage_area (cantero)
 - Search by storage_location code/name
 - Sort by: quantity, value, last_updated, errors
 
 **Performance Optimization:**
+
 - **Already loaded**: Data fetched during initial bulk load
 - **Lazy rendering**: Render preview cards as user scrolls (virtualization)
 - **Thumbnail URLs**: Presigned S3 URLs from bulk load response
@@ -126,39 +140,46 @@ The diagram illustrates a **three-tier progressive detail system** for warehouse
 ### Level 3: Storage Location Detail Features
 
 **Image Display:**
+
 - Full-size processed image with ML detections
 - Bounding boxes color-coded by category
 - Zoom/pan controls
 - Toggle annotations on/off
 
 **Detection Breakdown:**
+
 - **By category**: Cactus count, Suculenta count, Injerto count
 - **Empty containers**: Count of empty pots
 - **Confidence scores**: Average and distribution
 - **Manual adjustments**: User can add/remove detections
 
 **Financial Information:**
+
 - Current price per unit (from product catalog)
 - Total cost calculation (quantity × price)
 - Potential value (based on growth stage and market trends)
 - ROI indicators
 
 **Container Distribution:**
+
 - Pie chart or bar chart showing maceta types
 - Count per maceta size (8cm, 10cm, 12cm, etc.)
 
 **Quality Metrics:**
+
 - Overall quality score (0-100)
 - Optional graphs: quality trend over time
 - Health indicators (growth rate, mortality rate)
 
 **Action Buttons:**
+
 - **Configure**: Edit storage_location settings
 - **View Analytics**: Navigate to analytics dashboard
 - **View History**: Open historical timeline
 - **Take Photo**: Trigger new photo capture
 
 **Performance Optimization:**
+
 - **Fetch on demand**: Only load detail data when user clicks preview card
 - **Separate API call**: `/api/v1/storage-locations/{id}/detail`
 - **Response time target**: < 300ms
@@ -168,11 +189,13 @@ The diagram illustrates a **three-tier progressive detail system** for warehouse
 ### Level 4: Historical Timeline Features
 
 **Timeline View:**
+
 - Horizontal timeline showing all photo periods
 - Each period represented as a card or timeline node
 - Click period to expand details
 
 **Period Details:**
+
 - **Fecha**: Start and end date of period
 - **Foto**: Thumbnail of photo from that period
 - **Cantidad inicial**: Starting quantity (from previous period's end)
@@ -183,17 +206,20 @@ The diagram illustrates a **three-tier progressive detail system** for warehouse
 - **Cantidad final**: Ending quantity (should match next period's start)
 
 **Visualizations:**
+
 - Line chart showing quantity over time
 - Stacked bar chart showing movements by type
 - Cumulative mortality rate
 - Growth rate trend
 
 **Traceability:**
+
 - Link each movement to source transaction (stock_movements table)
 - Show user who made each change
 - Audit trail for compliance
 
 **Performance Optimization:**
+
 - **Separate API call**: `/api/v1/storage-locations/{id}/history`
 - **Fetch on demand**: Only load when user clicks "View History"
 - **Response time target**: < 500ms
@@ -205,6 +231,7 @@ The diagram illustrates a **three-tier progressive detail system** for warehouse
 ### Core Tables
 
 #### warehouses
+
 ```sql
 CREATE TABLE warehouses (
     id SERIAL PRIMARY KEY,
@@ -225,6 +252,7 @@ CREATE INDEX idx_warehouses_active ON warehouses(active);
 ```
 
 #### storage_areas
+
 ```sql
 CREATE TABLE storage_areas (
     id SERIAL PRIMARY KEY,
@@ -247,6 +275,7 @@ CREATE INDEX idx_storage_areas_position ON storage_areas(warehouse_id, position)
 ```
 
 #### storage_locations
+
 ```sql
 CREATE TABLE storage_locations (
     id SERIAL PRIMARY KEY,
@@ -270,6 +299,7 @@ CREATE INDEX idx_storage_locations_qr ON storage_locations(qr_code);
 ```
 
 #### photo_processing_sessions
+
 ```sql
 CREATE TABLE photo_processing_sessions (
     id SERIAL PRIMARY KEY,
@@ -298,6 +328,7 @@ CREATE INDEX idx_sessions_status ON photo_processing_sessions(status);
 ```
 
 #### stock_batches
+
 ```sql
 CREATE TABLE stock_batches (
     id SERIAL PRIMARY KEY,
@@ -318,6 +349,7 @@ CREATE INDEX idx_stock_batches_quality ON stock_batches(quality_score DESC);
 ```
 
 #### stock_movements
+
 ```sql
 CREATE TABLE stock_movements (
     id SERIAL PRIMARY KEY,
@@ -344,6 +376,7 @@ CREATE INDEX idx_stock_movements_location_to ON stock_movements(to_location_id);
 ### Materialized Views for Performance
 
 #### mv_warehouse_summary
+
 Pre-aggregated warehouse metrics for map overview.
 
 ```sql
@@ -384,6 +417,7 @@ REFRESH MATERIALIZED VIEW CONCURRENTLY mv_warehouse_summary;
 ```
 
 #### mv_storage_location_preview
+
 Pre-aggregated storage_location data for preview cards.
 
 ```sql
@@ -463,6 +497,7 @@ CREATE INDEX idx_mv_location_preview_date ON mv_storage_location_preview(last_ph
 **Refresh strategy:** Refresh every 10 minutes or after photo processing completes.
 
 #### mv_storage_location_history
+
 Pre-aggregated historical timeline data.
 
 ```sql
@@ -521,15 +556,18 @@ CREATE INDEX idx_mv_location_history_fecha ON mv_storage_location_history(fecha 
 ### Level 1: Map Overview
 
 #### GET /api/v1/map/bulk-load
+
 Bulk load all warehouse and storage_location data for initial app load.
 
 **Request:**
+
 ```http
 GET /api/v1/map/bulk-load HTTP/1.1
 Authorization: Bearer <token>
 ```
 
 **Response:**
+
 ```json
 {
   "warehouses": [
@@ -597,12 +635,14 @@ Authorization: Bearer <token>
 ```
 
 **Performance:**
+
 - Response time: < 1000ms (bulk data)
 - Payload size: ~500KB - 2MB (compressed)
 - Cache: Redis cache for 10 minutes (materialized views refreshed every 10 min)
 - Compression: GZIP enabled
 
 **Notes:**
+
 - Single API call loads everything for levels 1 and 2
 - Frontend caches this data locally (IndexedDB or state management)
 - Only refresh when user manually triggers or after 10 minutes
@@ -617,15 +657,18 @@ Frontend filters and displays data from cached bulk load response.
 ### Level 3: Storage Location Detail
 
 #### GET /api/v1/storage-locations/{id}/detail
+
 Fetch detailed information for a specific storage_location.
 
 **Request:**
+
 ```http
 GET /api/v1/storage-locations/1/detail HTTP/1.1
 Authorization: Bearer <token>
 ```
 
 **Response:**
+
 ```json
 {
   "storage_location": {
@@ -702,6 +745,7 @@ Authorization: Bearer <token>
 ```
 
 **Performance:**
+
 - Response time: < 300ms
 - Cache: Redis cache for 1 hour (invalidated on new photo)
 - Fetch on demand: Only load when user clicks preview card
@@ -709,15 +753,18 @@ Authorization: Bearer <token>
 ### Level 4: Historical Timeline
 
 #### GET /api/v1/storage-locations/{id}/history
+
 Fetch historical timeline for a storage_location.
 
 **Request:**
+
 ```http
 GET /api/v1/storage-locations/1/history?page=1&per_page=12 HTTP/1.1
 Authorization: Bearer <token>
 ```
 
 **Response:**
+
 ```json
 {
   "storage_location": {
@@ -773,6 +820,7 @@ Authorization: Bearer <token>
 ```
 
 **Performance:**
+
 - Response time: < 500ms
 - Cache: Redis cache for 1 day (materialized view refreshed daily)
 - Pagination: 12 periods per page (3 years of quarterly data)
@@ -781,6 +829,7 @@ Authorization: Bearer <token>
 ## PostGIS Queries
 
 ### Query 1: Get All Warehouses as GeoJSON
+
 ```sql
 SELECT
     id,
@@ -796,6 +845,7 @@ WHERE active = true;
 ```
 
 ### Query 2: Get Warehouses Within Bounds (Map Viewport)
+
 ```sql
 SELECT
     ws.warehouse_id,
@@ -819,6 +869,7 @@ AND ws.active = true;
 ```
 
 ### Query 3: Find Storage Location by GPS Coordinates
+
 ```sql
 SELECT
     sl.id,
@@ -846,6 +897,7 @@ LIMIT 1;
 ## Frontend Components (React + Leaflet)
 
 ### Component 1: MapOverview
+
 Main map component displaying all warehouses.
 
 ```typescript
@@ -945,6 +997,7 @@ export const MapOverview: React.FC = () => {
 ```
 
 ### Component 2: WarehouseInternalView
+
 Display storage areas and storage locations with preview cards.
 
 ```typescript
@@ -1030,6 +1083,7 @@ export const WarehouseInternalView: React.FC = () => {
 ```
 
 ### Component 3: StorageLocationPreviewCard
+
 Preview card component for storage_location.
 
 ```typescript
@@ -1128,6 +1182,7 @@ export const StorageLocationPreviewCard: React.FC<Props> = ({ location, onClick 
 ```
 
 ### Component 4: StorageLocationDetail
+
 Full detail view for storage_location.
 
 ```typescript
@@ -1258,6 +1313,7 @@ export const StorageLocationDetail: React.FC = () => {
 ```
 
 ### Component 5: HistoricalTimeline
+
 Historical timeline component.
 
 ```typescript
@@ -1381,73 +1437,78 @@ export const HistoricalTimeline: React.FC = () => {
 ## Performance Optimization Strategy
 
 ### Initial Load (Levels 1-2)
+
 **Strategy: Bulk Load Everything**
 
 1. **Single API call** on app init: `/api/v1/map/bulk-load`
 2. **Returns:**
-   - All warehouses with summary metrics
-   - All storage_areas
-   - All storage_locations with preview data
+    - All warehouses with summary metrics
+    - All storage_areas
+    - All storage_locations with preview data
 3. **Frontend caching:**
-   - Store in global state (Redux, Zustand, Context)
-   - Or IndexedDB for persistence
+    - Store in global state (Redux, Zustand, Context)
+    - Or IndexedDB for persistence
 4. **Refresh strategy:**
-   - Manual refresh button
-   - Auto-refresh every 10 minutes (materialized view refresh interval)
+    - Manual refresh button
+    - Auto-refresh every 10 minutes (materialized view refresh interval)
 5. **Benefits:**
-   - Fast navigation between map and warehouse views (no loading)
-   - Smooth user experience
-   - Reduced server load (fewer requests)
+    - Fast navigation between map and warehouse views (no loading)
+    - Smooth user experience
+    - Reduced server load (fewer requests)
 
 ### Detail View (Level 3)
+
 **Strategy: Fetch On-Demand**
 
 1. **Separate API call** when user clicks preview card: `/api/v1/storage-locations/{id}/detail`
 2. **Returns:**
-   - Full detection results
-   - Processed image URLs
-   - Financial data
-   - Quality metrics
+    - Full detection results
+    - Processed image URLs
+    - Financial data
+    - Quality metrics
 3. **Why not bulk load:**
-   - Detail data is large (detections, images)
-   - User won't view all locations
-   - Would slow down initial load
+    - Detail data is large (detections, images)
+    - User won't view all locations
+    - Would slow down initial load
 4. **Caching:**
-   - Redis cache for 1 hour
-   - Frontend cache for session duration
+    - Redis cache for 1 hour
+    - Frontend cache for session duration
 5. **Benefits:**
-   - Fast initial load
-   - Only fetch what's needed
-   - Better bandwidth usage
+    - Fast initial load
+    - Only fetch what's needed
+    - Better bandwidth usage
 
 ### History View (Level 4)
+
 **Strategy: Fetch On-Demand**
 
 1. **Separate API call** when user clicks "View History": `/api/v1/storage-locations/{id}/history`
 2. **Returns:**
-   - Historical periods (paginated)
-   - Period thumbnails
-   - Movement aggregates
+    - Historical periods (paginated)
+    - Period thumbnails
+    - Movement aggregates
 3. **Why not bulk load:**
-   - History is rarely viewed
-   - Data is large (many periods)
-   - Not needed for main workflows
+    - History is rarely viewed
+    - Data is large (many periods)
+    - Not needed for main workflows
 4. **Caching:**
-   - Redis cache for 1 day
-   - Materialized view refreshed daily
+    - Redis cache for 1 day
+    - Materialized view refreshed daily
 5. **Benefits:**
-   - Minimal initial load time
-   - History available when needed
-   - Reduced memory footprint
+    - Minimal initial load time
+    - History available when needed
+    - Reduced memory footprint
 
 ### Database Optimization
 
 #### Materialized Views
+
 - **mv_warehouse_summary**: Refresh every 5 minutes
 - **mv_storage_location_preview**: Refresh every 10 minutes
 - **mv_storage_location_history**: Refresh daily at midnight
 
 **Refresh commands:**
+
 ```sql
 -- Scheduled via cron job or pg_cron extension
 SELECT cron.schedule('refresh-warehouse-summary', '*/5 * * * *', 'REFRESH MATERIALIZED VIEW CONCURRENTLY mv_warehouse_summary');
@@ -1456,13 +1517,16 @@ SELECT cron.schedule('refresh-location-history', '0 0 * * *', 'REFRESH MATERIALI
 ```
 
 #### Indexes
+
 All critical indexes created on:
+
 - Foreign keys
 - PostGIS geometry columns (GIST indexes)
 - Date/timestamp columns
 - Status/type filter columns
 
 #### Query Optimization
+
 - **Bulk load**: Single query joins multiple tables
 - **Detail view**: Optimized with covering indexes
 - **History view**: Pre-aggregated in materialized view
@@ -1470,6 +1534,7 @@ All critical indexes created on:
 ### Redis Caching Strategy
 
 #### Cache Keys
+
 ```
 # Bulk load cache
 cache:map:bulk-load -> TTL: 10 minutes
@@ -1485,6 +1550,7 @@ cache:job:{job_id}:status -> TTL: 1 second
 ```
 
 #### Invalidation Strategy
+
 - **Bulk load**: Auto-expire after 10 minutes OR manual invalidate after photo processing
 - **Detail**: Invalidate after new photo processed for that location
 - **History**: Invalidate after stock movement transaction
@@ -1492,6 +1558,7 @@ cache:job:{job_id}:status -> TTL: 1 second
 ## User Experience Flow
 
 ### Flow 1: Browse Warehouses → View Internal Structure
+
 1. **User opens app** → Map overview loads (1-2 seconds bulk load)
 2. **Map displays all warehouses** as colored polygons with metrics
 3. **User clicks warehouse** → Instant navigation to internal view (data already cached)
@@ -1502,6 +1569,7 @@ cache:job:{job_id}:status -> TTL: 1 second
 **Total time: < 2 seconds from open to browsing**
 
 ### Flow 2: View Storage Location Detail
+
 1. **User clicks preview card** → API call to fetch detail (300ms)
 2. **Detail view opens** showing processed image, detections, financials
 3. **User examines data** → All info displayed, no further loading
@@ -1511,6 +1579,7 @@ cache:job:{job_id}:status -> TTL: 1 second
 **Total time: 300ms for detail, 500ms additional for history**
 
 ### Flow 3: Navigate Between Locations
+
 1. **User views location A detail** → Data fetched and cached
 2. **User goes back** → Returns to warehouse internal (cached)
 3. **User clicks location B** → API call for detail (300ms, cached in Redis)
@@ -1528,13 +1597,14 @@ cache:job:{job_id}:status -> TTL: 1 second
 
 ## Version History
 
-| Version | Date | Changes |
-|---------|------|---------|
-| 1.0.0 | 2025-10-08 | Initial comprehensive overview |
+| Version | Date       | Changes                        |
+|---------|------------|--------------------------------|
+| 1.0.0   | 2025-10-08 | Initial comprehensive overview |
 
 ---
 
 **Notes:**
+
 - Progressive detail system: Map → Warehouse → Location → History
 - Bulk load strategy for levels 1-2 optimizes performance
 - On-demand loading for levels 3-4 reduces initial load time

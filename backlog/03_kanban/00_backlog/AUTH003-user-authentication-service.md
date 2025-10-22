@@ -1,6 +1,7 @@
 # [AUTH003] User Authentication Service
 
 ## Metadata
+
 - **Epic**: epic-009-auth-security
 - **Sprint**: Sprint-05
 - **Status**: `backlog`
@@ -9,26 +10,31 @@
 - **Area**: `authentication`
 - **Assignee**: TBD
 - **Dependencies**:
-  - Blocks: [AUTH006]
-  - Blocked by: [AUTH001, AUTH002, DB028, R001]
+    - Blocks: [AUTH006]
+    - Blocked by: [AUTH001, AUTH002, DB028, R001]
 
 ## Related Documentation
+
 - **Engineering Plan**: ../../engineering_plan/03_architecture_overview.md
 - **Database**: ../../database/database.md (users table)
 
 ## Description
 
-Create user authentication service handling login, logout, and token refresh. Orchestrates JWT token generation, password verification, and user lookup.
+Create user authentication service handling login, logout, and token refresh. Orchestrates JWT token
+generation, password verification, and user lookup.
 
-**What**: Service layer implementing login (email/password) and logout logic, returning JWT tokens for authenticated sessions.
+**What**: Service layer implementing login (email/password) and logout logic, returning JWT tokens
+for authenticated sessions.
 
-**Why**: Centralizes authentication business logic, separating it from HTTP concerns (controllers) and data access (repositories).
+**Why**: Centralizes authentication business logic, separating it from HTTP concerns (controllers)
+and data access (repositories).
 
 **Context**: Works with AUTH001 (JWT), AUTH002 (passwords), and DB028 (user model).
 
 ## Acceptance Criteria
 
-- [ ] **AC1**: `UserAuthenticationService` class in `app/services/auth/user_authentication_service.py`:
+- [ ] **AC1**: `UserAuthenticationService` class in
+  `app/services/auth/user_authentication_service.py`:
   ```python
   class UserAuthenticationService:
       async def login(self, email: str, password: str) -> LoginResponse
@@ -37,10 +43,10 @@ Create user authentication service handling login, logout, and token refresh. Or
   ```
 
 - [ ] **AC2**: Login flow:
-  1. Look up user by email (via UserRepository)
-  2. Verify password (via PasswordHashingService)
-  3. Generate access + refresh tokens (via JWTService)
-  4. Return LoginResponse with tokens and user data
+    1. Look up user by email (via UserRepository)
+    2. Verify password (via PasswordHashingService)
+    3. Generate access + refresh tokens (via JWTService)
+    4. Return LoginResponse with tokens and user data
 
 - [ ] **AC3**: LoginResponse schema:
   ```python
@@ -53,18 +59,19 @@ Create user authentication service handling login, logout, and token refresh. Or
   ```
 
 - [ ] **AC4**: Error handling:
-  - User not found → `UserNotFoundException` (404)
-  - Invalid password → `InvalidCredentialsException` (401)
-  - Account disabled → `AccountDisabledException` (403)
+    - User not found → `UserNotFoundException` (404)
+    - Invalid password → `InvalidCredentialsException` (401)
+    - Account disabled → `AccountDisabledException` (403)
 
 - [ ] **AC5**: Security features:
-  - Failed login attempts logged (for rate limiting future)
-  - No indication whether email or password was wrong (security)
-  - Timing attack prevention (constant-time comparison)
+    - Failed login attempts logged (for rate limiting future)
+    - No indication whether email or password was wrong (security)
+    - Timing attack prevention (constant-time comparison)
 
 ## Technical Implementation Notes
 
 ### Architecture
+
 - Layer: Application (Service)
 - Dependencies: UserRepository, JWTService, PasswordHashingService
 - Pattern: Service orchestration (calls multiple services)
@@ -72,6 +79,7 @@ Create user authentication service handling login, logout, and token refresh. Or
 ### Code Hints
 
 **app/services/auth/user_authentication_service.py:**
+
 ```python
 from app.repositories.user_repository import UserRepository
 from app.services.auth.jwt_service import JWTService
@@ -204,6 +212,7 @@ class UserAuthenticationService:
 ```
 
 **app/schemas/auth_schema.py:**
+
 ```python
 from pydantic import BaseModel, EmailStr
 
@@ -224,6 +233,7 @@ class LoginResponse(TokenPair):
 ### Testing Requirements
 
 **Unit Tests** (`tests/services/auth/test_user_authentication_service.py`):
+
 - [ ] Test successful login returns tokens
 - [ ] Test invalid email raises InvalidCredentialsException
 - [ ] Test invalid password raises InvalidCredentialsException
@@ -233,6 +243,7 @@ class LoginResponse(TokenPair):
 - [ ] Test logout always succeeds
 
 **Test Example**:
+
 ```python
 import pytest
 from app.services.auth.user_authentication_service import UserAuthenticationService
@@ -281,6 +292,7 @@ async def test_invalid_password(auth_service, mock_user_repo):
 ```
 
 ### Performance Expectations
+
 - Login: <500ms (including bcrypt verification ~300ms)
 - Refresh token: <50ms
 - Logout: <10ms
@@ -288,18 +300,19 @@ async def test_invalid_password(auth_service, mock_user_repo):
 ## Handover Briefing
 
 **For the next developer:**
+
 - **Context**: Service layer orchestrates multiple services (JWT, password, user repo)
 - **Key decisions**:
-  - Generic error message for security (don't reveal if email or password wrong)
-  - Logout is no-op with stateless JWT (client deletes tokens)
-  - Refresh token flow generates NEW access token from refresh token
+    - Generic error message for security (don't reveal if email or password wrong)
+    - Logout is no-op with stateless JWT (client deletes tokens)
+    - Refresh token flow generates NEW access token from refresh token
 - **Security considerations**:
-  - Log failed login attempts (future: rate limiting)
-  - Check user.is_active before granting tokens
-  - Don't return different errors for email vs password (timing attacks)
+    - Log failed login attempts (future: rate limiting)
+    - Check user.is_active before granting tokens
+    - Don't return different errors for email vs password (timing attacks)
 - **Next steps after this card**:
-  - AUTH004: Authorization middleware (protect routes)
-  - AUTH006: Login/logout endpoints (controller layer)
+    - AUTH004: Authorization middleware (protect routes)
+    - AUTH006: Login/logout endpoints (controller layer)
 
 ## Definition of Done Checklist
 
@@ -314,6 +327,7 @@ async def test_invalid_password(auth_service, mock_user_repo):
 - [ ] No passwords logged in plaintext
 
 ## Time Tracking
+
 - **Estimated**: 5 story points
 - **Actual**: TBD
 - **Started**: TBD

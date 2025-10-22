@@ -10,7 +10,9 @@
 
 ## Overview
 
-Integration tests verify the **complete SAHI detection workflow** with real images, real YOLO models, and actual SAHI library. These tests validate the **10x improvement** claim and ensure production readiness.
+Integration tests verify the **complete SAHI detection workflow** with real images, real YOLO
+models, and actual SAHI library. These tests validate the **10x improvement** claim and ensure
+production readiness.
 
 ### File Location
 

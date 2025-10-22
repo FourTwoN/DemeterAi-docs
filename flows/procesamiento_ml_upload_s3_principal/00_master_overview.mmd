@@ -13,243 +13,243 @@ config:
   layout: elk
 ---
 flowchart TB
-    %% ═══════════════════════════════════════════════════════════════════════
-    %% DEMETERDOCS - MASTER SYSTEM OVERVIEW
-    %% ═══════════════════════════════════════════════════════════════════════
-    %% Purpose: Executive-level view of ML-powered plant counting pipeline
-    %% Scope: Complete flow from photo upload to stock batch creation
-    %% Detail: High-level only (~50 nodes) - See subflows for implementation
-    %% Updated: 2025-10-07 | Version: 1.0 | Mermaid v11.3.0+
-    %% ═══════════════════════════════════════════════════════════════════════
+%% ═══════════════════════════════════════════════════════════════════════
+%% DEMETERDOCS - MASTER SYSTEM OVERVIEW
+%% ═══════════════════════════════════════════════════════════════════════
+%% Purpose: Executive-level view of ML-powered plant counting pipeline
+%% Scope: Complete flow from photo upload to stock batch creation
+%% Detail: High-level only (~50 nodes) - See subflows for implementation
+%% Updated: 2025-10-07 | Version: 1.0 | Mermaid v11.3.0+
+%% ═══════════════════════════════════════════════════════════════════════
 
-    %% ═══════════════════════════════════════════════════════════════════════
-    %% LAYER 1: CLIENT & API ENTRY POINT
-    %% ═══════════════════════════════════════════════════════════════════════
-    %% Detail: See flows/02_api_entry_detailed.mmd
+%% ═══════════════════════════════════════════════════════════════════════
+%% LAYER 1: CLIENT & API ENTRY POINT
+%% ═══════════════════════════════════════════════════════════════════════
+%% Detail: See flows/02_api_entry_detailed.mmd
 
-    subgraph CLIENT_LAYER["👥 CLIENT LAYER"]
-        direction TB
-        START@{ shape: stadium, label: "📸 User Uploads Photos
+subgraph CLIENT_LAYER["👥 CLIENT LAYER"]
+direction TB
+START@{ shape: stadium, label: "📸 User Uploads Photos
 Web/Mobile Client
 MultipartForm" }
-    end
+end
 
-    subgraph API_LAYER["🎯 API LAYER - FastAPI (Async)"]
-        direction TB
+subgraph API_LAYER["🎯 API LAYER - FastAPI (Async)"]
+direction TB
 
-        API_ENTRY@{ shape: subproc, label: "POST /api/stock/photo
+API_ENTRY@{ shape: subproc, label: "POST /api/stock/photo
 ⏱️ ~200ms
 FastAPI Controller" }
 
-        VALIDATE@{ shape: diamond, label: "Validate Request
+VALIDATE@{ shape: diamond, label: "Validate Request
 Content-Type, Size, Format
 Max 50MB per file" }
 
-        ERROR_400@{ shape: rect, label: "❌ Return 400
+ERROR_400@{ shape: rect, label: "❌ Return 400
 Bad Request Error" }
 
-        GEN_UUID@{ shape: subproc, label: "🔑 Generate UUID v4
+GEN_UUID@{ shape: subproc, label: "🔑 Generate UUID v4
 ⚠️ CRITICAL: UUID as PK
 image_id = uuid4()
 Per photo" }
 
-        SAVE_TEMP@{ shape: rect, label: "💾 Save Temporary
+SAVE_TEMP@{ shape: rect, label: "💾 Save Temporary
 /tmp/uploads/uuid.jpg
 + metadata JSON" }
 
-        INSERT_DB@{ shape: cyl, label: "INSERT s3_images
+INSERT_DB@{ shape: cyl, label: "INSERT s3_images
 status = 'uploaded'
 ⏱️ ~50ms" }
 
-        CHUNK_TASKS@{ shape: subproc, label: "📦 Create Task Chunks
+CHUNK_TASKS@{ shape: subproc, label: "📦 Create Task Chunks
 S3: 20 images/batch
 ML: 1 image/task" }
 
-        LAUNCH_CELERY@{ shape: rect, label: "🚀 Launch Celery Tasks
+LAUNCH_CELERY@{ shape: rect, label: "🚀 Launch Celery Tasks
 ⚡ Parallel dispatch
 S3 + ML queues" }
 
-        RETURN_202@{ shape: stadium, label: "✅ Return 202 Accepted
+RETURN_202@{ shape: stadium, label: "✅ Return 202 Accepted
 task_ids array
 ⏱️ Total: ~300ms" }
-    end
+end
 
-    %% ═══════════════════════════════════════════════════════════════════════
-    %% LAYER 2: CELERY WORKERS - ASYNC PROCESSING
-    %% ═══════════════════════════════════════════════════════════════════════
+%% ═══════════════════════════════════════════════════════════════════════
+%% LAYER 2: CELERY WORKERS - ASYNC PROCESSING
+%% ═══════════════════════════════════════════════════════════════════════
 
-    subgraph CELERY_LAYER["⚙️ CELERY WORKERS - Async Processing"]
-        direction TB
+subgraph CELERY_LAYER["⚙️ CELERY WORKERS - Async Processing"]
+direction TB
 
-        %% ─────────────────────────────────────────────────────────────────────
-        %% S3 Upload Task (I/O Workers - pool=gevent)
-        %% ─────────────────────────────────────────────────────────────────────
-        %% Detail: See flows/03_s3_upload_circuit_breaker_detailed.mmd
+%% ─────────────────────────────────────────────────────────────────────
+%% S3 Upload Task (I/O Workers - pool=gevent)
+%% ─────────────────────────────────────────────────────────────────────
+%% Detail: See flows/03_s3_upload_circuit_breaker_detailed.mmd
 
-        subgraph S3_WORKER["📤 S3 Upload Worker (pool=gevent)"]
-            direction TB
+subgraph S3_WORKER["📤 S3 Upload Worker (pool=gevent)"]
+direction TB
 
-            S3_START@{ shape: circle, label: "⚙️ Task Start
+S3_START@{ shape: circle, label: "⚙️ Task Start
 Chunk of 20 UUIDs" }
 
-            S3_CIRCUIT@{ shape: diamond, label: "Circuit Breaker
+S3_CIRCUIT@{ shape: diamond, label: "Circuit Breaker
 State?" }
 
-            S3_REJECT@{ shape: rect, label: "⚠️ Circuit OPEN
+S3_REJECT@{ shape: rect, label: "⚠️ Circuit OPEN
 Reject + Retry 60s" }
 
-            S3_EXTRACT@{ shape: rect, label: "🔍 Extract EXIF
+S3_EXTRACT@{ shape: rect, label: "🔍 Extract EXIF
 GPS, Timestamp
 Resolution, Camera" }
 
-            S3_UPLOAD@{ shape: subproc, label: "☁️ Upload to S3
+S3_UPLOAD@{ shape: subproc, label: "☁️ Upload to S3
 original/YYYY/MM/DD/
 ⏱️ ~200ms/file
 ServerSideEncryption" }
 
-            S3_THUMB@{ shape: rect, label: "🖼️ Generate Thumbnail
+S3_THUMB@{ shape: rect, label: "🖼️ Generate Thumbnail
 400x400 LANCZOS
 AVIF quality=85
 50% size reduction" }
 
-            S3_UPDATE_DB@{ shape: cyl, label: "UPDATE s3_images
+S3_UPDATE_DB@{ shape: cyl, label: "UPDATE s3_images
 status = 'ready'
 s3_key_thumbnail" }
 
-            S3_END@{ shape: circle, label: "✅ Chunk Complete
+S3_END@{ shape: circle, label: "✅ Chunk Complete
 Return summary" }
-        end
+end
 
-        %% ─────────────────────────────────────────────────────────────────────
-        %% ML Parent Task (GPU Workers - pool=solo)
-        %% ─────────────────────────────────────────────────────────────────────
-        %% Detail: See flows/04_ml_parent_segmentation_detailed.mmd
+%% ─────────────────────────────────────────────────────────────────────
+%% ML Parent Task (GPU Workers - pool=solo)
+%% ─────────────────────────────────────────────────────────────────────
+%% Detail: See flows/04_ml_parent_segmentation_detailed.mmd
 
-        subgraph ML_PARENT_WORKER["🤖 ML Parent - Segmentation (pool=solo GPU)"]
-            direction TB
+subgraph ML_PARENT_WORKER["🤖 ML Parent - Segmentation (pool=solo GPU)"]
+direction TB
 
-            ML_START@{ shape: circle, label: "🎬 Task Start
+ML_START@{ shape: circle, label: "🎬 Task Start
 image_id UUID
 ⏱️ ~2-3min total" }
 
-            ML_LOAD_MODEL@{ shape: subproc, label: "🔧 Load Model Singleton
+ML_LOAD_MODEL@{ shape: subproc, label: "🔧 Load Model Singleton
 YOLO v11 Segmentation
 worker_id % num_gpus
 Cache per GPU worker" }
 
-            ML_GEOLOCATE@{ shape: subproc, label: "📍 Geolocate Image
+ML_GEOLOCATE@{ shape: subproc, label: "📍 Geolocate Image
 Extract GPS from EXIF
 PostGIS ST_Contains
 SP-GiST index" }
 
-            ML_CHECK_WARNING@{ shape: diamond, label: "Warning States?
+ML_CHECK_WARNING@{ shape: diamond, label: "Warning States?
 GPS, Config, Density" }
 
-            ML_WARNING_SESSION@{ shape: rect, label: "⚠️ Create Warning Session
+ML_WARNING_SESSION@{ shape: rect, label: "⚠️ Create Warning Session
 needs_location
 needs_config
 needs_calibration" }
 
-            ML_END_WARNING@{ shape: stadium, label: "⚠️ End with Warning
+ML_END_WARNING@{ shape: stadium, label: "⚠️ End with Warning
 Manual action needed" }
 
-            ML_SEGMENT@{ shape: subproc, label: "🔪 YOLO Segmentation
+ML_SEGMENT@{ shape: subproc, label: "🔪 YOLO Segmentation
 conf=0.30, iou=0.50
 imgsz=1024, half=True
 ⏱️ ~500ms" }
 
-            ML_PROCESS_MASKS@{ shape: rect, label: "📐 Process Masks
+ML_PROCESS_MASKS@{ shape: rect, label: "📐 Process Masks
 Morphological smoothing
 Fill holes, Extract contours" }
 
-            ML_CLASSIFY@{ shape: rect, label: "🏷️ Classify Masks
+ML_CLASSIFY@{ shape: rect, label: "🏷️ Classify Masks
 segment | cajon
 almacigo | plug" }
 
-            ML_BUILD_CHORD@{ shape: subproc, label: "🎼 Build Celery Chord
+ML_BUILD_CHORD@{ shape: subproc, label: "🎼 Build Celery Chord
 SAHI for segments
 Direct for boxes/plugs" }
 
-            ML_SPAWN_CHILDREN@{ shape: rect, label: "⚡ Spawn Child Tasks
+ML_SPAWN_CHILDREN@{ shape: rect, label: "⚡ Spawn Child Tasks
 Parallel execution
 group() pattern" }
-        end
+end
 
-        %% ─────────────────────────────────────────────────────────────────────
-        %% Child Tasks (GPU Workers - pool=solo)
-        %% ─────────────────────────────────────────────────────────────────────
+%% ─────────────────────────────────────────────────────────────────────
+%% Child Tasks (GPU Workers - pool=solo)
+%% ─────────────────────────────────────────────────────────────────────
 
-        subgraph CHILD_WORKERS["🎯 Child Tasks (Parallel - pool=solo GPU)"]
-            direction LR
+subgraph CHILD_WORKERS["🎯 Child Tasks (Parallel - pool=solo GPU)"]
+direction LR
 
-            %% Detail: See flows/05_sahi_detection_child_detailed.mmd
-            CHILD_SAHI@{ shape: subproc, label: "🤖 SAHI Detection
+%% Detail: See flows/05_sahi_detection_child_detailed.mmd
+CHILD_SAHI@{ shape: subproc, label: "🤖 SAHI Detection
 Segments only
 640x640 slices
 20% overlap
 ⏱️ ~1-2min" }
 
-            %% Detail: See flows/06_boxes_plugs_detection_detailed.mmd
-            CHILD_BOXES@{ shape: subproc, label: "📦 Direct Detection
+%% Detail: See flows/06_boxes_plugs_detection_detailed.mmd
+CHILD_BOXES@{ shape: subproc, label: "📦 Direct Detection
 Boxes/Plugs/Seedlings
 No SAHI
 ⏱️ ~30-60s" }
-        end
+end
 
-        %% ─────────────────────────────────────────────────────────────────────
-        %% Callback Task (CPU Workers)
-        %% ─────────────────────────────────────────────────────────────────────
-        %% Detail: See flows/07_callback_aggregate_batches_detailed.mmd
+%% ─────────────────────────────────────────────────────────────────────
+%% Callback Task (CPU Workers)
+%% ─────────────────────────────────────────────────────────────────────
+%% Detail: See flows/07_callback_aggregate_batches_detailed.mmd
 
-        subgraph CALLBACK_WORKER["📊 Callback - Aggregate Results (pool=prefork)"]
-            direction TB
+subgraph CALLBACK_WORKER["📊 Callback - Aggregate Results (pool=prefork)"]
+direction TB
 
-            CALLBACK_START@{ shape: circle, label: "🔔 All Children Done
+CALLBACK_START@{ shape: circle, label: "🔔 All Children Done
 Chord callback triggered" }
 
-            CALLBACK_AGGREGATE@{ shape: subproc, label: "➕ Aggregate Totals
+CALLBACK_AGGREGATE@{ shape: subproc, label: "➕ Aggregate Totals
 detected + estimated
 Weighted avg confidence" }
 
-            CALLBACK_VIZ@{ shape: subproc, label: "🎨 Generate Visualization
+CALLBACK_VIZ@{ shape: subproc, label: "🎨 Generate Visualization
 Draw detections (circles)
 Draw estimations (masks)
 AVIF compression
 ⏱️ ~500ms" }
 
-            CALLBACK_S3_VIZ@{ shape: rect, label: "☁️ Upload Viz to S3
+CALLBACK_S3_VIZ@{ shape: rect, label: "☁️ Upload Viz to S3
 processed/YYYY/MM/DD/
 uuid_viz.avif" }
 
-            CALLBACK_CREATE_BATCHES@{ shape: subproc, label: "📦 Create Stock Batches
+CALLBACK_CREATE_BATCHES@{ shape: subproc, label: "📦 Create Stock Batches
 Group by classification
 Generate batch_code
 LOC-PROD-YYYYMMDD-seq" }
 
-            CALLBACK_VERIFY@{ shape: diamond, label: "Verification
+CALLBACK_VERIFY@{ shape: diamond, label: "Verification
 FKs, Totals, Consistency" }
 
-            CALLBACK_ROLLBACK@{ shape: rect, label: "🔄 Partial Rollback
+CALLBACK_ROLLBACK@{ shape: rect, label: "🔄 Partial Rollback
 DELETE batches
 Keep detections for debug" }
 
-            CALLBACK_SUCCESS@{ shape: cyl, label: "UPDATE session
+CALLBACK_SUCCESS@{ shape: cyl, label: "UPDATE session
 status = 'completed'
 ⏱️ ~200ms" }
 
-            CALLBACK_END@{ shape: stadium, label: "✅ Processing Complete
+CALLBACK_END@{ shape: stadium, label: "✅ Processing Complete
 Notify frontend" }
-        end
-    end
+end
+end
 
-    %% ═══════════════════════════════════════════════════════════════════════
-    %% LAYER 3: STORAGE & DATABASE
-    %% ═══════════════════════════════════════════════════════════════════════
+%% ═══════════════════════════════════════════════════════════════════════
+%% LAYER 3: STORAGE & DATABASE
+%% ═══════════════════════════════════════════════════════════════════════
 
-    subgraph STORAGE_LAYER["💾 STORAGE LAYER"]
-        direction LR
+subgraph STORAGE_LAYER["💾 STORAGE LAYER"]
+direction LR
 
-        DB@{ shape: cyl, label: "PostgreSQL + PostGIS
+DB@{ shape: cyl, label: "PostgreSQL + PostGIS
 Tables:
 • s3_images (UUID PK)
 • photo_processing_sessions
@@ -258,162 +258,162 @@ Tables:
 • stock_batches
 • stock_movements" }
 
-        S3@{ shape: cyl, label: "AWS S3
+S3@{ shape: cyl, label: "AWS S3
 Buckets:
 • original/YYYY/MM/DD/
 • processed/YYYY/MM/DD/
 • thumbnails/" }
 
-        REDIS@{ shape: cyl, label: "Redis
+REDIS@{ shape: cyl, label: "Redis
 Celery broker
 Task results cache" }
-    end
+end
 
-    %% ═══════════════════════════════════════════════════════════════════════
-    %% LAYER 4: FRONTEND POLLING
-    %% ═══════════════════════════════════════════════════════════════════════
-    %% Detail: See flows/08_frontend_polling_detailed.mmd
+%% ═══════════════════════════════════════════════════════════════════════
+%% LAYER 4: FRONTEND POLLING
+%% ═══════════════════════════════════════════════════════════════════════
+%% Detail: See flows/08_frontend_polling_detailed.mmd
 
-    subgraph FRONTEND_LAYER["💻 FRONTEND - Status Polling"]
-        direction TB
+subgraph FRONTEND_LAYER["💻 FRONTEND - Status Polling"]
+direction TB
 
-        FE_POLL@{ shape: rect, label: "⏰ Poll Status Endpoint
+FE_POLL@{ shape: rect, label: "⏰ Poll Status Endpoint
 GET /api/stock/tasks/status
 Every 3s (exp backoff 5min)" }
 
-        FE_QUERY@{ shape: cyl, label: "Query AsyncResult
+FE_QUERY@{ shape: cyl, label: "Query AsyncResult
 Celery task state
 via Redis backend" }
 
-        FE_BUILD_RESPONSE@{ shape: subproc, label: "📦 Build Response
+FE_BUILD_RESPONSE@{ shape: subproc, label: "📦 Build Response
 Join sessions, images, batches
 Construct URLs, metrics" }
 
-        FE_DISPLAY@{ shape: stadium, label: "✅ Display Results
+FE_DISPLAY@{ shape: stadium, label: "✅ Display Results
 Gallery view
 Batch breakdown
 Retry options" }
-    end
+end
 
-    %% ═══════════════════════════════════════════════════════════════════════
-    %% CONNECTIONS - MAIN FLOW
-    %% ═══════════════════════════════════════════════════════════════════════
+%% ═══════════════════════════════════════════════════════════════════════
+%% CONNECTIONS - MAIN FLOW
+%% ═══════════════════════════════════════════════════════════════════════
 
-    %% Client → API
-    START e1@--> API_ENTRY
-    API_ENTRY --> VALIDATE
-    VALIDATE e2@-- "❌ Invalid" --> ERROR_400
-    VALIDATE e3@-- "✅ Valid" --> GEN_UUID
+%% Client → API
+START e1@ --> API_ENTRY
+API_ENTRY --> VALIDATE
+VALIDATE e2@-- " ❌ Invalid " --> ERROR_400
+VALIDATE e3@-- " ✅ Valid " --> GEN_UUID
 
-    %% API Processing (Critical Path)
-    GEN_UUID e4@--> SAVE_TEMP
-    SAVE_TEMP e5@--> INSERT_DB
-    INSERT_DB e6@--> CHUNK_TASKS
-    CHUNK_TASKS e7@--> LAUNCH_CELERY
-    LAUNCH_CELERY e8@--> RETURN_202
+%% API Processing (Critical Path)
+GEN_UUID e4@ --> SAVE_TEMP
+SAVE_TEMP e5@ --> INSERT_DB
+INSERT_DB e6@ --> CHUNK_TASKS
+CHUNK_TASKS e7@ --> LAUNCH_CELERY
+LAUNCH_CELERY e8@ --> RETURN_202
 
-    %% API → Workers (Async Dispatch)
-    LAUNCH_CELERY e9@-. "Async S3 Queue" .-> S3_START
-    LAUNCH_CELERY e10@-. "Async ML Queue" .-> ML_START
+%% API → Workers (Async Dispatch)
+LAUNCH_CELERY e9@-. " Async S3 Queue " .-> S3_START
+LAUNCH_CELERY e10@-. " Async ML Queue " .-> ML_START
 
-    %% S3 Worker Flow
-    S3_START --> S3_CIRCUIT
-    S3_CIRCUIT -- "🔴 OPEN" --> S3_REJECT
-    S3_CIRCUIT -- "🟢 CLOSED" --> S3_EXTRACT
-    S3_EXTRACT --> S3_UPLOAD
-    S3_UPLOAD --> S3_THUMB
-    S3_THUMB --> S3_UPDATE_DB
-    S3_UPDATE_DB --> S3_END
+%% S3 Worker Flow
+S3_START --> S3_CIRCUIT
+S3_CIRCUIT -- " 🔴 OPEN " --> S3_REJECT
+S3_CIRCUIT -- " 🟢 CLOSED" --> S3_EXTRACT
+S3_EXTRACT --> S3_UPLOAD
+S3_UPLOAD --> S3_THUMB
+S3_THUMB --> S3_UPDATE_DB
+S3_UPDATE_DB --> S3_END
 
-    %% ML Parent Worker Flow
-    ML_START --> ML_LOAD_MODEL
-    ML_LOAD_MODEL --> ML_GEOLOCATE
-    ML_GEOLOCATE --> ML_CHECK_WARNING
-    ML_CHECK_WARNING -- "⚠️ Warning" --> ML_WARNING_SESSION
-    ML_WARNING_SESSION --> ML_END_WARNING
-    ML_CHECK_WARNING -- "✅ OK" --> ML_SEGMENT
-    ML_SEGMENT --> ML_PROCESS_MASKS
-    ML_PROCESS_MASKS --> ML_CLASSIFY
-    ML_CLASSIFY --> ML_BUILD_CHORD
-    ML_BUILD_CHORD --> ML_SPAWN_CHILDREN
+%% ML Parent Worker Flow
+ML_START --> ML_LOAD_MODEL
+ML_LOAD_MODEL --> ML_GEOLOCATE
+ML_GEOLOCATE --> ML_CHECK_WARNING
+ML_CHECK_WARNING -- " ⚠️ Warning " --> ML_WARNING_SESSION
+ML_WARNING_SESSION --> ML_END_WARNING
+ML_CHECK_WARNING -- "✅ OK " --> ML_SEGMENT
+ML_SEGMENT --> ML_PROCESS_MASKS
+ML_PROCESS_MASKS --> ML_CLASSIFY
+ML_CLASSIFY --> ML_BUILD_CHORD
+ML_BUILD_CHORD --> ML_SPAWN_CHILDREN
 
-    %% Child Tasks (Parallel)
-    ML_SPAWN_CHILDREN e11@-. "Spawn SAHI" .-> CHILD_SAHI
-    ML_SPAWN_CHILDREN e12@-. "Spawn Direct" .-> CHILD_BOXES
+%% Child Tasks (Parallel)
+ML_SPAWN_CHILDREN e11@-. " Spawn SAHI" .-> CHILD_SAHI
+ML_SPAWN_CHILDREN e12@-. " Spawn Direct" .-> CHILD_BOXES
 
-    %% Children → Callback
-    CHILD_SAHI e13@-. "Complete" .-> CALLBACK_START
-    CHILD_BOXES e14@-. "Complete" .-> CALLBACK_START
+%% Children → Callback
+CHILD_SAHI e13@-. "Complete " .-> CALLBACK_START
+CHILD_BOXES e14@-. " Complete" .-> CALLBACK_START
 
-    %% Callback Flow
-    CALLBACK_START --> CALLBACK_AGGREGATE
-    CALLBACK_AGGREGATE --> CALLBACK_VIZ
-    CALLBACK_VIZ --> CALLBACK_S3_VIZ
-    CALLBACK_S3_VIZ --> CALLBACK_CREATE_BATCHES
-    CALLBACK_CREATE_BATCHES --> CALLBACK_VERIFY
-    CALLBACK_VERIFY -- "❌ Error" --> CALLBACK_ROLLBACK
-    CALLBACK_VERIFY -- "✅ Valid" --> CALLBACK_SUCCESS
-    CALLBACK_SUCCESS --> CALLBACK_END
+%% Callback Flow
+CALLBACK_START --> CALLBACK_AGGREGATE
+CALLBACK_AGGREGATE --> CALLBACK_VIZ
+CALLBACK_VIZ --> CALLBACK_S3_VIZ
+CALLBACK_S3_VIZ --> CALLBACK_CREATE_BATCHES
+CALLBACK_CREATE_BATCHES --> CALLBACK_VERIFY
+CALLBACK_VERIFY -- " ❌ Error " --> CALLBACK_ROLLBACK
+CALLBACK_VERIFY -- " ✅ Valid" --> CALLBACK_SUCCESS
+CALLBACK_SUCCESS --> CALLBACK_END
 
-    %% Workers ↔ Storage
-    INSERT_DB -.-> DB
-    S3_UPDATE_DB -.-> DB
-    S3_UPLOAD -.-> S3
-    S3_THUMB -.-> S3
-    CHILD_SAHI -.-> DB
-    CHILD_BOXES -.-> DB
-    CALLBACK_S3_VIZ -.-> S3
-    CALLBACK_SUCCESS -.-> DB
-    LAUNCH_CELERY -.-> REDIS
+%% Workers ↔ Storage
+INSERT_DB -.-> DB
+S3_UPDATE_DB -.-> DB
+S3_UPLOAD -.-> S3
+S3_THUMB -.-> S3
+CHILD_SAHI -.-> DB
+CHILD_BOXES -.-> DB
+CALLBACK_S3_VIZ -.-> S3
+CALLBACK_SUCCESS -.-> DB
+LAUNCH_CELERY -.-> REDIS
 
-    %% Frontend Polling
-    CALLBACK_END e15@-. "Notify" .-> FE_POLL
-    FE_POLL --> FE_QUERY
-    FE_QUERY -.-> REDIS
-    FE_QUERY -.-> DB
-    FE_BUILD_RESPONSE --> FE_DISPLAY
-    FE_DISPLAY e16@-. "User sees results" .-> START
+%% Frontend Polling
+CALLBACK_END e15@-. " Notify " .-> FE_POLL
+FE_POLL --> FE_QUERY
+FE_QUERY -.-> REDIS
+FE_QUERY -.-> DB
+FE_BUILD_RESPONSE --> FE_DISPLAY
+FE_DISPLAY e16@-. " User sees results" .-> START
 
-    %% ═══════════════════════════════════════════════════════════════════════
-    %% STYLING - CRITICAL PATH & NODE TYPES
-    %% ═══════════════════════════════════════════════════════════════════════
+%% ═══════════════════════════════════════════════════════════════════════
+%% STYLING - CRITICAL PATH & NODE TYPES
+%% ═══════════════════════════════════════════════════════════════════════
 
-    %% Critical Path (Hot Path - API to ML)
-    e1@{ class: critical-path }
-    e3@{ class: critical-path }
-    e4@{ class: critical-path }
-    e5@{ class: critical-path }
-    e6@{ class: critical-path }
-    e7@{ class: critical-path }
-    e8@{ class: critical-path }
-    e9@{ class: critical-path }
-    e10@{ class: critical-path }
+%% Critical Path (Hot Path - API to ML)
+e1@{ class: critical-path }
+e3@{ class: critical-path }
+e4@{ class: critical-path }
+e5@{ class: critical-path }
+e6@{ class: critical-path }
+e7@{ class: critical-path }
+e8@{ class: critical-path }
+e9@{ class: critical-path }
+e10@{ class: critical-path }
 
-    %% Style Definitions
-    classDef criticalPath stroke:#FF6B6B,stroke-width:4px
-    classDef errorStyle fill:#f44336,color:#fff,stroke:#b71c1c,stroke-width:2px
-    classDef successStyle fill:#4CAF50,color:#fff,stroke:#2E7D32,stroke-width:2px
-    classDef warningStyle fill:#FFF9C4,stroke:#F9A825,stroke-width:2px
-    classDef processStyle fill:#E3F2FD,stroke:#1976D2,stroke-width:2px
-    classDef storageStyle fill:#FFF3E0,stroke:#F57C00,stroke-width:2px
+%% Style Definitions
+classDef criticalPath stroke:#FF6B6B, stroke-width: 4px
+classDef errorStyle fill:#f44336, color: #fff, stroke: #b71c1c,stroke-width: 2px
+classDef successStyle fill: #4CAF50,color: #fff, stroke: #2E7D32, stroke-width:2px
+classDef warningStyle fill: #FFF9C4, stroke:#F9A825, stroke-width: 2px
+classDef processStyle fill:#E3F2FD, stroke: #1976D2, stroke-width: 2px
+classDef storageStyle fill: #FFF3E0, stroke: #F57C00,stroke-width: 2px
 
-    %% Apply Styles
-    ERROR_400:::errorStyle
-    S3_REJECT:::warningStyle
-    ML_WARNING_SESSION:::warningStyle
-    ML_END_WARNING:::warningStyle
-    CALLBACK_ROLLBACK:::warningStyle
-    CALLBACK_END:::successStyle
-    S3_END:::successStyle
-    FE_DISPLAY:::successStyle
+%% Apply Styles
+ERROR_400:::errorStyle
+S3_REJECT:::warningStyle
+ML_WARNING_SESSION:::warningStyle
+ML_END_WARNING:::warningStyle
+CALLBACK_ROLLBACK:::warningStyle
+CALLBACK_END:::successStyle
+S3_END:::successStyle
+FE_DISPLAY:::successStyle
 
-    DB:::storageStyle
-    S3:::storageStyle
-    REDIS:::storageStyle
+DB:::storageStyle
+S3:::storageStyle
+REDIS:::storageStyle
 
-    GEN_UUID:::processStyle
-    ML_LOAD_MODEL:::processStyle
-    ML_SEGMENT:::processStyle
-    CHILD_SAHI:::processStyle
-    CHILD_BOXES:::processStyle
-    CALLBACK_VIZ:::processStyle
+GEN_UUID:::processStyle
+ML_LOAD_MODEL:::processStyle
+ML_SEGMENT:::processStyle
+CHILD_SAHI:::processStyle
+CHILD_BOXES:::processStyle
+CALLBACK_VIZ:::processStyle

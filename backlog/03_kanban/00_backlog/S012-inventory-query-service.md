@@ -1,6 +1,7 @@
 # S012: InventoryQueryService
 
 ## Metadata
+
 - **Epic**: [epic-004-services.md](../../02_epics/epic-004-services.md)
 - **Sprint**: Sprint-04
 - **Status**: `backlog`
@@ -9,20 +10,24 @@
 - **Area**: `services/stock`
 - **Assignee**: TBD
 - **Dependencies**:
-  - Blocks: [C011, S028]
-  - Blocked by: [S007, S008]
+    - Blocks: [C011, S028]
+    - Blocked by: [S007, S008]
 
 ## Description
 
-**What**: Implement `InventoryQueryService` for current stock calculations, inventory reports, and stock level queries.
+**What**: Implement `InventoryQueryService` for current stock calculations, inventory reports, and
+stock level queries.
 
-**Why**: Provides read-only access to current inventory state. Essential for dashboards, reports, and stock level alerts.
+**Why**: Provides read-only access to current inventory state. Essential for dashboards, reports,
+and stock level alerts.
 
-**Context**: Clean Architecture Application Layer. Read-optimized service for inventory queries. Aggregates data from S007 and S008.
+**Context**: Clean Architecture Application Layer. Read-optimized service for inventory queries.
+Aggregates data from S007 and S008.
 
 ## Acceptance Criteria
 
 - [ ] **AC1**: Get current stock summary:
+
 ```python
 class InventoryQueryService:
     def __init__(
@@ -61,6 +66,7 @@ class InventoryQueryService:
 ```
 
 - [ ] **AC2**: Get inventory for warehouse:
+
 ```python
 async def get_warehouse_inventory(
     self,
@@ -80,6 +86,7 @@ async def get_warehouse_inventory(
 ```
 
 - [ ] **AC3**: Low stock detection:
+
 ```python
 async def detect_low_stock(
     self,
@@ -116,6 +123,7 @@ async def detect_low_stock(
 - [ ] PR reviewed (2+ approvals)
 
 ## Time Tracking
+
 - **Estimated**: 5 story points (~10 hours)
 - **Actual**: TBD
 

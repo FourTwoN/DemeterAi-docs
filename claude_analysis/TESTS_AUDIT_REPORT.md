@@ -11,6 +11,7 @@
 ## Executive Summary
 
 ### Critical Findings
+
 - **26.54% of tests are FAILING** (227 failed + 17 errors out of 868 total)
 - **Coverage: 27% (CRITICAL - Target is 80%)**
 - **Exit Code: 1** (Tests FAILED)
@@ -18,6 +19,7 @@
 - **17 ERROR tests** due to signature mismatch in `MLPipelineCoordinator`
 
 ### Test Execution Results
+
 ```
 Total Tests:     868
 Passing:         617 (71.08%)
@@ -33,6 +35,7 @@ Exit Code:       1   (FAILED)
 ## 🧪 Test Execution Results by Category
 
 ### Unit Tests - Models (tests/unit/models/)
+
 ```
 Total:    419 tests
 Passed:   307 (73.27%)
@@ -42,6 +45,7 @@ Duration: 34.15s
 ```
 
 **Major Issues**:
+
 - **Product Size Tests**: Tests expect 2-char codes ("XL") but model validates 3-50 chars
 - **Product State Tests**: All CRUD tests failing (code validation mismatches)
 - **Warehouse Tests**: Enum validation tests expect errors but none raised
@@ -49,6 +53,7 @@ Duration: 34.15s
 - **Photo Processing Session**: JSONB field tests failing
 
 ### Unit Tests - Services (tests/unit/services/)
+
 ```
 Total:    169 tests
 Passed:   146 (86.39%)
@@ -58,12 +63,14 @@ Duration: 2.66s
 ```
 
 **Issues**:
+
 - **MLPipelineCoordinator**: All 17 tests ERROR due to `__init__()` signature mismatch
-  - Test uses: `segmentation_svc`, `sahi_svc`, `direct_svc`, `band_estimation_svc`
-  - Actual code uses different parameter names
+    - Test uses: `segmentation_svc`, `sahi_svc`, `direct_svc`, `band_estimation_svc`
+    - Actual code uses different parameter names
 - **Storage Services**: 6 tests failing (location GPS, area lookups)
 
 ### Unit Tests - Repositories (tests/unit/repositories/)
+
 ```
 Total:    23 tests
 Passed:   22 (95.65%)
@@ -72,9 +79,11 @@ Duration: 9.58s
 ```
 
 **Issue**:
+
 - `test_create_with_missing_required_field`: Expected IntegrityError not raised
 
 ### Integration Tests (tests/integration/)
+
 ```
 Total:    164 tests (excluding benchmarks)
 Passed:   65  (39.63%)
@@ -84,6 +93,7 @@ Duration: 51.71s
 ```
 
 **Major Issues**:
+
 - **ML Processing**: Band estimation accuracy failures (398% error vs 10% target)
 - **Product Family DB**: Update/delete operations failing
 - **Model Singleton**: Celery task integration failing
@@ -110,6 +120,7 @@ TOTAL                              27%         ❌ CRITICAL (Need 80%)
 ### Detailed Coverage by Module
 
 #### Models (85% avg - GOOD)
+
 ```
 ✅ storage_bin_type.py       100%
 ✅ product_state.py          100%
@@ -125,6 +136,7 @@ TOTAL                              27%         ❌ CRITICAL (Need 80%)
 ```
 
 #### Repositories (83% avg - GOOD)
+
 ```
 ✅ base.py                   100%
 ✅ product_category_repo.py   96%
@@ -134,6 +146,7 @@ TOTAL                              27%         ❌ CRITICAL (Need 80%)
 ```
 
 #### Services (8% avg - CRITICAL FAILURE)
+
 ```
 ✅ batch_lifecycle_service.py     100%
 ✅ location_hierarchy_service.py  100%
@@ -145,6 +158,7 @@ TOTAL                              27%         ❌ CRITICAL (Need 80%)
 ```
 
 #### Schemas (12% avg - CRITICAL FAILURE)
+
 ```
 ✅ product_category_schema.py     100%
 ✅ product_family_schema.py       100%
@@ -207,13 +221,13 @@ TOTAL                              27%         ❌ CRITICAL (Need 80%)
    **Impact**: 2 Warehouse tests fail
 
 3. **Storage Location Code Validation** (`test_storage_location.py`)
-   - Tests expect specific uppercase/alphanumeric validation
-   - Model validation logic may not match test expectations
-   - **Impact**: 13 tests fail
+    - Tests expect specific uppercase/alphanumeric validation
+    - Model validation logic may not match test expectations
+    - **Impact**: 13 tests fail
 
 4. **Product State Code Validation** (`test_product_state.py`)
-   - Same pattern as Product Size (wrong test structure)
-   - **Impact**: 16 tests fail
+    - Same pattern as Product Size (wrong test structure)
+    - **Impact**: 16 tests fail
 
 ### Category 2: ML Pipeline Tests - Parameter Name Mismatch (17 ERRORS)
 
@@ -238,6 +252,7 @@ return MLPipelineCoordinator(
 ```
 
 **Tests Affected**:
+
 - `test_process_complete_pipeline_success`
 - `test_process_complete_pipeline_progress_updates`
 - `test_process_complete_pipeline_result_aggregation`
@@ -261,6 +276,7 @@ assert error_rate < 0.1  # Expect <10% error
 ```
 
 **Output**:
+
 ```
 Band 1: estimated 642 plants
 Band 2: estimated 812 plants
@@ -271,6 +287,7 @@ Error: 398%
 ```
 
 **Tests Affected**:
+
 - `test_estimation_accuracy_within_10_percent`
 - `test_estimation_compensates_for_missed_detections`
 - `test_estimations_match_db_schema`
@@ -278,11 +295,13 @@ Error: 398%
 ### Category 4: Integration Tests - Database Operations (99 tests)
 
 **Examples**:
+
 - Product Family update/delete operations
 - Storage service GPS lookups
 - Model singleton Celery task integration
 
 **Pattern**: Many integration tests use real database but:
+
 - Fixtures not properly set up
 - Foreign key constraints violated
 - Transaction isolation issues
@@ -294,6 +313,7 @@ Error: 398%
 ### 1. Tests That Use Mocks in Integration Tests (78 instances)
 
 **Files**:
+
 - `tests/integration/ml_processing/test_pipeline_integration.py`
 - `tests/integration/ml_processing/test_model_singleton_integration.py`
 - Several model geospatial tests
@@ -301,6 +321,7 @@ Error: 398%
 **Issue**: Integration tests should use REAL dependencies, not mocks.
 
 **Example**:
+
 ```python
 # tests/integration/ml_processing/test_pipeline_integration.py
 from unittest.mock import AsyncMock  # ← WRONG in integration test
@@ -312,6 +333,7 @@ mock_session_repo = AsyncMock()
 ### 2. Tests with "assert True" (3 instances)
 
 **Locations**:
+
 ```bash
 tests/unit/models/test_user.py:        assert True  # Placeholder
 tests/unit/models/test_product.py:     assert True  # Placeholder
@@ -323,6 +345,7 @@ tests/unit/models/test_product_family.py: assert True  # Placeholder
 ### 3. Tests with Self-Documented Bugs
 
 **File**: `tests/unit/models/test_product_size.py:20`
+
 ```python
 # NOTE: Code too short (<3 chars), will fail
 ```
@@ -334,17 +357,20 @@ tests/unit/models/test_product_family.py: assert True  # Placeholder
 ## ✅ Areas with Good Coverage
 
 ### Models (85% avg)
+
 - All geospatial models (Warehouse, StorageArea, StorageLocation): 98-100%
 - Product taxonomy (ProductCategory, ProductFamily, Product): 98-100%
 - Storage types (StorageBinType, StorageBin): 98-100%
 
 ### Core Infrastructure (97% avg)
+
 - `app/core/config.py`: 100%
 - `app/core/exceptions.py`: 100%
 - `app/core/logging.py`: 100%
 - `app/db/session.py`: 94%
 
 ### Repositories (83% avg)
+
 - `app/repositories/base.py`: 100% (generic CRUD working perfectly)
 - Most specialized repositories: 83% (only missing `__init__` coverage)
 
@@ -367,18 +393,18 @@ Core                      98%        80%       +18%      ✅ EXCELLENT
 ### Why Coverage is Low (27%)
 
 1. **Services Layer: 0% coverage** (Sprint 03 - CURRENTLY BEING IMPLEMENTED)
-   - 32 service files exist
-   - Only 6 have any tests
-   - Most services: 0% coverage
+    - 32 service files exist
+    - Only 6 have any tests
+    - Most services: 0% coverage
 
 2. **Schemas Layer: 0% coverage** (Sprint 03 - TO BE TESTED)
-   - 18 schema files exist
-   - Only 4 have tests
-   - 14 schemas: 0% coverage
+    - 18 schema files exist
+    - Only 4 have tests
+    - 14 schemas: 0% coverage
 
 3. **Failing Tests Don't Count Toward Coverage**
-   - 227 failing tests = features not actually tested
-   - 17 ERROR tests = code never executed
+    - 227 failing tests = features not actually tested
+    - 17 ERROR tests = code never executed
 
 ---
 
@@ -405,6 +431,7 @@ def test_code_too_short_raises_error(self, session):
 ```
 
 **Affected Tests**:
+
 - `test_code_valid_uppercase` (expects "XL" to pass, but it's 2 chars < 3 min)
 - `test_code_valid_three_chars` (correct structure, PASSES)
 - `test_code_empty_raises_error` (wrong structure)
@@ -414,11 +441,13 @@ def test_code_too_short_raises_error(self, session):
 ### Warehouse Model Tests (25 failures)
 
 **Issues**:
+
 1. Enum validation not working at Python level
 2. Geometry field validation tests failing
 3. Required field tests failing
 
 **Example**:
+
 ```python
 # Test expects error immediately:
 with pytest.raises((ValueError, StatementError)):
@@ -431,6 +460,7 @@ with pytest.raises((ValueError, StatementError)):
 ### Storage Location Tests (18 failures)
 
 **Issues**:
+
 - QR code validation (4 tests)
 - Code validation (5 tests)
 - Foreign key validation (1 test)
@@ -447,6 +477,7 @@ with pytest.raises((ValueError, StatementError)):
 ### Issue 1: Tests Marked Passing When Actually Failing
 
 **VERIFIED**: This is NOT currently happening.
+
 - Exit code: 1 (correctly reports failures)
 - pytest output clearly shows 227 failed tests
 - No hidden failures
@@ -456,6 +487,7 @@ with pytest.raises((ValueError, StatementError)):
 ### Issue 2: Hallucinated Code
 
 **VERIFIED**: Tests import REAL models/services.
+
 ```python
 # All tests use real imports:
 from app.models import ProductSize  # ✅ Real import
@@ -469,12 +501,14 @@ from app.services.ml_processing.pipeline_coordinator import MLPipelineCoordinato
 **VERIFIED**: Problem EXISTS in integration tests.
 
 **Evidence**:
+
 ```bash
 grep -r "Mock" tests/integration/ | wc -l
 # Output: 78 instances
 ```
 
 **Examples**:
+
 - `tests/integration/ml_processing/test_pipeline_integration.py` uses `AsyncMock`
 - `tests/integration/ml_processing/test_model_singleton_integration.py` uses `MagicMock`
 
@@ -483,6 +517,7 @@ grep -r "Mock" tests/integration/ | wc -l
 ### Issue 4: Tests Not Actually Running
 
 **VERIFIED**: Tests ARE running (but failing).
+
 - 868 tests collected
 - 617 actually pass
 - 227 fail (but DO execute)
@@ -497,41 +532,41 @@ grep -r "Mock" tests/integration/ | wc -l
 ### Immediate Actions (Sprint 03)
 
 1. **Fix Test Structure Issues (111 tests)**
-   - Move object creation INSIDE `pytest.raises()` blocks
-   - Fix ProductSize, ProductState, Warehouse test patterns
-   - **Effort**: 2-4 hours
-   - **Impact**: +13% test pass rate
+    - Move object creation INSIDE `pytest.raises()` blocks
+    - Fix ProductSize, ProductState, Warehouse test patterns
+    - **Effort**: 2-4 hours
+    - **Impact**: +13% test pass rate
 
 2. **Fix MLPipelineCoordinator Signature Mismatch (17 tests)**
-   - Update test fixture parameter names to match actual `__init__()`
-   - **Effort**: 30 minutes
-   - **Impact**: +2% test pass rate, unlock 17 tests
+    - Update test fixture parameter names to match actual `__init__()`
+    - **Effort**: 30 minutes
+    - **Impact**: +2% test pass rate, unlock 17 tests
 
 3. **Remove Mocks from Integration Tests**
-   - Convert integration tests to use real dependencies
-   - **Effort**: 4-6 hours
-   - **Impact**: Better test quality
+    - Convert integration tests to use real dependencies
+    - **Effort**: 4-6 hours
+    - **Impact**: Better test quality
 
 4. **Replace "assert True" Placeholders (3 tests)**
-   - Implement actual relationship tests or remove
-   - **Effort**: 1 hour
+    - Implement actual relationship tests or remove
+    - **Effort**: 1 hour
 
 ### Short-term Actions (End of Sprint 03)
 
 5. **Increase Service Test Coverage (0% → 80%)**
-   - Write tests for 26 untested services
-   - **Effort**: 20-30 hours (Testing Expert task)
-   - **Impact**: +40% overall coverage
+    - Write tests for 26 untested services
+    - **Effort**: 20-30 hours (Testing Expert task)
+    - **Impact**: +40% overall coverage
 
 6. **Increase Schema Test Coverage (12% → 80%)**
-   - Write tests for 14 untested schemas
-   - **Effort**: 10-15 hours
-   - **Impact**: +15% overall coverage
+    - Write tests for 14 untested schemas
+    - **Effort**: 10-15 hours
+    - **Impact**: +15% overall coverage
 
 7. **Fix ML Band Estimation Algorithm**
-   - Algorithm produces 398% error vs 10% target
-   - **Effort**: 8-12 hours (requires algorithm redesign)
-   - **Impact**: 5 tests pass
+    - Algorithm produces 398% error vs 10% target
+    - **Effort**: 8-12 hours (requires algorithm redesign)
+    - **Impact**: 5 tests pass
 
 ### Quality Gates Before Sprint 04
 
@@ -570,33 +605,37 @@ Exit Code:             1 (FAILED)
 
 ## 🎯 Action Plan Priority Matrix
 
-| Priority | Action | Impact | Effort | ROI |
-|----------|--------|--------|--------|-----|
-| 🔴 P0 | Fix test structure (111 tests) | High | Low | ⭐⭐⭐⭐⭐ |
-| 🔴 P0 | Fix MLPipelineCoordinator (17 tests) | Medium | Very Low | ⭐⭐⭐⭐⭐ |
-| 🟡 P1 | Write service tests (26 services) | Critical | High | ⭐⭐⭐⭐ |
-| 🟡 P1 | Write schema tests (14 schemas) | High | Medium | ⭐⭐⭐⭐ |
-| 🟡 P1 | Remove integration test mocks | Medium | Medium | ⭐⭐⭐ |
-| 🟢 P2 | Fix ML estimation algorithm | Low | High | ⭐⭐ |
-| 🟢 P2 | Fix integration test fixtures | Medium | Medium | ⭐⭐⭐ |
+| Priority | Action                               | Impact   | Effort   | ROI   |
+|----------|--------------------------------------|----------|----------|-------|
+| 🔴 P0    | Fix test structure (111 tests)       | High     | Low      | ⭐⭐⭐⭐⭐ |
+| 🔴 P0    | Fix MLPipelineCoordinator (17 tests) | Medium   | Very Low | ⭐⭐⭐⭐⭐ |
+| 🟡 P1    | Write service tests (26 services)    | Critical | High     | ⭐⭐⭐⭐  |
+| 🟡 P1    | Write schema tests (14 schemas)      | High     | Medium   | ⭐⭐⭐⭐  |
+| 🟡 P1    | Remove integration test mocks        | Medium   | Medium   | ⭐⭐⭐   |
+| 🟢 P2    | Fix ML estimation algorithm          | Low      | High     | ⭐⭐    |
+| 🟢 P2    | Fix integration test fixtures        | Medium   | Medium   | ⭐⭐⭐   |
 
 ---
 
 ## 🔄 Comparison to Sprint 02 Audit
 
 ### What Got Better ✅
+
 - Exit codes now work correctly (was broken in Sprint 02)
 - No hallucinated code (was a problem in Sprint 02)
 - Real PostgreSQL database used (vs SQLite in Sprint 02)
 - Model coverage: 85% (was ~70% in Sprint 02)
 
 ### What Got Worse ❌
+
 - Overall coverage: 27% (was 75.8% in Sprint 02, but that was FALSE)
 - Service coverage: 8% (many services added, few tested)
 - More tests failing: 227 (was 70 in Sprint 02)
 
 ### Root Cause of "Getting Worse"
+
 Sprint 02 had FALSE 75.8% coverage because:
+
 - Tests were mocked incorrectly
 - Many tests didn't actually run
 - Coverage was calculated on incomplete runs
@@ -629,6 +668,7 @@ tests/
 ### Current State: ❌ NOT PRODUCTION READY
 
 **Why**:
+
 1. 227 tests failing (26% failure rate)
 2. Coverage 27% (need 80%)
 3. Services layer mostly untested (8% coverage)
@@ -637,31 +677,32 @@ tests/
 ### To Reach Production Ready:
 
 1. **Fix Existing Tests** (2-4 hours)
-   - Resolve 111 test structure issues
-   - Fix 17 MLPipelineCoordinator signature mismatches
-   - Result: ~90% pass rate
+    - Resolve 111 test structure issues
+    - Fix 17 MLPipelineCoordinator signature mismatches
+    - Result: ~90% pass rate
 
 2. **Increase Coverage** (30-45 hours)
-   - Write service tests (26 services)
-   - Write schema tests (14 schemas)
-   - Result: ~75-80% coverage
+    - Write service tests (26 services)
+    - Write schema tests (14 schemas)
+    - Result: ~75-80% coverage
 
 3. **Fix ML Algorithms** (8-12 hours)
-   - Band estimation accuracy
-   - Result: Production-quality ML pipeline
+    - Band estimation accuracy
+    - Result: Production-quality ML pipeline
 
 **Total Effort**: 40-61 hours (1-1.5 weeks for Testing Expert)
 
 ### Comparison to Sprint 02 Goals
 
-| Metric | Sprint 02 Goal | Actual Sprint 02 | Current (Sprint 03) | Target |
-|--------|---------------|------------------|---------------------|--------|
-| Pass Rate | 100% | 81.9% (FALSE) | 71.08% (REAL) | 100% |
-| Coverage | ≥80% | 75.8% (FALSE) | 27% (REAL) | ≥80% |
-| Real DB | Yes | No (SQLite) | Yes (PostgreSQL) | Yes |
-| Exit Code | 0 | Non-zero | 1 | 0 |
+| Metric    | Sprint 02 Goal | Actual Sprint 02 | Current (Sprint 03) | Target |
+|-----------|----------------|------------------|---------------------|--------|
+| Pass Rate | 100%           | 81.9% (FALSE)    | 71.08% (REAL)       | 100%   |
+| Coverage  | ≥80%           | 75.8% (FALSE)    | 27% (REAL)          | ≥80%   |
+| Real DB   | Yes            | No (SQLite)      | Yes (PostgreSQL)    | Yes    |
+| Exit Code | 0              | Non-zero         | 1                   | 0      |
 
-**Key Insight**: Sprint 03 metrics look worse but are MORE ACCURATE. Sprint 02 had falsely optimistic metrics due to mocking issues.
+**Key Insight**: Sprint 03 metrics look worse but are MORE ACCURATE. Sprint 02 had falsely
+optimistic metrics due to mocking issues.
 
 ---
 

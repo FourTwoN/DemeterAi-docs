@@ -1,6 +1,7 @@
 # [F002] Install Dependencies & Create requirements.txt
 
 ## Metadata
+
 - **Epic**: epic-001-foundation.md
 - **Sprint**: Sprint-00
 - **Status**: `in-progress`
@@ -8,20 +9,23 @@
 - **Complexity**: S (3 points)
 - **Assignee**: Team Leader
 - **Dependencies**:
-  - Blocks: [F003-F012]
-  - Blocked by: [F001]
+    - Blocks: [F003-F012]
+    - Blocked by: [F001]
 
 ## Related Documentation
+
 - **Tech Stack**: ../../backlog/00_foundation/tech-stack.md
 - **Template**: ../../backlog/04_templates/config-templates/pyproject.toml.template
 
 ## Description
 
-Install all production and development dependencies from pyproject.toml, verify no conflicts, and generate locked requirements.txt for deployment.
+Install all production and development dependencies from pyproject.toml, verify no conflicts, and
+generate locked requirements.txt for deployment.
 
 **What**: Install dependencies using pip, test for conflicts, generate requirements files.
 
-**Why**: Locked dependencies prevent "works on my machine" issues. Requirements.txt enables reproducible builds in CI/CD and production.
+**Why**: Locked dependencies prevent "works on my machine" issues. Requirements.txt enables
+reproducible builds in CI/CD and production.
 
 ## Acceptance Criteria
 
@@ -41,6 +45,7 @@ Install all production and development dependencies from pyproject.toml, verify 
 ## Technical Notes
 
 **Installation command**:
+
 ```bash
 python3.12 -m venv venv
 source venv/bin/activate
@@ -49,6 +54,7 @@ pip install -e ".[dev]"
 ```
 
 **Verify versions match tech-stack.md**:
+
 ```bash
 pip list | grep -E "(fastapi|sqlalchemy|celery|ultralytics)"
 ```
@@ -64,6 +70,7 @@ pip list | grep -E "(fastapi|sqlalchemy|celery|ultralytics)"
 **Status**: READY FOR COMPLETION
 
 ### Quality Gates Summary
+
 - [x] All acceptance criteria checked
 - [x] Dependencies install without errors (pip install -e ".[dev]")
 - [x] No version conflicts reported (pip check passed)
@@ -74,17 +81,20 @@ pip list | grep -E "(fastapi|sqlalchemy|celery|ultralytics)"
 ### Issues Resolved
 
 **Issue 1: pyproject.toml package discovery error**
+
 - Problem: Multiple top-level directories detected
 - Solution: Added [tool.setuptools.packages.find] to exclude docs directories
 - Result: Editable install now works correctly
 
 **Issue 2: Incorrect dependency versions in tech-stack.md**
+
 - opencv-python-headless: 4.10.0 → 4.10.0.84 (correct build number)
 - pybreaker: 1.2.0 → 1.4.1 (1.2.0 doesn't exist)
 - Added missing: pillow==11.0.0 (was documented but not in deps)
 - Result: All versions now match actual PyPI packages
 
 **Issue 3: Editable package in requirements.txt**
+
 - Problem: pip freeze included git+ssh reference to local package
 - Solution: Removed demeterai-backend editable reference from requirements.txt
 - Result: Clean environment installation works
@@ -92,18 +102,21 @@ pip list | grep -E "(fastapi|sqlalchemy|celery|ultralytics)"
 ### Files Created/Modified
 
 **Created:**
+
 - requirements.txt (108 production dependencies, locked versions)
 - requirements-dev.txt (9 dev dependencies, locked versions)
 - requirements-full.txt (118 total dependencies, backup)
 - docs/installation.md (comprehensive installation guide)
 
 **Modified:**
+
 - pyproject.toml (added build-system, setuptools config, pillow dependency)
 - backlog/00_foundation/tech-stack.md (corrected versions: opencv, pybreaker)
 
 ### Installation Metrics
 
 **Total packages installed**: 118
+
 - Production dependencies: 108
 - Development dependencies: 9
 - No editable packages in requirements.txt (project uses pip install -e .)
@@ -113,6 +126,7 @@ pip list | grep -E "(fastapi|sqlalchemy|celery|ultralytics)"
 **Virtual environment size**: ~2.5GB
 
 **Key packages verified**:
+
 ```
 fastapi==0.118.2
 sqlalchemy==2.0.43
@@ -136,6 +150,7 @@ pybreaker==1.4.1
 ### Documentation
 
 Created comprehensive installation guide at `/docs/installation.md` including:
+
 - System prerequisites
 - Step-by-step installation (3 methods)
 - GPU support setup (optional)
@@ -146,6 +161,7 @@ Created comprehensive installation guide at `/docs/installation.md` including:
 ### Dependencies Unblocked
 
 **F002 completion unblocks**:
+
 - F003: Project Structure Setup
 - F004: Configuration Management
 - F005: Database Connection
@@ -161,9 +177,12 @@ Created comprehensive installation guide at `/docs/installation.md` including:
 
 ### Notes
 
-**PyTorch note**: Default installation includes CUDA 12.1 libraries (~500MB) even for CPU usage. This is expected behavior from PyTorch's distribution. CPU-only inference works without GPU hardware.
+**PyTorch note**: Default installation includes CUDA 12.1 libraries (~500MB) even for CPU usage.
+This is expected behavior from PyTorch's distribution. CPU-only inference works without GPU
+hardware.
 
 **Testing note**: Once F009 (Health Check Endpoint) is complete, add to installation verification:
+
 ```bash
 uvicorn app.main:app --host 0.0.0.0 --port 8000
 curl http://localhost:8000/health

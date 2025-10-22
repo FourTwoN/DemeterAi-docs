@@ -9,9 +9,12 @@
 
 ## Overview
 
-You are working on **DemeterAI v2.0**, a production ML-powered inventory management system for **600,000+ plants**. This document is your primary instruction set for the entire development workflow.
+You are working on **DemeterAI v2.0**, a production ML-powered inventory management system for *
+*600,000+ plants**. This document is your primary instruction set for the entire development
+workflow.
 
 **Project Context**:
+
 - **Tech Stack**: FastAPI + PostgreSQL/PostGIS + Celery + YOLO v11
 - **Architecture**: Clean Architecture (Controller → Service → Repository)
 - **Current Phase**: Sprint 03 (Services Layer) - 42 tasks, 210 story points
@@ -24,6 +27,7 @@ You are working on **DemeterAI v2.0**, a production ML-powered inventory managem
 ### I'm starting work - what should I do?
 
 **Step 1: Understand your role**
+
 ```bash
 # Are you orchestrating the project?
 → Use Scrum Master workflow
@@ -39,6 +43,7 @@ You are working on **DemeterAI v2.0**, a production ML-powered inventory managem
 ```
 
 **Step 2: Check current state**
+
 ```bash
 # See what sprint we're in
 cat /home/lucasg/proyectos/DemeterDocs/backlog/01_sprints/sprint-03-services/sprint-goal.md
@@ -51,6 +56,7 @@ ls /home/lucasg/proyectos/DemeterDocs/backlog/03_kanban/02_in-progress/
 ```
 
 **Step 3: Use the right workflow**
+
 - See `.claude/workflows/orchestration.md` for how agents work together
 - See role-specific workflow files for detailed instructions
 
@@ -76,15 +82,15 @@ Git Commit Agent (Finalization)
 
 ### When to Use Each Agent
 
-| Situation | Use This Agent |
-|-----------|---------------|
-| Starting a sprint | Scrum Master |
-| Breaking down an epic | Scrum Master |
-| Implementing a task | Team Leader |
-| Writing service/controller/repository code | Python Expert |
-| Writing tests | Testing Expert |
-| Database schema questions | Database Expert |
-| Creating a commit | Git Commit Agent |
+| Situation                                  | Use This Agent   |
+|--------------------------------------------|------------------|
+| Starting a sprint                          | Scrum Master     |
+| Breaking down an epic                      | Scrum Master     |
+| Implementing a task                        | Team Leader      |
+| Writing service/controller/repository code | Python Expert    |
+| Writing tests                              | Testing Expert   |
+| Database schema questions                  | Database Expert  |
+| Creating a commit                          | Git Commit Agent |
 
 ### Critical Workflows
 
@@ -101,14 +107,17 @@ Git Commit Agent (Finalization)
 ## Critical Rules (NEVER VIOLATE)
 
 ### Rule 1: Database as Source of Truth
+
 - PostgreSQL schema in `database/database.mmd` is authoritative
 - All models must match the schema EXACTLY
 - Verify table names, column names, data types before implementing
 
 ### Rule 2: Tests Must ACTUALLY Pass
+
 **Sprint 02 Critical Issue**: Tests were marked as passing when 70/386 were failing
 
 **Prevention**:
+
 ```bash
 # ALWAYS run pytest and verify output
 pytest tests/ -v
@@ -124,6 +133,7 @@ python -c "from app.models import *"
 ```
 
 ### Rule 3: Clean Architecture Patterns
+
 **Service → Service** communication ONLY (NEVER Service → OtherRepository)
 
 ```python
@@ -145,7 +155,9 @@ class StockMovementService:
 ```
 
 ### Rule 4: Quality Gates Are Mandatory
+
 **Before marking any task complete**:
+
 - ✅ All tests pass (verified by running pytest)
 - ✅ Coverage ≥80% (verified by coverage report)
 - ✅ Code review completed
@@ -153,9 +165,11 @@ class StockMovementService:
 - ✅ Models match database schema
 
 ### Rule 5: No Hallucinations
+
 **Sprint 02 Issue**: Code referenced non-existent relationships
 
 **Prevention**:
+
 ```bash
 # Before implementing, READ existing code
 cat app/models/warehouse.py
@@ -202,6 +216,7 @@ DemeterDocs/
 ## Kanban Workflow
 
 ### Task Lifecycle
+
 ```
 00_backlog → 01_ready → 02_in-progress → 03_code-review → 04_testing → 05_done
                                    ↓
@@ -209,6 +224,7 @@ DemeterDocs/
 ```
 
 ### State Transitions (via `mv` command)
+
 ```bash
 # Scrum Master: Unblock task
 mv backlog/03_kanban/00_backlog/S001-*.md backlog/03_kanban/01_ready/
@@ -231,6 +247,7 @@ mv backlog/03_kanban/04_testing/S001-*.md backlog/03_kanban/05_done/
 ### Before ANY task moves to `05_done/`:
 
 **Gate 1: Code Review**
+
 - [ ] Service→Service pattern enforced (no cross-repository access)
 - [ ] All methods have type hints
 - [ ] Async/await used correctly
@@ -238,6 +255,7 @@ mv backlog/03_kanban/04_testing/S001-*.md backlog/03_kanban/05_done/
 - [ ] No TODO/FIXME in production code
 
 **Gate 2: Tests Actually Pass**
+
 ```bash
 # Run tests and verify
 pytest tests/unit/services/test_example.py -v
@@ -248,6 +266,7 @@ echo $?  # Must be 0
 ```
 
 **Gate 3: Coverage ≥80%**
+
 ```bash
 pytest tests/ --cov=app/services/example --cov-report=term-missing
 
@@ -255,6 +274,7 @@ pytest tests/ --cov=app/services/example --cov-report=term-missing
 ```
 
 **Gate 4: No Hallucinations**
+
 ```bash
 # Verify all imports work
 python -c "from app.services.example import ExampleService"
@@ -265,6 +285,7 @@ grep "class Example" app/models/example.py
 ```
 
 **Gate 5: Database Schema Match**
+
 ```bash
 # Compare model with ERD
 diff <(grep "class Example" app/models/example.py) \
@@ -278,16 +299,19 @@ diff <(grep "class Example" app/models/example.py) \
 **See**: `CRITICAL_ISSUES.md` for complete details
 
 ### Issue 1: Tests Marked Passing When Actually Failing
+
 - **What happened**: 70/386 tests were failing but marked as complete
 - **Root cause**: Tests were mocked incorrectly, hiding real failures
 - **Prevention**: Always run `pytest` and verify exit code
 
 ### Issue 2: Hallucinated Code
+
 - **What happened**: Code referenced non-existent relationships
 - **Root cause**: Didn't read existing models before implementing
 - **Prevention**: Always READ code before modifying
 
 ### Issue 3: Schema Drift
+
 - **What happened**: Models didn't match database schema
 - **Root cause**: Implemented from memory instead of ERD
 - **Prevention**: Always consult `database/database.mmd` first
@@ -297,6 +321,7 @@ diff <(grep "class Example" app/models/example.py) \
 ## Technology Stack
 
 ### Core Technologies
+
 - **Python**: 3.12
 - **Framework**: FastAPI 0.109.0+
 - **Database**: PostgreSQL 15+ with PostGIS 3.3+
@@ -306,6 +331,7 @@ diff <(grep "class Example" app/models/example.py) \
 - **ML**: YOLO v11 (CPU-first, GPU optional)
 
 ### Architecture Patterns
+
 - **Clean Architecture**: Controller → Service → Repository
 - **Service Communication**: Service → Service (NEVER Service → OtherRepository)
 - **Async First**: All database operations async
@@ -317,12 +343,14 @@ diff <(grep "class Example" app/models/example.py) \
 ## Key Documentation
 
 ### Primary References
+
 1. **database/database.mmd** - Complete ERD (source of truth)
 2. **engineering_plan/03_architecture_overview.md** - Architecture patterns
 3. **engineering_plan/database/README.md** - Database design
 4. **.claude/CRITICAL_ISSUES.md** - Lessons learned
 
 ### Workflow References
+
 1. **.claude/workflows/orchestration.md** - Agent coordination
 2. **.claude/workflows/scrum-master-workflow.md** - Project management
 3. **.claude/workflows/team-leader-workflow.md** - Task planning
@@ -334,6 +362,7 @@ diff <(grep "class Example" app/models/example.py) \
 ## Common Commands
 
 ### Slash Commands
+
 ```bash
 /plan-epic epic-004        # Break epic into tasks
 /start-task S001           # Create Mini-Plan and start implementation
@@ -342,6 +371,7 @@ diff <(grep "class Example" app/models/example.py) \
 ```
 
 ### Git Workflow
+
 ```bash
 # After Team Leader approves completion
 git add app/services/example.py tests/
@@ -363,24 +393,24 @@ Co-Authored-By: Claude <noreply@anthropic.com>"
 ### For All Agents
 
 1. **Read Before Writing**
-   - Check existing code
-   - Consult database schema
-   - Review related services
+    - Check existing code
+    - Consult database schema
+    - Review related services
 
 2. **Verify Everything**
-   - Run tests manually
-   - Check imports
-   - Validate against schema
+    - Run tests manually
+    - Check imports
+    - Validate against schema
 
 3. **Document as You Go**
-   - Update task files
-   - Add comments to code
-   - Explain architectural decisions
+    - Update task files
+    - Add comments to code
+    - Explain architectural decisions
 
 4. **Never Assume**
-   - Don't guess schema details
-   - Don't assume relationships exist
-   - Don't hallucinate method signatures
+    - Don't guess schema details
+    - Don't assume relationships exist
+    - Don't hallucinate method signatures
 
 ### For Code Implementation
 
@@ -433,23 +463,27 @@ async def test_create_example(db_session):
 ## Troubleshooting
 
 ### Tests are failing
+
 1. Run `pytest tests/ -v` to see failures
 2. Check imports: `python -c "from app.models import *"`
 3. Verify database schema matches models
 4. Check for mocked failures: `grep -r "mock.*fail" tests/`
 
 ### Code won't import
+
 1. Check for circular imports
 2. Verify `__init__.py` files exist
 3. Check Python path
 4. Verify dependencies installed
 
 ### Service pattern violation
+
 1. Search for repository usage: `grep -r "Repository" app/services/`
 2. Verify only `self.repo` is accessed directly
 3. Other repositories must be accessed via services
 
 ### Schema mismatch
+
 1. Compare model with ERD: `database/database.mmd`
 2. Check migration files
 3. Verify column names match exactly
@@ -459,6 +493,7 @@ async def test_create_example(db_session):
 ## Project Structure & Useful Paths
 
 ### Core Application (`app/`)
+
 ```
 app/
 ├── main.py                 # FastAPI app entry point
@@ -493,6 +528,7 @@ app/
 ```
 
 ### Database & Migrations
+
 ```
 alembic/                   # Database migration system
 ├── versions/              # 14 migration files (consolidate as new ones added)
@@ -505,6 +541,7 @@ database/
 ```
 
 ### Documentation & Planning
+
 ```
 backlog/                   # Project management
 ├── 00_epics/              # 17 epics defining all work
@@ -552,6 +589,7 @@ flows/                     # Business process flows (Mermaid diagrams)
 ```
 
 ### Tests
+
 ```
 tests/                     # 386/509 passing (75.8%)
 ├── unit/
@@ -561,6 +599,7 @@ tests/                     # 386/509 passing (75.8%)
 ```
 
 ### Key Documentation Files
+
 ```
 SPRINT_02_COMPLETE_SUMMARY.md      # Current status (you are here)
 FINAL_AUDIT_REPORT_*.md            # Detailed audit results
@@ -905,7 +944,9 @@ The `.claude/` folder contains all system instructions organized by purpose:
 ```
 
 **Key Entry Points by Role**:
-- **Starting Sprint**: Read `.claude/workflows/orchestration.md` + `.claude/workflows/scrum-master-workflow.md`
+
+- **Starting Sprint**: Read `.claude/workflows/orchestration.md` +
+  `.claude/workflows/scrum-master-workflow.md`
 - **Planning Task**: Read `.claude/workflows/team-leader-workflow.md`
 - **Implementing Feature**: Read `.claude/workflows/python-expert-workflow.md`
 - **Writing Tests**: Read `.claude/workflows/testing-expert-workflow.md`
@@ -923,7 +964,8 @@ The `.claude/` folder contains all system instructions organized by purpose:
 
 ---
 
-**Remember**: Quality over speed. It's better to implement one task correctly than five tasks incorrectly.
+**Remember**: Quality over speed. It's better to implement one task correctly than five tasks
+incorrectly.
 
 **Last Updated**: 2025-10-20
 **Maintained By**: DemeterAI Engineering Team

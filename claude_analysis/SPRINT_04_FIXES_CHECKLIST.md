@@ -10,9 +10,11 @@
 ## FIX #1: Architecture Violation - Repository Imports in Controllers
 
 ### Problem
+
 Controllers directly import and instantiate repositories, violating clean architecture pattern.
 
 ### Current Code (❌ WRONG)
+
 ```python
 # app/controllers/analytics_controller.py
 from app.repositories.stock_batch_repository import StockBatchRepository
@@ -25,11 +27,13 @@ def get_analytics_service(session: AsyncSession = Depends(get_db_session)):
 ### Solution: Create DI Factory Module
 
 **Step 1**: Create `app/di/__init__.py`
+
 ```python
 """Dependency Injection module."""
 ```
 
 **Step 2**: Create `app/di/factory.py`
+
 ```python
 """Service factory - centralized DI."""
 
@@ -63,6 +67,7 @@ def create_stock_movement_service(session: AsyncSession):
 ```
 
 **Step 3**: Update Controllers to Use Factory
+
 ```python
 # app/controllers/analytics_controller.py
 from app.di.factory import create_analytics_service  # ✅ Import factory
@@ -72,6 +77,7 @@ def get_analytics_service(session: AsyncSession = Depends(get_db_session)):
 ```
 
 ### Tasks
+
 - [ ] Create `app/di/__init__.py`
 - [ ] Create `app/di/factory.py` with all service factories
 - [ ] Update `stock_controller.py` to use factory
@@ -91,6 +97,7 @@ def get_analytics_service(session: AsyncSession = Depends(get_db_session)):
 **Issue**: Returns placeholder response
 
 **Current Code** (stock_controller.py:302-350):
+
 ```python
 # TODO: Replace with actual Celery task lookup when CEL005 is implemented
 return {"task_id": str(task_id), "status": "PENDING", ...}
@@ -99,6 +106,7 @@ return {"task_id": str(task_id), "status": "PENDING", ...}
 **Solution**: Depends on CEL005 (Celery integration) - Mark as deferred
 
 **Action**:
+
 - [ ] Document dependency on CEL005
 - [ ] Add @router.get() deprecation note: "Requires CEL005 for full implementation"
 - [ ] Keep placeholder until CEL005 ready
@@ -112,6 +120,7 @@ return {"task_id": str(task_id), "status": "PENDING", ...}
 **Solution**:
 
 **Step 1**: Add method to `StockBatchService`
+
 ```python
 # app/services/stock_batch_service.py
 async def get_multi(
@@ -125,6 +134,7 @@ async def get_multi(
 ```
 
 **Step 2**: Update controller to call service
+
 ```python
 # app/controllers/stock_controller.py
 @router.get("/batches", response_model=list[StockBatchResponse])
@@ -138,6 +148,7 @@ async def list_stock_batches(
 ```
 
 **Tasks**:
+
 - [ ] Implement `StockBatchService.get_multi()`
 - [ ] Update `list_stock_batches()` endpoint
 - [ ] Add test case for list endpoint
@@ -152,6 +163,7 @@ async def list_stock_batches(
 **Solution**:
 
 **Step 1**: Add method to `StockBatchService`
+
 ```python
 # app/services/stock_batch_service.py
 async def get_by_id(self, batch_id: int) -> StockBatchResponse:
@@ -163,6 +175,7 @@ async def get_by_id(self, batch_id: int) -> StockBatchResponse:
 ```
 
 **Step 2**: Update controller
+
 ```python
 # app/controllers/stock_controller.py
 @router.get("/batches/{batch_id}", response_model=StockBatchResponse)
@@ -174,6 +187,7 @@ async def get_batch_details(
 ```
 
 **Tasks**:
+
 - [ ] Implement `StockBatchService.get_by_id()`
 - [ ] Update `get_batch_details()` endpoint
 - [ ] Add test for success case (batch found)
@@ -188,6 +202,7 @@ async def get_batch_details(
 **Solution**: Similar to C005
 
 **Tasks**:
+
 - [ ] Implement `StockMovementService.get_multi()`
 - [ ] Update `get_stock_movement_history()` endpoint
 - [ ] Add test case
@@ -201,6 +216,7 @@ async def get_batch_details(
 **Solution**:
 
 **Step 1**: Add method to `LocationHierarchyService`
+
 ```python
 # app/services/location_hierarchy_service.py
 async def validate_hierarchy(
@@ -234,6 +250,7 @@ async def validate_hierarchy(
 ```
 
 **Step 2**: Update controller
+
 ```python
 # app/controllers/location_controller.py
 @router.post("/validate", response_model=dict)
@@ -242,6 +259,7 @@ async def validate_location_hierarchy(...):
 ```
 
 **Tasks**:
+
 - [ ] Implement `LocationHierarchyService.validate_hierarchy()`
 - [ ] Update endpoint
 - [ ] Add tests
@@ -255,6 +273,7 @@ async def validate_location_hierarchy(...):
 **Solution**:
 
 **Step 1**: Add method to `AnalyticsService`
+
 ```python
 # app/services/analytics_service.py
 async def get_daily_counts(
@@ -302,6 +321,7 @@ async def get_daily_counts(
 ```
 
 **Tasks**:
+
 - [ ] Implement `AnalyticsService.get_daily_counts()`
 - [ ] Update endpoint
 - [ ] Add tests with sample data
@@ -315,6 +335,7 @@ async def get_daily_counts(
 **Solution**:
 
 **Step 1**: Add methods to `AnalyticsService`
+
 ```python
 async def export_inventory_csv(self) -> str:
     """Export inventory as CSV."""
@@ -330,6 +351,7 @@ async def export_inventory_json(self) -> list[dict]:
 ```
 
 **Step 2**: Update controller
+
 ```python
 if export_format == "csv":
     content = await service.export_inventory_csv()
@@ -341,6 +363,7 @@ else:
 ```
 
 **Tasks**:
+
 - [ ] Implement CSV export in AnalyticsService
 - [ ] Implement JSON export in AnalyticsService
 - [ ] Update endpoint
@@ -429,6 +452,7 @@ async def test_create_manual_stock_init(client, db_session):
 ### Tasks for Each Controller
 
 #### Stock Controller Tests (7):
+
 - [ ] test_upload_photo_returns_202
 - [ ] test_upload_photo_invalid_file_returns_400
 - [ ] test_create_manual_stock_init_success
@@ -438,6 +462,7 @@ async def test_create_manual_stock_init(client, db_session):
 - [ ] test_get_batch_details_returns_batch
 
 #### Location Controller Tests (6):
+
 - [ ] test_list_warehouses_returns_list
 - [ ] test_get_warehouse_areas_returns_areas
 - [ ] test_get_area_locations_returns_locations
@@ -446,6 +471,7 @@ async def test_create_manual_stock_init(client, db_session):
 - [ ] test_search_by_gps_not_found_returns_404
 
 #### Product Controller Tests (7):
+
 - [ ] test_list_categories_returns_list
 - [ ] test_create_category_success
 - [ ] test_list_families_by_category
@@ -454,16 +480,19 @@ async def test_create_manual_stock_init(client, db_session):
 - [ ] test_get_product_by_sku_not_found
 
 #### Config Controller Tests (3):
+
 - [ ] test_get_location_defaults_returns_config
 - [ ] test_set_location_defaults_creates_config
 - [ ] test_get_density_parameters_by_product
 
 #### Analytics Controller Tests (3):
+
 - [ ] test_get_daily_counts_returns_aggregation
 - [ ] test_get_inventory_report_returns_summary
 - [ ] test_export_data_csv_format
 
 ### General Tasks
+
 - [ ] Create fixtures for test data factories
 - [ ] Setup test database migrations
 - [ ] Create conftest.py with shared fixtures
@@ -475,11 +504,13 @@ async def test_create_manual_stock_init(client, db_session):
 ## FIX #4: Fix Test Database Setup
 
 ### Problem
+
 Tests fail with database schema creation errors
 
 ### Solution
 
 **Step 1**: Check Alembic Configuration
+
 ```bash
 # Verify alembic.ini is correct
 cat alembic.ini | grep sqlalchemy.url
@@ -488,6 +519,7 @@ cat alembic.ini | grep sqlalchemy.url
 ```
 
 **Step 2**: Run Migrations on Test DB
+
 ```bash
 # Apply all migrations
 alembic -c alembic_test.ini upgrade head
@@ -497,6 +529,7 @@ psql -U demeter_test -d demeterai_test -c "\dt"
 ```
 
 **Step 3**: Update conftest.py
+
 ```python
 # tests/conftest.py
 
@@ -522,6 +555,7 @@ async def setup_test_database():
 ```
 
 ### Tasks
+
 - [ ] Debug Alembic configuration
 - [ ] Verify test database URL
 - [ ] Run migrations on test DB
@@ -556,6 +590,7 @@ pytest tests/integration/test_*_controller.py --cov=app/controllers --cov-report
 ```
 
 ### Tasks
+
 - [ ] Remove all repository imports from controllers
 - [ ] Clean up all TODO comments (or mark as deferred with reason)
 - [ ] Pass flake8 linting
@@ -567,32 +602,32 @@ pytest tests/integration/test_*_controller.py --cov=app/controllers --cov-report
 
 ## Summary of Changes
 
-| File | Change | Priority |
-|------|--------|----------|
-| app/di/__init__.py | Create module | P1 |
-| app/di/factory.py | Create factory | P1 |
-| app/controllers/*.py | Remove repo imports | P1 |
-| app/services/stock_batch_service.py | Add get_multi, get_by_id | P2 |
-| app/services/stock_movement_service.py | Add get_multi | P2 |
-| app/services/location_hierarchy_service.py | Add validate_hierarchy | P2 |
-| app/services/analytics_service.py | Add aggregation, export | P2 |
-| tests/integration/test_*_controller.py | Create tests | P1 |
-| tests/conftest.py | Update DB setup | P2 |
+| File                                       | Change                   | Priority |
+|--------------------------------------------|--------------------------|----------|
+| app/di/__init__.py                         | Create module            | P1       |
+| app/di/factory.py                          | Create factory           | P1       |
+| app/controllers/*.py                       | Remove repo imports      | P1       |
+| app/services/stock_batch_service.py        | Add get_multi, get_by_id | P2       |
+| app/services/stock_movement_service.py     | Add get_multi            | P2       |
+| app/services/location_hierarchy_service.py | Add validate_hierarchy   | P2       |
+| app/services/analytics_service.py          | Add aggregation, export  | P2       |
+| tests/integration/test_*_controller.py     | Create tests             | P1       |
+| tests/conftest.py                          | Update DB setup          | P2       |
 
 ---
 
 ## Time Estimate per Task
 
-| Task | Hours | Notes |
-|------|-------|-------|
-| Create DI factory | 3-4 | Straightforward refactoring |
-| Update all controllers | 2-3 | Search and replace |
-| Add missing service methods | 4-6 | Database queries needed |
-| Complete placeholder endpoints | 3-4 | Service calls + response mapping |
-| Create integration tests | 12-14 | 126+ test cases |
-| Fix test database | 2-3 | Alembic debugging |
-| Quality gate verification | 2-3 | Linting, coverage |
-| **TOTAL** | **28-37** | **1 week** |
+| Task                           | Hours     | Notes                            |
+|--------------------------------|-----------|----------------------------------|
+| Create DI factory              | 3-4       | Straightforward refactoring      |
+| Update all controllers         | 2-3       | Search and replace               |
+| Add missing service methods    | 4-6       | Database queries needed          |
+| Complete placeholder endpoints | 3-4       | Service calls + response mapping |
+| Create integration tests       | 12-14     | 126+ test cases                  |
+| Fix test database              | 2-3       | Alembic debugging                |
+| Quality gate verification      | 2-3       | Linting, coverage                |
+| **TOTAL**                      | **28-37** | **1 week**                       |
 
 ---
 

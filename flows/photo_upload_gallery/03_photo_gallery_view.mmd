@@ -2,188 +2,188 @@
 title: Photo Gallery View - Detailed Flow
 ---
 flowchart TB
-    %% Start
+%% Start
     Start@{ shape: stadium, label: "User Navigates to Gallery" }
 
-    %% Initial load
-    InitGallery@{ shape: rect, label: "Initialize Gallery State<br/>• Default filters<br/>• Page 1<br/>• per_page: 50" }
+%% Initial load
+InitGallery@{ shape: rect, label: "Initialize Gallery State<br/>• Default filters<br/>• Page 1<br/>• per_page: 50" }
 
-    LoadWarehouses@{ shape: subproc, label: "Load Warehouse List<br/>GET /api/v1/warehouses<br/>⏱️ 50ms" }
+LoadWarehouses@{ shape: subproc, label: "Load Warehouse List<br/>GET /api/v1/warehouses<br/>⏱️ 50ms" }
 
-    FetchPhotos@{ shape: subproc, label: "Fetch Photos<br/>GET /api/v1/photos/gallery<br/>⏱️ 200-300ms" }
+FetchPhotos@{ shape: subproc, label: "Fetch Photos<br/>GET /api/v1/photos/gallery<br/>⏱️ 200-300ms" }
 
-    %% Backend query
-    CheckAuth@{ shape: diamond, label: "Auth<br/>valid?" }
+%% Backend query
+CheckAuth@{ shape: diamond, label: "Auth<br/>valid?" }
 
-    Return401@{ shape: trap, label: "401 Unauthorized<br/>Redirect to login" }
+Return401@{ shape: trap, label: "401 Unauthorized<br/>Redirect to login" }
 
-    BuildQuery@{ shape: rect, label: "Build SQL Query<br/>• JOIN s3_images<br/>• JOIN processing_sessions<br/>• JOIN storage_locations<br/>• WHERE user_id" }
+BuildQuery@{ shape: rect, label: "Build SQL Query<br/>• JOIN s3_images<br/>• JOIN processing_sessions<br/>• JOIN storage_locations<br/>• WHERE user_id" }
 
-    ApplyFilters@{ shape: rect, label: "Apply Filters<br/>• Date range<br/>• Warehouse IDs<br/>• Status<br/>• Search text" }
+ApplyFilters@{ shape: rect, label: "Apply Filters<br/>• Date range<br/>• Warehouse IDs<br/>• Status<br/>• Search text" }
 
-    ExecuteCountQuery@{ shape: cyl, label: "COUNT(*) Query<br/>Get total items<br/>⏱️ 30ms" }
+ExecuteCountQuery@{ shape: cyl, label: "COUNT(*) Query<br/>Get total items<br/>⏱️ 30ms" }
 
-    ExecuteDataQuery@{ shape: cyl, label: "SELECT with LIMIT/OFFSET<br/>Order by created_at DESC<br/>⏱️ 50-100ms" }
+ExecuteDataQuery@{ shape: cyl, label: "SELECT with LIMIT/OFFSET<br/>Order by created_at DESC<br/>⏱️ 50-100ms" }
 
-    GeneratePresignedURLs@{ shape: subproc, label: "Generate S3 Presigned URLs<br/>For each photo:<br/>• Thumbnail URL<br/>• Original URL<br/>TTL: 1 hour<br/>⏱️ 2ms per photo" }
+GeneratePresignedURLs@{ shape: subproc, label: "Generate S3 Presigned URLs<br/>For each photo:<br/>• Thumbnail URL<br/>• Original URL<br/>TTL: 1 hour<br/>⏱️ 2ms per photo" }
 
-    BuildResponse@{ shape: rect, label: "Build JSON Response<br/>• photos array<br/>• pagination object<br/>⏱️ 20ms" }
+BuildResponse@{ shape: rect, label: "Build JSON Response<br/>• photos array<br/>• pagination object<br/>⏱️ 20ms" }
 
-    Return200@{ shape: rect, label: "Return 200 OK<br/>{photos, pagination}" }
+Return200@{ shape: rect, label: "Return 200 OK<br/>{photos, pagination}" }
 
-    %% Frontend rendering
-    ParseResponse@{ shape: rect, label: "Parse JSON Response<br/>Extract photos & pagination" }
+%% Frontend rendering
+ParseResponse@{ shape: rect, label: "Parse JSON Response<br/>Extract photos & pagination" }
 
-    UpdateState@{ shape: rect, label: "Update React State<br/>setPhotos(data.photos)<br/>setPagination(...)" }
+UpdateState@{ shape: rect, label: "Update React State<br/>setPhotos(data.photos)<br/>setPagination(...)" }
 
-    RenderGrid@{ shape: rect, label: "Render Photo Grid<br/>CSS Grid: auto-fill 250px" }
+RenderGrid@{ shape: rect, label: "Render Photo Grid<br/>CSS Grid: auto-fill 250px" }
 
-    RenderCards@{ shape: rect, label: "For Each Photo<br/>Render Card Component" }
+RenderCards@{ shape: rect, label: "For Each Photo<br/>Render Card Component" }
 
-    LoadThumbnail@{ shape: subproc, label: "Load Thumbnail<br/><img loading='lazy'><br/>⏱️ 50ms per image" }
+LoadThumbnail@{ shape: subproc, label: "Load Thumbnail<br/><img loading='lazy'><br/>⏱️ 50ms per image" }
 
-    ShowSkeleton@{ shape: rect, label: "Show Skeleton Loader<br/>While image loads" }
+ShowSkeleton@{ shape: rect, label: "Show Skeleton Loader<br/>While image loads" }
 
-    ImageLoaded@{ shape: rect, label: "Image Loaded<br/>Hide skeleton<br/>Show thumbnail" }
+ImageLoaded@{ shape: rect, label: "Image Loaded<br/>Hide skeleton<br/>Show thumbnail" }
 
-    RenderStatusBadge@{ shape: rect, label: "Render Status Badge<br/>• Success (green)<br/>• Error (red)<br/>• Processing (blue)<br/>• Pending (orange)" }
+RenderStatusBadge@{ shape: rect, label: "Render Status Badge<br/>• Success (green)<br/>• Error (red)<br/>• Processing (blue)<br/>• Pending (orange)" }
 
-    RenderMetadata@{ shape: rect, label: "Render Metadata<br/>• Upload date<br/>• Detections count<br/>• Warehouse name" }
+RenderMetadata@{ shape: rect, label: "Render Metadata<br/>• Upload date<br/>• Detections count<br/>• Warehouse name" }
 
-    %% User interactions
-    UserAction@{ shape: diamond, label: "User Action?" }
+%% User interactions
+UserAction@{ shape: diamond, label: "User Action?" }
 
-    %% Filter change
-    ChangeFilters@{ shape: rect, label: "User Changes Filters<br/>• Date range<br/>• Warehouse<br/>• Status<br/>• Search" }
+%% Filter change
+ChangeFilters@{ shape: rect, label: "User Changes Filters<br/>• Date range<br/>• Warehouse<br/>• Status<br/>• Search" }
 
-    ResetPage@{ shape: rect, label: "Reset to Page 1<br/>page = 1" }
+ResetPage@{ shape: rect, label: "Reset to Page 1<br/>page = 1" }
 
-    %% Pagination
-    ChangePage@{ shape: rect, label: "User Clicks Page<br/>page = N" }
+%% Pagination
+ChangePage@{ shape: rect, label: "User Clicks Page<br/>page = N" }
 
-    %% Photo click
-    ClickPhoto@{ shape: rect, label: "User Clicks Photo" }
+%% Photo click
+ClickPhoto@{ shape: rect, label: "User Clicks Photo" }
 
-    NavigateDetail@{ shape: stadium, label: "Navigate to Detail View<br/>(diagram 05)" }
+NavigateDetail@{ shape: stadium, label: "Navigate to Detail View<br/>(diagram 05)" }
 
-    %% Photo selection
-    SelectPhoto@{ shape: rect, label: "User Selects Photo<br/>Checkbox click" }
+%% Photo selection
+SelectPhoto@{ shape: rect, label: "User Selects Photo<br/>Checkbox click" }
 
-    ToggleSelection@{ shape: rect, label: "Toggle Selection<br/>Add/remove from Set" }
+ToggleSelection@{ shape: rect, label: "Toggle Selection<br/>Add/remove from Set" }
 
-    UpdateSelectionUI@{ shape: rect, label: "Update UI<br/>• Selected border<br/>• Selection count" }
+UpdateSelectionUI@{ shape: rect, label: "Update UI<br/>• Selected border<br/>• Selection count" }
 
-    %% Batch delete
-    DeleteSelected@{ shape: rect, label: "User Clicks Delete<br/>Multiple selected" }
+%% Batch delete
+DeleteSelected@{ shape: rect, label: "User Clicks Delete<br/>Multiple selected" }
 
-    ConfirmDelete@{ shape: diamond, label: "Confirm<br/>delete?" }
+ConfirmDelete@{ shape: diamond, label: "Confirm<br/>delete?" }
 
-    BatchDeleteAPI@{ shape: subproc, label: "POST /api/v1/photos/batch-delete<br/>{image_ids: [...]}<br/>⏱️ 100-200ms" }
+BatchDeleteAPI@{ shape: subproc, label: "POST /api/v1/photos/batch-delete<br/>{image_ids: [...]}<br/>⏱️ 100-200ms" }
 
-    SoftDelete@{ shape: cyl, label: "UPDATE s3_images<br/>SET deleted_at = NOW()<br/>WHERE image_id IN (...)" }
+SoftDelete@{ shape: cyl, label: "UPDATE s3_images<br/>SET deleted_at = NOW()<br/>WHERE image_id IN (...)" }
 
-    ShowSuccess@{ shape: rect, label: "Show Success Message<br/>N photos deleted" }
+ShowSuccess@{ shape: rect, label: "Show Success Message<br/>N photos deleted" }
 
-    RefreshGallery@{ shape: rect, label: "Refresh Gallery<br/>Reload current page" }
+RefreshGallery@{ shape: rect, label: "Refresh Gallery<br/>Reload current page" }
 
-    %% Error states
-    EmptyGallery@{ shape: diamond, label: "Photos<br/>empty?" }
+%% Error states
+EmptyGallery@{ shape: diamond, label: "Photos<br/>empty?" }
 
-    ShowEmptyState@{ shape: rect, label: "Show Empty State<br/>Upload first photos" }
+ShowEmptyState@{ shape: rect, label: "Show Empty State<br/>Upload first photos" }
 
-    ErrorLoading@{ shape: trap, label: "Network Error<br/>Failed to load" }
+ErrorLoading@{ shape: trap, label: "Network Error<br/>Failed to load" }
 
-    RetryLoad@{ shape: rect, label: "Retry Button<br/>Reload gallery" }
+RetryLoad@{ shape: rect, label: "Retry Button<br/>Reload gallery" }
 
-    %% ====================
-    %% CONNECTIONS
-    %% ====================
+%% ====================
+%% CONNECTIONS
+%% ====================
 
-    %% Initial load
-    Start --> InitGallery
-    InitGallery --> LoadWarehouses
-    LoadWarehouses --> FetchPhotos
+%% Initial load
+Start --> InitGallery
+InitGallery --> LoadWarehouses
+LoadWarehouses --> FetchPhotos
 
-    %% Backend processing
-    FetchPhotos --> CheckAuth
-    CheckAuth -->|No| Return401
-    CheckAuth -->|Yes| BuildQuery
+%% Backend processing
+FetchPhotos --> CheckAuth
+CheckAuth -->|No|Return401
+CheckAuth -->|Yes|BuildQuery
 
-    BuildQuery --> ApplyFilters
-    ApplyFilters --> ExecuteCountQuery
-    ExecuteCountQuery --> ExecuteDataQuery
-    ExecuteDataQuery --> GeneratePresignedURLs
-    GeneratePresignedURLs --> BuildResponse
-    BuildResponse --> Return200
+BuildQuery --> ApplyFilters
+ApplyFilters --> ExecuteCountQuery
+ExecuteCountQuery --> ExecuteDataQuery
+ExecuteDataQuery --> GeneratePresignedURLs
+GeneratePresignedURLs --> BuildResponse
+BuildResponse --> Return200
 
-    %% Frontend rendering
-    Return200 --> ParseResponse
-    ParseResponse --> UpdateState
-    UpdateState --> EmptyGallery
+%% Frontend rendering
+Return200 --> ParseResponse
+ParseResponse --> UpdateState
+UpdateState --> EmptyGallery
 
-    EmptyGallery -->|Yes| ShowEmptyState
-    EmptyGallery -->|No| RenderGrid
+EmptyGallery -->|Yes|ShowEmptyState
+EmptyGallery -->|No|RenderGrid
 
-    RenderGrid --> RenderCards
-    RenderCards --> ShowSkeleton
-    ShowSkeleton --> LoadThumbnail
-    LoadThumbnail --> ImageLoaded
-    ImageLoaded --> RenderStatusBadge
-    RenderStatusBadge --> RenderMetadata
-    RenderMetadata --> UserAction
+RenderGrid --> RenderCards
+RenderCards --> ShowSkeleton
+ShowSkeleton --> LoadThumbnail
+LoadThumbnail --> ImageLoaded
+ImageLoaded --> RenderStatusBadge
+RenderStatusBadge --> RenderMetadata
+RenderMetadata --> UserAction
 
-    %% User actions
-    UserAction -->|Change filters| ChangeFilters
-    UserAction -->|Change page| ChangePage
-    UserAction -->|Click photo| ClickPhoto
-    UserAction -->|Select photo| SelectPhoto
-    UserAction -->|Delete selected| DeleteSelected
+%% User actions
+UserAction -->|Change filters|ChangeFilters
+UserAction -->|Change page|ChangePage
+UserAction -->|Click photo| ClickPhoto
+UserAction -->|Select photo|SelectPhoto
+UserAction -->|Delete selected|DeleteSelected
 
-    %% Filter change flow
-    ChangeFilters --> ResetPage
-    ResetPage --> FetchPhotos
+%% Filter change flow
+ChangeFilters --> ResetPage
+ResetPage --> FetchPhotos
 
-    %% Pagination flow
-    ChangePage --> FetchPhotos
+%% Pagination flow
+ChangePage --> FetchPhotos
 
-    %% Photo click flow
-    ClickPhoto --> NavigateDetail
+%% Photo click flow
+ClickPhoto --> NavigateDetail
 
-    %% Selection flow
-    SelectPhoto --> ToggleSelection
-    ToggleSelection --> UpdateSelectionUI
-    UpdateSelectionUI --> UserAction
+%% Selection flow
+SelectPhoto --> ToggleSelection
+ToggleSelection --> UpdateSelectionUI
+UpdateSelectionUI --> UserAction
 
-    %% Delete flow
-    DeleteSelected --> ConfirmDelete
-    ConfirmDelete -->|No| UserAction
-    ConfirmDelete -->|Yes| BatchDeleteAPI
+%% Delete flow
+DeleteSelected --> ConfirmDelete
+ConfirmDelete -->|No|UserAction
+ConfirmDelete -->|Yes|BatchDeleteAPI
 
-    BatchDeleteAPI --> SoftDelete
-    SoftDelete --> ShowSuccess
-    ShowSuccess --> RefreshGallery
-    RefreshGallery --> FetchPhotos
+BatchDeleteAPI --> SoftDelete
+SoftDelete --> ShowSuccess
+ShowSuccess --> RefreshGallery
+RefreshGallery --> FetchPhotos
 
-    %% Error handling
-    FetchPhotos -.->|Error| ErrorLoading
-    ErrorLoading --> RetryLoad
-    RetryLoad --> FetchPhotos
+%% Error handling
+FetchPhotos -.->|Error|ErrorLoading
+ErrorLoading --> RetryLoad
+RetryLoad --> FetchPhotos
 
-    Return401 --> Start
+Return401 --> Start
 
-    %% ====================
-    %% STYLING
-    %% ====================
+%% ====================
+%% STYLING
+%% ====================
 
-    classDef startEnd fill:#e1f5e1,stroke:#4caf50,stroke-width:3px
-    classDef process fill:#e3f2fd,stroke:#2196f3,stroke-width:2px
-    classDef database fill:#fff3e0,stroke:#ff9800,stroke-width:2px
-    classDef decision fill:#fff9c4,stroke:#fbc02d,stroke-width:2px
-    classDef error fill:#ffebee,stroke:#f44336,stroke-width:2px
-    classDef async fill:#f3e5f5,stroke:#9c27b0,stroke-width:2px
+classDef startEnd fill: #e1f5e1, stroke: #4caf50, stroke-width:3px
+classDef process fill: #e3f2fd, stroke:#2196f3, stroke-width: 2px
+classDef database fill:#fff3e0, stroke: #ff9800, stroke-width: 2px
+classDef decision fill: #fff9c4, stroke: #fbc02d,stroke-width: 2px
+classDef error fill: #ffebee,stroke: #f44336, stroke-width: 2px
+classDef async fill: #f3e5f5, stroke: #9c27b0, stroke-width:2px
 
-    class Start,NavigateDetail startEnd
-    class FetchPhotos,LoadWarehouses,GeneratePresignedURLs,LoadThumbnail,BatchDeleteAPI process
-    class ExecuteCountQuery,ExecuteDataQuery,SoftDelete database
-    class CheckAuth,EmptyGallery,UserAction,ConfirmDelete decision
-    class Return401,ErrorLoading error
+class Start, NavigateDetail startEnd
+class FetchPhotos, LoadWarehouses,GeneratePresignedURLs, LoadThumbnail, BatchDeleteAPI process
+class ExecuteCountQuery, ExecuteDataQuery,SoftDelete database
+class CheckAuth, EmptyGallery,UserAction, ConfirmDelete decision
+class Return401, ErrorLoading error

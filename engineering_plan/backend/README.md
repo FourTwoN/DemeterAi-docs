@@ -55,12 +55,12 @@ The DemeterAI backend follows **Clean Architecture** principles with three disti
 
 ## Backend Components
 
-| Component | Purpose | Details |
-|-----------|---------|---------|
-| **Repository Layer** | Database access | [repository_layer.md](./repository_layer.md) |
-| **Service Layer** | Business logic | [service_layer.md](./service_layer.md) |
-| **Controller Layer** | HTTP routes | [controller_layer.md](./controller_layer.md) |
-| **ML Pipeline** | YOLO + SAHI processing | [ml_pipeline.md](./ml_pipeline.md) |
+| Component            | Purpose                | Details                                      |
+|----------------------|------------------------|----------------------------------------------|
+| **Repository Layer** | Database access        | [repository_layer.md](./repository_layer.md) |
+| **Service Layer**    | Business logic         | [service_layer.md](./service_layer.md)       |
+| **Controller Layer** | HTTP routes            | [controller_layer.md](./controller_layer.md) |
+| **ML Pipeline**      | YOLO + SAHI processing | [ml_pipeline.md](./ml_pipeline.md)           |
 
 ---
 
@@ -71,12 +71,14 @@ The DemeterAI backend follows **Clean Architecture** principles with three disti
 **Location:** `/app/services/ml_processing/`
 
 **Why:**
+
 - ✅ Reuses same services and repositories as API
 - ✅ No code duplication
 - ✅ Same transaction boundaries
 - ✅ Easier testing and debugging
 
 **Components:**
+
 - `pipeline_coordinator.py` - Orchestrates full ML flow
 - `localization_service.py` - GPS → storage_location lookup
 - `segmentation_service.py` - YOLO v11 segmentation
@@ -132,6 +134,7 @@ class StockMovementService:
 **Purpose:** Loose coupling, easy testing
 
 **Example:**
+
 ```python
 from fastapi import Depends
 from app.db.session import get_db_session
@@ -153,6 +156,7 @@ async def manual_init(
 ```
 
 **Benefits:**
+
 - ✅ Services auto-injected
 - ✅ Easy to mock in tests
 - ✅ No global state
@@ -166,6 +170,7 @@ async def manual_init(
 **Location:** `/app/exceptions/`
 
 **Structure:**
+
 ```python
 class AppBaseException(Exception):
     def __init__(self, technical_message: str, user_message: str, code: int):
@@ -183,6 +188,7 @@ class ProductMismatchException(AppBaseException):
 ```
 
 **Global Handler:**
+
 ```python
 @app.exception_handler(AppBaseException)
 async def handler(request, exc: AppBaseException):
@@ -199,6 +205,7 @@ async def handler(request, exc: AppBaseException):
 ### Unit Tests
 
 **Repositories:**
+
 ```python
 @pytest.mark.asyncio
 async def test_stock_movement_repo_create(db_session):
@@ -211,6 +218,7 @@ async def test_stock_movement_repo_create(db_session):
 ```
 
 **Services (with mocks):**
+
 ```python
 @pytest.mark.asyncio
 async def test_stock_service_manual_init(mocker):

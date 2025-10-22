@@ -1,6 +1,7 @@
 # [AUTH001] JWT Token Service
 
 ## Metadata
+
 - **Epic**: epic-009-auth-security
 - **Sprint**: Sprint-05
 - **Status**: `backlog`
@@ -9,22 +10,28 @@
 - **Area**: `authentication`
 - **Assignee**: TBD
 - **Dependencies**:
-  - Blocks: [AUTH003, AUTH004, AUTH005, AUTH006]
-  - Blocked by: [F002, F005]
+    - Blocks: [AUTH003, AUTH004, AUTH005, AUTH006]
+    - Blocked by: [F002, F005]
 
 ## Related Documentation
+
 - **Engineering Plan**: ../../engineering_plan/02_technology_stack.md (Authentication section)
 - **Architecture**: ../../engineering_plan/03_architecture_overview.md
 
 ## Description
 
-Create JWT (JSON Web Token) token service for secure authentication using `python-jose[cryptography]` library. Support both HS256 (symmetric) and RS256 (asymmetric) signing algorithms with configurable token expiration.
+Create JWT (JSON Web Token) token service for secure authentication using
+`python-jose[cryptography]` library. Support both HS256 (symmetric) and RS256 (asymmetric) signing
+algorithms with configurable token expiration.
 
-**What**: Service for encoding/decoding JWT tokens with user claims (user_id, role, email), token expiration handling, and signature verification.
+**What**: Service for encoding/decoding JWT tokens with user claims (user_id, role, email), token
+expiration handling, and signature verification.
 
-**Why**: Stateless authentication is essential for scalable APIs. JWT eliminates need for session storage and enables horizontal scaling of API servers.
+**Why**: Stateless authentication is essential for scalable APIs. JWT eliminates need for session
+storage and enables horizontal scaling of API servers.
 
-**Context**: This is the foundation for all authentication features. Access tokens expire in 15 minutes, refresh tokens in 7 days (AUTH005).
+**Context**: This is the foundation for all authentication features. Access tokens expire in 15
+minutes, refresh tokens in 7 days (AUTH005).
 
 ## Acceptance Criteria
 
@@ -57,17 +64,18 @@ Create JWT (JSON Web Token) token service for secure authentication using `pytho
   ```
 
 - [ ] **AC4**: Support both algorithms:
-  - **HS256** (symmetric): Single secret key (default for development)
-  - **RS256** (asymmetric): Public/private key pair (production recommended)
+    - **HS256** (symmetric): Single secret key (default for development)
+    - **RS256** (asymmetric): Public/private key pair (production recommended)
 
 - [ ] **AC5**: Error handling for:
-  - Invalid signature → `JWTInvalidSignatureException`
-  - Expired token → `JWTExpiredException`
-  - Malformed token → `JWTDecodeException`
+    - Invalid signature → `JWTInvalidSignatureException`
+    - Expired token → `JWTExpiredException`
+    - Malformed token → `JWTDecodeException`
 
 ## Technical Implementation Notes
 
 ### Architecture
+
 - Layer: Application (Service)
 - Pattern: Singleton service (single instance per app)
 - Dependencies: python-jose==3.3.0
@@ -75,6 +83,7 @@ Create JWT (JSON Web Token) token service for secure authentication using `pytho
 ### Code Hints
 
 **app/services/auth/jwt_service.py:**
+
 ```python
 from datetime import datetime, timedelta
 from jose import jwt, JWTError, ExpiredSignatureError
@@ -134,6 +143,7 @@ class JWTService:
 ```
 
 **app/core/config.py additions:**
+
 ```python
 class Settings(BaseSettings):
     # JWT Configuration
@@ -149,6 +159,7 @@ class Settings(BaseSettings):
 ### Testing Requirements
 
 **Unit Tests** (`tests/services/auth/test_jwt_service.py`):
+
 - [ ] Test encode_access_token creates valid token
 - [ ] Test decode_token extracts correct payload
 - [ ] Test expired token raises JWTExpiredException
@@ -158,6 +169,7 @@ class Settings(BaseSettings):
 - [ ] Test token type field ("access" vs "refresh")
 
 **Test Example**:
+
 ```python
 import pytest
 from datetime import datetime, timedelta
@@ -190,6 +202,7 @@ def test_expired_token_raises_exception(monkeypatch):
 ```
 
 ### Performance Expectations
+
 - Token encoding: <5ms
 - Token decoding: <3ms
 - Token verification: <3ms
@@ -197,23 +210,24 @@ def test_expired_token_raises_exception(monkeypatch):
 ## Handover Briefing
 
 **For the next developer:**
+
 - **Context**: JWT enables stateless authentication (no session storage needed)
 - **Key decisions**:
-  - Using HS256 by default (simpler for development)
-  - RS256 support for production (separate public/private keys)
-  - 15-minute access tokens (security best practice)
-  - 7-day refresh tokens (user convenience)
+    - Using HS256 by default (simpler for development)
+    - RS256 support for production (separate public/private keys)
+    - 15-minute access tokens (security best practice)
+    - 7-day refresh tokens (user convenience)
 - **Known limitations**:
-  - No token revocation (stateless = can't invalidate before expiration)
-  - Solution: Keep access token expiration short (15 min)
+    - No token revocation (stateless = can't invalidate before expiration)
+    - Solution: Keep access token expiration short (15 min)
 - **Security considerations**:
-  - Secret key MUST be 32+ characters
-  - Never commit JWT_SECRET_KEY to git
-  - Rotate secret every 90 days in production
+    - Secret key MUST be 32+ characters
+    - Never commit JWT_SECRET_KEY to git
+    - Rotate secret every 90 days in production
 - **Next steps after this card**:
-  - AUTH002: Password hashing
-  - AUTH003: User authentication service (login)
-  - AUTH004: Authorization middleware (role checks)
+    - AUTH002: Password hashing
+    - AUTH003: User authentication service (login)
+    - AUTH004: Authorization middleware (role checks)
 
 ## Definition of Done Checklist
 
@@ -228,6 +242,7 @@ def test_expired_token_raises_exception(monkeypatch):
 - [ ] No hardcoded secrets in code
 
 ## Time Tracking
+
 - **Estimated**: 5 story points
 - **Actual**: TBD (fill after completion)
 - **Started**: TBD

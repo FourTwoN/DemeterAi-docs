@@ -11,6 +11,7 @@
 ### Status: ☐ NOT STARTED
 
 ### The File:
+
 ```
 /home/lucasg/proyectos/DemeterDocs/alembic/versions/2f68e3f132f5_create_warehouses_table.py
 ```
@@ -18,6 +19,7 @@
 ### What to Do:
 
 **Step 1:** Open the file in editor
+
 ```bash
 nano /home/lucasg/proyectos/DemeterDocs/alembic/versions/2f68e3f132f5_create_warehouses_table.py
 ```
@@ -25,6 +27,7 @@ nano /home/lucasg/proyectos/DemeterDocs/alembic/versions/2f68e3f132f5_create_war
 **Step 2:** Find line 70 (look for `sa.Enum('GREENHOUSE'...`)
 
 **Step 3:** Change from:
+
 ```python
 sa.Column('warehouse_type',
     sa.Enum('GREENHOUSE', 'SHADEHOUSE', 'OPEN_FIELD', 'TUNNEL',
@@ -34,6 +37,7 @@ sa.Column('warehouse_type',
 ```
 
 To:
+
 ```python
 sa.Column('warehouse_type',
     sa.Enum('GREENHOUSE', 'SHADEHOUSE', 'OPEN_FIELD', 'TUNNEL',
@@ -46,6 +50,7 @@ sa.Column('warehouse_type',
 **Step 4:** Save and exit
 
 ### Verification:
+
 ```bash
 cd /home/lucasg/proyectos/DemeterDocs
 
@@ -80,6 +85,7 @@ alembic upgrade head
 ```
 
 ### Verification:
+
 ```bash
 # Verify 28 tables in test DB
 psql -U demeter_test -d demeterai_test -h localhost -p 5434 -c "\dt public.*" | wc -l
@@ -95,6 +101,7 @@ psql -U demeter_test -d demeterai_test -h localhost -p 5434 -c "\dt public.*" | 
 ### Status: ☐ NOT STARTED
 
 ### Affected Tables:
+
 - [ ] product_sizes (needs ~5 seed records)
 - [ ] product_states (needs ~6 seed records)
 - [ ] storage_bin_types (needs ~10 seed records)
@@ -153,6 +160,7 @@ alembic revision --message "load_reference_data"
 ```
 
 ### Verification:
+
 ```bash
 psql -U demeter_test -d demeterai_test -h localhost -p 5434 << EOF
 SELECT COUNT(*) as product_sizes FROM product_sizes;
@@ -175,6 +183,7 @@ EOF
 ### Status: ☐ NOT STARTED
 
 ### Files to Modify:
+
 ```
 /home/lucasg/proyectos/DemeterDocs/app/services/photo/photo_upload_service.py
 ```
@@ -182,6 +191,7 @@ EOF
 ### Changes Required:
 
 **Change 1: Line 42 - Import**
+
 ```python
 # FROM:
 from app.services.location_hierarchy_service import LocationHierarchyService
@@ -191,6 +201,7 @@ from app.services.storage_location_service import StorageLocationService
 ```
 
 **Change 2: Line 78 - Class attribute**
+
 ```python
 # FROM:
 location_service: LocationHierarchyService for GPS lookup
@@ -200,6 +211,7 @@ location_service: StorageLocationService for GPS lookup
 ```
 
 **Change 3: Line 81 - Constructor**
+
 ```python
 # FROM:
 def __init__(
@@ -219,6 +231,7 @@ def __init__(
 ```
 
 **Change 4: Lines 148-167 - Method call and logic**
+
 ```python
 # FROM:
 logger.info("Looking up location by GPS coordinates")
@@ -266,6 +279,7 @@ logger.info(
 ```
 
 ### Verification:
+
 ```bash
 cd /home/lucasg/proyectos/DemeterDocs
 
@@ -394,6 +408,7 @@ class InventoryReportResponse(BaseModel):
 **File**: `/home/lucasg/proyectos/DemeterDocs/app/controllers/analytics_controller.py`
 
 **Remove these imports** (lines 24-30):
+
 ```python
 # DELETE THESE LINES:
 # from sqlalchemy import func, select
@@ -403,6 +418,7 @@ class InventoryReportResponse(BaseModel):
 ```
 
 **Add these imports** (after line 23):
+
 ```python
 from app.repositories.stock_batch_repository import StockBatchRepository
 from app.services.analytics_service import AnalyticsService
@@ -410,6 +426,7 @@ from app.schemas.analytics_schema import InventoryReportResponse
 ```
 
 **Add this dependency injection function** (after get_stock_service):
+
 ```python
 def get_analytics_service(
     session: AsyncSession = Depends(get_db_session),
@@ -420,6 +437,7 @@ def get_analytics_service(
 ```
 
 **Replace the endpoint** (search for `get_full_inventory_report`):
+
 ```python
 @router.get(
     "/inventory-report",
@@ -479,6 +497,7 @@ async def get_full_inventory_report(
 ```
 
 ### Verification:
+
 ```bash
 cd /home/lucasg/proyectos/DemeterDocs
 
@@ -498,11 +517,13 @@ python -c "from app.schemas.analytics_schema import InventoryReportResponse; pri
 ### Status: ☐ NOT STARTED
 
 ### File to Create:
+
 ```
 /home/lucasg/proyectos/DemeterDocs/app/repositories/location_relationship_repository.py
 ```
 
 ### Content:
+
 ```python
 """Location Relationship Repository.
 
@@ -528,6 +549,7 @@ class LocationRelationshipRepository(AsyncRepository[LocationRelationship]):
 ```
 
 ### Verification:
+
 ```bash
 cd /home/lucasg/proyectos/DemeterDocs
 
@@ -546,10 +568,14 @@ python -c "from app.repositories.location_relationship_repository import Locatio
 ### Status: ☐ NOT STARTED
 
 ### Files to Fix:
-- [ ] `/home/lucasg/proyectos/DemeterDocs/tests/unit/services/ml_processing/test_pipeline_coordinator.py`
-- [ ] `/home/lucasg/proyectos/DemeterDocs/tests/integration/ml_processing/test_pipeline_integration.py`
+
+- [ ]
+  `/home/lucasg/proyectos/DemeterDocs/tests/unit/services/ml_processing/test_pipeline_coordinator.py`
+- [ ]
+  `/home/lucasg/proyectos/DemeterDocs/tests/integration/ml_processing/test_pipeline_integration.py`
 
 ### The Problem:
+
 ```python
 # ❌ WRONG - Mock() cannot be subscripted
 detection_results = Mock()
@@ -559,6 +585,7 @@ detection_results = [Mock(boxes=Mock(data=torch.tensor([[0, 0, 100, 100, 0.9, 0]
 ```
 
 ### How to Find and Fix:
+
 ```bash
 # Find occurrences:
 grep -n "Mock()" tests/unit/services/ml_processing/test_pipeline_coordinator.py
@@ -570,6 +597,7 @@ grep -n "Mock()" tests/integration/ml_processing/test_pipeline_integration.py
 ```
 
 ### Verification:
+
 ```bash
 cd /home/lucasg/proyectos/DemeterDocs
 
@@ -617,6 +645,7 @@ pytest tests/ --cov=app --cov-report=term-missing | grep TOTAL
 ```
 
 ### Success Criteria:
+
 - [ ] Alembic current shows: `8807863f7d8c`
 - [ ] Database has 28 tables
 - [ ] All imports work without errors
@@ -628,16 +657,16 @@ pytest tests/ --cov=app --cov-report=term-missing | grep TOTAL
 
 ## 📝 STATUS TRACKING
 
-| Fix | Task | Status | Time | Completed |
-|-----|------|--------|------|-----------|
-| #1 | Migration enum conflict | ☐ | 10 min | ☐ |
-| #2 | Init test database | ☐ | 10 min | ☐ |
-| #3 | Load seed data | ☐ | 30 min | ☐ |
-| #4 | PhotoUploadService fix | ☐ | 30 min | ☐ |
-| #5 | Create AnalyticsService | ☐ | 2 hr | ☐ |
-| #6 | LocationRelationshipRepo | ☐ | 30 min | ☐ |
-| #7 | Fix ML test mocks | ☐ | 1 hr | ☐ |
-| **Final** | **Verification** | ☐ | **15 min** | ☐ |
+| Fix       | Task                     | Status | Time       | Completed |
+|-----------|--------------------------|--------|------------|-----------|
+| #1        | Migration enum conflict  | ☐      | 10 min     | ☐         |
+| #2        | Init test database       | ☐      | 10 min     | ☐         |
+| #3        | Load seed data           | ☐      | 30 min     | ☐         |
+| #4        | PhotoUploadService fix   | ☐      | 30 min     | ☐         |
+| #5        | Create AnalyticsService  | ☐      | 2 hr       | ☐         |
+| #6        | LocationRelationshipRepo | ☐      | 30 min     | ☐         |
+| #7        | Fix ML test mocks        | ☐      | 1 hr       | ☐         |
+| **Final** | **Verification**         | ☐      | **15 min** | ☐         |
 
 **Total Time**: ~4 hours 15 minutes
 

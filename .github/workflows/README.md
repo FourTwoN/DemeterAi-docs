@@ -7,6 +7,7 @@ This directory contains CI/CD pipelines for automated testing, security scanning
 ### 1. CI Pipeline (`ci.yml`)
 
 **Triggers:**
+
 - Push to `main` or `develop` branches
 - Pull requests to `main` or `develop`
 - Manual dispatch
@@ -14,21 +15,25 @@ This directory contains CI/CD pipelines for automated testing, security scanning
 **Jobs:**
 
 #### Lint & Format Check
+
 - Runs `ruff` linter
 - Runs `ruff` formatter check
 - Runs `black` formatter check
 - Runs `isort` import sorting check
 
 #### Type Check
+
 - Runs `mypy` static type checker
 - Validates type hints across codebase
 
 #### Security Scan
+
 - Runs `bandit` security linter
 - Runs `safety` dependency vulnerability checker
 - Generates security reports
 
 #### Tests & Coverage
+
 - Sets up PostgreSQL 15 + PostGIS 3.3
 - Sets up Redis 7
 - Runs database migrations
@@ -38,6 +43,7 @@ This directory contains CI/CD pipelines for automated testing, security scanning
 - Uploads coverage artifacts
 
 #### Build Docker Image (main branch only)
+
 - Builds Docker image
 - Caches layers for faster builds
 - Tests image functionality
@@ -49,6 +55,7 @@ This directory contains CI/CD pipelines for automated testing, security scanning
 ### 2. Docker Build & Release (`docker-build.yml`)
 
 **Triggers:**
+
 - Release published
 - Tags pushed (v*)
 - Manual dispatch
@@ -56,12 +63,14 @@ This directory contains CI/CD pipelines for automated testing, security scanning
 **Jobs:**
 
 #### Build Multi-Platform Image
+
 - Builds for `linux/amd64` and `linux/arm64`
 - Pushes to GitHub Container Registry (ghcr.io)
 - Tags with version, branch, and SHA
 - Uses GitHub Actions cache
 
 #### Test Image
+
 - Pulls built image
 - Runs smoke tests
 
@@ -72,6 +81,7 @@ This directory contains CI/CD pipelines for automated testing, security scanning
 ### 3. Security Scan (`security.yml`)
 
 **Triggers:**
+
 - Push to `main` or `develop`
 - Pull requests
 - Weekly schedule (Mondays at 00:00 UTC)
@@ -80,16 +90,20 @@ This directory contains CI/CD pipelines for automated testing, security scanning
 **Jobs:**
 
 #### Dependency Security Scan
+
 - Runs `safety` for known vulnerabilities
 - Runs `pip-audit` for dependency issues
 
 #### Code Security Scan
+
 - Runs `bandit` with medium-high severity checks
 
 #### Secrets Detection
+
 - Runs `TruffleHog` to detect leaked secrets
 
 #### CodeQL Analysis
+
 - Runs GitHub's CodeQL security scanning
 
 **Duration:** ~5-8 minutes
@@ -202,20 +216,24 @@ git commit --no-verify
 ### All Pull Requests Must Pass:
 
 ✅ **Lint & Format**
+
 - Ruff linting (no errors)
 - Black formatting (consistent style)
 - Import sorting (organized imports)
 
 ✅ **Type Checking**
+
 - MyPy passes (no type errors)
 - All functions have type hints
 
 ✅ **Security**
+
 - Bandit passes (no high-severity issues)
 - No secrets detected
 - No known dependency vulnerabilities
 
 ✅ **Tests**
+
 - All tests pass
 - Coverage ≥ 80%
 - No failing integration tests
@@ -223,6 +241,7 @@ git commit --no-verify
 ### Main Branch Additional Requirements:
 
 ✅ **Docker Build**
+
 - Image builds successfully
 - Smoke tests pass
 - Multi-platform support (amd64 + arm64)
@@ -233,18 +252,18 @@ git commit --no-verify
 
 ### CI Pipeline
 
-| Variable | Description | Required |
-|----------|-------------|----------|
-| `DATABASE_URL` | PostgreSQL connection string | Yes |
-| `REDIS_URL` | Redis connection string | Yes |
-| `TESTING` | Flag for test environment | Yes |
+| Variable       | Description                  | Required |
+|----------------|------------------------------|----------|
+| `DATABASE_URL` | PostgreSQL connection string | Yes      |
+| `REDIS_URL`    | Redis connection string      | Yes      |
+| `TESTING`      | Flag for test environment    | Yes      |
 
 ### Docker Build
 
-| Variable | Description | Required |
-|----------|-------------|----------|
-| `GITHUB_TOKEN` | GitHub authentication | Auto-provided |
-| `REGISTRY` | Container registry URL | Auto-set |
+| Variable       | Description            | Required      |
+|----------------|------------------------|---------------|
+| `GITHUB_TOKEN` | GitHub authentication  | Auto-provided |
+| `REGISTRY`     | Container registry URL | Auto-set      |
 
 ---
 
@@ -253,10 +272,12 @@ git commit --no-verify
 ### Generated Artifacts
 
 **CI Pipeline:**
+
 - `coverage-reports/` - HTML and XML coverage reports
 - `security-reports/` - JSON security scan results
 
 **Security Scan:**
+
 - `dependency-scan-reports/` - Dependency vulnerability reports
 - `bandit-report/` - Code security analysis
 
@@ -279,6 +300,7 @@ git commit --no-verify
 **Cause:** Database state differences
 
 **Solution:**
+
 ```bash
 # Run with same PostgreSQL version
 docker compose up db_test -d
@@ -290,6 +312,7 @@ pytest tests/ --cov=app
 **Cause:** Missing dependencies or incorrect Dockerfile
 
 **Solution:**
+
 ```bash
 # Test locally
 docker build -t demeterai:test .
@@ -301,6 +324,7 @@ docker run --rm demeterai:test python --version
 **Cause:** Insufficient test coverage
 
 **Solution:**
+
 ```bash
 # Find uncovered lines
 pytest tests/ --cov=app --cov-report=term-missing
@@ -313,6 +337,7 @@ pytest tests/ --cov=app --cov-report=term-missing
 **Cause:** Missing type hints or incorrect types
 
 **Solution:**
+
 ```bash
 # Run locally with verbose output
 mypy app/ --show-error-codes --pretty
@@ -333,6 +358,7 @@ mypy app/ --show-error-codes --pretty
 ### Parallel Execution
 
 Jobs run in parallel:
+
 - Lint (2-3 min)
 - Type Check (3-4 min)
 - Security (2-3 min)
@@ -347,12 +373,14 @@ Total time: ~8-10 min (not 15-18 min sequential)
 ### Secrets Management
 
 ❌ **Never commit:**
+
 - API keys
 - Passwords
 - Private keys
 - Database credentials
 
 ✅ **Use GitHub Secrets:**
+
 1. Go to Settings → Secrets and variables → Actions
 2. Add secret
 3. Reference in workflow: `${{ secrets.SECRET_NAME }}`
@@ -360,6 +388,7 @@ Total time: ~8-10 min (not 15-18 min sequential)
 ### Dependency Updates
 
 Run weekly:
+
 ```bash
 # Update pre-commit hooks
 pre-commit autoupdate
@@ -421,6 +450,7 @@ Add to README.md:
 ## Support
 
 **Questions?** Check:
+
 1. [GitHub Actions Documentation](https://docs.github.com/en/actions)
 2. [Pre-commit Documentation](https://pre-commit.com/)
 3. [Project README](../../README.md)

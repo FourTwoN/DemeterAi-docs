@@ -7,7 +7,8 @@
 
 ## Purpose
 
-This subflow details the **storage location preview card** component displaying key metrics: quantity, maceta type, value, última foto, increase/decrease indicators, and valor potencial.
+This subflow details the **storage location preview card** component displaying key metrics:
+quantity, maceta type, value, última foto, increase/decrease indicators, and valor potencial.
 
 ## Scope
 
@@ -334,6 +335,7 @@ export const StorageLocationPreviewCard: React.FC<Props> = ({ location, onClick 
 ## Visual Design Specifications
 
 ### Card Dimensions
+
 - **Width**: Responsive (flex/grid layout)
 - **Height**: Auto (content-driven)
 - **Image height**: 192px (h-48)
@@ -341,6 +343,7 @@ export const StorageLocationPreviewCard: React.FC<Props> = ({ location, onClick 
 - **Border radius**: 8px (rounded-lg)
 
 ### Color Scheme
+
 ```css
 /* Status badges */
 .badge-success { background: #10B981; color: white; }  /* Green - OK */
@@ -359,12 +362,14 @@ export const StorageLocationPreviewCard: React.FC<Props> = ({ location, onClick 
 ```
 
 ### Typography
+
 - **Card title**: font-bold text-lg (18px)
 - **Metric labels**: text-xs text-gray-500 (12px)
 - **Metric values**: text-2xl font-bold (24px) for quantity, text-base (16px) for currency
 - **Footer**: text-xs (12px)
 
 ### Hover Effects
+
 ```css
 .preview-card:hover {
   box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
@@ -377,6 +382,7 @@ export const StorageLocationPreviewCard: React.FC<Props> = ({ location, onClick 
 ## Metrics Calculation
 
 ### Quantity Change
+
 ```typescript
 // Calculated in materialized view
 quantity_change = current_quantity - previous_quantity
@@ -391,6 +397,7 @@ percent_change = (quantity_change / previous_quantity) × 100
 ```
 
 ### Potential Value
+
 ```typescript
 // 30% growth estimate (configurable per product type)
 potential_value = current_value × 1.3
@@ -400,6 +407,7 @@ roi_percent = ((potential_value - current_value) / current_value) × 100
 ```
 
 ### Quality Score
+
 ```typescript
 // Weighted average from stock_batches
 quality_score = AVG(stock_batches.quality_score)
@@ -412,6 +420,7 @@ if (quality_score < 60) → Red (needs attention)
 ```
 
 ### Primary Maceta Type
+
 ```typescript
 // Most common maceta type
 maceta_primary = MODE(packaging_catalog.name)
@@ -425,12 +434,14 @@ LIMIT 1
 ## Performance Considerations
 
 ### Image Loading
+
 - **Lazy loading**: Images load as they scroll into view
 - **Placeholder**: Show gray box with "No photo" text while loading
 - **Error handling**: Fallback to placeholder image if S3 URL fails
 - **Presigned URLs**: Valid for 1 hour, generated during bulk-load
 
 ### Rendering Optimization
+
 - **React.memo**: Memoize component to prevent unnecessary re-renders
 - **Virtualization**: Use `react-window` for 500+ cards
 - **Debounced filtering**: Debounce search input to reduce re-renders
@@ -451,6 +462,7 @@ export const StorageLocationPreviewCard = React.memo<Props>(
 ## Accessibility
 
 ### ARIA Labels
+
 ```tsx
 <div
   className="preview-card"
@@ -467,11 +479,13 @@ export const StorageLocationPreviewCard = React.memo<Props>(
 ```
 
 ### Keyboard Navigation
+
 - **Tab**: Focus card
 - **Enter/Space**: Click card to view detail
 - **Arrow keys**: Navigate between cards (optional)
 
 ### Screen Reader Support
+
 - **Alt text**: Descriptive alt text for images
 - **ARIA labels**: Clear labels for interactive elements
 - **Status announcements**: Announce filter/sort changes
@@ -484,13 +498,14 @@ export const StorageLocationPreviewCard = React.memo<Props>(
 
 ## Version History
 
-| Version | Date | Changes |
-|---------|------|---------|
-| 1.0.0 | 2025-10-08 | Initial preview card component specification |
+| Version | Date       | Changes                                      |
+|---------|------------|----------------------------------------------|
+| 1.0.0   | 2025-10-08 | Initial preview card component specification |
 
 ---
 
 **Notes:**
+
 - Preview cards designed for quick scanning of key metrics
 - No API calls needed - all data from bulk-load response
 - Trend indicators provide instant insight into quantity changes

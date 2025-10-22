@@ -1,6 +1,7 @@
 # R010: Product Size Repository
 
 ## Metadata
+
 - **Epic**: [epic-003-repositories.md](../../02_epics/epic-003-repositories.md)
 - **Sprint**: Sprint-01
 - **Status**: `backlog`
@@ -9,27 +10,35 @@
 - **Area**: `repositories`
 - **Assignee**: TBD
 - **Dependencies**:
-  - Blocks: [R016, R024, S009]
-  - Blocked by: [F006, F007, DB019]
+    - Blocks: [R016, R024, S009]
+    - Blocked by: [F006, F007, DB019]
 
 ## Related Documentation
-- **Engineering Plan**: [../../engineering_plan/backend/repository_layer.md](../../engineering_plan/backend/repository_layer.md)
+
+- **Engineering Plan
+  **: [../../engineering_plan/backend/repository_layer.md](../../engineering_plan/backend/repository_layer.md)
 - **Database ERD**: [../../database/database.mmd](../../database/database.mmd#L105-L113)
-- **Architecture**: [../../engineering_plan/03_architecture_overview.md](../../engineering_plan/03_architecture_overview.md)
+- **Architecture
+  **: [../../engineering_plan/03_architecture_overview.md](../../engineering_plan/03_architecture_overview.md)
 
 ## Description
 
-**What**: Implement repository class for `product_sizes` table with CRUD operations and height-based classification.
+**What**: Implement repository class for `product_sizes` table with CRUD operations and height-based
+classification.
 
-**Why**: Product sizes define plant size categories (XS/S/M/L/XL) with height ranges for ML classification and pricing tiers. Repository provides lookup by code and height-based classification for ML pipeline.
+**Why**: Product sizes define plant size categories (XS/S/M/L/XL) with height ranges for ML
+classification and pricing tiers. Repository provides lookup by code and height-based classification
+for ML pipeline.
 
-**Context**: Master data table for size classification. ML pipeline uses height ranges to classify detected plants. Pricing varies by size (larger plants = higher price).
+**Context**: Master data table for size classification. ML pipeline uses height ranges to classify
+detected plants. Pricing varies by size (larger plants = higher price).
 
 ## Acceptance Criteria
 
 - [ ] **AC1**: `ProductSizeRepository` class inherits from `AsyncRepository[ProductSize]`
 - [ ] **AC2**: Implements `get_by_code(code: str)` method with unique constraint validation
-- [ ] **AC3**: Implements `get_by_height_range(min_height: float, max_height: float)` for ML classification
+- [ ] **AC3**: Implements `get_by_height_range(min_height: float, max_height: float)` for ML
+  classification
 - [ ] **AC4**: Implements `classify_by_height(height_cm: float)` returning matching size category
 - [ ] **AC5**: Implements `get_all_ordered()` returning sizes in sort_order (XS → XL)
 - [ ] **AC6**: Query performance: <10ms for all queries (small lookup table)
@@ -37,11 +46,13 @@
 ## Technical Implementation Notes
 
 ### Architecture
+
 - **Layer**: Infrastructure (Repository)
 - **Dependencies**: F006 (Database connection), DB019 (ProductSize model)
 - **Design Pattern**: Repository pattern, inherits AsyncRepository
 
 ### Code Hints
+
 ```python
 from typing import Optional, List
 from sqlalchemy import select, and_
@@ -143,6 +154,7 @@ class ProductSizeRepository(AsyncRepository[ProductSize]):
 ### Testing Requirements
 
 **Unit Tests**:
+
 ```python
 @pytest.mark.asyncio
 async def test_product_size_repo_get_by_code(db_session, sample_sizes):
@@ -206,6 +218,7 @@ async def test_product_size_repo_distribution(db_session, batches_by_size):
 **Coverage Target**: ≥85%
 
 ### Performance Expectations
+
 - All queries: <10ms (small lookup table, ~5-8 rows)
 - classify_by_height: <5ms (indexed height columns)
 - get_size_distribution: <30ms (GROUP BY aggregation)
@@ -213,20 +226,21 @@ async def test_product_size_repo_distribution(db_session, batches_by_size):
 ## Handover Briefing
 
 **For the next developer:**
+
 - **Context**: Master data for size classification. Used by ML pipeline and pricing
 - **Key decisions**:
-  - Height ranges non-overlapping for clean classification
-  - sort_order ensures XS → XL ordering in UI
-  - Code is standard size naming (XS/S/M/L/XL)
-  - ML uses classify_by_height for automatic size detection
+    - Height ranges non-overlapping for clean classification
+    - sort_order ensures XS → XL ordering in UI
+    - Code is standard size naming (XS/S/M/L/XL)
+    - ML uses classify_by_height for automatic size detection
 - **Known limitations**:
-  - Height ranges are static (not per-product customizable)
-  - No diameter/width classification (only height)
-  - Assumes linear size progression (no special sizes)
+    - Height ranges are static (not per-product customizable)
+    - No diameter/width classification (only height)
+    - Assumes linear size progression (no special sizes)
 - **Next steps**: R016 uses sizes for stock batches, R024 for ML classification
 - **Questions to validate**:
-  - Should height ranges be per-product or global?
-  - Do we need custom size categories per species?
+    - Should height ranges be per-product or global?
+    - Do we need custom size categories per species?
 
 ## Definition of Done Checklist
 
@@ -242,6 +256,7 @@ async def test_product_size_repo_distribution(db_session, batches_by_size):
 - [ ] Performance benchmarks documented
 
 ## Time Tracking
+
 - **Estimated**: 1 story point (~2 hours)
 - **Actual**: TBD
 - **Started**: TBD

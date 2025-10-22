@@ -4,27 +4,27 @@ mermaid_version: "v11.3.0+"
 ---
 flowchart TB
     START@{ shape: stadium, label: "Admin Selects CREATE" }
-    FORM@{ shape: rect, label: "Configuration Form
-    Empty/suggested values" }
-    VALIDATE@{ shape: diamond, label: "Valid?" }
-    ERROR@{ shape: rect, label: "Show Errors" }
-    CONFIRM@{ shape: rect, label: "Confirmation Dialog
-    Shows old → new config" }
-    BEGIN_TX@{ shape: rect, label: "BEGIN TRANSACTION" }
-    DEACTIVATE@{ shape: cyl, label: "UPDATE ... SET active=false" }
-    INSERT@{ shape: cyl, label: "INSERT new config active=true" }
-    COMMIT@{ shape: rect, label: "COMMIT" }
-    SUCCESS@{ shape: stadium, label: "Success - New Config Created
-    Old Config Archived" }
+FORM@{ shape: rect, label: "Configuration Form
+Empty/suggested values" }
+VALIDATE@{ shape: diamond, label: "Valid?" }
+ERROR@{ shape: rect, label: "Show Errors" }
+CONFIRM@{ shape: rect, label: "Confirmation Dialog
+Shows old → new config" }
+BEGIN_TX@{ shape: rect, label: "BEGIN TRANSACTION" }
+DEACTIVATE@{ shape: cyl, label: "UPDATE ... SET active=false" }
+INSERT@{ shape: cyl, label: "INSERT new config active=true" }
+COMMIT@{ shape: rect, label: "COMMIT" }
+SUCCESS@{ shape: stadium, label: "Success - New Config Created
+Old Config Archived" }
 
-    START --> FORM
-    FORM --> VALIDATE
-    VALIDATE -->|No| ERROR
-    ERROR --> FORM
-    VALIDATE -->|Yes| CONFIRM
-    CONFIRM -->|Confirm| BEGIN_TX
-    CONFIRM -->|Cancel| FORM
-    BEGIN_TX --> DEACTIVATE
-    DEACTIVATE --> INSERT
-    INSERT --> COMMIT
-    COMMIT --> SUCCESS
+START --> FORM
+FORM --> VALIDATE
+VALIDATE -->|No|ERROR
+ERROR --> FORM
+VALIDATE -->|Yes|CONFIRM
+CONFIRM -->|Confirm|BEGIN_TX
+CONFIRM -->|Cancel|FORM
+BEGIN_TX --> DEACTIVATE
+DEACTIVATE --> INSERT
+INSERT --> COMMIT
+COMMIT --> SUCCESS

@@ -1,6 +1,7 @@
 # R013: Packaging Color Repository
 
 ## Metadata
+
 - **Epic**: [epic-003-repositories.md](../../02_epics/epic-003-repositories.md)
 - **Sprint**: Sprint-01
 - **Status**: `backlog`
@@ -9,20 +10,25 @@
 - **Area**: `repositories`
 - **Assignee**: TBD
 - **Dependencies**:
-  - Blocks: [R014]
-  - Blocked by: [F006, F007, DB022]
+    - Blocks: [R014]
+    - Blocked by: [F006, F007, DB022]
 
 ## Related Documentation
-- **Engineering Plan**: [../../engineering_plan/backend/repository_layer.md](../../engineering_plan/backend/repository_layer.md)
+
+- **Engineering Plan
+  **: [../../engineering_plan/backend/repository_layer.md](../../engineering_plan/backend/repository_layer.md)
 - **Database ERD**: [../../database/database.mmd](../../database/database.mmd#L151-L155)
 
 ## Description
 
-**What**: Implement repository class for `packaging_colors` table with CRUD operations and hex code lookup.
+**What**: Implement repository class for `packaging_colors` table with CRUD operations and hex code
+lookup.
 
-**Why**: Packaging colors define container color options (negro, terracota, blanco). Repository provides lookup by name or hex code for UI color pickers.
+**Why**: Packaging colors define container color options (negro, terracota, blanco). Repository
+provides lookup by name or hex code for UI color pickers.
 
-**Context**: Master data for packaging color classification. Hex codes enable consistent color display in UI.
+**Context**: Master data for packaging color classification. Hex codes enable consistent color
+display in UI.
 
 ## Acceptance Criteria
 
@@ -74,6 +80,7 @@ class PackagingColorRepository(AsyncRepository[PackagingColor]):
 - [ ] PR reviewed (2+ approvals)
 
 ## Time Tracking
+
 - **Estimated**: 1 story point (~2 hours)
 - **Actual**: TBD
 

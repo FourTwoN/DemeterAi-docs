@@ -1,4 +1,5 @@
 # 🔍 COMPREHENSIVE AUDIT REPORT - DemeterAI v2.0
+
 ## Sprint 0-4 Complete Code Review & Architecture Validation
 
 **Date**: 2025-10-21
@@ -12,15 +13,15 @@
 
 ### Overall Assessment
 
-| Component | Status | Score | Blockers |
-|-----------|--------|-------|----------|
-| **Project Structure** | ✅ EXCELLENT | 96.5/100 | 0 |
-| **Database Layer (Sprint 1)** | ⚠️ PARTIAL | 85/100 | 1 CRITICAL |
-| **ML Pipeline (Sprint 2)** | ⚠️ PARTIAL | 50/100 | Multiple |
-| **Services Layer (Sprint 3)** | ✅ VERY GOOD | 85/100 | 1 CRITICAL |
-| **Controllers Layer (Sprint 4)** | ⚠️ NEEDS WORK | 65/100 | 1 BLOCKER |
-| **Tests** | ⚠️ FAILING | 79.8% pass | 260 failures |
-| **Docker/DB** | 🔴 BLOCKED | 0% | 1 CRITICAL |
+| Component                        | Status        | Score      | Blockers     |
+|----------------------------------|---------------|------------|--------------|
+| **Project Structure**            | ✅ EXCELLENT   | 96.5/100   | 0            |
+| **Database Layer (Sprint 1)**    | ⚠️ PARTIAL    | 85/100     | 1 CRITICAL   |
+| **ML Pipeline (Sprint 2)**       | ⚠️ PARTIAL    | 50/100     | Multiple     |
+| **Services Layer (Sprint 3)**    | ✅ VERY GOOD   | 85/100     | 1 CRITICAL   |
+| **Controllers Layer (Sprint 4)** | ⚠️ NEEDS WORK | 65/100     | 1 BLOCKER    |
+| **Tests**                        | ⚠️ FAILING    | 79.8% pass | 260 failures |
+| **Docker/DB**                    | 🔴 BLOCKED    | 0%         | 1 CRITICAL   |
 
 ### High-Level Verdict
 
@@ -41,6 +42,7 @@
 #### Findings:
 
 **✅ Structure Perfectly Aligned**
+
 - 100% of expected directories present
 - 28/28 models implemented (matching database.mmd exactly)
 - 27/27 repositories implemented
@@ -48,17 +50,20 @@
 - .claude/ workflow system fully documented
 
 **✅ Documentation Current**
+
 - CLAUDE.md v3.0 (2025-10-20) - up to date
 - All 17 epics documented
 - Sprint goals clearly defined
 - Kanban board properly maintained
 
 **⚠️ Minor Issues**
+
 - 50+ audit report files cluttering root directory (should be in /audit-reports/)
 - database.md referenced but doesn't exist (not critical, mmd is source of truth)
 - Controllers documented for Sprint 04+ but already partially implemented in Sprint 03
 
 #### Recommendation:
+
 No blocker - nice to have: consolidate audit files into dedicated directory
 
 ---
@@ -70,6 +75,7 @@ No blocker - nice to have: consolidate audit files into dedicated directory
 #### Findings:
 
 **✅ Models: 100% Complete**
+
 - 28/28 models implemented in app/models/
 - 100% match with database.mmd (source of truth)
 - All models properly inherit from db.Base
@@ -77,6 +83,7 @@ No blocker - nice to have: consolidate audit files into dedicated directory
 - No hallucinated models
 
 **✅ Repositories: 96% Complete**
+
 - 26/27 repositories implemented
 - MISSING: `LocationRelationshipRepository` (CRITICAL for CRUD)
 - All 26 existing repos use correct inheritance from AsyncRepository
@@ -117,6 +124,7 @@ sa.Column('warehouse_type',
 SQLAlchemy sees value mismatch and tries to create enum, fails because it already exists.
 
 **Error Message**:
+
 ```
 psycopg2.errors.DuplicateObject: type "warehouse_type_enum" already exists
 ```
@@ -128,6 +136,7 @@ psycopg2.errors.DuplicateObject: type "warehouse_type_enum" already exists
 #### Recommendations:
 
 **IMMEDIATE (Before sprint work):**
+
 1. Fix warehouse migration enum conflict
 2. Run `alembic upgrade head` against both databases
 3. Verify: `SELECT count(*) FROM information_schema.tables WHERE table_schema='public'` = 28
@@ -143,6 +152,7 @@ psycopg2.errors.DuplicateObject: type "warehouse_type_enum" already exists
 #### Findings:
 
 **✅ Services Implemented**
+
 - PhotoProcessingSessionService: OK
 - MLModelService: OK
 - PipelineCoordinator: OK (with hallucination bug)
@@ -183,12 +193,14 @@ detection_results = [Mock(boxes=Mock(data=torch.tensor([[...]])]
 **❌ Critical Issue #3: Empty Services**
 
 **Files**:
+
 - `app/services/photo/detection_service.py` - EMPTY
 - ML pipeline cannot complete without detection
 
 **⚠️ Business Flow Issue: 40% of ML Pipeline Incomplete**
 
 Per workflow audit:
+
 - Child tasks (SAHI + Direct detection): NOT IMPLEMENTED
 - Callback mechanism: NOT IMPLEMENTED
 - Stock batch creation from ML results: NOT IMPLEMENTED
@@ -196,6 +208,7 @@ Per workflow audit:
 #### Recommendations:
 
 **IMMEDIATE:**
+
 1. Fix PhotoUploadService hallucination (see detailed fix below)
 2. Fix mock objects in ML tests
 3. Implement detection_service.py
@@ -210,6 +223,7 @@ Per workflow audit:
 #### Findings:
 
 **✅ Architecture: 100% Compliant**
+
 - 25+ services implemented
 - Zero violations of Service→Service pattern
 - Zero cross-repository access violations
@@ -217,6 +231,7 @@ Per workflow audit:
 - All services properly typed
 
 **✅ Code Quality**
+
 - Type hints: 100%
 - Async/await: 100%
 - Docstrings: 100%
@@ -231,29 +246,33 @@ Per workflow audit:
 PhotoUploadService calls: `self.location_service.get_full_hierarchy_by_gps()`
 
 But LocationHierarchyService has NO such method. The correct method is:
+
 - **Option 1**: Use `StorageLocationService.get_location_by_gps()` (RECOMMENDED)
 - **Option 2**: Use `LocationHierarchyService.lookup_gps_full_chain()` (if you rename it)
 
 **Why This Is Critical**:
+
 - Will crash with: `AttributeError: object has no attribute 'get_full_hierarchy_by_gps'`
 - Blocks entire photo upload workflow
 - Prevents ML pipeline from starting
 - Will fail in production immediately
 
 **⚠️ Test Coverage Issues**
+
 - 8 services without unit tests:
-  - detection_service.py
-  - estimation_service.py
-  - photo_processing_session_service.py
-  - photo_upload_service.py (THIS ONE - hallucination)
-  - pipeline_coordinator.py
-  - sahi_detection_service.py
-  - segmentation_service.py
-  - model_cache.py
+    - detection_service.py
+    - estimation_service.py
+    - photo_processing_session_service.py
+    - photo_upload_service.py (THIS ONE - hallucination)
+    - pipeline_coordinator.py
+    - sahi_detection_service.py
+    - segmentation_service.py
+    - model_cache.py
 
 #### Recommendations:
 
 **CRITICAL (Before Sprint 5):**
+
 1. Fix PhotoUploadService hallucination - DETAILED FIX PROVIDED BELOW
 2. Create AnalyticsService (currently violated in controller)
 3. Add unit tests for 8 services without coverage
@@ -267,6 +286,7 @@ But LocationHierarchyService has NO such method. The correct method is:
 #### Findings:
 
 **✅ Positive Aspects**
+
 - 5 controllers implemented
 - 26 total endpoints
 - 73% endpoints documented (19/26)
@@ -290,6 +310,7 @@ async def get_full_inventory_report(..., session: AsyncSession = Depends(get_db_
 ```
 
 **Why This Violates Clean Architecture**:
+
 - Controller should NEVER access database directly
 - Business logic (aggregation) belongs in Service layer
 - Breaks testability (cannot unit test without DB)
@@ -300,15 +321,15 @@ async def get_full_inventory_report(..., session: AsyncSession = Depends(get_db_
 
 **❌ Critical Issue #2: 7 Placeholder Endpoints**
 
-| Code | Endpoint | Status | Blocker |
-|------|----------|--------|---------|
-| C003 | GET /stock/tasks/{id} | Placeholder | CEL005 |
-| C005 | GET /stock/batches | Placeholder | get_multi() |
-| C006 | GET /stock/batches/{id} | Placeholder | get_by_id() |
-| C013 | POST /locations/validate | Placeholder | validate_hierarchy() |
-| C024 | GET /analytics/daily-counts | Placeholder | TBD |
-| C025 | GET /analytics/inventory-report | VIOLATED | analytics_controller |
-| C026 | GET /analytics/exports/{format} | Placeholder | TBD |
+| Code | Endpoint                        | Status      | Blocker              |
+|------|---------------------------------|-------------|----------------------|
+| C003 | GET /stock/tasks/{id}           | Placeholder | CEL005               |
+| C005 | GET /stock/batches              | Placeholder | get_multi()          |
+| C006 | GET /stock/batches/{id}         | Placeholder | get_by_id()          |
+| C013 | POST /locations/validate        | Placeholder | validate_hierarchy() |
+| C024 | GET /analytics/daily-counts     | Placeholder | TBD                  |
+| C025 | GET /analytics/inventory-report | VIOLATED    | analytics_controller |
+| C026 | GET /analytics/exports/{format} | Placeholder | TBD                  |
 
 **⚠️ Issue #3: Zero Test Coverage**
 
@@ -322,6 +343,7 @@ Required tests: 78+ (3 per endpoint minimum)
 #### Recommendations:
 
 **CRITICAL (Before Sprint 5):**
+
 1. Refactor analytics_controller to use AnalyticsService (2 hours)
 2. Create comprehensive test suite (15-20 hours)
 3. Implement placeholder endpoints
@@ -335,6 +357,7 @@ Required tests: 78+ (3 per endpoint minimum)
 #### Findings:
 
 **Summary**:
+
 - Total tests: 1,327
 - Passed: 1,059 (79.8%)
 - Failed: 240 (18.1%)
@@ -345,31 +368,32 @@ Required tests: 78+ (3 per endpoint minimum)
 **Top 5 Critical Failures**:
 
 1. **Seed Data Not Loaded** (50 tests failing)
-   - product_sizes: 0 rows (expected ~5)
-   - product_states: 0 rows (expected ~6)
-   - storage_bin_types: 0 rows (expected ~10)
-   - Impact: Models cannot be created in tests
+    - product_sizes: 0 rows (expected ~5)
+    - product_states: 0 rows (expected ~6)
+    - storage_bin_types: 0 rows (expected ~10)
+    - Impact: Models cannot be created in tests
 
 2. **Mock Violations in ML Tests** (22 tests failing)
-   - YOLO results mocked incorrectly: `Mock()` instead of list structure
-   - Error: `'Mock' object is not subscriptable`
-   - Files: pipeline_coordinator.py, segmentation_service.py
+    - YOLO results mocked incorrectly: `Mock()` instead of list structure
+    - Error: `'Mock' object is not subscriptable`
+    - Files: pipeline_coordinator.py, segmentation_service.py
 
 3. **Geospatial Triggers Not Created** (98 tests failing)
-   - Database triggers missing
-   - Centroid/area calculations not working
-   - Impact: Warehouse location tests fail
+    - Database triggers missing
+    - Centroid/area calculations not working
+    - Impact: Warehouse location tests fail
 
 4. **S3 Integration Broken** (17 tests erroring)
-   - Setup fails during fixture initialization
-   - S3 client not properly configured
+    - Setup fails during fixture initialization
+    - S3 client not properly configured
 
 5. **Database Schema Missing** (All integration tests blocked)
-   - Alembic migration system blocked
-   - Cannot create any tables
-   - Root cause: warehouse_type_enum conflict
+    - Alembic migration system blocked
+    - Cannot create any tables
+    - Root cause: warehouse_type_enum conflict
 
 **No Suspicious Issues Found**:
+
 - ✅ All skipped tests have valid reasons
 - ✅ No hallucinated test mocks
 - ✅ No tests marked passing when actually failing
@@ -377,6 +401,7 @@ Required tests: 78+ (3 per endpoint minimum)
 #### Recommendations:
 
 **IMMEDIATE:**
+
 1. Fix migration blocking issue
 2. Load seed data
 3. Fix mock violations
@@ -391,16 +416,17 @@ Required tests: 78+ (3 per endpoint minimum)
 #### Current Status:
 
 **Containers**: ✅ All Running (PostgreSQL, PostgreSQL-test, Redis)
+
 - Main DB (demeterai): 5432 - RUNNING
 - Test DB (demeterai_test): 5434 - RUNNING
 - Redis: 6379 - RUNNING
 
 **Database Schema**: 🔴 ZERO TABLES CREATED
 
-| Database | Status | Tables | Expected | Gap |
-|----------|--------|--------|----------|-----|
-| demeterai | ❌ BLOCKED | 0 | 28 | -28 |
-| demeterai_test | ❌ NOT INIT | 0 | 28 | -28 |
+| Database       | Status     | Tables | Expected | Gap |
+|----------------|------------|--------|----------|-----|
+| demeterai      | ❌ BLOCKED  | 0      | 28       | -28 |
+| demeterai_test | ❌ NOT INIT | 0      | 28       | -28 |
 
 **Migration Status**: 🔴 BLOCKED
 
@@ -412,6 +438,7 @@ Blocker: warehouse_type_enum - enum type already exists
 ```
 
 **Alembic Version**:
+
 - 14 migration files in alembic/versions/
 - Only 1 applied (PostGIS setup)
 - Cannot proceed past warehouse migration
@@ -421,6 +448,7 @@ Blocker: warehouse_type_enum - enum type already exists
 **File**: `alembic/versions/2f68e3f132f5_create_warehouses_table.py`
 
 **Problem**:
+
 ```python
 # Line 55-62: Manual enum creation (lowercase values)
 "CREATE TYPE warehouse_type_enum AS ENUM ('greenhouse', 'shadehouse', 'open_field', 'tunnel')"
@@ -434,12 +462,14 @@ sa.Column('warehouse_type',
 ```
 
 **Why It Fails**:
+
 1. Manual SQL creates enum with lowercase values: `'greenhouse'`, `'shadehouse'`, etc.
 2. SQLAlchemy compares expected values: `'GREENHOUSE'`, `'SHADEHOUSE'`, etc.
 3. Mismatch detected → SQLAlchemy tries to create enum again
 4. PostgreSQL: "ERROR: type warehouse_type_enum already exists"
 
 **Solutions** (pick one):
+
 - Option A: Add `create_type=False` to SQLAlchemy enum
 - Option B: Make all values uppercase in both places
 - Option C: Remove manual CREATE TYPE, let SQLAlchemy handle it
@@ -447,9 +477,12 @@ sa.Column('warehouse_type',
 #### Recommendations:
 
 **IMMEDIATE (BLOCKER - FIX NOW):**
+
 1. Fix warehouse migration file (5 minutes)
 2. Run: `alembic upgrade head` (main DB)
-3. Run: `DATABASE_URL=postgresql+asyncpg://demeter_test:demeter_test_password@localhost:5434/demeterai_test alembic upgrade head` (test DB)
+3. Run:
+   `DATABASE_URL=postgresql+asyncpg://demeter_test:demeter_test_password@localhost:5434/demeterai_test alembic upgrade head` (
+   test DB)
 4. Verify: 28 tables created
 5. Load seed data migrations
 6. Run tests: `pytest tests/ -v`
@@ -478,6 +511,7 @@ Method `get_full_hierarchy_by_gps()` **DOES NOT EXIST**.
 #### The Solution:
 
 **Step 1**: Change import (line 42)
+
 ```python
 # FROM:
 from app.services.location_hierarchy_service import LocationHierarchyService
@@ -487,6 +521,7 @@ from app.services.storage_location_service import StorageLocationService
 ```
 
 **Step 2**: Update class attribute (line 78)
+
 ```python
 # FROM:
 location_service: LocationHierarchyService for GPS lookup
@@ -496,6 +531,7 @@ location_service: StorageLocationService for GPS lookup
 ```
 
 **Step 3**: Update constructor (lines 81-86)
+
 ```python
 # FROM:
 def __init__(
@@ -515,6 +551,7 @@ def __init__(
 ```
 
 **Step 4**: Replace method call (lines 148-167)
+
 ```python
 # FROM:
 logger.info("Looking up location by GPS coordinates")
@@ -556,6 +593,7 @@ logger.info(
 ```
 
 **Verification**:
+
 ```bash
 # Test import
 python -c "from app.services.photo.photo_upload_service import PhotoUploadService; print('✓ OK')"
@@ -575,6 +613,7 @@ pytest tests/unit/services/photo/test_photo_upload_service.py -v
 #### The Problem:
 
 analytics_controller directly accesses database via session:
+
 ```python
 async def get_full_inventory_report(
     warehouse_id: int | None = Query(...),
@@ -682,6 +721,7 @@ async def get_full_inventory_report(
 ```
 
 **Verification**:
+
 ```bash
 # Test import
 python -c "from app.services.analytics_service import AnalyticsService; print('✓ OK')"
@@ -701,12 +741,14 @@ pytest tests/unit/controllers/test_analytics_controller.py -v
 **File**: `alembic/versions/2f68e3f132f5_create_warehouses_table.py`
 
 **Change Line 70** from:
+
 ```python
 sa.Enum('GREENHOUSE', 'SHADEHOUSE', 'OPEN_FIELD', 'TUNNEL',
         name='warehouse_type_enum'),
 ```
 
 To:
+
 ```python
 sa.Enum('GREENHOUSE', 'SHADEHOUSE', 'OPEN_FIELD', 'TUNNEL',
         name='warehouse_type_enum',
@@ -714,6 +756,7 @@ sa.Enum('GREENHOUSE', 'SHADEHOUSE', 'OPEN_FIELD', 'TUNNEL',
 ```
 
 **Then**:
+
 ```bash
 # Apply migrations to both databases
 alembic upgrade head
@@ -738,23 +781,23 @@ psql -d demeterai -U demeter -c "\dt public.*" | wc -l
 **Critical Misalignments**:
 
 1. **ML Processing Pipeline** (40% implemented)
-   - Diagrams show child tasks + callbacks
-   - Implementation: Missing SAHI detection, callback mechanism
-   - Impact: Cannot complete full pipeline
+    - Diagrams show child tasks + callbacks
+    - Implementation: Missing SAHI detection, callback mechanism
+    - Impact: Cannot complete full pipeline
 
 2. **Photo Gallery** (30% implemented)
-   - Diagrams show gallery listing + detail views
-   - Implementation: No GET /photos/gallery or GET /photos/{id}
-   - Impact: Users cannot see results
+    - Diagrams show gallery listing + detail views
+    - Implementation: No GET /photos/gallery or GET /photos/{id}
+    - Impact: Users cannot see results
 
 3. **Analytics System** (25% implemented)
-   - Diagrams show CSV upload + LLM queries
-   - Implementation: Missing most features
+    - Diagrams show CSV upload + LLM queries
+    - Implementation: Missing most features
 
 4. **Materialised Views** (0% implemented)
-   - Diagrams reference: mv_warehouse_summary, mv_preview, mv_history
-   - Database: Views don't exist
-   - Impact: Performance issues on warehouse maps
+    - Diagrams reference: mv_warehouse_summary, mv_preview, mv_history
+    - Database: Views don't exist
+    - Impact: Performance issues on warehouse maps
 
 #### Recommendations:
 
@@ -768,25 +811,25 @@ psql -d demeterai -U demeter -c "\dt public.*" | wc -l
 
 ### 🔴 CRITICAL - MUST FIX TODAY
 
-| Issue | Component | Impact | Time | Risk |
-|-------|-----------|--------|------|------|
-| **#1** | Migration blocking | NO SCHEMA | 10 min | LOW |
-| **#2** | PhotoUploadService hallucination | PHOTO BROKEN | 30 min | LOW |
-| **#3** | analytics_controller violation | ARCHITECTURE | 2 hrs | MED |
-| **#4** | Seed data missing | 50 TESTS FAIL | 30 min | LOW |
-| **#5** | Mock violations (ML) | 22 TESTS FAIL | 1 hr | LOW |
+| Issue  | Component                        | Impact        | Time   | Risk |
+|--------|----------------------------------|---------------|--------|------|
+| **#1** | Migration blocking               | NO SCHEMA     | 10 min | LOW  |
+| **#2** | PhotoUploadService hallucination | PHOTO BROKEN  | 30 min | LOW  |
+| **#3** | analytics_controller violation   | ARCHITECTURE  | 2 hrs  | MED  |
+| **#4** | Seed data missing                | 50 TESTS FAIL | 30 min | LOW  |
+| **#5** | Mock violations (ML)             | 22 TESTS FAIL | 1 hr   | LOW  |
 
 **Total Time**: ~4 hours 10 minutes
 
 ### 🟡 IMPORTANT - THIS SPRINT
 
-| Issue | Component | Impact | Time |
-|-------|-----------|--------|------|
-| LocationRelationshipRepository missing | Database | CRUD blocked | 30 min |
-| 8 services without tests | Services | Coverage | 2-3 hrs |
-| detection_service.py empty | ML | Pipeline | 1-2 hrs |
-| 7 placeholder endpoints | Controllers | API incomplete | 2-3 hrs |
-| S3 integration broken | ML | Tests fail | 1-2 hrs |
+| Issue                                  | Component   | Impact         | Time    |
+|----------------------------------------|-------------|----------------|---------|
+| LocationRelationshipRepository missing | Database    | CRUD blocked   | 30 min  |
+| 8 services without tests               | Services    | Coverage       | 2-3 hrs |
+| detection_service.py empty             | ML          | Pipeline       | 1-2 hrs |
+| 7 placeholder endpoints                | Controllers | API incomplete | 2-3 hrs |
+| S3 integration broken                  | ML          | Tests fail     | 1-2 hrs |
 
 **Total Time**: ~8-11 hours
 

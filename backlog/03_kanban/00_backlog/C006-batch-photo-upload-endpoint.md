@@ -1,6 +1,7 @@
 # [C006] Batch Photo Upload - POST /api/photos/upload
 
 ## Metadata
+
 - **Epic**: epic-003-backend-implementation.md
 - **Sprint**: Sprint-03
 - **Status**: `backlog`
@@ -9,7 +10,7 @@
 - **Area**: `backend/controllers`
 - **Assignee**: TBD
 - **Dependencies**:
-  - Blocked by: [C001, SVC001]
+    - Blocked by: [C001, SVC001]
 
 ## Description
 
@@ -43,6 +44,7 @@ async def batch_upload_photos(
 **Coverage Target**: ≥80%
 
 ## Time Tracking
+
 - **Estimated**: 2 story points
 
 ---

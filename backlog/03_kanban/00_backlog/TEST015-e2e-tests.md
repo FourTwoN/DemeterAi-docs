@@ -1,6 +1,7 @@
 # [TEST015] End-to-End Tests (Full Workflow)
 
 ## Metadata
+
 - **Epic**: epic-012-testing
 - **Sprint**: Sprint-08
 - **Priority**: `medium`
@@ -8,33 +9,38 @@
 - **Dependencies**: Blocked by [TEST005, TEST006]
 
 ## Description
-Complete end-to-end tests simulating real user workflows: photo upload → ML processing → stock movement → analytics.
+
+Complete end-to-end tests simulating real user workflows: photo upload → ML processing → stock
+movement → analytics.
 
 ## Acceptance Criteria
+
 - [ ] **E2E Test 1: Photo-based initialization**
-  - Upload photo → ML processing → Stock created
-  - Verify detections, estimations, batches
-  - Verify stock summary updated
+    - Upload photo → ML processing → Stock created
+    - Verify detections, estimations, batches
+    - Verify stock summary updated
 
 - [ ] **E2E Test 2: Manual initialization**
-  - Manual count entry → Stock created
-  - Verify movements, batches
-  - Verify stock summary updated
+    - Manual count entry → Stock created
+    - Verify movements, batches
+    - Verify stock summary updated
 
 - [ ] **E2E Test 3: Monthly reconciliation**
-  - Month start photo → Movements → Month end photo
-  - Verify sales calculated correctly
-  - Verify analytics data
+    - Month start photo → Movements → Month end photo
+    - Verify sales calculated correctly
+    - Verify analytics data
 
 - [ ] **E2E Test 4: Multi-location workflow**
-  - Multiple locations → Aggregate stock
-  - Verify geospatial queries work
-  - Verify analytics by location
+    - Multiple locations → Aggregate stock
+    - Verify geospatial queries work
+    - Verify analytics by location
 
 - [ ] Tests run against full Docker stack
 
 ## Implementation
+
 **tests/e2e/test_photo_workflow.py:**
+
 ```python
 @pytest.mark.e2e
 async def test_complete_photo_workflow(client, auth_headers, test_photo):
@@ -97,6 +103,7 @@ async def test_complete_photo_workflow(client, auth_headers, test_photo):
 ```
 
 **Run E2E tests:**
+
 ```bash
 # Start full Docker stack first
 docker-compose up -d
@@ -106,6 +113,7 @@ pytest -m e2e --host=http://localhost:8000
 ```
 
 ## Testing
+
 - Run against full Docker Compose stack
 - Test with real ML models (CPU)
 - Verify complete workflows work

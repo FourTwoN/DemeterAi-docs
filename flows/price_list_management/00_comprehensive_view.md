@@ -2,7 +2,9 @@
 
 ## Purpose
 
-This diagram provides an **executive-level view** of the Price List Management System, showing how administrators can manage product catalogs, packaging catalogs, and price lists with support for bulk operations.
+This diagram provides an **executive-level view** of the Price List Management System, showing how
+administrators can manage product catalogs, packaging catalogs, and price lists with support for
+bulk operations.
 
 ## Scope
 
@@ -16,38 +18,39 @@ This diagram provides an **executive-level view** of the Price List Management S
 The diagram illustrates the complete price list management system with four main components:
 
 1. **Packaging Catalog Management (CRUD)**:
-   - Create, Read, Update, Delete packaging items
-   - Macetas: R7, R10, R12, R14, R17, R19, R21
-   - Attributes: Type, material, color, dimensions, volume
-   - SKU generation and management
+    - Create, Read, Update, Delete packaging items
+    - Macetas: R7, R10, R12, R14, R17, R19, R21
+    - Attributes: Type, material, color, dimensions, volume
+    - SKU generation and management
 
 2. **Product Catalog Management (CRUD)**:
-   - Manage product categories (cactus, suculenta, injerto)
-   - Manage product families within categories
-   - Manage individual products
-   - Scientific and common names
-   - Hierarchical structure: Category → Family → Product
+    - Manage product categories (cactus, suculenta, injerto)
+    - Manage product families within categories
+    - Manage individual products
+    - Scientific and common names
+    - Hierarchical structure: Category → Family → Product
 
 3. **Price List Management**:
-   - Combine packaging + product category
-   - Set wholesale and retail prices
-   - Define SKU, units per storage box
-   - Calculate total prices per box
-   - Set availability status
-   - Track discount factors
+    - Combine packaging + product category
+    - Set wholesale and retail prices
+    - Define SKU, units per storage box
+    - Calculate total prices per box
+    - Set availability status
+    - Track discount factors
 
 4. **Bulk Edit Operations**:
-   - Increase/decrease all prices by percentage
-   - Change availability for categories
-   - Update discount factors
-   - Apply changes to filtered subsets
-   - **Important**: Only affects latest active stock
+    - Increase/decrease all prices by percentage
+    - Change availability for categories
+    - Update discount factors
+    - Apply changes to filtered subsets
+    - **Important**: Only affects latest active stock
 
 ## Business Context
 
 ### Price List Purpose
 
 The `price_list` table is the **client-facing catalog** that combines:
+
 - **What**: Product category (type of plant)
 - **How**: Packaging type (what it comes in)
 - **Price**: Wholesale and retail pricing
@@ -59,12 +62,15 @@ This is NOT the internal stock system - it's the **sales catalog** that customer
 
 **Critical Rule**: Price changes and bulk operations only affect **current/future prices**.
 
-Historical sales and stock records maintain their original pricing information. When prices are updated, the changes apply to:
+Historical sales and stock records maintain their original pricing information. When prices are
+updated, the changes apply to:
+
 - Current price list view
 - New quotes and orders
 - Future stock valuations
 
 But NOT to:
+
 - Historical sales records
 - Past invoices
 - Archived stock valuations
@@ -193,27 +199,28 @@ PRICE LIST MANAGEMENT
 When creating/editing a price list entry:
 
 **Fields**:
+
 1. **Product Category** (required)
-   - Dropdown: Cactus, Suculenta, Injerto
+    - Dropdown: Cactus, Suculenta, Injerto
 
 2. **Packaging** (required)
-   - Cascading dropdown filtered by type
-   - Shows: SKU, Name, Dimensions
+    - Cascading dropdown filtered by type
+    - Shows: SKU, Name, Dimensions
 
 3. **Pricing** (required)
-   - Wholesale Unit Price (in cents)
-   - Retail Unit Price (in cents)
-   - Auto-validate: retail >= wholesale
+    - Wholesale Unit Price (in cents)
+    - Retail Unit Price (in cents)
+    - Auto-validate: retail >= wholesale
 
 4. **Logistics**
-   - SKU (auto-generated or manual)
-   - Units per Storage Box
-   - Total Price per Box (auto-calculated)
+    - SKU (auto-generated or manual)
+    - Units per Storage Box
+    - Total Price per Box (auto-calculated)
 
 5. **Status**
-   - Availability: Available / Out of Stock / Discontinued
-   - Discount Factor (0-100%)
-   - Observations (free text)
+    - Availability: Available / Out of Stock / Discontinued
+    - Discount Factor (0-100%)
+    - Observations (free text)
 
 ### Bulk Operations Panel
 
@@ -261,8 +268,8 @@ Preview Changes: 25 items will be affected
 4. **Filter** by Category: Cactus
 5. **Preview** shows 15 items affected
 6. **Review** changes:
-   - Cactus + R7: $5.00 → $5.50
-   - Cactus + R10: $7.00 → $7.70
+    - Cactus + R7: $5.00 → $5.50
+    - Cactus + R10: $7.00 → $7.70
 7. **Apply** changes
 8. **System** updates all matching entries
 9. **Log** audit trail with timestamp
@@ -287,6 +294,7 @@ The Price List Management System is a **catalog management layer** that:
 - Supports sales, quotations, and order processing
 
 Price list data is **referenced** by:
+
 - Quote generation system
 - Order processing
 - Invoice creation
@@ -296,16 +304,19 @@ Price list data is **referenced** by:
 ## Use Cases
 
 ### Catalog Manager
+
 - "Add new maceta size R14 to packaging catalog"
 - "Create price entries for all cactus + maceta combinations"
 - "Update retail prices for the new season"
 
 ### Sales Manager
+
 - "Increase all wholesale prices by 8% for 2025"
 - "Mark all R7 products as out of stock temporarily"
 - "Apply 10% discount factor to succulentas category"
 
 ### Operations Manager
+
 - "Update units per box from 50 to 48 for R10 macetas"
 - "Change availability status for discontinued packaging"
 - "Review and update all SKUs for consistency"
@@ -328,6 +339,7 @@ display_price = wholesale_price_cents / 100  # 500 → $5.00
 ### SKU Generation
 
 Auto-generate SKUs following pattern:
+
 ```
 {CATEGORY_CODE}-{PACKAGING_CODE}-{COLOR_CODE}
 
@@ -362,28 +374,30 @@ RETURNING id;
 **Critical Validations**:
 
 1. **Price Integrity**
-   - Retail price >= Wholesale price
-   - Prices > 0
-   - Total box price = unit price × units per box
+    - Retail price >= Wholesale price
+    - Prices > 0
+    - Total box price = unit price × units per box
 
 2. **Unique Constraints**
-   - No duplicate packaging + category combinations
-   - Unique SKUs across entire price list
+    - No duplicate packaging + category combinations
+    - Unique SKUs across entire price list
 
 3. **Reference Integrity**
-   - Packaging must exist in packaging_catalog
-   - Category must exist in product_categories
-   - All foreign keys valid
+    - Packaging must exist in packaging_catalog
+    - Category must exist in product_categories
+    - All foreign keys valid
 
 ## API Endpoints Summary
 
 ### Packaging Catalog
+
 - `GET /api/admin/packaging-catalog` - List all packaging
 - `POST /api/admin/packaging-catalog` - Create new packaging
 - `PUT /api/admin/packaging-catalog/{id}` - Update packaging
 - `DELETE /api/admin/packaging-catalog/{id}` - Delete packaging
 
 ### Product Catalog
+
 - `GET /api/admin/product-categories` - List categories
 - `GET /api/admin/product-families` - List families
 - `GET /api/admin/products` - List products
@@ -391,46 +405,52 @@ RETURNING id;
 - `PUT /api/admin/products/{id}` - Update product
 
 ### Price List
+
 - `GET /api/admin/price-list` - List all prices
 - `POST /api/admin/price-list` - Create price entry
 - `PUT /api/admin/price-list/{id}` - Update price entry
 - `DELETE /api/admin/price-list/{id}` - Delete price entry
 
 ### Bulk Operations
+
 - `POST /api/admin/price-list/bulk-update-prices` - Bulk price changes
 - `POST /api/admin/price-list/bulk-update-availability` - Bulk availability
 - `POST /api/admin/price-list/bulk-update-discount` - Bulk discounts
 
 ## Performance Targets
 
-| Operation | Target Time | Notes |
-|-----------|-------------|-------|
-| List price entries | < 200ms | Paginated, 50 items |
-| Create price entry | < 100ms | With validation |
-| Update price entry | < 100ms | Single item |
-| Bulk update 100 items | < 500ms | Single transaction |
-| Bulk update 1000 items | < 2s | Batched if needed |
+| Operation              | Target Time | Notes               |
+|------------------------|-------------|---------------------|
+| List price entries     | < 200ms     | Paginated, 50 items |
+| Create price entry     | < 100ms     | With validation     |
+| Update price entry     | < 100ms     | Single item         |
+| Bulk update 100 items  | < 500ms     | Single transaction  |
+| Bulk update 1000 items | < 2s        | Batched if needed   |
 
 ## Security Considerations
 
 ### Access Control
 
 Only **admin users** can:
+
 - Modify packaging catalog
 - Modify product catalog
 - Create/update price list entries
 - Execute bulk operations
 
 **Supervisor** users can:
+
 - View all catalogs (read-only)
 - Export price lists
 
 **Viewer** users can:
+
 - View published price lists only
 
 ### Audit Logging
 
 All modifications logged:
+
 - User ID
 - Timestamp
 - Operation type (create/update/delete/bulk)
@@ -440,6 +460,7 @@ All modifications logged:
 ### Rate Limiting
 
 Bulk operations limited to:
+
 - Max 1000 items per operation
 - Max 10 bulk operations per user per hour
 - Requires confirmation for operations affecting > 100 items

@@ -1,6 +1,7 @@
 # [ML003] SAHI Detection Service - Tiling Strategy
 
 ## Metadata
+
 - **Epic**: epic-007-ml-pipeline.md
 - **Sprint**: Sprint-02 (Week 5-6)
 - **Status**: `backlog`
@@ -9,20 +10,25 @@
 - **Area**: `services/ml_processing`
 - **Assignee**: TBD (assign to senior ML engineer)
 - **Dependencies**:
-  - Blocks: [ML005-band-estimation, ML009-pipeline-coordinator, CEL006]
-  - Blocked by: [ML002-yolo-segmentation, ML001-model-singleton]
+    - Blocks: [ML005-band-estimation, ML009-pipeline-coordinator, CEL006]
+    - Blocked by: [ML002-yolo-segmentation, ML001-model-singleton]
 
 ## Related Documentation
+
 - **Engineering Plan**: ../../engineering_plan/backend/ml_pipeline.md
-- **ML Pipeline Flow**: ../../flows/procesamiento_ml_upload_s3_principal/05_sahi_detection_child_detailed.md
+- **ML Pipeline Flow**:
+  ../../flows/procesamiento_ml_upload_s3_principal/05_sahi_detection_child_detailed.md
 - **Tech Stack**: ../../backlog/00_foundation/tech-stack.md (SAHI library)
 - **Context**: ../../context/past_chats_summary.md (10x improvement with SAHI)
 
 ## Description
 
-Implement the SAHI (Slicing Aided Hyper Inference) detection service that processes large segmentos using intelligent tiling. This is the **critical innovation** that improved detection from 100 plants to 800+ plants per image.
+Implement the SAHI (Slicing Aided Hyper Inference) detection service that processes large segmentos
+using intelligent tiling. This is the **critical innovation** that improved detection from 100
+plants to 800+ plants per image.
 
 **What**: Service that:
+
 - Takes cropped segmento images (potentially 3000×1500px)
 - Slices them into overlapping 512×512 tiles
 - Runs YOLO detection on each tile
@@ -30,12 +36,14 @@ Implement the SAHI (Slicing Aided Hyper Inference) detection service that proces
 - Returns detections in original image coordinates
 
 **Why**:
+
 - **Direct YOLO fails on large images**: Downscaling loses small objects
 - **Naive tiling creates duplicates**: Plants on tile boundaries detected twice
 - **SAHI solves both**: Optimal tile size + intelligent merging
 - **10x improvement**: 100 → 800+ plants detected per image
 
-**Context**: This is the **CRITICAL PATH bottleneck**. If this card is delayed, the entire Sprint 02 fails. Most complex card in ML pipeline.
+**Context**: This is the **CRITICAL PATH bottleneck**. If this card is delayed, the entire Sprint 02
+fails. Most complex card in ML pipeline.
 
 ## Acceptance Criteria
 
@@ -105,10 +113,10 @@ Implement the SAHI (Slicing Aided Hyper Inference) detection service that proces
   ```
 
 - [ ] **AC2**: Tiling configuration optimized for DemeterAI use case:
-  - **Tile size**: 512×512px (balance between context and inference speed)
-  - **Overlap**: 25% (128px) to catch boundary plants
-  - **Black tile filtering**: Skip tiles with <2% green pixels
-  - **Merge algorithm**: GREEDYNMM (better than NMS for overlapping objects)
+    - **Tile size**: 512×512px (balance between context and inference speed)
+    - **Overlap**: 25% (128px) to catch boundary plants
+    - **Black tile filtering**: Skip tiles with <2% green pixels
+    - **Merge algorithm**: GREEDYNMM (better than NMS for overlapping objects)
 
 - [ ] **AC3**: Coordinate mapping verified:
   ```python
@@ -132,18 +140,19 @@ Implement the SAHI (Slicing Aided Hyper Inference) detection service that proces
   ```
 
 - [ ] **AC6**: Performance benchmarked:
-  - **CPU**: 4-6 seconds for 3000×1500px segmento
-  - **GPU**: 1-2 seconds for same image
-  - **Throughput**: ~150-200 tiles/second on CPU
+    - **CPU**: 4-6 seconds for 3000×1500px segmento
+    - **GPU**: 1-2 seconds for same image
+    - **Throughput**: ~150-200 tiles/second on CPU
 
 - [ ] **AC7**: Error handling for edge cases:
-  - Empty segmento (no plants) → return empty list (not error)
-  - Very small segmento (<512px) → direct detection (no tiling)
-  - Corrupted image → raise clear exception with image path
+    - Empty segmento (no plants) → return empty list (not error)
+    - Very small segmento (<512px) → direct detection (no tiling)
+    - Corrupted image → raise clear exception with image path
 
 ## Technical Implementation Notes
 
 ### Architecture
+
 - Layer: Services / ML Processing
 - Dependencies: ML001 (Model Singleton), ML002 (Segmentation outputs)
 - Design pattern: Service layer, dependency injection
@@ -151,6 +160,7 @@ Implement the SAHI (Slicing Aided Hyper Inference) detection service that proces
 ### Code Hints
 
 **SAHI library integration:**
+
 ```python
 # Install: pip install sahi==0.11.18
 
@@ -167,6 +177,7 @@ detector = AutoDetectionModel.from_pretrained(
 ```
 
 **Black tile filtering (performance optimization):**
+
 ```python
 # SAHI built-in feature:
 auto_skip_black_tiles=True  # Skips tiles with <2% content
@@ -186,6 +197,7 @@ def is_black_tile(tile_image: np.ndarray) -> bool:
 ```
 
 **GREEDYNMM vs NMS:**
+
 ```
 NMS (Non-Maximum Suppression):
 - Removes overlapping boxes based on IOU
@@ -199,6 +211,7 @@ GREEDYNMM (Greedy Non-Maximum Merging):
 ```
 
 **Performance optimization tips:**
+
 ```python
 # 1. Pre-load model (CRITICAL - already done in ML001)
 # 2. Use FP16 on GPU (2× faster):
@@ -215,6 +228,7 @@ auto_skip_black_tiles=True
 ### Testing Requirements
 
 **Unit Tests** (`tests/services/ml_processing/test_sahi_detection.py`):
+
 ```python
 @pytest.mark.asyncio
 async def test_sahi_detection_on_large_segmento():
@@ -261,6 +275,7 @@ async def test_greedynmm_merges_duplicates():
 ```
 
 **Integration Tests** (`tests/integration/test_full_sahi_pipeline.py`):
+
 ```python
 @pytest.mark.slow
 @pytest.mark.asyncio
@@ -302,22 +317,25 @@ async def test_performance_benchmark():
 **Coverage Target**: ≥85% (critical path)
 
 ### Performance Expectations
+
 - **CPU (3000×1500 segmento)**:
-  - Total time: 4-6 seconds
-  - Tiles generated: ~35
-  - Tiles processed: ~28 (7 skipped as black)
-  - Detections: 500-800 plants
+    - Total time: 4-6 seconds
+    - Tiles generated: ~35
+    - Tiles processed: ~28 (7 skipped as black)
+    - Detections: 500-800 plants
 - **GPU (same image)**:
-  - Total time: 1-2 seconds
-  - 3-4× speedup vs CPU
+    - Total time: 1-2 seconds
+    - 3-4× speedup vs CPU
 
 ## Handover Briefing
 
 **For the next developer:**
 
-**Context**: This is the **CRITICAL PATH** card. Everything depends on this working correctly. Sprint 02 success = this card completing on time.
+**Context**: This is the **CRITICAL PATH** card. Everything depends on this working correctly.
+Sprint 02 success = this card completing on time.
 
 **Key decisions made**:
+
 1. **SAHI library chosen**: Proven solution, don't reinvent tiling algorithm
 2. **512×512 tiles**: Balance between context (larger) and speed (smaller)
 3. **25% overlap**: Catches boundary plants without excessive redundancy
@@ -325,21 +343,25 @@ async def test_performance_benchmark():
 5. **Auto black tile skip**: 20% speedup, no accuracy loss
 
 **Known limitations**:
+
 - SAHI adds overhead (~20% slower than naive tiling)
 - Merging algorithm not perfect (may merge truly adjacent plants)
 - Memory scales with image size (3000×1500 = ~35 tiles in memory)
 
 **Next steps after this card**:
+
 - ML005: Band-based Estimation (uses SAHI detection results for calibration)
 - ML009: Pipeline Coordinator (orchestrates segmentation → SAHI → estimation)
 - CEL006: ML Child Tasks (Celery wrapper around this service)
 
 **Questions to validate**:
+
 - Is SAHI model using the pre-loaded singleton? (Should be YES - check ModelCache)
 - Are tiles being processed in parallel or serial? (SAHI does serial - acceptable)
 - Is GREEDYNMM threshold (0.5 IOS) optimal? (May need tuning based on plant spacing)
 
 **⚠️ CRITICAL PATH ALERT:**
+
 - Assign senior ML engineer
 - Pair program if stuck >1 day
 - Daily progress check (not just standup)
@@ -362,6 +384,7 @@ async def test_performance_benchmark():
 - [ ] No linting errors
 
 ## Time Tracking
+
 - **Estimated**: 8 story points (critical path, complex)
 - **Actual**: TBD
 - **Started**: TBD

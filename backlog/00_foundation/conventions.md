@@ -1,4 +1,5 @@
 # Coding Conventions - DemeterAI v2.0
+
 ## Naming, Formatting, and Standards
 
 **Document Version:** 1.0
@@ -211,6 +212,7 @@ S12-StockMovementService  # PascalCase in name
 ```
 
 **Area Codes**:
+
 - `F` = Foundation
 - `DB` = Database
 - `R` = Repository
@@ -284,6 +286,7 @@ def function():
 **Rule**: Absolute imports, grouped and sorted
 
 **Order**:
+
 1. Standard library
 2. Third-party libraries
 3. Local app imports
@@ -350,6 +353,7 @@ def calculate_total(movements):  # No type hints = WRONG
 ### Complex Types
 
 **Use typing module**:
+
 ```python
 from typing import List, Dict, Optional, Union, Tuple, Any
 
@@ -501,13 +505,13 @@ print(f"Error: {error}")  # print() = WRONG
 
 ### Log Levels
 
-| Level | When to Use | Example |
-|-------|-------------|---------|
-| `DEBUG` | Development details | `logger.debug(f"SQL: {query}")` |
-| `INFO` | Normal operations | `logger.info(f"Photo {id} processed")` |
-| `WARNING` | Recoverable issues | `logger.warning(f"Retrying S3 upload")` |
-| `ERROR` | Errors (recoverable) | `logger.error(f"DB query failed")` |
-| `CRITICAL` | System failures | `logger.critical(f"DB unreachable")` |
+| Level      | When to Use          | Example                                 |
+|------------|----------------------|-----------------------------------------|
+| `DEBUG`    | Development details  | `logger.debug(f"SQL: {query}")`         |
+| `INFO`     | Normal operations    | `logger.info(f"Photo {id} processed")`  |
+| `WARNING`  | Recoverable issues   | `logger.warning(f"Retrying S3 upload")` |
+| `ERROR`    | Errors (recoverable) | `logger.error(f"DB query failed")`      |
+| `CRITICAL` | System failures      | `logger.critical(f"DB unreachable")`    |
 
 ---
 
@@ -624,6 +628,7 @@ movement_type = "manualInit"  # camelCase = WRONG
 ## Verification Commands
 
 **Run before committing**:
+
 ```bash
 # Linting
 ruff check .

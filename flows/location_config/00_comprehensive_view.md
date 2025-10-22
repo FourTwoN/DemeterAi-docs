@@ -2,7 +2,9 @@
 
 ## Purpose
 
-This diagram provides an **executive-level view** of the Storage Location Configuration System, showing how administrators can configure and update the expected product/packaging combinations for storage locations (claros).
+This diagram provides an **executive-level view** of the Storage Location Configuration System,
+showing how administrators can configure and update the expected product/packaging combinations for
+storage locations (claros).
 
 ## Scope
 
@@ -16,28 +18,30 @@ This diagram provides an **executive-level view** of the Storage Location Config
 The diagram illustrates two main configuration approaches:
 
 1. **Update Existing Configuration (UPDATE)**:
-   - Modify current active configuration
-   - **Impacts current stock immediately**
-   - Use when: Product/packaging changed but same crop cycle
-   - Example: Changed pot color from black to white
+    - Modify current active configuration
+    - **Impacts current stock immediately**
+    - Use when: Product/packaging changed but same crop cycle
+    - Example: Changed pot color from black to white
 
 2. **Create New Configuration (CREATE)**:
-   - Create new configuration, preserve historical
-   - **Does NOT impact historical stock**
-   - Use when: Complete crop change, new cultivation cycle
-   - Example: Sold all cactus, now planting succulents
+    - Create new configuration, preserve historical
+    - **Does NOT impact historical stock**
+    - Use when: Complete crop change, new cultivation cycle
+    - Example: Sold all cactus, now planting succulents
 
 ## Business Context
 
 ### Storage Location Config Purpose
 
 Each storage location (claro) has a `storage_location_config` that defines:
+
 - **Expected Product**: Which plant species should be there
 - **Expected Packaging**: Which pot type/size should be used
 - **Expected State**: What growth stage is expected
 - **Area**: Physical area of the location
 
 This configuration is used by the ML system to:
+
 - Validate detection results
 - Calculate expected vs actual quantities
 - Identify configuration mismatches
@@ -47,7 +51,8 @@ This configuration is used by the ML system to:
 
 **Critical Rule**: Historical data must remain **immutable**.
 
-When a photo is taken on Sept 1st and stock is calculated, that stock record is **frozen in time**. Any future configuration changes should NOT affect that historical record.
+When a photo is taken on Sept 1st and stock is calculated, that stock record is **frozen in time**.
+Any future configuration changes should NOT affect that historical record.
 
 #### Timeline Example
 
@@ -71,13 +76,13 @@ Current query (Dec onwards):
 
 ### UPDATE vs CREATE Decision Matrix
 
-| Scenario | Action | Impact | Use Case |
-|----------|--------|--------|----------|
-| Pot color changed | UPDATE | Current stock updated | Aesthetic change |
-| Pot size changed | UPDATE | Current stock updated | Same plants, different pots |
-| Plant species changed completely | CREATE | New stock period starts | New cultivation cycle |
-| Sold all stock, replanting | CREATE | Preserve sales history | Major crop change |
-| Fixed configuration error | UPDATE | Correct current data | Data quality fix |
+| Scenario                         | Action | Impact                  | Use Case                    |
+|----------------------------------|--------|-------------------------|-----------------------------|
+| Pot color changed                | UPDATE | Current stock updated   | Aesthetic change            |
+| Pot size changed                 | UPDATE | Current stock updated   | Same plants, different pots |
+| Plant species changed completely | CREATE | New stock period starts | New cultivation cycle       |
+| Sold all stock, replanting       | CREATE | Preserve sales history  | Major crop change           |
+| Fixed configuration error        | UPDATE | Correct current data    | Data quality fix            |
 
 ## Database Tables Involved
 
@@ -135,24 +140,25 @@ Warehouse A
 When configuring a storage location:
 
 **Fields**:
+
 1. **Product Selection** (required)
-   - Category: Dropdown (Cactus, Suculenta, Injerto)
-   - Family: Cascading dropdown (filtered by category)
-   - Product: Cascading dropdown (filtered by family)
+    - Category: Dropdown (Cactus, Suculenta, Injerto)
+    - Family: Cascading dropdown (filtered by category)
+    - Product: Cascading dropdown (filtered by family)
 
 2. **Packaging Selection** (optional)
-   - Type: Dropdown (Pot, Tray, Plug)
-   - Catalog: Cascading dropdown (R7, R10, R12, etc.)
-   - Color: Dropdown
+    - Type: Dropdown (Pot, Tray, Plug)
+    - Catalog: Cascading dropdown (R7, R10, R12, etc.)
+    - Color: Dropdown
 
 3. **Expected State** (required)
-   - Germinado, Plantín, Ready to Sell, etc.
+    - Germinado, Plantín, Ready to Sell, etc.
 
 4. **Area** (auto-calculated from geojson, but can override)
 
 5. **Action Type**
-   - Radio button: **Update existing** vs **Create new**
-   - Help text explains impact
+    - Radio button: **Update existing** vs **Create new**
+    - Help text explains impact
 
 6. **Notes** (optional)
 
@@ -192,20 +198,21 @@ The Configuration System is a **foundational management layer** that:
 - Facilitates warehouse management
 - Enables analytics and reporting
 
-Configuration changes are **metadata operations** - they describe what SHOULD be in a location, not what IS there (that comes from photos).
+Configuration changes are **metadata operations** - they describe what SHOULD be in a location, not
+what IS there (that comes from photos).
 
 ## Workflow Summary
 
 1. **Admin** navigates to configuration management view
 2. **Select** one or more storage locations
 3. **Choose** configuration mode:
-   - Update: Modify current without creating history
-   - Create: New config, preserve existing as historical
+    - Update: Modify current without creating history
+    - Create: New config, preserve existing as historical
 4. **Fill form** with product, packaging, state, area
 5. **Submit** changes
 6. **System** validates and applies:
-   - Update: Sets `updated_at`, modifies fields
-   - Create: Sets old config `active=false`, inserts new with `active=true`
+    - Update: Sets `updated_at`, modifies fields
+    - Create: Sets old config `active=false`, inserts new with `active=true`
 7. **Frontend** refreshes view showing new configuration
 8. **Future photos** use new configuration for validation
 

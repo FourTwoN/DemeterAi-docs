@@ -1,6 +1,7 @@
 # [OBS002] OTLP Exporter Configuration
 
 ## Metadata
+
 - **Epic**: epic-010-observability
 - **Sprint**: Sprint-06
 - **Priority**: `high`
@@ -8,9 +9,12 @@
 - **Dependencies**: Blocks [OBS006], Blocked by [OBS001]
 
 ## Description
-Configure OTLP (OpenTelemetry Protocol) exporter to send traces and metrics to Grafana stack (Prometheus, Tempo, Loki).
+
+Configure OTLP (OpenTelemetry Protocol) exporter to send traces and metrics to Grafana stack (
+Prometheus, Tempo, Loki).
 
 ## Acceptance Criteria
+
 - [ ] OTLP exporter configured with endpoint URL
 - [ ] Traces exported to Tempo (port 4317)
 - [ ] Metrics exported to Prometheus (port 9090)
@@ -18,6 +22,7 @@ Configure OTLP (OpenTelemetry Protocol) exporter to send traces and metrics to G
 - [ ] Configurable via environment variables
 
 ## Implementation
+
 ```python
 from opentelemetry.exporter.otlp.proto.grpc.trace_exporter import OTLPSpanExporter
 from opentelemetry.exporter.otlp.proto.grpc.metric_exporter import OTLPMetricExporter
@@ -40,6 +45,7 @@ def configure_otlp_exporter():
 ```
 
 ## Testing
+
 - Verify traces appear in Grafana Tempo
 - Verify metrics appear in Prometheus
 

@@ -1,6 +1,7 @@
 # S042: AuditLogService
 
 ## Metadata
+
 - **Epic**: [epic-004-services.md](../../02_epics/epic-004-services.md)
 - **Sprint**: Sprint-07
 - **Status**: `backlog`
@@ -8,8 +9,8 @@
 - **Complexity**: M (3 story points)
 - **Area**: `services/config`
 - **Dependencies**:
-  - Blocks: [C038]
-  - Blocked by: [S039]
+    - Blocks: [C038]
+    - Blocked by: [S039]
 
 ## Description
 
@@ -28,11 +29,13 @@
 - [ ] **AC5**: Unit tests ≥85% coverage
 
 ## Technical Notes
+
 - Decorator pattern for automatic logging
 - JSON diff for before/after comparison
 - Separate audit_logs table (partitioned by month)
 
 ## Time Tracking
+
 - **Estimated**: 3 story points (~6 hours)
 
 ---

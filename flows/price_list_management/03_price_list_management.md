@@ -2,7 +2,8 @@
 
 ## Purpose
 
-Shows the detailed flow for managing price list entries that combine packaging catalog items with product categories, including pricing, SKU management, and logistics information.
+Shows the detailed flow for managing price list entries that combine packaging catalog items with
+product categories, including pricing, SKU management, and logistics information.
 
 ## Scope
 
@@ -14,6 +15,7 @@ Shows the detailed flow for managing price list entries that combine packaging c
 ## What It Represents
 
 Complete CRUD flow for `price_list` table:
+
 1. **Create**: Combine packaging + category with pricing
 2. **Read**: List and filter price entries
 3. **Update**: Modify prices, SKUs, availability
@@ -76,12 +78,12 @@ EXECUTE FUNCTION calculate_total_price_per_box();
 
 1. **Unique Combination**: Each packaging + category combo can only exist once
 2. **Price Validation**:
-   - Both prices must be > 0
-   - Retail price >= Wholesale price
-   - Prices stored in cents (integer) to avoid floating-point errors
+    - Both prices must be > 0
+    - Retail price >= Wholesale price
+    - Prices stored in cents (integer) to avoid floating-point errors
 3. **SKU Generation**: Auto-generate if not provided
-   - Pattern: `{CATEGORY_CODE}-{PACKAGING_SKU}`
-   - Example: `CACT-R7-BLK`, `SUCC-R10-WHT`
+    - Pattern: `{CATEGORY_CODE}-{PACKAGING_SKU}`
+    - Example: `CACT-R7-BLK`, `SUCC-R10-WHT`
 4. **Auto-calculation**: `wholesale_total_price_per_box` = unit_price × units_per_box
 
 ### SQL - Create Price List Entry
@@ -398,16 +400,16 @@ async def list_price_list(
 ### Business Rules
 
 1. **Immutable Fields**:
-   - `id`, `packaging_catalog_id`, `product_categories_id` cannot be changed
-   - If combination needs change, delete and recreate
+    - `id`, `packaging_catalog_id`, `product_categories_id` cannot be changed
+    - If combination needs change, delete and recreate
 
 2. **Price Updates**:
-   - Must maintain retail >= wholesale
-   - Auto-recalculate total price per box
+    - Must maintain retail >= wholesale
+    - Auto-recalculate total price per box
 
 3. **SKU Updates**:
-   - Can be changed (unlike packaging/product catalogs)
-   - Must remain unique
+    - Can be changed (unlike packaging/product catalogs)
+    - Must remain unique
 
 ### SQL - Update Price List Entry
 
@@ -550,9 +552,9 @@ async def update_price_list_entry(
 ### Business Rules
 
 1. **Check References**: Verify entry not used in:
-   - Active quotes
-   - Pending orders
-   - Historical invoices (may allow delete depending on business rules)
+    - Active quotes
+    - Pending orders
+    - Historical invoices (may allow delete depending on business rules)
 
 2. **Soft Delete Option**: Consider soft delete for entries with history
 
@@ -692,13 +694,13 @@ async def get_price_by_sku(sku: str):
 
 ## Performance Targets
 
-| Operation | Target Time | Notes |
-|-----------|-------------|-------|
-| List entries (50 items) | < 200ms | With full joins |
-| Create entry | < 100ms | With validation |
-| Update entry | < 100ms | With recalculation |
-| Delete entry | < 100ms | With reference check |
-| Search by SKU | < 50ms | Indexed lookup |
+| Operation               | Target Time | Notes                |
+|-------------------------|-------------|----------------------|
+| List entries (50 items) | < 200ms     | With full joins      |
+| Create entry            | < 100ms     | With validation      |
+| Update entry            | < 100ms     | With recalculation   |
+| Delete entry            | < 100ms     | With reference check |
+| Search by SKU           | < 50ms      | Indexed lookup       |
 
 ## Request/Response Models
 

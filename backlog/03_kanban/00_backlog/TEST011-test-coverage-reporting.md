@@ -1,6 +1,7 @@
 # [TEST011] Test Coverage Reporting
 
 ## Metadata
+
 - **Epic**: epic-012-testing
 - **Sprint**: Sprint-03
 - **Priority**: `medium`
@@ -8,9 +9,12 @@
 - **Dependencies**: Blocked by [F009]
 
 ## Description
-Configure pytest-cov for code coverage reporting. Target >80% coverage. Integrate with CI/CD and Codecov.
+
+Configure pytest-cov for code coverage reporting. Target >80% coverage. Integrate with CI/CD and
+Codecov.
 
 ## Acceptance Criteria
+
 - [ ] pytest-cov configured in pytest.ini
 - [ ] Coverage report generated after test run
 - [ ] HTML coverage report for local viewing
@@ -19,7 +23,9 @@ Configure pytest-cov for code coverage reporting. Target >80% coverage. Integrat
 - [ ] Codecov integration (badge in README)
 
 ## Implementation
+
 **pytest.ini:**
+
 ```ini
 [pytest]
 addopts =
@@ -31,6 +37,7 @@ addopts =
 ```
 
 **Run tests with coverage:**
+
 ```bash
 pytest --cov=app --cov-report=html
 
@@ -39,6 +46,7 @@ open htmlcov/index.html
 ```
 
 **GitHub Actions integration:**
+
 ```yaml
 - name: Run tests with coverage
   run: pytest --cov=app --cov-report=xml
@@ -51,11 +59,13 @@ open htmlcov/index.html
 ```
 
 **Coverage badge (README.md):**
+
 ```markdown
 [![codecov](https://codecov.io/gh/org/demeterai/branch/main/graph/badge.svg)](https://codecov.io/gh/org/demeterai)
 ```
 
 ## Testing
+
 - Run pytest with coverage
 - Verify coverage report generated
 - Verify CI fails if coverage <80%

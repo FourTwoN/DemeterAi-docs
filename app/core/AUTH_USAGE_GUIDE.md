@@ -85,12 +85,12 @@ async def get_statistics(user: TokenClaims = Depends(get_current_user)):
 
 ## Role Hierarchy
 
-| Role | Permissions | Use Case |
-|------|-------------|----------|
-| **admin** | Full access (all CRUD operations) | System administrators, account owners |
+| Role           | Permissions                                       | Use Case                              |
+|----------------|---------------------------------------------------|---------------------------------------|
+| **admin**      | Full access (all CRUD operations)                 | System administrators, account owners |
 | **supervisor** | Read/write stock operations, warehouse management | Floor supervisors, inventory managers |
-| **worker** | Read-only stock operations | Warehouse workers, pickers |
-| **viewer** | Dashboard and analytics only | Stakeholders, reporting users |
+| **worker**     | Read-only stock operations                        | Warehouse workers, pickers            |
+| **viewer**     | Dashboard and analytics only                      | Stakeholders, reporting users         |
 
 ## TokenClaims Model
 
@@ -112,6 +112,7 @@ class TokenClaims:
 ### 401 Unauthorized
 
 Raised when:
+
 - Token is missing
 - Token is malformed
 - Token signature is invalid
@@ -127,6 +128,7 @@ Raised when:
 ### 403 Forbidden
 
 Raised when:
+
 - User lacks required role
 - User authenticated but unauthorized for action
 

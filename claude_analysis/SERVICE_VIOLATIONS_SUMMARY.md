@@ -1,4 +1,5 @@
 # Service→Service Pattern Violations Summary
+
 **DemeterAI v2.0 - Clean Architecture Compliance**
 
 ---
@@ -15,9 +16,11 @@
 
 ### Pattern Searched: Cross-Repository Access
 
-**Definition**: A service accessing another service's repository directly instead of calling the service.
+**Definition**: A service accessing another service's repository directly instead of calling the
+service.
 
 **Example Violation** (none found):
+
 ```python
 # ❌ VIOLATION (if found)
 class ProductService:
@@ -34,6 +37,7 @@ class ProductService:
 ```
 
 **Correct Pattern** (all 21 services follow this):
+
 ```python
 # ✅ CORRECT
 class ProductFamilyService:
@@ -53,29 +57,29 @@ class ProductFamilyService:
 
 ## All Services - Compliance Matrix
 
-| # | Service | Own Repository | Service Dependencies | Other Repos? | Status |
-|---|---------|----------------|----------------------|--------------|--------|
-| 1 | `WarehouseService` | WarehouseRepository | None | NO | ✅ |
-| 2 | `StorageAreaService` | StorageAreaRepository | WarehouseService | NO | ✅ |
-| 3 | `StorageLocationService` | StorageLocationRepository | WarehouseService, StorageAreaService | NO | ✅ |
-| 4 | `StorageBinService` | StorageBinRepository | StorageLocationService | NO | ✅ |
-| 5 | `ProductCategoryService` | ProductCategoryRepository | None | NO | ✅ |
-| 6 | `ProductFamilyService` | ProductFamilyRepository | ProductCategoryService | NO | ✅ |
-| 7 | `ProductSizeService` | ProductSizeRepository | None | NO | ✅ |
-| 8 | `ProductStateService` | ProductStateRepository | None | NO | ✅ |
-| 9 | `StockBatchService` | StockBatchRepository | None | NO | ✅ |
-| 10 | `StockMovementService` | StockMovementRepository | None | NO | ✅ |
-| 11 | `PackagingTypeService` | PackagingTypeRepository | None | NO | ✅ |
-| 12 | `PackagingColorService` | PackagingColorRepository | None | NO | ✅ |
-| 13 | `PackagingMaterialService` | PackagingMaterialRepository | None | NO | ✅ |
-| 14 | `PackagingCatalogService` | PackagingCatalogRepository | None | NO | ✅ |
-| 15 | `StorageLocationConfigService` | StorageLocationConfigRepository | None | NO | ✅ |
-| 16 | `StorageBinTypeService` | StorageBinTypeRepository | None | NO | ✅ |
-| 17 | `DensityParameterService` | DensityParameterRepository | None | NO | ✅ |
-| 18 | `PriceListService` | PriceListRepository | None | NO | ✅ |
-| 19 | `LocationHierarchyService` | None (aggregator) | 4 services (Warehouse, Area, Location, Bin) | NO | ✅ |
-| 20 | `BatchLifecycleService` | None (utility) | None | NO | ✅ |
-| 21 | `MovementValidationService` | None (utility) | None | NO | ✅ |
+| #  | Service                        | Own Repository                  | Service Dependencies                        | Other Repos? | Status |
+|----|--------------------------------|---------------------------------|---------------------------------------------|--------------|--------|
+| 1  | `WarehouseService`             | WarehouseRepository             | None                                        | NO           | ✅      |
+| 2  | `StorageAreaService`           | StorageAreaRepository           | WarehouseService                            | NO           | ✅      |
+| 3  | `StorageLocationService`       | StorageLocationRepository       | WarehouseService, StorageAreaService        | NO           | ✅      |
+| 4  | `StorageBinService`            | StorageBinRepository            | StorageLocationService                      | NO           | ✅      |
+| 5  | `ProductCategoryService`       | ProductCategoryRepository       | None                                        | NO           | ✅      |
+| 6  | `ProductFamilyService`         | ProductFamilyRepository         | ProductCategoryService                      | NO           | ✅      |
+| 7  | `ProductSizeService`           | ProductSizeRepository           | None                                        | NO           | ✅      |
+| 8  | `ProductStateService`          | ProductStateRepository          | None                                        | NO           | ✅      |
+| 9  | `StockBatchService`            | StockBatchRepository            | None                                        | NO           | ✅      |
+| 10 | `StockMovementService`         | StockMovementRepository         | None                                        | NO           | ✅      |
+| 11 | `PackagingTypeService`         | PackagingTypeRepository         | None                                        | NO           | ✅      |
+| 12 | `PackagingColorService`        | PackagingColorRepository        | None                                        | NO           | ✅      |
+| 13 | `PackagingMaterialService`     | PackagingMaterialRepository     | None                                        | NO           | ✅      |
+| 14 | `PackagingCatalogService`      | PackagingCatalogRepository      | None                                        | NO           | ✅      |
+| 15 | `StorageLocationConfigService` | StorageLocationConfigRepository | None                                        | NO           | ✅      |
+| 16 | `StorageBinTypeService`        | StorageBinTypeRepository        | None                                        | NO           | ✅      |
+| 17 | `DensityParameterService`      | DensityParameterRepository      | None                                        | NO           | ✅      |
+| 18 | `PriceListService`             | PriceListRepository             | None                                        | NO           | ✅      |
+| 19 | `LocationHierarchyService`     | None (aggregator)               | 4 services (Warehouse, Area, Location, Bin) | NO           | ✅      |
+| 20 | `BatchLifecycleService`        | None (utility)                  | None                                        | NO           | ✅      |
+| 21 | `MovementValidationService`    | None (utility)                  | None                                        | NO           | ✅      |
 
 ---
 
@@ -316,6 +320,7 @@ class LocationHierarchyService:
 ## Validation Commands Used
 
 ### 1. Find all services importing repositories
+
 ```bash
 grep -rn "from.*Repository" app/services/*.py | \
     grep "def __init__" | \
@@ -324,6 +329,7 @@ grep -rn "from.*Repository" app/services/*.py | \
 ```
 
 ### 2. Search for cross-repository access violations
+
 ```bash
 # Pattern: self.{other}_repo where other != service's model
 grep -rn "self\.[a-z_]*_repo" app/services/*.py | \
@@ -335,6 +341,7 @@ grep -rn "self\.[a-z_]*_repo" app/services/*.py | \
 ```
 
 ### 3. Verify Service→Service dependencies
+
 ```bash
 grep -rn "Service" app/services/*.py | \
     grep "from.*import.*Service\|.*_service:" | \
@@ -343,6 +350,7 @@ grep -rn "Service" app/services/*.py | \
 ```
 
 ### 4. Count type hints coverage
+
 ```bash
 # All __init__ methods
 grep -rn "def __init__" app/services/*.py | wc -l
@@ -360,6 +368,7 @@ grep -rn "def __init__.*->" app/services/*.py | wc -l
 ### ✅ Clean Architecture Success
 
 **ALL 21 services follow the Service→Service pattern correctly**:
+
 - ✅ Services only inject OTHER SERVICES (not repositories)
 - ✅ Services only access their OWN repository
 - ✅ Aggregator services have ZERO repositories
@@ -376,6 +385,7 @@ grep -rn "def __init__.*->" app/services/*.py | wc -l
 ### 🚀 Next Steps
 
 While the Service→Service pattern is perfect, the audit identified:
+
 - 2 critical missing services (Product, PhotoProcessingSession)
 - Inconsistent exception handling (some use ValueError)
 - Isolated services that should have cross-service dependencies (StockMovement ↔ StockBatch)

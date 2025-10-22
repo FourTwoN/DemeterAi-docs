@@ -276,7 +276,7 @@ class PhotoUploadService:
         if len(file_bytes) > MAX_FILE_SIZE_BYTES:
             raise ValidationException(
                 field="file",
-                message=f"File size exceeds {MAX_FILE_SIZE_BYTES / (1024*1024):.0f}MB limit (got {len(file_bytes) / (1024*1024):.2f}MB)",
+                message=f"File size exceeds {MAX_FILE_SIZE_BYTES / (1024 * 1024):.0f}MB limit (got {len(file_bytes) / (1024 * 1024):.2f}MB)",
                 value=len(file_bytes),
             )
 

@@ -593,10 +593,13 @@ def ml_aggregation_callback(
             session_id=session_id,
             total_detected=total_detected,
             total_estimated=total_estimated,
-            total_empty_containers=0,  # NOTE: Empty container detection via segment analysis (future enhancement)
+            total_empty_containers=0,
+            # NOTE: Empty container detection via segment analysis (future enhancement)
             avg_confidence=avg_confidence,
-            category_counts={},  # NOTE: Category aggregation from detections (future enhancement)
-            processed_image_id=None,  # NOTE: Visualization image generation (future enhancement, uses SAHI overlay)
+            category_counts={},
+            # NOTE: Category aggregation from detections (future enhancement)
+            processed_image_id=None,
+            # NOTE: Visualization image generation (future enhancement, uses SAHI overlay)
         )
 
         return {

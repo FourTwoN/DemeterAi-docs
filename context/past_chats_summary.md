@@ -2,31 +2,43 @@
 
 ## Executive Overview
 
-DemeterAI is a production-grade **automated plant counting and inventory management system** designed to handle **600,000+ cacti and succulents** across multiple cultivation zones. The system replaces manual, infrequent stock-taking with automated ML-powered detection and estimation, achieving **90% less waste**, **80% reduced administrative time**, and **100% accuracy** in production and shipping.
+DemeterAI is a production-grade **automated plant counting and inventory management system**
+designed to handle **600,000+ cacti and succulents** across multiple cultivation zones. The system
+replaces manual, infrequent stock-taking with automated ML-powered detection and estimation,
+achieving **90% less waste**, **80% reduced administrative time**, and **100% accuracy** in
+production and shipping.
 
-**Core Value Proposition**: Transform photos of cultivation areas into accurate, geocoded inventory counts with full traceability, supporting monthly reconciliation workflows that detect sales, deaths, and transplants automatically.
+**Core Value Proposition**: Transform photos of cultivation areas into accurate, geocoded inventory
+counts with full traceability, supporting monthly reconciliation workflows that detect sales,
+deaths, and transplants automatically.
 
 ---
 
 ## Business Context & Monthly Workflow
 
 ### Inventory Reconciliation Pattern
+
 1. **Month Start**: Photo establishes baseline count for each `storage_location`
 2. **During Month**: Manual `stock_movements` track:
-   - **Plantado** (+): New plantings in boxes/segments
-   - **Transplante** (±): Plant moved between size categories or locations
-   - **Muerte** (-): Plant deaths across all categories
+    - **Plantado** (+): New plantings in boxes/segments
+    - **Transplante** (±): Plant moved between size categories or locations
+    - **Muerte** (-): Plant deaths across all categories
 3. **Month End**: New photo taken → **Sales calculation**:
    ```
    Sales = (baseline + plantado - muerte - transplante_out) - new_photo_count
    ```
-4. **External Validation**: CSV from client with quantity, classification, packaging confirms automated calculations
+4. **External Validation**: CSV from client with quantity, classification, packaging confirms
+   automated calculations
 
 ### Key Requirements
-- **Geospatial Hierarchy**: 4-level structure (warehouse → storage_area → storage_location → storage_bin)
-- **Warning Handling**: Missing GPS/config/calibration → warning state (not failure) → manual completion allowed
+
+- **Geospatial Hierarchy**: 4-level structure (warehouse → storage_area → storage_location →
+  storage_bin)
+- **Warning Handling**: Missing GPS/config/calibration → warning state (not failure) → manual
+  completion allowed
 - **Traceability**: Full audit trail from photo → detection → estimation → stock_batch → movement
-- **Auto-Calibration**: System learns `density_parameters` from real detections, updating itself over time
+- **Auto-Calibration**: System learns `density_parameters` from real detections, updating itself
+  over time
 
 ---
 
@@ -77,20 +89,20 @@ flowchart TB
 
 ### Technology Stack
 
-| Layer | Technology | Version | Rationale |
-|-------|-----------|---------|-----------|
-| **Language** | Python | 3.12 | Latest stable, async support |
-| **Web Framework** | FastAPI | 0.109.0 | Async-first, auto OpenAPI docs, Pydantic validation |
-| **ORM** | SQLAlchemy | 2.0+ | Async support, type-safe queries, repository pattern |
-| **Database** | PostgreSQL | 15+ | ACID, PostGIS for geospatial, partitioning |
-| **Geospatial** | PostGIS | 3.3+ | Spatial queries, SP-GiST indexes, 4-level hierarchy |
-| **Task Queue** | Celery | 5.3+ | Chord patterns, DLQ, circuit breakers |
-| **Message Broker** | Redis | 7+ | Low-latency, task coordination |
-| **ML Framework** | Ultralytics YOLO | v11 | 22% fewer params, 25% faster than v8 |
-| **CV Library** | SAHI | Latest | Slicing for high-res images, +6.8% AP improvement |
-| **Async DB** | asyncpg | Latest | 350x faster bulk inserts vs ORM (714k rows/sec) |
-| **Validation** | Pydantic | 2.5+ | Type-safe schemas, auto validation |
-| **Containers** | Docker Compose | Latest | Development and deployment |
+| Layer              | Technology       | Version | Rationale                                            |
+|--------------------|------------------|---------|------------------------------------------------------|
+| **Language**       | Python           | 3.12    | Latest stable, async support                         |
+| **Web Framework**  | FastAPI          | 0.109.0 | Async-first, auto OpenAPI docs, Pydantic validation  |
+| **ORM**            | SQLAlchemy       | 2.0+    | Async support, type-safe queries, repository pattern |
+| **Database**       | PostgreSQL       | 15+     | ACID, PostGIS for geospatial, partitioning           |
+| **Geospatial**     | PostGIS          | 3.3+    | Spatial queries, SP-GiST indexes, 4-level hierarchy  |
+| **Task Queue**     | Celery           | 5.3+    | Chord patterns, DLQ, circuit breakers                |
+| **Message Broker** | Redis            | 7+      | Low-latency, task coordination                       |
+| **ML Framework**   | Ultralytics YOLO | v11     | 22% fewer params, 25% faster than v8                 |
+| **CV Library**     | SAHI             | Latest  | Slicing for high-res images, +6.8% AP improvement    |
+| **Async DB**       | asyncpg          | Latest  | 350x faster bulk inserts vs ORM (714k rows/sec)      |
+| **Validation**     | Pydantic         | 2.5+    | Type-safe schemas, auto validation                   |
+| **Containers**     | Docker Compose   | Latest  | Development and deployment                           |
 
 ---
 
@@ -253,6 +265,7 @@ storage_bins
 ### Critical Tables
 
 #### Photo Processing Flow
+
 ```sql
 s3_images (image_id UUID PRIMARY KEY)
 ├─ UUIDs generated in API, NOT database SERIAL
@@ -287,6 +300,7 @@ estimations (PARTITIONED BY created_at DAILY)
 ```
 
 #### Inventory Management
+
 ```sql
 stock_movements (event sourcing pattern)
 ├─ movement_id UUID, batch_id FK
@@ -308,6 +322,7 @@ stock_batches (aggregated state)
 ```
 
 #### Configuration & Calibration
+
 ```sql
 storage_location_config
 ├─ Associates expected product + packaging to location
@@ -495,13 +510,14 @@ def estimate_remaining_plants(remaining_mask, detections, density_params, config
 
 ### Performance Benchmarks
 
-| Hardware | YOLO v11 Baseline | + SAHI | + Optimizations |
-|----------|-------------------|--------|-----------------|
-| **1× RTX 3090** | 2.8 hours | 14 hours | **8 hours** |
-| **4× RTX 3090** | 45 minutes | 3.5 hours | **2 hours** |
-| **4× A100 (40GB)** | 35 minutes | 2.8 hours | **90 minutes** |
+| Hardware           | YOLO v11 Baseline | + SAHI    | + Optimizations |
+|--------------------|-------------------|-----------|-----------------|
+| **1× RTX 3090**    | 2.8 hours         | 14 hours  | **8 hours**     |
+| **4× RTX 3090**    | 45 minutes        | 3.5 hours | **2 hours**     |
+| **4× A100 (40GB)** | 35 minutes        | 2.8 hours | **90 minutes**  |
 
 **Optimizations Applied**:
+
 - FP16 precision (2× speedup, <1% accuracy loss)
 - Batch processing (8-16 images per GPU)
 - Model singleton pattern (eliminate 2-3s load per image)
@@ -1048,7 +1064,8 @@ SELECT cron.schedule(
 );
 ```
 
-**Impact**: Dashboard queries go from **3-8 seconds** (aggregating millions of rows) to **8-15ms** (scanning hundreds of pre-aggregated rows).
+**Impact**: Dashboard queries go from **3-8 seconds** (aggregating millions of rows) to **8-15ms** (
+scanning hundreds of pre-aggregated rows).
 
 ---
 
@@ -1151,7 +1168,8 @@ async def process_image_endpoint(image: UploadFile):
         return {"task_id": task.id, "status": "processing"}
 ```
 
-**Jaeger UI**: Visualizes complete request flow (API → S3 → Celery → DB) with latency breakdown per step.
+**Jaeger UI**: Visualizes complete request flow (API → S3 → Celery → DB) with latency breakdown per
+step.
 
 ### Alert Rules (Prometheus)
 
@@ -1321,85 +1339,99 @@ volumes:
 ### Production Considerations
 
 1. **S3 Storage**:
-   - Original images: `s3://demeterai-photos/original/{YYYY}/{MM}/{DD}/{uuid}.jpg`
-   - Processed images: `s3://demeterai-photos/processed/{YYYY}/{MM}/{DD}/{uuid}_viz.avif`
-   - Lifecycle policy: Delete originals after 90 days, keep processed for 365 days
-   - AVIF format: 50% storage savings vs JPEG (9TB → 4.5TB for 600k images)
+    - Original images: `s3://demeterai-photos/original/{YYYY}/{MM}/{DD}/{uuid}.jpg`
+    - Processed images: `s3://demeterai-photos/processed/{YYYY}/{MM}/{DD}/{uuid}_viz.avif`
+    - Lifecycle policy: Delete originals after 90 days, keep processed for 365 days
+    - AVIF format: 50% storage savings vs JPEG (9TB → 4.5TB for 600k images)
 
 2. **Database Backups**:
-   - **PITR (Point-In-Time Recovery)**: RPO 5min, RTO 30-60min
-   - WAL archiving to S3: `archive_command = 'aws s3 cp %p s3://demeterai-wal/%f'`
-   - Streaming replication: Hot standby for failover (RPO sub-second, RTO 5-10min)
-   - Automated testing: Restore every quarter to verify backup integrity
+    - **PITR (Point-In-Time Recovery)**: RPO 5min, RTO 30-60min
+    - WAL archiving to S3: `archive_command = 'aws s3 cp %p s3://demeterai-wal/%f'`
+    - Streaming replication: Hot standby for failover (RPO sub-second, RTO 5-10min)
+    - Automated testing: Restore every quarter to verify backup integrity
 
 3. **Auto-Scaling**:
-   - API servers: Scale on CPU > 70% or request queue > 100
-   - GPU workers: Fixed count (4× A100), no auto-scale
-   - CPU workers: Scale on queue depth > 50 tasks
-   - I/O workers: Scale on S3 upload queue > 200 tasks
+    - API servers: Scale on CPU > 70% or request queue > 100
+    - GPU workers: Fixed count (4× A100), no auto-scale
+    - CPU workers: Scale on queue depth > 50 tasks
+    - I/O workers: Scale on S3 upload queue > 200 tasks
 
 4. **Security**:
-   - All secrets in AWS Secrets Manager (rotation enabled)
-   - S3 bucket encryption: AES-256 server-side
-   - API authentication: JWT with 15min expiration
-   - Database: SSL required, certificate validation
-   - VPC: Private subnets for workers, public for API (WAF enabled)
+    - All secrets in AWS Secrets Manager (rotation enabled)
+    - S3 bucket encryption: AES-256 server-side
+    - API authentication: JWT with 15min expiration
+    - Database: SSL required, certificate validation
+    - VPC: Private subnets for workers, public for API (WAF enabled)
 
 ---
 
 ## Key Design Decisions & Trade-offs
 
 ### 1. UUID vs SERIAL for s3_images.image_id
+
 **Decision**: UUID generated in API, **not** database SERIAL
 **Rationale**:
+
 - Allows pre-generation before DB insert (idempotency)
 - Prevents race conditions in distributed system
 - Enables S3 key generation before row exists
 - Trade-off: 16 bytes vs 8 bytes per row (acceptable overhead)
 
 ### 2. Event Sourcing vs State-Based Inventory
+
 **Decision**: Hybrid approach - `stock_movements` (events) + `stock_batches` (state)
 **Rationale**:
+
 - Full audit trail from event sourcing
 - Fast queries from materialized state
 - Monthly reconciliation pattern requires both
 - Trade-off: 30% more writes, 10-20x faster reads
 
 ### 3. ORM vs asyncpg for Bulk Inserts
+
 **Decision**: ORM for CRUD, asyncpg COPY for bulk (future upgrade)
 **Rationale**:
+
 - ORM bulk_insert_mappings sufficient for current scale (2k rows/sec)
 - asyncpg gives 350× speedup (714k rows/sec) when needed
 - Premature optimization avoided initially
 - Trade-off: Code complexity vs performance
 
 ### 4. Warnings vs Failures (Missing GPS/Config)
+
 **Decision**: Create session with warning status, allow manual completion
 **Rationale**:
+
 - Photos are valuable - never discard
 - User can fix issues (assign location, configure product)
 - Graceful degradation better than hard failure
 - Trade-off: More complex state machine, better UX
 
 ### 5. Band-Based Estimation vs Pure Density Parameters
+
 **Decision**: Prioritize band detections, fallback to density
 **Rationale**:
+
 - Auto-calibration from real data (self-improving system)
 - Adapts to growth stages, pot sizes, spacing variations
 - Updates density_parameters automatically
 - Trade-off: More computation, higher accuracy
 
 ### 6. Daily Partitioning vs No Partitioning
+
 **Decision**: Daily partitions for detections/estimations
 **Rationale**:
+
 - 99% of queries filter by time range (month/week)
 - Partition pruning eliminates 95%+ of data
 - VACUUM 100× faster on partitions
 - Trade-off: Schema complexity vs 10-100× query speedup
 
 ### 7. pool=solo vs prefork for GPU Workers
+
 **Decision**: pool=solo (mandatory), 1 worker per GPU
 **Rationale**:
+
 - prefork causes CUDA context conflicts → random failures
 - Model singleton pattern requires isolated GPU memory
 - Industry best practice for GPU workloads
@@ -1448,18 +1480,18 @@ volumes:
 
 ## Success Metrics (Production Targets)
 
-| Metric | Target | Current Baseline |
-|--------|--------|------------------|
-| **Throughput** | 150-200 img/sec | N/A (new system) |
-| **Processing Time (600k)** | **90-120 minutes** | ~5 hours (manual) |
-| **Detection Insert** | <3ms | N/A |
-| **Spatial Query** | <50ms | N/A |
-| **Dashboard Load** | <100ms | N/A |
-| **Task Failure Rate** | <0.1% | N/A |
-| **API P95 Latency** | <200ms | N/A |
-| **GPU Utilization** | 85-90% | N/A |
-| **Cache Hit Rate** | 85-95% | N/A |
-| **Detection Accuracy** | >95% agreement vs manual | TBD (validation set) |
+| Metric                     | Target                   | Current Baseline     |
+|----------------------------|--------------------------|----------------------|
+| **Throughput**             | 150-200 img/sec          | N/A (new system)     |
+| **Processing Time (600k)** | **90-120 minutes**       | ~5 hours (manual)    |
+| **Detection Insert**       | <3ms                     | N/A                  |
+| **Spatial Query**          | <50ms                    | N/A                  |
+| **Dashboard Load**         | <100ms                   | N/A                  |
+| **Task Failure Rate**      | <0.1%                    | N/A                  |
+| **API P95 Latency**        | <200ms                   | N/A                  |
+| **GPU Utilization**        | 85-90%                   | N/A                  |
+| **Cache Hit Rate**         | 85-95%                   | N/A                  |
+| **Detection Accuracy**     | >95% agreement vs manual | TBD (validation set) |
 
 ---
 
@@ -1473,6 +1505,8 @@ DemeterAI is a **production-grade, scalable ML system** designed from day 1 for:
 - **Observability**: Prometheus metrics, OpenTelemetry tracing, Grafana dashboards
 - **Scalability**: Partitioned database, connection pooling, horizontal scaling
 
-**Key Innovation**: Self-improving system through band-based auto-calibration of density parameters, learning from real detections to improve estimation accuracy over time.
+**Key Innovation**: Self-improving system through band-based auto-calibration of density parameters,
+learning from real detections to improve estimation accuracy over time.
 
-**Production Readiness**: All components designed with benchmarks, best practices, and anti-pattern avoidance from start. No "TODO: optimize later" - optimize from day 1.
+**Production Readiness**: All components designed with benchmarks, best practices, and anti-pattern
+avoidance from start. No "TODO: optimize later" - optimize from day 1.

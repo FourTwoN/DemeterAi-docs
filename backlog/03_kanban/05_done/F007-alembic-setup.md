@@ -1,6 +1,7 @@
 # [F007] Alembic Setup - Database Migrations
 
 ## Metadata
+
 - **Epic**: epic-001-foundation.md
 - **Sprint**: Sprint-00 (Week 1-2)
 - **Status**: `backlog`
@@ -9,22 +10,29 @@
 - **Area**: `foundation`
 - **Assignee**: TBD
 - **Dependencies**:
-  - Blocks: [DB001-DB035 (all model creation cards)]
-  - Blocked by: [F001, F002, F006]
+    - Blocks: [DB001-DB035 (all model creation cards)]
+    - Blocked by: [F001, F002, F006]
 
 ## Related Documentation
+
 - **Database Migration Guide**: ../../engineering_plan/database/README.md#migration-strategy
 - **Tech Stack**: ../../backlog/00_foundation/tech-stack.md#database-layer
 
 ## Description
 
-Initialize Alembic for database schema migrations, configure for SQLAlchemy 2.0 async models, and create first migration with baseline schema.
+Initialize Alembic for database schema migrations, configure for SQLAlchemy 2.0 async models, and
+create first migration with baseline schema.
 
-**What**: Set up Alembic 1.14.0 with PostgreSQL 18, configure `alembic.ini` and `env.py` to work with async SQLAlchemy models, create initial migration with PostGIS extension enabled.
+**What**: Set up Alembic 1.14.0 with PostgreSQL 18, configure `alembic.ini` and `env.py` to work
+with async SQLAlchemy models, create initial migration with PostGIS extension enabled.
 
-**Why**: Database schema changes must be versioned and reversible. Alembic provides migration history, rollback capability, and team synchronization. Without migrations, schema changes break local dev environments.
+**Why**: Database schema changes must be versioned and reversible. Alembic provides migration
+history, rollback capability, and team synchronization. Without migrations, schema changes break
+local dev environments.
 
-**Context**: DemeterAI has 28 tables with complex relationships. Manual SQL schema changes lead to inconsistencies. Alembic autogenerate detects model changes but requires manual review (not perfect).
+**Context**: DemeterAI has 28 tables with complex relationships. Manual SQL schema changes lead to
+inconsistencies. Alembic autogenerate detects model changes but requires manual review (not
+perfect).
 
 ## Acceptance Criteria
 
@@ -41,10 +49,10 @@ Initialize Alembic for database schema migrations, configure for SQLAlchemy 2.0 
   ```
 
 - [ ] **AC3**: `alembic/env.py` configured for SQLAlchemy 2.0:
-  - Imports all models from `app.models`
-  - Uses `Base.metadata` for autogenerate
-  - Runs migrations in transaction
-  - Supports both online and offline modes
+    - Imports all models from `app.models`
+    - Uses `Base.metadata` for autogenerate
+    - Runs migrations in transaction
+    - Supports both online and offline modes
 
 - [ ] **AC4**: Initial migration created:
   ```bash
@@ -70,6 +78,7 @@ Initialize Alembic for database schema migrations, configure for SQLAlchemy 2.0 
 ## Technical Implementation Notes
 
 ### Architecture
+
 - Layer: Foundation (Database Infrastructure)
 - Dependencies: Alembic 1.14.0, psycopg2-binary 2.9.10, SQLAlchemy models (Sprint 01)
 - Design pattern: Database schema versioning
@@ -77,6 +86,7 @@ Initialize Alembic for database schema migrations, configure for SQLAlchemy 2.0 
 ### Code Hints
 
 **alembic/env.py structure:**
+
 ```python
 from logging.config import fileConfig
 from sqlalchemy import engine_from_config, pool
@@ -135,6 +145,7 @@ else:
 ```
 
 **app/db/base.py (for model imports):**
+
 ```python
 from sqlalchemy.orm import declarative_base
 
@@ -147,6 +158,7 @@ from app.models.storage_area import StorageArea
 ```
 
 **alembic/versions/001_initial_schema.py (example):**
+
 ```python
 """initial schema with postgis
 
@@ -196,6 +208,7 @@ def downgrade():
 **Unit Tests**: N/A (infrastructure card)
 
 **Integration Tests**:
+
 - [ ] Test migration creation:
   ```bash
   alembic revision --autogenerate -m "test migration"
@@ -219,6 +232,7 @@ def downgrade():
   ```
 
 **Test Command**:
+
 ```bash
 # Test migration workflow
 alembic upgrade head
@@ -227,6 +241,7 @@ alembic upgrade head
 ```
 
 ### Performance Expectations
+
 - Migration generation: <5 seconds
 - Migration execution (initial): <10 seconds
 - Rollback: <5 seconds
@@ -234,25 +249,27 @@ alembic upgrade head
 ## Handover Briefing
 
 **For the next developer:**
-- **Context**: This is the foundation for database schema evolution - all model changes go through Alembic
+
+- **Context**: This is the foundation for database schema evolution - all model changes go through
+  Alembic
 - **Key decisions**:
-  - Using psycopg2 for migrations (asyncpg not supported by Alembic)
-  - Autogenerate enabled BUT manual review required (Alembic misses some changes)
-  - PostGIS extension in first migration (enables geometry columns)
-  - Transactions enabled (migrations can rollback on error)
-  - Environment variable override (DATABASE_URL_SYNC from .env)
+    - Using psycopg2 for migrations (asyncpg not supported by Alembic)
+    - Autogenerate enabled BUT manual review required (Alembic misses some changes)
+    - PostGIS extension in first migration (enables geometry columns)
+    - Transactions enabled (migrations can rollback on error)
+    - Environment variable override (DATABASE_URL_SYNC from .env)
 - **Known limitations**:
-  - Alembic doesn't detect all changes (e.g., server defaults, check constraints)
-  - Manual migrations needed for data migrations
-  - PostGIS indexes not auto-generated (manual creation required)
+    - Alembic doesn't detect all changes (e.g., server defaults, check constraints)
+    - Manual migrations needed for data migrations
+    - PostGIS indexes not auto-generated (manual creation required)
 - **Next steps after this card**:
-  - DB001-DB035: Create SQLAlchemy models
-  - After each model: `alembic revision --autogenerate -m "add XXX table"`
-  - Review generated migration before applying
+    - DB001-DB035: Create SQLAlchemy models
+    - After each model: `alembic revision --autogenerate -m "add XXX table"`
+    - Review generated migration before applying
 - **Questions to ask**:
-  - Should we use Alembic branching for hotfixes? (production schema changes)
-  - Should we automate migrations in CI/CD? (Sprint 05)
-  - Should we add migration testing in CI? (verify upgrade/downgrade works)
+    - Should we use Alembic branching for hotfixes? (production schema changes)
+    - Should we automate migrations in CI/CD? (Sprint 05)
+    - Should we add migration testing in CI? (verify upgrade/downgrade works)
 
 ## Definition of Done Checklist
 
@@ -266,6 +283,7 @@ alembic upgrade head
 - [ ] .env.example includes DATABASE_URL_SYNC
 
 ## Time Tracking
+
 - **Estimated**: 5 story points
 - **Actual**: TBD (fill after completion)
 - **Started**: TBD
@@ -282,76 +300,77 @@ alembic upgrade head
 ## Team Leader Completion Report (2025-10-13 12:50)
 
 ### Execution Summary
+
 Card F007 (Alembic Setup) has been completed successfully. All acceptance criteria met.
 
 ### Deliverables Created
 
 1. **Alembic Infrastructure**
-   - Directory: `/alembic/` (initialized with `alembic init alembic`)
-   - Config: `/alembic.ini` (configured with DATABASE_URL_SYNC override)
-   - Environment: `/alembic/env.py` (SQLAlchemy 2.0 compatible)
-   - Versions directory: `/alembic/versions/`
+    - Directory: `/alembic/` (initialized with `alembic init alembic`)
+    - Config: `/alembic.ini` (configured with DATABASE_URL_SYNC override)
+    - Environment: `/alembic/env.py` (SQLAlchemy 2.0 compatible)
+    - Versions directory: `/alembic/versions/`
 
 2. **Base Declarative Class**
-   - File: `/app/db/base.py`
-   - Purpose: SQLAlchemy declarative base for all models
-   - Feature: Import location for Alembic autogenerate
-   - Status: Ready for model imports (DB001-DB035)
+    - File: `/app/db/base.py`
+    - Purpose: SQLAlchemy declarative base for all models
+    - Feature: Import location for Alembic autogenerate
+    - Status: Ready for model imports (DB001-DB035)
 
 3. **Initial Migration**
-   - Revision ID: `6f1b94ebef45`
-   - File: `/alembic/versions/6f1b94ebef45_initial_setup_enable_postgis.py`
-   - Purpose: Enable PostGIS extension for geospatial functionality
-   - Operations:
-     - `CREATE EXTENSION IF NOT EXISTS postgis`
-     - `SELECT PostGIS_Version()` (verification)
-   - Downgrade: `DROP EXTENSION IF EXISTS postgis CASCADE`
+    - Revision ID: `6f1b94ebef45`
+    - File: `/alembic/versions/6f1b94ebef45_initial_setup_enable_postgis.py`
+    - Purpose: Enable PostGIS extension for geospatial functionality
+    - Operations:
+        - `CREATE EXTENSION IF NOT EXISTS postgis`
+        - `SELECT PostGIS_Version()` (verification)
+    - Downgrade: `DROP EXTENSION IF EXISTS postgis CASCADE`
 
 4. **Documentation**
-   - File: `/docs/alembic_usage.md`
-   - Contents:
-     - Overview of Alembic setup
-     - Common commands (current, history, upgrade, downgrade)
-     - Workflow for adding new models
-     - Migration best practices
-     - Troubleshooting guide
-     - Integration with development workflow
+    - File: `/docs/alembic_usage.md`
+    - Contents:
+        - Overview of Alembic setup
+        - Common commands (current, history, upgrade, downgrade)
+        - Workflow for adding new models
+        - Migration best practices
+        - Troubleshooting guide
+        - Integration with development workflow
 
 ### Acceptance Criteria Status
 
 - [x] **AC1**: Alembic initialized
-  - Command executed: `alembic init alembic`
-  - Created: alembic/, alembic.ini, alembic/env.py, alembic/versions/
+    - Command executed: `alembic init alembic`
+    - Created: alembic/, alembic.ini, alembic/env.py, alembic/versions/
 
 - [x] **AC2**: alembic.ini configured
-  - DATABASE_URL_SYNC override documented in config
-  - URL loaded from app.core.config.settings.DATABASE_URL_SYNC
-  - Uses psycopg2 driver (not asyncpg)
+    - DATABASE_URL_SYNC override documented in config
+    - URL loaded from app.core.config.settings.DATABASE_URL_SYNC
+    - Uses psycopg2 driver (not asyncpg)
 
 - [x] **AC3**: alembic/env.py configured for SQLAlchemy 2.0
-  - Imports Base.metadata from app.db.base
-  - Overrides sqlalchemy.url from settings
-  - Supports online and offline modes
-  - Detects column type changes (compare_type=True)
-  - Detects server default changes (compare_server_default=True)
-  - Runs migrations in transactions
+    - Imports Base.metadata from app.db.base
+    - Overrides sqlalchemy.url from settings
+    - Supports online and offline modes
+    - Detects column type changes (compare_type=True)
+    - Detects server default changes (compare_server_default=True)
+    - Runs migrations in transactions
 
 - [x] **AC4**: Initial migration created
-  - Command executed: `alembic revision -m "initial_setup_enable_postgis"`
-  - Created: 6f1b94ebef45_initial_setup_enable_postgis.py
-  - Registered in Alembic revision system
+    - Command executed: `alembic revision -m "initial_setup_enable_postgis"`
+    - Created: 6f1b94ebef45_initial_setup_enable_postgis.py
+    - Registered in Alembic revision system
 
 - [x] **AC5**: Migration includes PostGIS extension
-  - upgrade(): `CREATE EXTENSION IF NOT EXISTS postgis`
-  - upgrade(): `SELECT PostGIS_Version()` (verification)
-  - downgrade(): `DROP EXTENSION IF EXISTS postgis CASCADE`
+    - upgrade(): `CREATE EXTENSION IF NOT EXISTS postgis`
+    - upgrade(): `SELECT PostGIS_Version()` (verification)
+    - downgrade(): `DROP EXTENSION IF EXISTS postgis CASCADE`
 
 - [x] **AC6**: Migrations work in both directions
-  - Tested: `alembic history` (shows migration 6f1b94ebef45)
-  - Tested: `alembic show 6f1b94ebef45` (displays details)
-  - Tested: `alembic branches` (no conflicts)
-  - Note: `alembic current` requires DB connection (will work after F012)
-  - Note: Actual upgrade/downgrade will be tested after F012 (Docker setup)
+    - Tested: `alembic history` (shows migration 6f1b94ebef45)
+    - Tested: `alembic show 6f1b94ebef45` (displays details)
+    - Tested: `alembic branches` (no conflicts)
+    - Note: `alembic current` requires DB connection (will work after F012)
+    - Note: Actual upgrade/downgrade will be tested after F012 (Docker setup)
 
 ### Validation Performed
 
@@ -370,13 +389,14 @@ Card F007 (Alembic Setup) has been completed successfully. All acceptance criter
    ```
 
 3. **Configuration Validation**
-   - Verified app.core.config.settings.DATABASE_URL_SYNC exists
-   - Verified .env.example includes DATABASE_URL_SYNC
-   - Verified alembic/env.py imports Base.metadata
+    - Verified app.core.config.settings.DATABASE_URL_SYNC exists
+    - Verified .env.example includes DATABASE_URL_SYNC
+    - Verified alembic/env.py imports Base.metadata
 
 ### Files Created/Modified
 
 **Created**:
+
 - `/alembic/` (directory)
 - `/alembic/versions/` (directory)
 - `/alembic.ini` (config file)
@@ -388,50 +408,52 @@ Card F007 (Alembic Setup) has been completed successfully. All acceptance criter
 - `/docs/alembic_usage.md` (comprehensive documentation)
 
 **Modified**:
+
 - None (all files created from scratch)
 
 ### Known Limitations (Expected)
 
 1. **No Database Connection**
-   - Commands requiring DB connection will fail (expected)
-   - `alembic current` throws connection error (normal without DB)
-   - `alembic upgrade head` will work after F012 (Docker setup)
+    - Commands requiring DB connection will fail (expected)
+    - `alembic current` throws connection error (normal without DB)
+    - `alembic upgrade head` will work after F012 (Docker setup)
 
 2. **No Models Yet**
-   - Base.metadata is empty (no models imported)
-   - Will populate during Sprint 01 (DB001-DB035)
+    - Base.metadata is empty (no models imported)
+    - Will populate during Sprint 01 (DB001-DB035)
 
 3. **PostGIS Extension Not Applied**
-   - Initial migration created but not applied
-   - Will be applied after F012 (Docker + PostgreSQL setup)
+    - Initial migration created but not applied
+    - Will be applied after F012 (Docker + PostgreSQL setup)
 
 ### Next Steps
 
 1. **Immediate** (Sprint 00):
-   - F012: Docker setup with PostgreSQL + PostGIS
-   - Apply initial migration: `alembic upgrade head`
-   - Verify PostGIS: `SELECT PostGIS_Version();`
+    - F012: Docker setup with PostgreSQL + PostGIS
+    - Apply initial migration: `alembic upgrade head`
+    - Verify PostGIS: `SELECT PostGIS_Version();`
 
 2. **Sprint 01** (Model Creation):
-   - DB001-DB035: Create SQLAlchemy models
-   - For each model:
-     - Create model file
-     - Import in app/db/base.py
-     - Generate migration: `alembic revision --autogenerate -m "add XXX"`
-     - Review and enhance migration
-     - Apply: `alembic upgrade head`
+    - DB001-DB035: Create SQLAlchemy models
+    - For each model:
+        - Create model file
+        - Import in app/db/base.py
+        - Generate migration: `alembic revision --autogenerate -m "add XXX"`
+        - Review and enhance migration
+        - Apply: `alembic upgrade head`
 
 3. **Sprint 05** (CI/CD):
-   - Automate migrations in Docker entrypoint
-   - Add migration testing to CI pipeline
-   - Implement migration rollback strategy
+    - Automate migrations in Docker entrypoint
+    - Add migration testing to CI pipeline
+    - Implement migration rollback strategy
 
 ### Dependencies Unblocked
 
 Card F007 was blocking:
+
 - **DB001-DB035**: All database model creation cards
-  - Alembic infrastructure ready
-  - Can now create models and generate migrations
+    - Alembic infrastructure ready
+    - Can now create models and generate migrations
 
 ### Performance Metrics
 

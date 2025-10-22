@@ -3,19 +3,24 @@
 **Version:** 1.0.0
 **Date:** 2025-10-08
 **Parent Diagram:** 01_complete_pipeline_v4.mmd
-**Related Diagrams:** 04_ml_parent_segmentation_detailed.mmd, 05_sahi_detection_child_detailed.mmd, 06_boxes_plugs_detection_detailed.mmd
+**Related Diagrams:** 04_ml_parent_segmentation_detailed.mmd, 05_sahi_detection_child_detailed.mmd,
+06_boxes_plugs_detection_detailed.mmd
 
 ## Purpose
 
-This diagram documents the **Celery Chord callback task** that aggregates results from ALL parallel child tasks (plant detection + infrastructure detection) into a unified session summary. This is the final step before results are available to the frontend.
+This diagram documents the **Celery Chord callback task** that aggregates results from ALL parallel
+child tasks (plant detection + infrastructure detection) into a unified session summary. This is the
+final step before results are available to the frontend.
 
 ## Scope
 
 **Input:**
+
 - `child_results` (List[dict]): Results from all child tasks (diagrams 05 & 06)
 - `session_id_pk` (UUID): Session identifier
 
 **Output:**
+
 - `session_summary` (dict): Aggregated statistics, quality scores, field metrics
 - Database persistence: `session_summaries` table
 - Redis cache: For fast frontend access
@@ -43,6 +48,7 @@ chord(
 ```
 
 **How it works:**
+
 1. **Parent** (diagram 04) spawns N child tasks in parallel
 2. **Children** (diagrams 05, 06) execute independently on GPU workers
 3. **Chord waits** until ALL children complete (or timeout)
@@ -50,6 +56,7 @@ chord(
 5. **Callback aggregates** and persists session summary
 
 **Critical behavior:**
+
 - Callback BLOCKS until all children finish
 - Slowest child determines total session time
 - If one child fails, callback still executes with partial results
@@ -81,17 +88,20 @@ db.execute("""
 ```
 
 **Common failure reasons:**
+
 1. S3 download timeout (network issue)
 2. GPU OOM (image too large for VRAM)
 3. Model inference error (corrupted image)
 4. Database connection lost
 5. Child task timeout (exceeded 120s hard limit)
 
-**Design decision:** Don't fail entire session due to 1-2 bad images. Continue with partial results and log failures for later retry.
+**Design decision:** Don't fail entire session due to 1-2 bad images. Continue with partial results
+and log failures for later retry.
 
 ### 2. Plant Detection Aggregation (lines 151-202)
 
 **Aggregated statistics:**
+
 ```python
 total_estimated = sum(r['estimated_count'] for r in plant_results)  # 9834
 total_detected = sum(r['detected_count'] for r in plant_results)    # 7821
@@ -107,6 +117,7 @@ else:
 ```
 
 **Performance tracking:**
+
 ```python
 avg_processing_time = np.mean([r['processing_time'] for r in plant_results])  # 19.3s
 total_gpu_time = sum(r['processing_time'] for r in plant_results)  # 965s = 16 min
@@ -118,6 +129,7 @@ gpu_hours = total_gpu_time / 3600  # 0.27 hours
 ### 3. Infrastructure Detection Aggregation (lines 211-267)
 
 **Aggregate by class across all images:**
+
 ```python
 from collections import defaultdict
 
@@ -138,6 +150,7 @@ for result in infrastructure_results:
 ```
 
 **Example result:**
+
 ```json
 {
   "total_infrastructure": 27,
@@ -161,6 +174,7 @@ for result in infrastructure_results:
 ### 4. Field-Level Metrics Calculation (lines 276-331)
 
 **Calculate plant density:**
+
 ```python
 session = db.query("""
     SELECT field_id, total_area_m2, gps_bounds, images_expected
@@ -174,11 +188,13 @@ plant_density = total_estimated / field_area_ha  # plants/ha
 ```
 
 **Industry benchmarks:**
+
 - **Low density:** < 500 plants/ha (sparse planting, extensive farming)
 - **Normal density:** 500-1000 plants/ha (standard commercial)
 - **High density:** > 1000 plants/ha (intensive farming, greenhouses)
 
 **Partial coverage handling:**
+
 ```python
 images_processed = len(plant_results)  # 50
 images_expected = session.images_expected  # 54
@@ -224,12 +240,14 @@ overall_quality = sum(score * weight for _, score, weight in quality_factors)
 ```
 
 **Quality bands:**
+
 - `overall_quality >= 0.85`: **'EXCELLENT'** ⭐⭐⭐⭐⭐ (Report ready for customer)
 - `overall_quality >= 0.70`: **'GOOD'** ⭐⭐⭐⭐ (Acceptable)
 - `overall_quality >= 0.50`: **'FAIR'** ⭐⭐⭐ (Review recommended)
 - `overall_quality < 0.50`: **'POOR'** ⭐⭐ (Re-capture images)
 
 **Example calculation:**
+
 ```
 Confidence score: 0.92 × 0.4 = 0.368
 Coverage score:   0.92 × 0.3 = 0.276
@@ -242,6 +260,7 @@ Overall quality:             0.87 → EXCELLENT ⭐⭐⭐⭐⭐
 ### 6. Session Summary Structure (lines 410-467)
 
 **Complete summary object:**
+
 ```json
 {
   "session_id": "uuid-...",
@@ -299,6 +318,7 @@ Overall quality:             0.87 → EXCELLENT ⭐⭐⭐⭐⭐
 ### 7. Webhook Notification (lines 531-579) - Optional
 
 **Notify external systems:**
+
 ```python
 webhook_url = session.webhook_url  # Optional, configured per session
 
@@ -323,6 +343,7 @@ async with httpx.AsyncClient() as client:
 ```
 
 **Use cases:**
+
 1. **Farm management software:** Notify external system that analysis is complete
 2. **PDF report generation:** Trigger downstream report generation service
 3. **Email/SMS:** Send notification to farmer with link to results
@@ -333,6 +354,7 @@ async with httpx.AsyncClient() as client:
 ### 8. Redis Cache for Frontend (lines 588-618)
 
 **Why cache:**
+
 ```python
 cache_key = f'session_summary:{session_id_pk}'
 
@@ -350,6 +372,7 @@ redis_client.setex(
 | User downloads report | 100ms (complex query) | 1ms (Redis GET) | **100x** |
 
 **TTL reasoning:**
+
 - User typically views report immediately after completion
 - After 1 hour, report viewed → cache can expire
 - Next access: Re-fetch from DB (infrequent, acceptable latency)
@@ -358,21 +381,22 @@ redis_client.setex(
 
 Total time: **100-500ms**
 
-| Phase | Time | % of Total | Notes |
-|-------|------|------------|-------|
-| Result validation | 5ms | ~2% | Simple list filtering |
-| Plant aggregation | 50ms | ~25% | NumPy operations |
-| Infrastructure aggregation | 30ms | ~15% | Dictionary operations |
-| Field metrics | 10ms | ~5% | 1 DB query + math |
-| Quality score | 5ms | ~2% | NumPy statistics |
-| DB persist (INSERT + UPDATE) | 15ms | ~7% | 2 queries |
-| Redis cache | 5ms | ~2% | Single SET |
-| Webhook (optional) | 100ms | ~40% | Async HTTP (if configured) |
-| Other | 10ms | ~5% | Python overhead |
+| Phase                        | Time  | % of Total | Notes                      |
+|------------------------------|-------|------------|----------------------------|
+| Result validation            | 5ms   | ~2%        | Simple list filtering      |
+| Plant aggregation            | 50ms  | ~25%       | NumPy operations           |
+| Infrastructure aggregation   | 30ms  | ~15%       | Dictionary operations      |
+| Field metrics                | 10ms  | ~5%        | 1 DB query + math          |
+| Quality score                | 5ms   | ~2%        | NumPy statistics           |
+| DB persist (INSERT + UPDATE) | 15ms  | ~7%        | 2 queries                  |
+| Redis cache                  | 5ms   | ~2%        | Single SET                 |
+| Webhook (optional)           | 100ms | ~40%       | Async HTTP (if configured) |
+| Other                        | 10ms  | ~5%        | Python overhead            |
 
 **Bottleneck:** Webhook HTTP request (optional, async, non-blocking)
 
 **Why so fast compared to child tasks (15-30s)?**
+
 - No GPU computation
 - No image processing
 - Simple aggregation (sum, mean, groupby)
@@ -386,6 +410,7 @@ Total time: **100-500ms**
 **Scenario:** 2 out of 50 images failed
 
 **Behavior:**
+
 1. Separate successes (48) from failures (2)
 2. Log failures to `task_failures` table
 3. Continue aggregation with 48 successful results
@@ -403,6 +428,7 @@ if len(failures) / len(child_results) > 0.10:
 **Scenario:** Callback executes but DB is down
 
 **Behavior:**
+
 - Celery automatic retry (3 attempts with exponential backoff)
 - If all retries fail → task moved to dead letter queue
 - Results still in Celery backend (Redis) for 24 hours
@@ -413,6 +439,7 @@ if len(failures) / len(child_results) > 0.10:
 **Scenario:** Redis cache is down
 
 **Behavior:**
+
 - Cache write fails (non-critical)
 - Log warning but continue
 - Frontend falls back to DB queries (slower but functional)
@@ -422,6 +449,7 @@ if len(failures) / len(child_results) > 0.10:
 ### Tables Used
 
 **`session_summaries`** (INSERT):
+
 ```sql
 CREATE TABLE session_summaries (
     session_id UUID PRIMARY KEY REFERENCES sessions(id),
@@ -457,6 +485,7 @@ CREATE INDEX idx_summaries_completed ON session_summaries(completed_at DESC);
 ```
 
 **`sessions`** (UPDATE):
+
 ```sql
 UPDATE sessions
 SET
@@ -469,6 +498,7 @@ WHERE id = :session_id_pk;
 ```
 
 **`task_failures`** (INSERT):
+
 ```sql
 CREATE TABLE task_failures (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -486,6 +516,7 @@ CREATE INDEX idx_failures_session ON task_failures(session_id);
 ## Code Patterns
 
 ### Pattern 1: Weighted Quality Score
+
 ```python
 def calculate_weighted_score(factors):
     """
@@ -501,6 +532,7 @@ def calculate_weighted_score(factors):
 ```
 
 ### Pattern 2: Safe Webhook Sending
+
 ```python
 async def send_webhook_safe(url, payload, timeout=5.0):
     """Send webhook with error handling (don't fail callback)"""
@@ -515,6 +547,7 @@ async def send_webhook_safe(url, payload, timeout=5.0):
 ```
 
 ### Pattern 3: Redis Cache with Fallback
+
 ```python
 def get_session_summary(session_id):
     """Get summary from cache, fallback to DB"""
@@ -546,13 +579,14 @@ def get_session_summary(session_id):
 
 ## Version History
 
-| Version | Date | Changes |
-|---------|------|---------|
-| 1.0.0 | 2025-10-08 | Initial detailed callback aggregation subflow |
+| Version | Date       | Changes                                       |
+|---------|------------|-----------------------------------------------|
+| 1.0.0   | 2025-10-08 | Initial detailed callback aggregation subflow |
 
 ---
 
 **Notes:**
+
 - This is the **final task** in the detection pipeline before frontend presentation
 - Quality score is critical for customer trust (transparent quality assessment)
 - Redis cache is essential for responsive frontend (50x speedup)

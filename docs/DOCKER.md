@@ -2,7 +2,8 @@
 
 ## Overview
 
-DemeterAI v2.0 uses multi-stage Docker builds for production deployment. Two Dockerfiles are provided:
+DemeterAI v2.0 uses multi-stage Docker builds for production deployment. Two Dockerfiles are
+provided:
 
 - `Dockerfile` - API server (FastAPI + Uvicorn)
 - `Dockerfile.gpu` - ML workers (Celery + YOLO with CUDA support)
@@ -101,6 +102,7 @@ docker logs -f demeterai-ml-worker
 ### Health Checks
 
 **API Server**:
+
 - Endpoint: `GET /health`
 - Interval: 30s
 - Timeout: 3s
@@ -108,6 +110,7 @@ docker logs -f demeterai-ml-worker
 - Retries: 3
 
 **ML Workers**:
+
 - Check: Process alive (`pgrep -f celery`)
 - Interval: 30s
 - Start period: 60s (model loading time)
@@ -116,36 +119,39 @@ docker logs -f demeterai-ml-worker
 
 ### Build Times
 
-| Build Type | Clean Build | Cached Build | Description |
-|------------|-------------|--------------|-------------|
-| CPU (API) | ~4 min | ~30s | FastAPI dependencies |
-| GPU (ML) | ~8 min | ~45s | CUDA + PyTorch + YOLO |
+| Build Type | Clean Build | Cached Build | Description           |
+|------------|-------------|--------------|-----------------------|
+| CPU (API)  | ~4 min      | ~30s         | FastAPI dependencies  |
+| GPU (ML)   | ~8 min      | ~45s         | CUDA + PyTorch + YOLO |
 
 ### Image Sizes
 
-| Image | Size | Description |
-|-------|------|-------------|
+| Image                | Size  | Description                      |
+|----------------------|-------|----------------------------------|
 | demeterai-api:latest | ~6GB* | API server with all dependencies |
-| demeterai-ml:latest | ~8GB | ML worker with CUDA runtime |
+| demeterai-ml:latest  | ~8GB  | ML worker with CUDA runtime      |
 
-**Note**: Current image sizes include GPU dependencies in requirements.txt. For production, use separate requirements files:
+**Note**: Current image sizes include GPU dependencies in requirements.txt. For production, use
+separate requirements files:
+
 - `requirements-api.txt` - FastAPI, PostgreSQL, Redis (~300MB)
 - `requirements-ml.txt` - Above + PyTorch, YOLO, CUDA (~6GB)
 
 ### Runtime Performance
 
-| Metric | Value | Description |
-|--------|-------|-------------|
-| Container startup | <10s | API ready to serve requests |
-| Health check response | <3s | /health endpoint latency |
-| Memory usage (API) | ~200MB | Base FastAPI + SQLAlchemy |
-| Memory usage (ML) | ~4GB | YOLO model loaded in GPU memory |
+| Metric                | Value  | Description                     |
+|-----------------------|--------|---------------------------------|
+| Container startup     | <10s   | API ready to serve requests     |
+| Health check response | <3s    | /health endpoint latency        |
+| Memory usage (API)    | ~200MB | Base FastAPI + SQLAlchemy       |
+| Memory usage (ML)     | ~4GB   | YOLO model loaded in GPU memory |
 
 ## Optimization Tips
 
 ### Reduce Image Size
 
 1. **Split requirements files**:
+
 ```bash
 # requirements-api.txt (minimal)
 fastapi==0.118.2
@@ -165,6 +171,7 @@ opencv-python==4.9.0.80
 ```
 
 2. **Use build argument for conditional installation**:
+
 ```dockerfile
 ARG ENABLE_GPU=false
 RUN if [ "$ENABLE_GPU" = "true" ]; then \
@@ -177,6 +184,7 @@ RUN if [ "$ENABLE_GPU" = "true" ]; then \
 ### Improve Build Speed
 
 1. **Order COPY commands by change frequency**:
+
 ```dockerfile
 # Rarely changes (cached)
 COPY requirements.txt .
@@ -187,12 +195,14 @@ COPY app/ app/
 ```
 
 2. **Use BuildKit features**:
+
 ```bash
 # Enable BuildKit for parallel builds
 DOCKER_BUILDKIT=1 docker build -t demeterai:latest .
 ```
 
 3. **Use Docker layer caching in CI/CD**:
+
 ```yaml
 # .github/workflows/build.yml
 - uses: docker/build-push-action@v5
@@ -206,11 +216,13 @@ DOCKER_BUILDKIT=1 docker build -t demeterai:latest .
 ### Build fails with "COPY failed"
 
 **Problem**: Python version mismatch in COPY path
+
 ```
 ERROR: "/usr/local/lib/python3.12.12/site-packages": not found
 ```
 
 **Solution**: Use hardcoded Python 3.12 path
+
 ```dockerfile
 COPY --from=builder /usr/local/lib/python3.12/site-packages /usr/local/lib/python3.12/site-packages
 ```
@@ -220,6 +232,7 @@ COPY --from=builder /usr/local/lib/python3.12/site-packages /usr/local/lib/pytho
 **Problem**: Missing required environment variables
 
 **Solution**: Check logs and provide all required variables
+
 ```bash
 docker logs demeterai-api
 # Error: DATABASE_URL environment variable not set
@@ -232,6 +245,7 @@ docker run -e DATABASE_URL="..." demeterai-api:latest
 **Problem**: Application not listening on 0.0.0.0
 
 **Solution**: Verify uvicorn host binding
+
 ```dockerfile
 CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
 ```
@@ -241,6 +255,7 @@ CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
 **Problem**: NVIDIA Container Toolkit not installed
 
 **Solution**: Install toolkit and verify
+
 ```bash
 # Install NVIDIA Container Toolkit
 distribution=$(. /etc/os-release;echo $ID$VERSION_ID)

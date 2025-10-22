@@ -325,7 +325,7 @@ class BandEstimationService:
                 f"Band {band_num}: residual={residual_area_band:.0f}px, "
                 f"processed={processed_area:.0f}px, "
                 f"suppressed={floor_suppressed:.0f}px "
-                f"({100*floor_suppressed/residual_area_band:.1f}%)"
+                f"({100 * floor_suppressed / residual_area_band:.1f}%)"
             )
 
             if processed_area == 0:

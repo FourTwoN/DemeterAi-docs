@@ -10,7 +10,8 @@
 
 ## Goal
 
-Implement complete stock management workflows including manual initialization, photo initialization, stock movements, batch management, and monthly reconciliation with automated sales calculation.
+Implement complete stock management workflows including manual initialization, photo initialization,
+stock movements, batch management, and monthly reconciliation with automated sales calculation.
 
 ---
 
@@ -29,11 +30,13 @@ Implement complete stock management workflows including manual initialization, p
 ## Cards List (11 cards, 55 points)
 
 ### Initialization Workflows (20 points)
+
 - **STOCK001**: Manual initialization workflow (8pts) - **CRITICAL**
 - **STOCK002**: Photo initialization workflow (8pts) - **CRITICAL**
 - **STOCK003**: Initialization validation (product match) (4pts)
 
 ### Stock Movements (20 points)
+
 - **STOCK004**: Plantado (planting) movement (3pts)
 - **STOCK005**: Muerte (death) movement (3pts)
 - **STOCK006**: Transplante (transfer) movement (5pts)
@@ -42,11 +45,13 @@ Implement complete stock management workflows including manual initialization, p
 - **STOCK009**: Movement validation rules (3pts)
 
 ### Batch Management (10 points)
+
 - **STOCK010**: Batch creation and aggregation (5pts)
 - **STOCK011**: Batch lifecycle management (3pts)
 - **STOCK012**: Batch code generation (LOC-PROD-DATE-SEQ) (2pts)
 
 ### Reconciliation (5 points)
+
 - **STOCK013**: Monthly reconciliation service (5pts)
 
 ---
@@ -61,6 +66,7 @@ Implement complete stock management workflows including manual initialization, p
 ## Technical Approach
 
 **Manual Initialization Flow**:
+
 ```
 User submits: location_id, product_id, quantity
    ↓
@@ -76,6 +82,7 @@ Return: movement_id + batch_code
 ```
 
 **Monthly Reconciliation** (automated sales):
+
 ```sql
 -- Formula: sales = (baseline + movements_in - movements_out) - new_photo_count
 SELECT

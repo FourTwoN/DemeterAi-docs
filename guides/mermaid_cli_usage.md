@@ -1,4 +1,5 @@
-Here’s a **simple usage guide** / quick reference for **Mermaid CLI 11.12.0** (or similar versions). You can use it mainly for **syntax checking** and light rendering.
+Here’s a **simple usage guide** / quick reference for **Mermaid CLI 11.12.0** (or similar versions).
+You can use it mainly for **syntax checking** and light rendering.
 
 ---
 
@@ -19,7 +20,7 @@ This gives you the `mmdc` command (Mermaid CLI). ([GitHub][1])
 Here are the most useful commands you'll likely use when checking / rendering diagrams.
 
 | Purpose                                                  | Command                                                 | Notes                                                                          |
-| -------------------------------------------------------- | ------------------------------------------------------- | ------------------------------------------------------------------------------ |
+|----------------------------------------------------------|---------------------------------------------------------|--------------------------------------------------------------------------------|
 | **Render a Mermaid file to SVG (or other formats)**      | `mmdc -i input.mmd -o output.svg`                       | `-i` = input, `-o` = output                                                    |
 | **Specify output format explicitly**                     | `mmdc -i file.mmd -o file.png -t neutral`               | Default format is SVG; you can output PNG, PDF, etc.                           |
 | **Check syntax / test diagram without actual rendering** | `mmdc --validate -i file.mmd`                           | Only checks if the syntax is valid, reports errors if any                      |
@@ -80,6 +81,7 @@ graph LR
 
 ---
 
-If you like, I can also generate a one-page cheatsheet PDF you can keep as reference. Do you want me to make that for you?
+If you like, I can also generate a one-page cheatsheet PDF you can keep as reference. Do you want me
+to make that for you?
 
 [1]: https://github.com/mermaid-js/mermaid-cli?utm_source=chatgpt.com "mermaid-js/mermaid-cli: Command line tool for the Mermaid library"

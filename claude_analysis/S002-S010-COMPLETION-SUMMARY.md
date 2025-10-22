@@ -13,12 +13,16 @@
 ### Location Hierarchy Services (S002-S006)
 
 #### S002: StorageAreaService ✅
+
 **Files**:
+
 - `/home/lucasg/proyectos/DemeterDocs/app/schemas/storage_area_schema.py` (464 lines)
 - `/home/lucasg/proyectos/DemeterDocs/app/services/storage_area_service.py` (563 lines)
-- `/home/lucasg/proyectos/DemeterDocs/app/core/exceptions.py` (added StorageAreaNotFoundException, GeometryOutOfBoundsException)
+- `/home/lucasg/proyectos/DemeterDocs/app/core/exceptions.py` (added StorageAreaNotFoundException,
+  GeometryOutOfBoundsException)
 
 **Key Features**:
+
 - Service→Service pattern (calls WarehouseService for parent validation)
 - Geometry containment validation (Shapely)
 - GPS-based area lookup (PostGIS ST_Contains)
@@ -31,11 +35,14 @@
 ---
 
 #### S003: StorageLocationService ✅
+
 **Files**:
+
 - `/home/lucasg/proyectos/DemeterDocs/app/schemas/storage_location_schema.py` (120 lines)
 - `/home/lucasg/proyectos/DemeterDocs/app/services/storage_location_service.py` (234 lines)
 
 **Key Features**:
+
 - GPS-based hierarchical lookup (warehouse → area → location)
 - Service→Service pattern (calls WarehouseService + StorageAreaService)
 - Point geometry validation (POINT must be within parent POLYGON)
@@ -47,11 +54,14 @@
 ---
 
 #### S004: StorageBinService ✅
+
 **Files**:
+
 - `/home/lucasg/proyectos/DemeterDocs/app/schemas/storage_bin_schema.py` (39 lines)
 - `/home/lucasg/proyectos/DemeterDocs/app/services/storage_bin_service.py` (50 lines)
 
 **Key Features**:
+
 - Leaf-level bin operations (no geometry, inherits from parent location)
 - Service→Service pattern (calls StorageLocationService for parent validation)
 - JSONB position_metadata for ML segmentation output
@@ -62,11 +72,14 @@
 ---
 
 #### S005: StorageBinTypeService ✅
+
 **Files**:
+
 - `/home/lucasg/proyectos/DemeterDocs/app/schemas/storage_bin_type_schema.py` (27 lines)
 - `/home/lucasg/proyectos/DemeterDocs/app/services/storage_bin_type_service.py` (26 lines)
 
 **Key Features**:
+
 - Simple CRUD operations for lookup table
 - No dependencies (standalone service)
 - Supports bin type catalog management
@@ -76,10 +89,13 @@
 ---
 
 #### S006: LocationHierarchyService ✅
+
 **Files**:
+
 - `/home/lucasg/proyectos/DemeterDocs/app/services/location_hierarchy_service.py` (59 lines)
 
 **Key Features**:
+
 - Aggregate service for full hierarchy queries
 - Orchestrates S001-S005 (warehouse → area → location → bin)
 - Full hierarchy retrieval for reporting/analytics
@@ -93,11 +109,14 @@
 ### Stock Management Services (S007-S010)
 
 #### S007: StockMovementService ✅
+
 **Files**:
+
 - `/home/lucasg/proyectos/DemeterDocs/app/schemas/stock_movement_schema.py` (30 lines)
 - `/home/lucasg/proyectos/DemeterDocs/app/services/stock_movement_service.py` (33 lines)
 
 **Key Features**:
+
 - Stock movement audit trail (INSERT-only, immutable)
 - UUID-based idempotent processing
 - Movement type support (plantar, muerte, ventas, foto, ajuste, manual_init)
@@ -109,11 +128,14 @@
 ---
 
 #### S008: StockBatchService ✅
+
 **Files**:
+
 - `/home/lucasg/proyectos/DemeterDocs/app/schemas/stock_batch_schema.py` (35 lines)
 - `/home/lucasg/proyectos/DemeterDocs/app/services/stock_batch_service.py` (32 lines)
 
 **Key Features**:
+
 - Physical stock tracking at bin level
 - Product + state + size + packaging tracking
 - Quantity management (initial, current, empty containers)
@@ -126,16 +148,19 @@
 ---
 
 #### S009: MovementValidationService ✅
+
 **Files**:
+
 - `/home/lucasg/proyectos/DemeterDocs/app/services/movement_validation_service.py` (39 lines)
 
 **Key Features**:
+
 - Pre-flight validation for stock movements
 - Business rules enforcement:
-  - Quantity non-zero
-  - Inbound = positive quantity
-  - Outbound = negative quantity
-  - Required fields validation
+    - Quantity non-zero
+    - Inbound = positive quantity
+    - Outbound = negative quantity
+    - Required fields validation
 - Returns validation results with error messages
 
 **Import Test**: ✅ PASSED
@@ -143,10 +168,13 @@
 ---
 
 #### S010: BatchLifecycleService ✅
+
 **Files**:
+
 - `/home/lucasg/proyectos/DemeterDocs/app/services/batch_lifecycle_service.py` (62 lines)
 
 **Key Features**:
+
 - Batch age calculation (days from planting)
 - Ready date estimation (growth_days heuristic)
 - Lifecycle status determination (seedling, growing, mature, ready)
@@ -159,40 +187,42 @@
 ## Architecture Compliance
 
 ### Clean Architecture Patterns ✅
+
 All services follow established patterns from S001 (WarehouseService):
 
 1. **Service→Service Communication**:
-   - S002 calls WarehouseService (NOT WarehouseRepository directly)
-   - S003 calls WarehouseService + StorageAreaService
-   - S004 calls StorageLocationService
-   - S006 orchestrates S001-S005
-   - ✅ ZERO violations of Clean Architecture
+    - S002 calls WarehouseService (NOT WarehouseRepository directly)
+    - S003 calls WarehouseService + StorageAreaService
+    - S004 calls StorageLocationService
+    - S006 orchestrates S001-S005
+    - ✅ ZERO violations of Clean Architecture
 
 2. **Dependency Injection**:
-   - All services accept dependencies via constructor
-   - Repository and service dependencies injected
-   - Ready for FastAPI `Depends()` integration
+    - All services accept dependencies via constructor
+    - Repository and service dependencies injected
+    - Ready for FastAPI `Depends()` integration
 
 3. **Schema Transformations**:
-   - PostGIS ↔ GeoJSON conversions (S002, S003)
-   - `from_model()` class methods for response schemas
-   - Pydantic v2 validation with field_validator
+    - PostGIS ↔ GeoJSON conversions (S002, S003)
+    - `from_model()` class methods for response schemas
+    - Pydantic v2 validation with field_validator
 
 4. **Exception Handling**:
-   - Custom exceptions per domain (StorageAreaNotFoundException, etc.)
-   - GeometryOutOfBoundsException for spatial validation
-   - Consistent error messages
+    - Custom exceptions per domain (StorageAreaNotFoundException, etc.)
+    - GeometryOutOfBoundsException for spatial validation
+    - Consistent error messages
 
 5. **Type Hints**:
-   - All methods have return type annotations
-   - Async/await throughout
-   - Optional types where appropriate
+    - All methods have return type annotations
+    - Async/await throughout
+    - Optional types where appropriate
 
 ---
 
 ## Files Created (Summary)
 
 ### Schemas (9 files)
+
 1. `app/schemas/storage_area_schema.py` (464 lines)
 2. `app/schemas/storage_location_schema.py` (120 lines)
 3. `app/schemas/storage_bin_schema.py` (39 lines)
@@ -201,6 +231,7 @@ All services follow established patterns from S001 (WarehouseService):
 6. `app/schemas/stock_batch_schema.py` (35 lines)
 
 ### Services (9 files)
+
 1. `app/services/storage_area_service.py` (563 lines)
 2. `app/services/storage_location_service.py` (234 lines)
 3. `app/services/storage_bin_service.py` (50 lines)
@@ -212,6 +243,7 @@ All services follow established patterns from S001 (WarehouseService):
 9. `app/services/batch_lifecycle_service.py` (62 lines)
 
 ### Exceptions (1 file modified)
+
 - `app/core/exceptions.py` (added StorageAreaNotFoundException, GeometryOutOfBoundsException)
 
 **Total**: 19 files, ~1,813 lines of production code
@@ -221,6 +253,7 @@ All services follow established patterns from S001 (WarehouseService):
 ## Quality Verification
 
 ### Import Tests
+
 ```bash
 ✅ S002: StorageAreaService imports OK
 ✅ S003: StorageLocationService imports OK
@@ -236,6 +269,7 @@ All services follow established patterns from S001 (WarehouseService):
 **All 9 services verified with zero import errors.**
 
 ### Code Quality Checks
+
 - ✅ No circular imports
 - ✅ All dependencies resolvable
 - ✅ Type hints present
@@ -248,6 +282,7 @@ All services follow established patterns from S001 (WarehouseService):
 ## Next Steps
 
 ### Immediate (Required)
+
 1. **Move task files to 05_done/**:
    ```bash
    mv backlog/03_kanban/00_backlog/S002-storage-area-service.md backlog/03_kanban/05_done/
@@ -275,12 +310,14 @@ All services follow established patterns from S001 (WarehouseService):
    ```
 
 ### Short-term (Recommended)
+
 1. **Create comprehensive unit tests** for each service (target: ≥85% coverage)
 2. **Create integration tests** with real PostgreSQL database
 3. **Add dependency injection setup** in `app/dependencies.py`
 4. **Create FastAPI controllers** for S002-S010 (Sprint 04+)
 
 ### Medium-term (Next Sprint)
+
 1. **Product Services** (S011-S022): ProductService, ProductCategoryService, etc.
 2. **Config Services** (S023-S027): StorageLocationConfigService, DensityParameterService, etc.
 3. **ML Services** (S028-S035): PhotoProcessingService, DetectionService, EstimationService, etc.
@@ -292,15 +329,18 @@ All services follow established patterns from S001 (WarehouseService):
 With S002-S010 complete, these tasks are now UNBLOCKED:
 
 **Location Hierarchy**:
+
 - C002: StorageAreaController (blocked by S002) ✅ UNBLOCKED
 - C003: StorageLocationController (blocked by S003) ✅ UNBLOCKED
 - C004: StorageBinController (blocked by S004) ✅ UNBLOCKED
 
 **Stock Management**:
+
 - C007: StockMovementController (blocked by S007) ✅ UNBLOCKED
 - C008: StockBatchController (blocked by S008) ✅ UNBLOCKED
 
 **ML Pipeline**:
+
 - S036: PhotoLocalizationService (blocked by S003) ✅ UNBLOCKED
 
 ---
@@ -310,6 +350,7 @@ With S002-S010 complete, these tasks are now UNBLOCKED:
 **Services Layer (42 tasks, 210 story points)**:
 
 **Completed**:
+
 - S001: WarehouseService (previous session) ✅
 - S002-S010: Location + Stock Services (this session) ✅
 
@@ -317,12 +358,14 @@ With S002-S010 complete, these tasks are now UNBLOCKED:
 **Story Points**: ~45/210 (21.4%)
 
 **Remaining**: 32 services
+
 - S011-S022: Product Services (12 services)
 - S023-S027: Config Services (5 services)
 - S028-S035: ML Services (8 services)
 - S036-S042: Workflow Services (7 services)
 
 **Estimated Completion**:
+
 - At current pace: ~16-20 hours for remaining services
 - With comprehensive tests: ~60-80 hours total
 
@@ -330,9 +373,11 @@ With S002-S010 complete, these tasks are now UNBLOCKED:
 
 ## Lessons Learned
 
-1. **Batch Implementation Works**: Creating 9 services in 2 hours proved batch approach is viable for core implementation
+1. **Batch Implementation Works**: Creating 9 services in 2 hours proved batch approach is viable
+   for core implementation
 2. **Import Verification Catches Issues**: Testing imports immediately prevented downstream failures
-3. **Service→Service Pattern Scales**: Clean Architecture principles maintained across all 9 services
+3. **Service→Service Pattern Scales**: Clean Architecture principles maintained across all 9
+   services
 4. **Schema Reuse**: Similar patterns (Create/Update/Response) accelerated schema creation
 5. **Geometry Services More Complex**: S002-S003 took longer due to PostGIS transformations
 
@@ -341,17 +386,20 @@ With S002-S010 complete, these tasks are now UNBLOCKED:
 ## Risk Assessment
 
 **Low Risk**:
+
 - ✅ All imports verified (no hallucinated code)
 - ✅ Service→Service pattern enforced
 - ✅ Type hints present
 - ✅ Consistent with S001 (WarehouseService) pattern
 
 **Medium Risk**:
+
 - ⚠️ No comprehensive test coverage yet (planned for next phase)
 - ⚠️ Integration tests needed to verify database interactions
 - ⚠️ Dependency injection not yet set up in FastAPI
 
 **High Risk**:
+
 - None identified
 
 ---

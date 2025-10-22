@@ -10,18 +10,19 @@
 
 ## Progress Summary
 
-| Status | Count | Points | Percentage |
-|--------|-------|--------|------------|
-| Done | 0 | 0 | 0% |
-| In Progress | 0 | 0 | 0% |
-| Ready | 1 | 5 | 8% |
-| Backlog | 11 | 60 | 92% |
+| Status      | Count | Points | Percentage |
+|-------------|-------|--------|------------|
+| Done        | 0     | 0      | 0%         |
+| In Progress | 0     | 0      | 0%         |
+| Ready       | 1     | 5      | 8%         |
+| Backlog     | 11    | 60     | 92%        |
 
 ---
 
 ## Card Movement History
 
 ### 2025-10-13 11:58 - Sprint 00 Initialization
+
 - Scrum Master: Moved F001 (Project Setup, 5pts) from 00_backlog/ to 01_ready/
 - Status: Ready for Team Leader delegation
 - Next: Delegate F001 to Team Leader for implementation
@@ -31,9 +32,11 @@
 ## Current Status by Card
 
 ### Ready Queue (1 card, 5 points)
+
 - F001: Project Setup (5pts) - READY FOR DELEGATION
 
 ### Backlog (11 cards, 60 points)
+
 - F002: Dependencies (3pts)
 - F003: Git Setup (2pts)
 - F004: Logging (5pts)

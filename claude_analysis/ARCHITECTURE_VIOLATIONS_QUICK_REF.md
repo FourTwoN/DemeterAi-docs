@@ -1,4 +1,5 @@
 # Architecture Violations - Quick Reference
+
 ## Sprint 04 Controllers - Critical Issues
 
 **Date**: 2025-10-21
@@ -8,20 +9,21 @@
 
 ## Violations Summary
 
-| Controller | Repo Imports | Endpoints | Complexity | Risk |
-|------------|-------------|-----------|------------|------|
-| config_controller.py | 2 | 3 | LOW | LOW |
-| analytics_controller.py | 1 | 3 | LOW | LOW |
-| product_controller.py | 3 | 6 | MEDIUM | MEDIUM |
-| stock_controller.py | 2 + nested | 7 | HIGH | HIGH |
-| location_controller.py | 4 | 6 | VERY HIGH | VERY HIGH |
-| **TOTAL** | **12+ repos** | **25** | **13 points** | **CRITICAL** |
+| Controller              | Repo Imports  | Endpoints | Complexity    | Risk         |
+|-------------------------|---------------|-----------|---------------|--------------|
+| config_controller.py    | 2             | 3         | LOW           | LOW          |
+| analytics_controller.py | 1             | 3         | LOW           | LOW          |
+| product_controller.py   | 3             | 6         | MEDIUM        | MEDIUM       |
+| stock_controller.py     | 2 + nested    | 7         | HIGH          | HIGH         |
+| location_controller.py  | 4             | 6         | VERY HIGH     | VERY HIGH    |
+| **TOTAL**               | **12+ repos** | **25**    | **13 points** | **CRITICAL** |
 
 ---
 
 ## The Problem
 
 **Controllers import Repositories directly**:
+
 ```python
 # ❌ WRONG (current state)
 from app.repositories.product_repository import ProductRepository
@@ -38,6 +40,7 @@ def get_product_service(session):
 ## The Solution
 
 **ServiceFactory for dependency injection**:
+
 ```python
 # ✅ CORRECT (after refactor)
 from app.factories.service_factory import ServiceFactory
@@ -58,12 +61,14 @@ async def list_products(factory: ServiceFactory = Depends(get_factory)):
 ## Files Affected
 
 ### NEW FILE (1)
+
 - `app/factories/service_factory.py` (~500 lines)
-  - Centralized dependency injection
-  - 35 service getter methods
-  - Lazy loading with caching
+    - Centralized dependency injection
+    - 35 service getter methods
+    - Lazy loading with caching
 
 ### MODIFIED FILES (5)
+
 1. `app/controllers/config_controller.py` (~30 lines)
 2. `app/controllers/analytics_controller.py` (~25 lines)
 3. `app/controllers/product_controller.py` (~60 lines)
@@ -110,6 +115,7 @@ See: `/home/lucasg/proyectos/DemeterDocs/ARCHITECTURE_REMEDIATION_PLAN.md`
 **FOR PYTHON EXPERT**: Start Phase 1 - Create ServiceFactory
 
 **Command**:
+
 ```bash
 # Create factory directory
 mkdir -p /home/lucasg/proyectos/DemeterDocs/app/factories

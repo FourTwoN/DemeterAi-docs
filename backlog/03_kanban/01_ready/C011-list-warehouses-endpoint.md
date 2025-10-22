@@ -1,6 +1,7 @@
 # [C011] List Warehouses - GET /api/map/warehouses
 
 ## Metadata
+
 - **Epic**: epic-003-backend-implementation.md
 - **Sprint**: Sprint-04
 - **Status**: `backlog`
@@ -9,7 +10,7 @@
 - **Area**: `backend/controllers`
 - **Assignee**: TBD
 - **Dependencies**:
-  - Blocked by: [SVC006-warehouse-service, DB001-warehouses-model]
+    - Blocked by: [SVC006-warehouse-service, DB001-warehouses-model]
 
 ## Description
 
@@ -35,6 +36,7 @@ async def list_warehouses(
 **Coverage Target**: ≥80%
 
 ## Time Tracking
+
 - **Estimated**: 1 story point
 
 ---

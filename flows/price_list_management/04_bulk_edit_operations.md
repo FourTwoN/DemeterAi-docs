@@ -2,7 +2,8 @@
 
 ## Purpose
 
-Shows the detailed flow for bulk operations on price list entries, including price adjustments, availability changes, and discount factor updates with preview and confirmation.
+Shows the detailed flow for bulk operations on price list entries, including price adjustments,
+availability changes, and discount factor updates with preview and confirmation.
 
 ## Scope
 
@@ -14,6 +15,7 @@ Shows the detailed flow for bulk operations on price list entries, including pri
 ## What It Represents
 
 Complete bulk operations flow:
+
 1. **Bulk Price Update**: Increase/decrease prices by percentage
 2. **Bulk Availability Change**: Change status for filtered items
 3. **Bulk Discount Update**: Apply discount factors
@@ -24,24 +26,24 @@ Complete bulk operations flow:
 ### Critical Principles
 
 1. **Historical Data Preservation**:
-   - Bulk changes only affect current price list
-   - Historical sales, quotes, and orders remain unchanged
-   - Price changes apply to new transactions only
+    - Bulk changes only affect current price list
+    - Historical sales, quotes, and orders remain unchanged
+    - Price changes apply to new transactions only
 
 2. **Filter-Based Operations**:
-   - Apply changes to filtered subsets
-   - Preview shows exact items affected
-   - Confirmation required for operations affecting > 100 items
+    - Apply changes to filtered subsets
+    - Preview shows exact items affected
+    - Confirmation required for operations affecting > 100 items
 
 3. **Transaction Integrity**:
-   - All changes in single transaction
-   - Rollback on any error
-   - Audit trail for all operations
+    - All changes in single transaction
+    - Rollback on any error
+    - Audit trail for all operations
 
 4. **Rate Limiting**:
-   - Max 1000 items per operation
-   - Max 10 bulk operations per user per hour
-   - Admin override available
+    - Max 1000 items per operation
+    - Max 10 bulk operations per user per hour
+    - Admin override available
 
 ## Database Operations
 
@@ -591,13 +593,13 @@ async with db.begin():
 
 ## Performance Targets
 
-| Operation | Items | Target Time | Notes |
-|-----------|-------|-------------|-------|
-| Preview | 100 items | < 200ms | Query + calculation |
-| Preview | 1000 items | < 500ms | Max limit |
-| Execute update | 100 items | < 300ms | Single transaction |
-| Execute update | 500 items | < 1s | Acceptable |
-| Execute update | 1000 items | < 2s | Max limit |
+| Operation      | Items      | Target Time | Notes               |
+|----------------|------------|-------------|---------------------|
+| Preview        | 100 items  | < 200ms     | Query + calculation |
+| Preview        | 1000 items | < 500ms     | Max limit           |
+| Execute update | 100 items  | < 300ms     | Single transaction  |
+| Execute update | 500 items  | < 1s        | Acceptable          |
+| Execute update | 1000 items | < 2s        | Max limit           |
 
 ## Request/Response Models
 

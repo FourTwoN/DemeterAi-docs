@@ -8,7 +8,9 @@
 
 ## THE SITUATION
 
-The project is **95% architecturally sound** but has **5 critical blockers** that prevent any forward progress. All blockers are **fixable within 4 hours**, but they MUST be fixed before beginning Sprint 5.
+The project is **95% architecturally sound** but has **5 critical blockers** that prevent any
+forward progress. All blockers are **fixable within 4 hours**, but they MUST be fixed before
+beginning Sprint 5.
 
 ---
 
@@ -17,12 +19,14 @@ The project is **95% architecturally sound** but has **5 critical blockers** tha
 ### 1. Database Schema Doesn't Exist (10 min fix)
 
 **Problem**: No tables created in database
+
 - Expected: 28 tables
 - Actual: 0 tables (schema creation blocked)
 - Root cause: Migration system stuck on enum type conflict
 - Impact: NO INTEGRATION TESTS RUN, NO SERVICES CAN BE TESTED
 
 **Fix**: Add one line to migration file:
+
 ```python
 # File: alembic/versions/2f68e3f132f5_create_warehouses_table.py, Line 70
 # CHANGE: sa.Enum(..., name='warehouse_type_enum')
@@ -37,11 +41,13 @@ alembic upgrade head
 ### 2. PhotoUploadService Calls Non-Existent Method (30 min fix)
 
 **Problem**: Code calls `get_full_hierarchy_by_gps()` but this method doesn't exist
+
 - Symptom: `AttributeError: object has no attribute 'get_full_hierarchy_by_gps'`
 - Impact: Photo upload completely broken, ML pipeline cannot start
 - Root cause: Hallucinated method call
 
 **Fix**: Change service import + method call
+
 ```python
 # app/services/photo/photo_upload_service.py
 
@@ -57,6 +63,7 @@ Detailed fix provided in COMPREHENSIVE_AUDIT_REPORT_FINAL_2025-10-21.md
 ### 3. analytics_controller Violates Architecture (2 hours fix)
 
 **Problem**: Controller directly accesses database (violates Clean Architecture)
+
 ```python
 # ❌ WRONG - This is in analytics_controller.py:
 async def get_full_inventory_report(..., session: AsyncSession = Depends(get_db_session)):
@@ -82,10 +89,12 @@ Detailed implementation provided in COMPREHENSIVE_AUDIT_REPORT_FINAL_2025-10-21.
 ### 4. Missing LocationRelationshipRepository (30 min fix)
 
 **Problem**: Model exists but no CRUD interface
+
 - Impact: Services cannot access LocationRelationship entity
 - Status: Straightforward - just need to create the repository file
 
 **Fix**:
+
 ```bash
 # Create: app/repositories/location_relationship_repository.py
 # Copy pattern from: app/repositories/warehouse_repository.py
@@ -97,10 +106,12 @@ Detailed implementation provided in COMPREHENSIVE_AUDIT_REPORT_FINAL_2025-10-21.
 ### 5. Seed Data Not Loaded (30 min fix)
 
 **Problem**: Reference tables are empty, causing 50+ test failures
+
 - Empty tables: product_sizes, product_states, storage_bin_types
 - Impact: Cannot create products/stock in tests
 
 **Fix**: Execute seed data migrations
+
 ```bash
 # Load seed data into test database
 # Solution: Create and run Alembic seed migration or manual SQL inserts
@@ -110,15 +121,15 @@ Detailed implementation provided in COMPREHENSIVE_AUDIT_REPORT_FINAL_2025-10-21.
 
 ## 📊 CURRENT STATE
 
-| Layer | Status | Issues | Tests |
-|-------|--------|--------|-------|
-| **Structure** | ✅ Perfect | None | - |
-| **Models** | ✅ Perfect | None | - |
-| **Repositories** | ✅ 96% (1 missing) | 1 | - |
-| **Services** | ⚠️ 85% (1 hallucination) | 1 critical | 75% |
-| **Controllers** | ⚠️ 65% (1 violation) | 1 blocker | 0% |
-| **Database** | 🔴 BLOCKED | Schema ∅ | 0% |
-| **Tests** | ⚠️ 79.8% pass | 260 failing | - |
+| Layer            | Status                   | Issues      | Tests |
+|------------------|--------------------------|-------------|-------|
+| **Structure**    | ✅ Perfect                | None        | -     |
+| **Models**       | ✅ Perfect                | None        | -     |
+| **Repositories** | ✅ 96% (1 missing)        | 1           | -     |
+| **Services**     | ⚠️ 85% (1 hallucination) | 1 critical  | 75%   |
+| **Controllers**  | ⚠️ 65% (1 violation)     | 1 blocker   | 0%    |
+| **Database**     | 🔴 BLOCKED               | Schema ∅    | 0%    |
+| **Tests**        | ⚠️ 79.8% pass            | 260 failing | -     |
 
 ---
 
@@ -159,13 +170,19 @@ Detailed implementation provided in COMPREHENSIVE_AUDIT_REPORT_FINAL_2025-10-21.
 ✅ **ALL must be true to proceed to Sprint 5:**
 
 - [ ] `alembic current` shows: `8807863f7d8c` (all migrations applied)
-- [ ] `psql -d demeterai -c "SELECT count(*) FROM information_schema.tables WHERE table_schema='public';"` returns: 28
+- [ ]
+  `psql -d demeterai -c "SELECT count(*) FROM information_schema.tables WHERE table_schema='public';"`
+  returns: 28
 - [ ] `pytest tests/ -v` shows: ≥80% passing (>1000/1327 tests)
-- [ ] No import errors: `python -c "from app.models import *; from app.services import *; from app.controllers import *; print('✓')"`
-- [ ] PhotoUploadService works: `pytest tests/integration/services/photo/test_photo_upload_service.py -v`
-- [ ] AnalyticsService exists: `python -c "from app.services.analytics_service import AnalyticsService; print('✓')"`
+- [ ] No import errors:
+  `python -c "from app.models import *; from app.services import *; from app.controllers import *; print('✓')"`
+- [ ] PhotoUploadService works:
+  `pytest tests/integration/services/photo/test_photo_upload_service.py -v`
+- [ ] AnalyticsService exists:
+  `python -c "from app.services.analytics_service import AnalyticsService; print('✓')"`
 - [ ] No architecture violations: `grep -r "session.execute" app/controllers/` returns nothing
-- [ ] LocationRelationshipRepository exists: `python -c "from app.repositories.location_relationship_repository import LocationRelationshipRepository; print('✓')"`
+- [ ] LocationRelationshipRepository exists:
+  `python -c "from app.repositories.location_relationship_repository import LocationRelationshipRepository; print('✓')"`
 
 ---
 
@@ -224,9 +241,11 @@ Detailed implementation provided in COMPREHENSIVE_AUDIT_REPORT_FINAL_2025-10-21.
 ## 📞 SUPPORT RESOURCES
 
 **Comprehensive details available in**:
+
 - 📄 `/home/lucasg/proyectos/DemeterDocs/COMPREHENSIVE_AUDIT_REPORT_FINAL_2025-10-21.md`
 
 **For specific fixes**:
+
 1. **Migration fix**: Section "Fix #3: Database Migration Blocking Issue"
 2. **PhotoUploadService fix**: Section "Fix #1: PhotoUploadService Hallucination"
 3. **analytics_controller fix**: Section "Fix #2: analytics_controller Architecture Violation"

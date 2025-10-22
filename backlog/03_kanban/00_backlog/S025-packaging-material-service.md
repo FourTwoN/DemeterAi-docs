@@ -1,6 +1,7 @@
 # S025: PackagingMaterialService
 
 ## Metadata
+
 - **Epic**: [epic-004-services.md](../../02_epics/epic-004-services.md)
 - **Sprint**: Sprint-05
 - **Status**: `backlog`
@@ -9,8 +10,8 @@
 - **Area**: `services/catalog`
 - **Assignee**: TBD
 - **Dependencies**:
-  - Blocks: [S027, C022]
-  - Blocked by: [R025]
+    - Blocks: [S027, C022]
+    - Blocked by: [R025]
 
 ## Description
 
@@ -27,6 +28,7 @@
 - [ ] **AC3**: Unit tests ≥80% coverage
 
 ## Time Tracking
+
 - **Estimated**: 1 story point (~2 hours)
 
 ---

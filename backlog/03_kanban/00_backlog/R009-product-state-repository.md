@@ -1,6 +1,7 @@
 # R009: Product State Repository
 
 ## Metadata
+
 - **Epic**: [epic-003-repositories.md](../../02_epics/epic-003-repositories.md)
 - **Sprint**: Sprint-01
 - **Status**: `backlog`
@@ -9,21 +10,28 @@
 - **Area**: `repositories`
 - **Assignee**: TBD
 - **Dependencies**:
-  - Blocks: [R016, S008]
-  - Blocked by: [F006, F007, DB018]
+    - Blocks: [R016, S008]
+    - Blocked by: [F006, F007, DB018]
 
 ## Related Documentation
-- **Engineering Plan**: [../../engineering_plan/backend/repository_layer.md](../../engineering_plan/backend/repository_layer.md)
+
+- **Engineering Plan
+  **: [../../engineering_plan/backend/repository_layer.md](../../engineering_plan/backend/repository_layer.md)
 - **Database ERD**: [../../database/database.mmd](../../database/database.mmd#L97-L104)
-- **Architecture**: [../../engineering_plan/03_architecture_overview.md](../../engineering_plan/03_architecture_overview.md)
+- **Architecture
+  **: [../../engineering_plan/03_architecture_overview.md](../../engineering_plan/03_architecture_overview.md)
 
 ## Description
 
-**What**: Implement repository class for `product_states` table with CRUD operations and sellable filtering.
+**What**: Implement repository class for `product_states` table with CRUD operations and sellable
+filtering.
 
-**Why**: Product states define lifecycle stages (semilla, germinado, trasplantado, listo_para_venta). Repository provides lookup by code and filtering for sales workflows (only sellable states).
+**Why**: Product states define lifecycle stages (semilla, germinado, trasplantado,
+listo_para_venta). Repository provides lookup by code and filtering for sales workflows (only
+sellable states).
 
-**Context**: Master data table for product lifecycle. Critical for sales filtering and monthly reconciliation (only "listo_para_venta" generates revenue).
+**Context**: Master data table for product lifecycle. Critical for sales filtering and monthly
+reconciliation (only "listo_para_venta" generates revenue).
 
 ## Acceptance Criteria
 
@@ -36,11 +44,13 @@
 ## Technical Implementation Notes
 
 ### Architecture
+
 - **Layer**: Infrastructure (Repository)
 - **Dependencies**: F006 (Database connection), DB018 (ProductState model)
 - **Design Pattern**: Repository pattern, inherits AsyncRepository
 
 ### Code Hints
+
 ```python
 from typing import Optional, List
 from sqlalchemy import select
@@ -85,6 +95,7 @@ class ProductStateRepository(AsyncRepository[ProductState]):
 ### Testing Requirements
 
 **Unit Tests**:
+
 ```python
 @pytest.mark.asyncio
 async def test_product_state_repo_get_by_code(db_session, sample_states):
@@ -132,25 +143,27 @@ async def test_product_state_repo_ready_for_sale(db_session, sample_states):
 **Coverage Target**: ≥85%
 
 ### Performance Expectations
+
 - All queries: <10ms (small lookup table, ~10 rows)
 - Sorted queries: <5ms (indexed sort_order column)
 
 ## Handover Briefing
 
 **For the next developer:**
+
 - **Context**: Master data defining product lifecycle stages. Critical for sales filtering
 - **Key decisions**:
-  - is_sellable flag separates growing vs. ready-for-sale inventory
-  - sort_order defines UI display order (semilla → germinado → trasplantado → listo_para_venta)
-  - Code is unique identifier (e.g., "listo_para_venta", "germinado")
-  - Only "listo_para_venta" generates revenue in monthly reconciliation
+    - is_sellable flag separates growing vs. ready-for-sale inventory
+    - sort_order defines UI display order (semilla → germinado → trasplantado → listo_para_venta)
+    - Code is unique identifier (e.g., "listo_para_venta", "germinado")
+    - Only "listo_para_venta" generates revenue in monthly reconciliation
 - **Known limitations**:
-  - No active/inactive flag (assumes all states always active)
-  - States are hard-coded in migration (not user-configurable)
+    - No active/inactive flag (assumes all states always active)
+    - States are hard-coded in migration (not user-configurable)
 - **Next steps**: R016 (StockBatchRepository) uses states for inventory filtering
 - **Questions to validate**:
-  - Should states be cached in Redis?
-  - Do we need custom state transitions (workflow engine)?
+    - Should states be cached in Redis?
+    - Do we need custom state transitions (workflow engine)?
 
 ## Definition of Done Checklist
 
@@ -165,6 +178,7 @@ async def test_product_state_repo_ready_for_sale(db_session, sample_states):
 - [ ] Performance benchmarks documented
 
 ## Time Tracking
+
 - **Estimated**: 1 story point (~2 hours)
 - **Actual**: TBD
 - **Started**: TBD

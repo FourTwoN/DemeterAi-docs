@@ -2,7 +2,9 @@
 
 ## Overview
 
-DemeterAI v2.0 uses [mypy](https://mypy.readthedocs.io/) for static type checking to catch type errors before runtime. Mypy is configured with **strict mode** enabled, enforcing type hints on all functions in the application code.
+DemeterAI v2.0 uses [mypy](https://mypy.readthedocs.io/) for static type checking to catch type
+errors before runtime. Mypy is configured with **strict mode** enabled, enforcing type hints on all
+functions in the application code.
 
 ## Why Type Checking?
 
@@ -224,6 +226,7 @@ pip install types-python-dateutil  # For dateutil
 ```
 
 Already installed in `pyproject.toml`:
+
 - types-requests
 - types-redis
 - types-python-dateutil

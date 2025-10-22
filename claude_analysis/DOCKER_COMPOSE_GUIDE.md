@@ -1,6 +1,7 @@
 # Docker Compose Guide - DemeterAI v2.0
 
-This guide explains how to use Docker Compose to run the complete DemeterAI local development environment.
+This guide explains how to use Docker Compose to run the complete DemeterAI local development
+environment.
 
 ## Prerequisites
 
@@ -33,17 +34,19 @@ curl http://localhost:8000/health
 The docker-compose.yml orchestrates the following services:
 
 ### 1. PostgreSQL 18 + PostGIS 3.6 (db)
+
 - **Container**: demeterai-db
 - **Port**: 5432
 - **Image**: postgis/postgis:18-3.6
 - **Credentials**:
-  - User: demeter
-  - Password: demeter_dev_password
-  - Database: demeterai
+    - User: demeter
+    - Password: demeter_dev_password
+    - Database: demeterai
 - **Volume**: postgres_data (persists database)
 - **Health Check**: pg_isready every 10s
 
 ### 2. Redis 7 (redis)
+
 - **Container**: demeterai-redis
 - **Port**: 6379
 - **Image**: redis:7-alpine
@@ -51,19 +54,22 @@ The docker-compose.yml orchestrates the following services:
 - **Health Check**: redis-cli ping every 5s
 
 ### 3. FastAPI Application (api)
+
 - **Container**: demeterai-api
 - **Port**: 8000
 - **Build**: From local Dockerfile
 - **Depends On**: db (healthy), redis (healthy)
 - **Health Check**: curl /health endpoint every 30s
 - **Features**:
-  - Hot-reload enabled (--reload flag)
-  - Structured logging with correlation IDs
-  - Exception handlers
-  - Async database connection pool
+    - Hot-reload enabled (--reload flag)
+    - Structured logging with correlation IDs
+    - Exception handlers
+    - Async database connection pool
 
 ### 4. Celery Workers (Coming in Sprint 02+)
+
 Currently commented out - will be enabled when app/celery_app.py is implemented:
+
 - **celery_cpu**: CPU-intensive tasks (prefork pool)
 - **celery_io**: I/O-intensive tasks (gevent pool)
 - **flower**: Celery monitoring UI (port 5555)
@@ -334,6 +340,7 @@ cat backup.sql | docker compose exec -T db psql -U demeter demeterai
 ## Support
 
 For issues or questions:
+
 1. Check logs: `docker compose logs`
 2. Review this guide
 3. Consult engineering documentation: `engineering_plan/README.md`

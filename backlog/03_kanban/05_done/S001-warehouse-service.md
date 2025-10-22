@@ -1,6 +1,7 @@
 # S001: WarehouseService
 
 ## Metadata
+
 - **Epic**: [epic-004-services.md](../../02_epics/epic-004-services.md)
 - **Sprint**: Sprint-02
 - **Status**: `backlog`
@@ -9,21 +10,30 @@
 - **Area**: `services/location`
 - **Assignee**: TBD
 - **Dependencies**:
-  - Blocks: [S002, S003, S006, C001]
-  - Blocked by: [R001]
+    - Blocks: [S002, S003, S006, C001]
+    - Blocked by: [R001]
 
 ## Related Documentation
-- **Engineering Plan**: [../../engineering_plan/backend/service_layer.md](../../engineering_plan/backend/service_layer.md)
-- **Architecture**: [../../engineering_plan/03_architecture_overview.md](../../engineering_plan/03_architecture_overview.md)
+
+- **Engineering Plan
+  **: [../../engineering_plan/backend/service_layer.md](../../engineering_plan/backend/service_layer.md)
+- **Architecture
+  **: [../../engineering_plan/03_architecture_overview.md](../../engineering_plan/03_architecture_overview.md)
 - **Database ERD**: [../../database/database.mmd](../../database/database.mmd)
 
 ## Description
 
-**What**: Implement `WarehouseService` for warehouse business logic, GPS-based warehouse lookup, and schema transformations.
+**What**: Implement `WarehouseService` for warehouse business logic, GPS-based warehouse lookup, and
+schema transformations.
 
-**Why**: Services layer orchestrates business logic and coordinates repository operations. WarehouseService provides GPS → warehouse mapping (critical for photo localization), warehouse CRUD with validation, and Pydantic schema ↔ SQLAlchemy model transformations.
+**Why**: Services layer orchestrates business logic and coordinates repository operations.
+WarehouseService provides GPS → warehouse mapping (critical for photo localization), warehouse CRUD
+with validation, and Pydantic schema ↔ SQLAlchemy model transformations.
 
-**Context**: Clean Architecture Application Layer. Services call repositories for data access and other services for inter-domain operations. NO direct repository calls to other domains. WarehouseService is the entry point for all warehouse-related operations and GPS-based location discovery.
+**Context**: Clean Architecture Application Layer. Services call repositories for data access and
+other services for inter-domain operations. NO direct repository calls to other domains.
+WarehouseService is the entry point for all warehouse-related operations and GPS-based location
+discovery.
 
 ## Acceptance Criteria
 
@@ -218,6 +228,7 @@
 ## Technical Implementation Notes
 
 ### Architecture
+
 - **Layer**: Application (Service)
 - **Dependencies**: R001 (WarehouseRepository)
 - **Design Pattern**: Service layer with dependency injection
@@ -226,6 +237,7 @@
 ### Code Hints
 
 **Dependency injection setup:**
+
 ```python
 # In app/dependencies.py
 from fastapi import Depends
@@ -243,6 +255,7 @@ async def get_warehouse_service(
 ```
 
 **Controller usage example:**
+
 ```python
 # In app/controllers/warehouse_controller.py
 from fastapi import APIRouter, Depends, status
@@ -267,6 +280,7 @@ async def find_warehouse_by_gps(
 ### Testing Requirements
 
 **Unit Tests** (`tests/services/test_warehouse_service.py`):
+
 ```python
 import pytest
 from unittest.mock import AsyncMock, Mock
@@ -349,6 +363,7 @@ async def test_validate_geometry_invalid_polygon():
 ```
 
 **Integration Tests** (`tests/integration/test_warehouse_service_integration.py`):
+
 ```python
 @pytest.mark.asyncio
 async def test_warehouse_service_full_lifecycle(db_session):
@@ -387,6 +402,7 @@ async def test_warehouse_service_full_lifecycle(db_session):
 **Coverage Target**: ≥85%
 
 ### Performance Expectations
+
 - `create_warehouse`: <30ms (includes geometry validation)
 - `get_warehouse_by_gps`: <50ms (PostGIS query)
 - `get_active_warehouses`: <20ms for 50 warehouses
@@ -396,26 +412,32 @@ async def test_warehouse_service_full_lifecycle(db_session):
 
 **For the next developer:**
 
-**Context**: WarehouseService is the **first service in the location hierarchy**. Sets the pattern for all other location services (StorageAreaService, StorageLocationService, etc.).
+**Context**: WarehouseService is the **first service in the location hierarchy**. Sets the pattern
+for all other location services (StorageAreaService, StorageLocationService, etc.).
 
 **Key decisions made**:
-1. **GPS lookup method**: Critical for photo localization - returns first match (warehouses should not overlap)
+
+1. **GPS lookup method**: Critical for photo localization - returns first match (warehouses should
+   not overlap)
 2. **Soft delete only**: Preserve historical data, set `active=False` instead of hard delete
 3. **Geometry validation**: Shapely validates polygons before database insert (fail fast)
 4. **Schema transformations**: PostGIS geometry → GeoJSON in response schemas
 5. **Service-only repository access**: Controllers NEVER call repositories directly
 
 **Known limitations**:
+
 - GPS lookup assumes non-overlapping warehouse polygons (undefined behavior if overlap)
 - Geometry validation uses Shapely (sync operation, ~10-20ms overhead)
 - Soft delete doesn't cascade to child entities (manual cleanup required)
 
 **Next steps after this card**:
+
 - S002: StorageAreaService (similar pattern, calls WarehouseService for parent validation)
 - S003: StorageLocationService (GPS lookup delegates to WarehouseService)
 - C001: WarehouseController (HTTP layer, uses WarehouseService)
 
 **Questions to validate**:
+
 - Does GPS lookup handle edge cases (point exactly on boundary)?
 - Are PostGIS → GeoJSON transformations consistent across all schemas?
 - Should we add warehouse capacity calculations (total area vs used area)?
@@ -434,6 +456,7 @@ async def test_warehouse_service_full_lifecycle(db_session):
 - [ ] Documentation strings (docstrings) complete
 
 ## Time Tracking
+
 - **Estimated**: 3 story points (~6 hours)
 - **Actual**: TBD
 - **Started**: TBD

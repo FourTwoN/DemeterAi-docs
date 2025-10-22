@@ -1,6 +1,7 @@
 # 🚀 Próximos Pasos - Post Sprint 00
 
 ## Estado Actual
+
 ✅ Sprint 00 completado (12/12 cards, 53/65 pts)
 ✅ Infraestructura base lista
 ✅ Docker + PostgreSQL + Redis funcionando
@@ -19,6 +20,7 @@ Puedes pedirle al agente que continúe con Sprint 01:
 ```
 
 El agente:
+
 1. Consultará al Scrum Master para obtener las cards de Sprint 01
 2. Delegará al Team Leader card por card
 3. Team Leader coordinará Python Expert + Testing Expert
@@ -65,6 +67,7 @@ docker compose logs api
 Si prefieres implementar Sprint 01 manualmente:
 
 #### Paso 1: Crear primer modelo (Warehouse)
+
 ```python
 # app/models/warehouse.py
 from sqlalchemy import Column, Integer, String, Boolean, DateTime, Numeric, func
@@ -87,6 +90,7 @@ class Warehouse(Base):
 ```
 
 #### Paso 2: Importar en base.py
+
 ```python
 # app/db/base.py
 from app.db.base_class import Base
@@ -94,17 +98,20 @@ from app.models.warehouse import Warehouse  # noqa: F401
 ```
 
 #### Paso 3: Generar migración
+
 ```bash
 docker compose exec api alembic revision --autogenerate -m "add warehouse model"
 ```
 
 #### Paso 4: Revisar y aplicar
+
 ```bash
 # Revisar el archivo generado en alembic/versions/
 docker compose exec api alembic upgrade head
 ```
 
 #### Paso 5: Crear repositorio
+
 ```python
 # app/repositories/warehouse_repository.py
 from app.repositories.base import AsyncRepository
@@ -115,6 +122,7 @@ class WarehouseRepository(AsyncRepository[Warehouse]):
 ```
 
 #### Paso 6: Crear tests
+
 ```python
 # tests/models/test_warehouse.py
 @pytest.mark.unit
@@ -138,12 +146,14 @@ async def test_warehouse_creation(db_session):
 ## Recursos Clave
 
 ### Documentos de Referencia
+
 - `SPRINT_00_HANDOFF.md` - Documento de transición completo
 - `database/database.mmd` - Schema completo (SOURCE OF TRUTH)
 - `backlog/00_foundation/architecture-principles.md` - Reglas de arquitectura
 - `engineering_plan/database/README.md` - Diseño de base de datos
 
 ### Cards de Sprint 01
+
 - **Ubicación**: `backlog/03_kanban/00_backlog/DB*.md` y `R*.md`
 - **Total**: 63 cards (35 modelos + 28 repositorios)
 - **Estimación**: 8-12 horas de ejecución con agentes
@@ -151,6 +161,7 @@ async def test_warehouse_creation(db_session):
 ### Orden Sugerido de Implementación
 
 **Fase 1: Geospatial (5 cards)**
+
 1. DB001: Warehouse
 2. DB002: StorageArea
 3. DB003: StorageLocation
@@ -158,6 +169,7 @@ async def test_warehouse_creation(db_session):
 5. DB005: StorageBinType
 
 **Fase 2: Products (9 cards)**
+
 6. DB015: ProductCategory
 7. DB016: ProductFamily
 8. DB017: Product
@@ -169,12 +181,14 @@ async def test_warehouse_creation(db_session):
 14. DB023: PackagingCatalog
 
 **Fase 3: Stock (4 cards)**
+
 15. DB007: StockMovement
 16. DB008: StockBatch
 17. DB009: MovementType enum
 18. DB010: BatchStatus enum
 
 **Fase 4: ML Pipeline (5 cards)**
+
 19. DB011: S3Image (UUID PK - importante!)
 20. DB012: PhotoProcessingSession
 21. DB013: Detection (PARTITIONED)
@@ -182,6 +196,7 @@ async def test_warehouse_creation(db_session):
 23. DB026: Classification
 
 **Fase 5: Config & Users (5 cards)**
+
 24. DB006: User
 25. DB024: StorageLocationConfig
 26. DB025: DensityParameter
@@ -222,6 +237,7 @@ docker compose exec db psql -U demeterai_user -d demeterai -c "SELECT PostGIS_Ve
 ## Métricas de Éxito para Sprint 01
 
 Al finalizar Sprint 01 deberías tener:
+
 - ✅ 28 modelos SQLAlchemy creados
 - ✅ 28 migraciones Alembic aplicadas
 - ✅ 28 repositorios AsyncRepository
@@ -236,6 +252,7 @@ Al finalizar Sprint 01 deberías tener:
 ## Contacto
 
 Si encuentras problemas o necesitas clarificaciones:
+
 1. Revisa `SPRINT_00_HANDOFF.md`
 2. Consulta `database/database.mmd` para schema
 3. Revisa `engineering_plan/` para decisiones arquitectónicas

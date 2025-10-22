@@ -1,6 +1,7 @@
 # [F011] Dockerfile - Multi-stage Build for FastAPI
 
 ## Metadata
+
 - **Epic**: epic-001-foundation.md
 - **Sprint**: Sprint-00 (Week 1-2)
 - **Status**: `backlog`
@@ -9,22 +10,29 @@
 - **Area**: `foundation`
 - **Assignee**: TBD
 - **Dependencies**:
-  - Blocks: [F012, DEP001-DEP012]
-  - Blocked by: [F001, F002]
+    - Blocks: [F012, DEP001-DEP012]
+    - Blocked by: [F001, F002]
 
 ## Related Documentation
+
 - **Deployment**: ../../engineering_plan/deployment/README.md
 - **Tech Stack**: ../../backlog/00_foundation/tech-stack.md#deployment--containers
 
 ## Description
 
-Create production-ready Dockerfile with multi-stage build pattern, optimized layer caching, non-root user execution, and support for both CPU and GPU environments.
+Create production-ready Dockerfile with multi-stage build pattern, optimized layer caching, non-root
+user execution, and support for both CPU and GPU environments.
 
-**What**: Implement Dockerfile with builder stage (dependencies), runtime stage (minimal image), health check, and proper signal handling. Support Python 3.12, FastAPI, and optional CUDA for GPU workers.
+**What**: Implement Dockerfile with builder stage (dependencies), runtime stage (minimal image),
+health check, and proper signal handling. Support Python 3.12, FastAPI, and optional CUDA for GPU
+workers.
 
-**Why**: Multi-stage builds reduce final image size (70% smaller). Layer caching speeds up builds (only rebuild changed layers). Non-root user improves security. Health checks enable container orchestration.
+**Why**: Multi-stage builds reduce final image size (70% smaller). Layer caching speeds up builds (
+only rebuild changed layers). Non-root user improves security. Health checks enable container
+orchestration.
 
-**Context**: DemeterAI needs separate images for API server (no GPU) and ML workers (optional GPU). Multi-stage build shares base layers. Production image must be <500MB for fast deployment.
+**Context**: DemeterAI needs separate images for API server (no GPU) and ML workers (optional GPU).
+Multi-stage build shares base layers. Production image must be <500MB for fast deployment.
 
 ## Acceptance Criteria
 
@@ -53,8 +61,8 @@ Create production-ready Dockerfile with multi-stage build pattern, optimized lay
   ```
 
 - [ ] **AC4**: Environment-specific builds:
-  - **Base (CPU)**: ~300MB, no CUDA dependencies
-  - **GPU**: ~1.5GB, includes CUDA 12.1 runtime
+    - **Base (CPU)**: ~300MB, no CUDA dependencies
+    - **GPU**: ~1.5GB, includes CUDA 12.1 runtime
 
 - [ ] **AC5**: Build arguments for customization:
   ```dockerfile
@@ -82,6 +90,7 @@ Create production-ready Dockerfile with multi-stage build pattern, optimized lay
 ## Technical Implementation Notes
 
 ### Architecture
+
 - Layer: Foundation (Containerization)
 - Dependencies: Python 3.12, Docker 24+
 - Design pattern: Multi-stage build, immutable infrastructure
@@ -89,6 +98,7 @@ Create production-ready Dockerfile with multi-stage build pattern, optimized lay
 ### Code Hints
 
 **Dockerfile structure (CPU version):**
+
 ```dockerfile
 # ============================================
 # Stage 1: Builder
@@ -154,6 +164,7 @@ CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
 ```
 
 **Dockerfile.gpu (GPU version):**
+
 ```dockerfile
 # Base on NVIDIA CUDA runtime
 FROM nvidia/cuda:12.1.0-runtime-ubuntu22.04 AS builder
@@ -185,6 +196,7 @@ CMD ["celery", "-A", "app.celery_app", "worker", "--pool=solo", "--concurrency=1
 ```
 
 **.dockerignore:**
+
 ```
 .git
 .venv
@@ -212,6 +224,7 @@ tests/
 **Unit Tests**: N/A (Docker configuration)
 
 **Integration Tests**:
+
 - [ ] Test image builds:
   ```bash
   docker build -t demeterai-test:latest .
@@ -247,6 +260,7 @@ tests/
   ```
 
 **Test Command**:
+
 ```bash
 # Build and test
 docker build -t demeterai-test:latest .
@@ -254,6 +268,7 @@ docker run -p 8000:8000 demeterai-test:latest
 ```
 
 ### Performance Expectations
+
 - Build time (clean): <5 minutes
 - Build time (cached): <30 seconds
 - Image size (CPU): <500MB
@@ -264,26 +279,27 @@ docker run -p 8000:8000 demeterai-test:latest
 ## Handover Briefing
 
 **For the next developer:**
+
 - **Context**: This is the foundation for deployment - all services run in these containers
 - **Key decisions**:
-  - Multi-stage build (smaller image, faster deployments)
-  - Non-root user (security best practice, required by many K8s clusters)
-  - Health check (enables automatic restart in docker-compose/K8s)
-  - Separate Dockerfile.gpu (CUDA dependencies add 1GB+)
-  - .dockerignore (prevents copying unnecessary files, faster builds)
-  - Python 3.12-slim (smaller than full Python image)
+    - Multi-stage build (smaller image, faster deployments)
+    - Non-root user (security best practice, required by many K8s clusters)
+    - Health check (enables automatic restart in docker-compose/K8s)
+    - Separate Dockerfile.gpu (CUDA dependencies add 1GB+)
+    - .dockerignore (prevents copying unnecessary files, faster builds)
+    - Python 3.12-slim (smaller than full Python image)
 - **Known limitations**:
-  - GPU image requires NVIDIA Container Toolkit on host
-  - Health check requires curl in image (adds 5MB)
-  - Multi-stage build doesn't share layers between images (separate pulls)
+    - GPU image requires NVIDIA Container Toolkit on host
+    - Health check requires curl in image (adds 5MB)
+    - Multi-stage build doesn't share layers between images (separate pulls)
 - **Next steps after this card**:
-  - F012: docker-compose.yml (orchestrates multiple containers)
-  - DEP001-DEP012: CI/CD builds and pushes images
-  - Production: Push images to registry (ECR, Docker Hub)
+    - F012: docker-compose.yml (orchestrates multiple containers)
+    - DEP001-DEP012: CI/CD builds and pushes images
+    - Production: Push images to registry (ECR, Docker Hub)
 - **Questions to ask**:
-  - Should we use alpine instead of slim? (smaller but compatibility issues)
-  - Should we add distroless for security? (no shell, harder debugging)
-  - Should we build ARM images for M1/M2 Macs? (multi-platform build)
+    - Should we use alpine instead of slim? (smaller but compatibility issues)
+    - Should we add distroless for security? (no shell, harder debugging)
+    - Should we build ARM images for M1/M2 Macs? (multi-platform build)
 
 ## Definition of Done Checklist
 
@@ -298,6 +314,7 @@ docker run -p 8000:8000 demeterai-test:latest
 - [ ] Sample docker run command works
 
 ## Time Tracking
+
 - **Estimated**: 8 story points
 - **Actual**: TBD (fill after completion)
 - **Started**: TBD

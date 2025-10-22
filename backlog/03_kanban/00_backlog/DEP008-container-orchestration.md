@@ -1,6 +1,7 @@
 # [DEP008] Container Orchestration (Docker Swarm/K8s)
 
 ## Metadata
+
 - **Epic**: epic-011-deployment
 - **Sprint**: Sprint-08
 - **Priority**: `medium`
@@ -8,9 +9,12 @@
 - **Dependencies**: Blocked by [DEP002, DEP004]
 
 ## Description
-Deploy to production orchestration platform: Docker Swarm (simpler) or Kubernetes (enterprise-grade).
+
+Deploy to production orchestration platform: Docker Swarm (simpler) or Kubernetes (
+enterprise-grade).
 
 ## Acceptance Criteria
+
 - [ ] Choose orchestration: Docker Swarm OR Kubernetes
 - [ ] Multi-node cluster (min 3 nodes)
 - [ ] API replicas: 2-4 instances
@@ -22,6 +26,7 @@ Deploy to production orchestration platform: Docker Swarm (simpler) or Kubernete
 ## Implementation
 
 **Option A: Docker Swarm (simpler)**
+
 ```bash
 # Initialize swarm
 docker swarm init
@@ -34,6 +39,7 @@ docker service scale demeterai_api=4
 ```
 
 **docker-compose.yml additions:**
+
 ```yaml
 services:
   api:
@@ -51,6 +57,7 @@ services:
 ```
 
 **Option B: Kubernetes (production-grade)**
+
 ```yaml
 apiVersion: apps/v1
 kind: Deployment
@@ -78,6 +85,7 @@ spec:
 ```
 
 ## Testing
+
 - Deploy to cluster
 - Test API accessible via load balancer
 - Test rolling update (no downtime)

@@ -1,6 +1,7 @@
 # [F008] Ruff Configuration - Linting + Formatting
 
 ## Metadata
+
 - **Epic**: epic-001-foundation.md
 - **Sprint**: Sprint-00 (Week 1-2)
 - **Status**: `backlog`
@@ -9,22 +10,29 @@
 - **Area**: `foundation`
 - **Assignee**: TBD
 - **Dependencies**:
-  - Blocks: [Quality gates for all cards]
-  - Blocked by: [F001, F002, F003]
+    - Blocks: [Quality gates for all cards]
+    - Blocked by: [F001, F002, F003]
 
 ## Related Documentation
+
 - **Conventions**: ../../backlog/00_foundation/conventions.md#code-formatting
 - **Tech Stack**: ../../backlog/00_foundation/tech-stack.md#testing--quality
 
 ## Description
 
-Configure Ruff 0.7.0 for automated linting and formatting with project-specific rules, excluding auto-generated files, and integration with pre-commit hooks.
+Configure Ruff 0.7.0 for automated linting and formatting with project-specific rules, excluding
+auto-generated files, and integration with pre-commit hooks.
 
-**What**: Create `pyproject.toml` Ruff configuration with 100-character line length, Python 3.12 target, selected rule sets (E, F, I, N, W), and exclusions for migrations/generated code. Integrate with pre-commit hooks from F003.
+**What**: Create `pyproject.toml` Ruff configuration with 100-character line length, Python 3.12
+target, selected rule sets (E, F, I, N, W), and exclusions for migrations/generated code. Integrate
+with pre-commit hooks from F003.
 
-**Why**: Ruff is 10-100× faster than Black+Flake8+isort combined. Automated formatting eliminates style debates. Linting catches common bugs before code review. Consistent style improves code readability.
+**Why**: Ruff is 10-100× faster than Black+Flake8+isort combined. Automated formatting eliminates
+style debates. Linting catches common bugs before code review. Consistent style improves code
+readability.
 
-**Context**: Team of 10 developers needs consistent code style. Manual formatting wastes time. Ruff combines linter (Flake8 replacement) and formatter (Black replacement) in one fast tool.
+**Context**: Team of 10 developers needs consistent code style. Manual formatting wastes time. Ruff
+combines linter (Flake8 replacement) and formatter (Black replacement) in one fast tool.
 
 ## Acceptance Criteria
 
@@ -72,9 +80,9 @@ Configure Ruff 0.7.0 for automated linting and formatting with project-specific 
   ```
 
 - [ ] **AC5**: Pre-commit integration (from F003):
-  - Ruff check runs on every commit
-  - Ruff format runs on every commit
-  - Commits blocked if linting fails
+    - Ruff check runs on every commit
+    - Ruff format runs on every commit
+    - Commits blocked if linting fails
 
 - [ ] **AC6**: CI integration (for future):
   ```bash
@@ -84,6 +92,7 @@ Configure Ruff 0.7.0 for automated linting and formatting with project-specific 
 ## Technical Implementation Notes
 
 ### Architecture
+
 - Layer: Foundation (Code Quality)
 - Dependencies: Ruff 0.7.0, pre-commit (F003)
 - Design pattern: Quality gate automation
@@ -91,6 +100,7 @@ Configure Ruff 0.7.0 for automated linting and formatting with project-specific 
 ### Code Hints
 
 **pyproject.toml complete configuration:**
+
 ```toml
 [tool.ruff]
 line-length = 100
@@ -151,6 +161,7 @@ line-ending = "auto"
 ```
 
 **Usage examples:**
+
 ```bash
 # Check all files
 ruff check .
@@ -173,6 +184,7 @@ ruff rule --all
 **Unit Tests**: N/A (configuration card)
 
 **Integration Tests**:
+
 - [ ] Test linting catches errors:
   ```python
   # Create test file with lint errors
@@ -202,6 +214,7 @@ ruff rule --all
   ```
 
 **Test Command**:
+
 ```bash
 # Test on all existing code
 ruff check .
@@ -209,6 +222,7 @@ ruff format . --check  # Dry run
 ```
 
 ### Performance Expectations
+
 - Linting: <2 seconds for entire codebase
 - Formatting: <1 second for entire codebase
 - Individual file: <100ms
@@ -216,25 +230,26 @@ ruff format . --check  # Dry run
 ## Handover Briefing
 
 **For the next developer:**
+
 - **Context**: This is the automated code quality gate - all code must pass Ruff before commit
 - **Key decisions**:
-  - Using Ruff (all-in-one) instead of Black+Flake8+isort (simpler, 10-100× faster)
-  - 100-character line length (balance readability vs screen width)
-  - Auto-fix enabled (Ruff can fix most issues automatically)
-  - Excluding alembic/versions/ (auto-generated, don't lint)
-  - SQLAlchemy-specific ignores (E712 for True/False comparisons)
+    - Using Ruff (all-in-one) instead of Black+Flake8+isort (simpler, 10-100× faster)
+    - 100-character line length (balance readability vs screen width)
+    - Auto-fix enabled (Ruff can fix most issues automatically)
+    - Excluding alembic/versions/ (auto-generated, don't lint)
+    - SQLAlchemy-specific ignores (E712 for True/False comparisons)
 - **Known limitations**:
-  - Ruff doesn't replace all Flake8 plugins (some edge cases)
-  - Formatting is opinionated (some developers prefer different styles)
-  - Line length enforcement can break long URLs/strings
+    - Ruff doesn't replace all Flake8 plugins (some edge cases)
+    - Formatting is opinionated (some developers prefer different styles)
+    - Line length enforcement can break long URLs/strings
 - **Next steps after this card**:
-  - All new code automatically linted/formatted via pre-commit (F003)
-  - CI/CD will run `ruff check` (Sprint 05)
-  - Developers run `ruff format .` before committing
+    - All new code automatically linted/formatted via pre-commit (F003)
+    - CI/CD will run `ruff check` (Sprint 05)
+    - Developers run `ruff format .` before committing
 - **Questions to ask**:
-  - Should we enable stricter rules? (e.g., type hints required)
-  - Should we add Ruff to CI/CD as blocking? (Sprint 05)
-  - Should we run Ruff on save in IDEs? (developer productivity)
+    - Should we enable stricter rules? (e.g., type hints required)
+    - Should we add Ruff to CI/CD as blocking? (Sprint 05)
+    - Should we run Ruff on save in IDEs? (developer productivity)
 
 ## Definition of Done Checklist
 
@@ -248,6 +263,7 @@ ruff format . --check  # Dry run
 - [ ] All existing code passes Ruff checks
 
 ## Time Tracking
+
 - **Estimated**: 3 story points
 - **Actual**: TBD (fill after completion)
 - **Started**: TBD

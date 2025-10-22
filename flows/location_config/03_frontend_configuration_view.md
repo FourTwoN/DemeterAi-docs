@@ -2,7 +2,8 @@
 
 ## Purpose
 
-Shows the frontend UI flow for administrators to view and configure storage locations in a hierarchical, map-based interface.
+Shows the frontend UI flow for administrators to view and configure storage locations in a
+hierarchical, map-based interface.
 
 ## Scope
 
@@ -14,6 +15,7 @@ Shows the frontend UI flow for administrators to view and configure storage loca
 ## What It Represents
 
 Complete frontend flow including:
+
 1. Hierarchical warehouse view
 2. Storage location selection (single/bulk)
 3. Configuration form display
@@ -170,13 +172,13 @@ async function submitConfiguration(
 
 1. User clicks on storage location node
 2. Side panel opens showing:
-   - Location details (code, QR, area)
-   - Current configuration (if exists)
-   - Configuration history link
+    - Location details (code, QR, area)
+    - Current configuration (if exists)
+    - Configuration history link
 3. User clicks "Edit Configuration"
 4. Form appears with:
-   - Pre-filled current values
-   - Action type selector (Update/Create)
+    - Pre-filled current values
+    - Action type selector (Update/Create)
 5. User modifies fields
 6. Real-time validation shows errors
 7. User clicks "Save"
@@ -244,16 +246,19 @@ function getLocationBadge(location: StorageLocationNode): BadgeConfig {
 ## Responsive Design
 
 ### Desktop (> 1024px)
+
 - Left panel: Warehouse tree
 - Center panel: Map view (PostGIS polygons)
 - Right panel: Configuration form/details
 
 ### Tablet (768px - 1024px)
+
 - Collapsible tree
 - Map or form (toggle)
 - Bottom sheet for details
 
 ### Mobile (< 768px)
+
 - Stacked layout
 - List view (no map)
 - Full-screen form

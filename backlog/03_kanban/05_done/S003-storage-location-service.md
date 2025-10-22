@@ -1,6 +1,7 @@
 # S003: StorageLocationService
 
 ## Metadata
+
 - **Epic**: [epic-004-services.md](../../02_epics/epic-004-services.md)
 - **Sprint**: Sprint-02
 - **Status**: `backlog`
@@ -9,21 +10,30 @@
 - **Area**: `services/location`
 - **Assignee**: TBD
 - **Dependencies**:
-  - Blocks: [S004, S006, S007, S036, C003]
-  - Blocked by: [R003, S001, S002]
+    - Blocks: [S004, S006, S007, S036, C003]
+    - Blocked by: [R003, S001, S002]
 
 ## Related Documentation
-- **Engineering Plan**: [../../engineering_plan/backend/service_layer.md](../../engineering_plan/backend/service_layer.md)
-- **Architecture**: [../../engineering_plan/03_architecture_overview.md](../../engineering_plan/03_architecture_overview.md)
-- **Workflows**: [../../engineering_plan/workflows/README.md](../../engineering_plan/workflows/README.md)
+
+- **Engineering Plan
+  **: [../../engineering_plan/backend/service_layer.md](../../engineering_plan/backend/service_layer.md)
+- **Architecture
+  **: [../../engineering_plan/03_architecture_overview.md](../../engineering_plan/03_architecture_overview.md)
+- **Workflows
+  **: [../../engineering_plan/workflows/README.md](../../engineering_plan/workflows/README.md)
 
 ## Description
 
-**What**: Implement `StorageLocationService` for storage location business logic, **GPS → full location hierarchy lookup**, and configuration management integration.
+**What**: Implement `StorageLocationService` for storage location business logic, **GPS → full
+location hierarchy lookup**, and configuration management integration.
 
-**Why**: Storage locations are level 3 of the hierarchy and the **primary unit for stock tracking**. This service is CRITICAL for photo localization (GPS → warehouse → area → location) and integrates with StorageLocationConfigService for expected product validation.
+**Why**: Storage locations are level 3 of the hierarchy and the **primary unit for stock tracking**.
+This service is CRITICAL for photo localization (GPS → warehouse → area → location) and integrates
+with StorageLocationConfigService for expected product validation.
 
-**Context**: Clean Architecture Application Layer. StorageLocationService orchestrates GPS-based hierarchy traversal (calls WarehouseService → StorageAreaService) and validates configurations. This is the **most complex location service** due to GPS lookup orchestration.
+**Context**: Clean Architecture Application Layer. StorageLocationService orchestrates GPS-based
+hierarchy traversal (calls WarehouseService → StorageAreaService) and validates configurations. This
+is the **most complex location service** due to GPS lookup orchestration.
 
 ## Acceptance Criteria
 
@@ -232,14 +242,17 @@
 ## Technical Implementation Notes
 
 ### Architecture
+
 - **Layer**: Application (Service)
-- **Dependencies**: R003 (StorageLocationRepository), S001 (WarehouseService), S002 (StorageAreaService)
+- **Dependencies**: R003 (StorageLocationRepository), S001 (WarehouseService), S002 (
+  StorageAreaService)
 - **Design Pattern**: **Orchestration service** - coordinates GPS hierarchy traversal
 - **Critical for**: Photo localization ML pipeline
 
 ### Code Hints
 
 **GPS hierarchy traversal optimization:**
+
 ```python
 # Cache hierarchy lookups for repeated GPS queries
 from functools import lru_cache
@@ -254,6 +267,7 @@ async def _cached_gps_lookup(longitude: float, latitude: float):
 ```
 
 **Bulk GPS query (PostGIS optimization):**
+
 ```sql
 -- In repository layer
 WITH gps_points AS (
@@ -273,6 +287,7 @@ WHERE sl.active = true;
 ### Testing Requirements
 
 **Unit Tests**:
+
 ```python
 @pytest.mark.asyncio
 async def test_gps_hierarchy_lookup():
@@ -327,6 +342,7 @@ async def test_bulk_gps_lookup():
 **Coverage Target**: ≥85%
 
 ### Performance Expectations
+
 - `get_location_by_gps`: <150ms (3 sequential queries - warehouse, area, location)
 - `bulk_gps_lookup`: <200ms for 10 GPS points (single query with UNION ALL)
 - `create_storage_location`: <40ms
@@ -336,26 +352,34 @@ async def test_bulk_gps_lookup():
 
 **For the next developer:**
 
-**Context**: StorageLocationService is the **MOST CRITICAL service for photo localization**. The GPS hierarchy traversal (warehouse → area → location) is the core of the ML pipeline's location discovery.
+**Context**: StorageLocationService is the **MOST CRITICAL service for photo localization**. The GPS
+hierarchy traversal (warehouse → area → location) is the core of the ML pipeline's location
+discovery.
 
 **Key decisions made**:
-1. **Orchestrated GPS lookup**: Calls WarehouseService → StorageAreaService → own repository (3-level traversal)
+
+1. **Orchestrated GPS lookup**: Calls WarehouseService → StorageAreaService → own repository (
+   3-level traversal)
 2. **Bulk optimization**: Single PostGIS query for multiple GPS points (photo batches)
-3. **Configuration integration**: Eager loads `storage_location_configs` for expected product validation
+3. **Configuration integration**: Eager loads `storage_location_configs` for expected product
+   validation
 4. **Short-circuit on failure**: If warehouse not found, don't query areas/locations
 5. **LRU cache opportunity**: GPS coordinates can be cached (10cm precision rounding)
 
 **Known limitations**:
+
 - GPS hierarchy lookup is sequential (3 queries) - can't parallelize without duplication
 - Utilization calculation requires StockBatchService integration (S008)
 - Cache invalidation needed if location geometries change
 
 **Next steps**:
+
 - S004: StorageBinService (level 4 of hierarchy, similar pattern)
 - S006: LocationHierarchyService (aggregates all location services)
 - S036: StorageLocationConfigService (expected product management)
 
 **Questions to validate**:
+
 - Should bulk GPS lookup be limited (max 100 points per call)?
 - How to handle GPS points on location boundaries (edge cases)?
 - Is 10cm GPS precision sufficient for caching?
@@ -372,6 +396,7 @@ async def test_bulk_gps_lookup():
 - [ ] PR reviewed (2+ approvals)
 
 ## Time Tracking
+
 - **Estimated**: 5 story points (~10 hours)
 - **Actual**: TBD
 - **Started**: TBD

@@ -1,6 +1,7 @@
 # S019: ProductCategoryService
 
 ## Metadata
+
 - **Epic**: [epic-004-services.md](../../02_epics/epic-004-services.md)
 - **Sprint**: Sprint-05
 - **Status**: `backlog`
@@ -9,8 +10,8 @@
 - **Area**: `services/catalog`
 - **Assignee**: TBD
 - **Dependencies**:
-  - Blocks: [S020, C018]
-  - Blocked by: [R019]
+    - Blocks: [S020, C018]
+    - Blocked by: [R019]
 
 ## Description
 
@@ -28,6 +29,7 @@
 - [ ] **AC4**: Unit tests ≥80% coverage
 
 ## Time Tracking
+
 - **Estimated**: 1 story point (~2 hours)
 
 ---

@@ -4,21 +4,21 @@ mermaid_version: "v11.3.0+"
 ---
 flowchart TB
     START@{ shape: stadium, label: "Admin Selects UPDATE" }
-    FORM@{ shape: rect, label: "Configuration Form
-    Pre-filled with current values
-    User modifies fields" }
-    VALIDATE@{ shape: diamond, label: "Valid?" }
-    ERROR@{ shape: rect, label: "Show Errors" }
-    CONFIRM@{ shape: rect, label: "Confirmation Dialog" }
-    UPDATE_DB@{ shape: cyl, label: "UPDATE storage_location_config
-    SET ... WHERE id = ? AND active = true" }
-    SUCCESS@{ shape: stadium, label: "Success - Config Updated" }
+FORM@{ shape: rect, label: "Configuration Form
+Pre-filled with current values
+User modifies fields" }
+VALIDATE@{ shape: diamond, label: "Valid?" }
+ERROR@{ shape: rect, label: "Show Errors" }
+CONFIRM@{ shape: rect, label: "Confirmation Dialog" }
+UPDATE_DB@{ shape: cyl, label: "UPDATE storage_location_config
+SET ... WHERE id = ? AND active = true" }
+SUCCESS@{ shape: stadium, label: "Success - Config Updated" }
 
-    START --> FORM
-    FORM --> VALIDATE
-    VALIDATE -->|No| ERROR
-    ERROR --> FORM
-    VALIDATE -->|Yes| CONFIRM
-    CONFIRM -->|Confirm| UPDATE_DB
-    CONFIRM -->|Cancel| FORM
-    UPDATE_DB --> SUCCESS
+START --> FORM
+FORM --> VALIDATE
+VALIDATE -->|No|ERROR
+ERROR --> FORM
+VALIDATE -->|Yes|CONFIRM
+CONFIRM -->|Confirm|UPDATE_DB
+CONFIRM -->| Cancel|FORM
+UPDATE_DB --> SUCCESS

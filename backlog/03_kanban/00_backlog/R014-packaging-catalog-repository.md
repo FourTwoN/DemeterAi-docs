@@ -1,6 +1,7 @@
 # R014: Packaging Catalog Repository
 
 ## Metadata
+
 - **Epic**: [epic-003-repositories.md](../../02_epics/epic-003-repositories.md)
 - **Sprint**: Sprint-01
 - **Status**: `backlog`
@@ -9,26 +10,33 @@
 - **Area**: `repositories`
 - **Assignee**: TBD
 - **Dependencies**:
-  - Blocks: [R015, R016, S011]
-  - Blocked by: [F006, F007, DB023, R011, R012, R013]
+    - Blocks: [R015, R016, S011]
+    - Blocked by: [F006, F007, DB023, R011, R012, R013]
 
 ## Related Documentation
-- **Engineering Plan**: [../../engineering_plan/backend/repository_layer.md](../../engineering_plan/backend/repository_layer.md)
+
+- **Engineering Plan
+  **: [../../engineering_plan/backend/repository_layer.md](../../engineering_plan/backend/repository_layer.md)
 - **Database ERD**: [../../database/database.mmd](../../database/database.mmd#L120-L130)
 
 ## Description
 
-**What**: Implement repository class for `packaging_catalog` table with CRUD operations, SKU lookup, and dimension filtering.
+**What**: Implement repository class for `packaging_catalog` table with CRUD operations, SKU lookup,
+and dimension filtering.
 
-**Why**: Packaging catalog defines available container products (combinations of type/material/color with dimensions). Repository provides SKU lookup for inventory and dimension-based search for ML classification.
+**Why**: Packaging catalog defines available container products (combinations of type/material/color
+with dimensions). Repository provides SKU lookup for inventory and dimension-based search for ML
+classification.
 
-**Context**: Master data combining packaging attributes. Used by stock batches, ML classification, and pricing. SKU uniquely identifies each packaging combination.
+**Context**: Master data combining packaging attributes. Used by stock batches, ML classification,
+and pricing. SKU uniquely identifies each packaging combination.
 
 ## Acceptance Criteria
 
 - [ ] **AC1**: `PackagingCatalogRepository` class inherits from `AsyncRepository[PackagingCatalog]`
 - [ ] **AC2**: Implements `get_by_sku(sku: str)` method (unique constraint)
-- [ ] **AC3**: Implements `get_by_dimensions(diameter_cm: float, tolerance: float)` for ML classification
+- [ ] **AC3**: Implements `get_by_dimensions(diameter_cm: float, tolerance: float)` for ML
+  classification
 - [ ] **AC4**: Implements `get_by_type_and_volume(type_id: int, volume_liters: float)` for filtering
 - [ ] **AC5**: Includes eager loading for packaging_type, packaging_material, packaging_color
 - [ ] **AC6**: Query performance: SKU lookup <10ms, dimension search <20ms
@@ -140,6 +148,7 @@ class PackagingCatalogRepository(AsyncRepository[PackagingCatalog]):
 ## Testing Requirements
 
 **Unit Tests**:
+
 ```python
 @pytest.mark.asyncio
 async def test_packaging_catalog_repo_by_sku(db_session, sample_packaging):
@@ -178,6 +187,7 @@ async def test_packaging_catalog_repo_by_type_and_volume(db_session, packaging_i
 **Coverage Target**: ≥85%
 
 ### Performance Expectations
+
 - SKU lookup: <10ms (unique index on sku)
 - Dimension search: <20ms (indexed diameter_cm)
 - Type/volume filtering: <15ms
@@ -185,12 +195,14 @@ async def test_packaging_catalog_repo_by_type_and_volume(db_session, packaging_i
 ## Handover Briefing
 
 **For the next developer:**
-- **Context**: Master data combining packaging attributes. Critical for ML classification and inventory
+
+- **Context**: Master data combining packaging attributes. Critical for ML classification and
+  inventory
 - **Key decisions**:
-  - SKU unique globally (e.g., "POT-10CM-BLK")
-  - Dimension tolerance for ML classification (default ±2cm)
-  - Eager load all FK relationships (type, material, color)
-  - Volume used for capacity calculations
+    - SKU unique globally (e.g., "POT-10CM-BLK")
+    - Dimension tolerance for ML classification (default ±2cm)
+    - Eager load all FK relationships (type, material, color)
+    - Volume used for capacity calculations
 - **Next steps**: R015 (PriceListRepository) links pricing to catalog
 
 ## Definition of Done Checklist
@@ -203,6 +215,7 @@ async def test_packaging_catalog_repo_by_type_and_volume(db_session, packaging_i
 - [ ] PR reviewed (2+ approvals)
 
 ## Time Tracking
+
 - **Estimated**: 3 story points (~6 hours)
 - **Actual**: TBD
 

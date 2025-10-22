@@ -1,6 +1,7 @@
 # S009: MovementValidationService
 
 ## Metadata
+
 - **Epic**: [epic-004-services.md](../../02_epics/epic-004-services.md)
 - **Sprint**: Sprint-03
 - **Status**: `backlog`
@@ -9,20 +10,24 @@
 - **Area**: `services/stock`
 - **Assignee**: TBD
 - **Dependencies**:
-  - Blocks: [S007]
-  - Blocked by: None (no repository dependencies)
+    - Blocks: [S007]
+    - Blocked by: None (no repository dependencies)
 
 ## Description
 
-**What**: Implement `MovementValidationService` for business rules validation (quantity limits, movement type rules, date validations).
+**What**: Implement `MovementValidationService` for business rules validation (quantity limits,
+movement type rules, date validations).
 
-**Why**: Centralizes business logic validation for stock movements. Prevents invalid operations (negative stock, future dates, invalid movement types).
+**Why**: Centralizes business logic validation for stock movements. Prevents invalid operations (
+negative stock, future dates, invalid movement types).
 
-**Context**: Clean Architecture Application Layer. Pure business logic service (no repository dependencies). Called by StockMovementService before creating movements.
+**Context**: Clean Architecture Application Layer. Pure business logic service (no repository
+dependencies). Called by StockMovementService before creating movements.
 
 ## Acceptance Criteria
 
 - [ ] **AC1**: Validate manual initialization:
+
 ```python
 class MovementValidationService:
     async def validate_manual_init(
@@ -45,6 +50,7 @@ class MovementValidationService:
 ```
 
 - [ ] **AC2**: Validate movement operations:
+
 ```python
 async def validate_movement(
     self,
@@ -74,11 +80,13 @@ async def validate_movement(
 ## Technical Implementation Notes
 
 ### Architecture
+
 - **Layer**: Application (Service)
 - **Dependencies**: None (pure business logic)
 - **Design Pattern**: Validator pattern
 
 ### Testing Requirements
+
 **Coverage Target**: ≥90%
 
 ## Definition of Done Checklist
@@ -89,6 +97,7 @@ async def validate_movement(
 - [ ] PR reviewed (2+ approvals)
 
 ## Time Tracking
+
 - **Estimated**: 3 story points (~6 hours)
 - **Actual**: TBD
 

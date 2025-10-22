@@ -13,17 +13,21 @@
 Fixed all critical violations in production code:
 
 **app/core/auth.py** (6 fixes)
+
 - Added exception chaining (`from e`) to 6 `UnauthorizedException` raises
 - Improves error tracing and debugging
 
 **app/core/config.py** (1 fix)
+
 - Renamed property `AUTH0_ISSUER` to `auth0_issuer` (PEP 8 compliance)
 
 **app/main.py** (2 fixes)
+
 - Moved all imports to top of file (E402 violations)
 - Removed duplicate import block
 
 **app/services/photo/photo_upload_service.py** (1 fix)
+
 - Removed unused variable `s3_upload_request`
 
 **Status**: ✅ All 9 violations fixed and committed to git
@@ -35,15 +39,18 @@ Fixed all critical violations in production code:
 Fixed conftest.py to match actual SQLAlchemy model field names:
 
 **StorageArea Model**
+
 - ✅ Fixed `coordinates` → `geojson_coordinates`
 - ✅ Updated `sample_storage_areas` fixture
 
 **StorageLocation Model**
+
 - ✅ Fixed `geojson_coordinates` → `coordinates`
 - ✅ Added missing `position_metadata={}` parameter
 - ✅ Updated all 3 location fixtures
 
 **Product Model**
+
 - ✅ Fixed `code` → `sku`
 - ✅ Fixed `name` → `common_name`
 - ✅ Fixed `category` → `family_id`
@@ -58,6 +65,7 @@ Fixed conftest.py to match actual SQLAlchemy model field names:
 Investigated and documented reasons for 261 test failures:
 
 **Identified Issues**:
+
 1. ❌ Test code itself has incorrect field names (e.g., `code` instead of `sku`)
 2. ❌ Auth0 configuration not available in test environment
 3. ❌ S3/Minio not configured for integration tests
@@ -80,6 +88,7 @@ Total Tests: 1,456
 ```
 
 **Breakdown of 261 Failures**:
+
 - Model tests: 167 (conftest.py fixtures fixed)
 - Auth integration: 16 (configuration missing)
 - S3 integration: 13 (infrastructure missing)
@@ -93,14 +102,17 @@ Total Tests: 1,456
 ### TIER 1: CRITICAL (Blocks Test Execution)
 
 #### 1. Test Code Field Names ❌
+
 **Priority**: HIGHEST
 **Effort**: 2-3 hours
 
 Test files have hardcoded model creation with wrong field names:
+
 - `tests/unit/models/test_detection.py` line 76: `Product(code=..., name=..., category=...)`
 - Multiple other test files with similar issues
 
 **Required Fixes**:
+
 ```python
 # WRONG (current)
 Product(code="PROD-001", name="Test", category="cactus")
@@ -110,6 +122,7 @@ Product(sku="PROD-001", common_name="Test", family_id=1)
 ```
 
 **Files to Update**:
+
 - `tests/unit/models/test_detection.py`
 - `tests/unit/models/test_estimation.py`
 - `tests/unit/models/test_photo_processing_session.py`
@@ -117,10 +130,12 @@ Product(sku="PROD-001", common_name="Test", family_id=1)
 - And ~15 other test files
 
 #### 2. Auth0 Test Configuration ❌
+
 **Priority**: HIGH
 **Effort**: 2-3 hours
 
 Create test mocks or configure Auth0 test tenant:
+
 ```python
 # tests/integration/test_auth.py
 
@@ -132,10 +147,12 @@ def mock_auth0_config(monkeypatch):
 ```
 
 #### 3. S3/Minio Setup ❌
+
 **Priority**: HIGH
 **Effort**: 1-2 hours
 
 Configure Minio for local testing:
+
 ```yaml
 # docker-compose.yml (add)
 minio:
@@ -148,10 +165,12 @@ minio:
 ```
 
 #### 4. ML Models Caching ❌
+
 **Priority**: MEDIUM
 **Effort**: 1 hour
 
 Download YOLO v11 models:
+
 ```bash
 # In test setup or conftest
 from ultralytics import YOLO
@@ -161,10 +180,12 @@ model = YOLO("yolov11-seg.pt")  # Downloads and caches
 ### TIER 2: IMPORTANT (Quality & Safety)
 
 #### 5. Type Checking (275 errors) ❌
+
 **Priority**: MEDIUM
 **Effort**: 2-3 hours
 
 **Required Actions**:
+
 ```bash
 # Install type stubs
 pip install types-celery types-redis types-requests types-python-jose
@@ -177,10 +198,12 @@ touch app/py.typed
 ```
 
 #### 6. Test Code Style (80+ violations) ❌
+
 **Priority**: LOW
 **Effort**: 1-2 hours
 
 **Common Issues**:
+
 - Nested `with` statements: Use single `with` statement with multiple contexts
 - Generic `Exception`: Catch specific exceptions instead
 - isinstance() syntax: Use `X | Y` instead of `(X, Y)`
@@ -192,6 +215,7 @@ touch app/py.typed
 ### Phase 1: Critical Fixes (8-10 hours)
 
 **Day 1**:
+
 1. ✅ Fix pre-commit violations (DONE)
 2. ✅ Fix test fixtures (DONE)
 3. ❌ Fix test code field names (2-3 hours)
@@ -204,6 +228,7 @@ touch app/py.typed
 ### Phase 2: Quality Improvements (5-6 hours)
 
 **Day 2**:
+
 1. ❌ Install type stubs (30 min)
 2. ❌ Fix type annotations (2-3 hours)
 3. ❌ Fix test code style (1-2 hours)
@@ -213,6 +238,7 @@ touch app/py.typed
 ### Phase 3: Validation (4-5 hours)
 
 **Day 3**:
+
 1. ❌ Run full test suite (1 hour)
 2. ❌ Load testing (2 hours)
 3. ❌ Final verification (1-2 hours)
@@ -224,6 +250,7 @@ touch app/py.typed
 ## Files Committed
 
 ### ✅ Already Committed
+
 1. `app/core/auth.py` - 6 exception handling fixes
 2. `app/core/config.py` - 1 property naming fix
 3. `app/main.py` - 2 import ordering fixes
@@ -231,6 +258,7 @@ touch app/py.typed
 5. `tests/conftest.py` - Field name corrections in fixtures
 
 ### 📋 Audit Reports Generated
+
 1. `PRODUCTION_READINESS_AUDIT_2025-10-22.md` - Detailed audit
 2. `VERIFICATION_SUMMARY.md` - Executive summary
 3. `AUDIT_REPORTS_INDEX.md` - Navigation guide
@@ -263,10 +291,10 @@ touch app/py.typed
    ```
 
 4. **Track progress**
-   - Start with 261 failing → target 0 failing
-   - Phase 1: 50+ tests fixed (6-8 hours)
-   - Phase 2: Type checking improved (3-4 hours)
-   - Phase 3: 100% passing (1-2 hours)
+    - Start with 261 failing → target 0 failing
+    - Phase 1: 50+ tests fixed (6-8 hours)
+    - Phase 2: Type checking improved (3-4 hours)
+    - Phase 3: 100% passing (1-2 hours)
 
 ### Estimated Total Effort
 

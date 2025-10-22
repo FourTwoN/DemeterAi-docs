@@ -12,7 +12,9 @@
 
 ## Executive Summary
 
-This package provides **comprehensive testing documentation** for ML003 (SAHI Detection Service), the **most critical innovation** in the DemeterAI ML pipeline that achieves **10x detection improvement** (100 → 800+ plants).
+This package provides **comprehensive testing documentation** for ML003 (SAHI Detection Service),
+the **most critical innovation** in the DemeterAI ML pipeline that achieves **10x detection
+improvement** (100 → 800+ plants).
 
 ### Package Contents
 
@@ -69,11 +71,11 @@ backend/tests/
 
 ### Test Breakdown
 
-| Test Type | Count | Coverage | Purpose |
-|-----------|-------|----------|---------|
-| **Unit Tests** | 30+ | 70% | Fast, isolated, mocked dependencies |
-| **Integration Tests** | 15+ | 30% | Real models, real SAHI, real images |
-| **Total** | 45+ | **≥85%** | Complete coverage |
+| Test Type             | Count | Coverage | Purpose                             |
+|-----------------------|-------|----------|-------------------------------------|
+| **Unit Tests**        | 30+   | 70%      | Fast, isolated, mocked dependencies |
+| **Integration Tests** | 15+   | 30%      | Real models, real SAHI, real images |
+| **Total**             | 45+   | **≥85%** | Complete coverage                   |
 
 ---
 
@@ -89,45 +91,45 @@ backend/tests/
 ### Test Classes (10 Classes)
 
 1. **TestSAHIDetectionServiceBasic** (4 tests)
-   - Service initialization
-   - Model cache singleton usage
-   - Model loaded once per worker
+    - Service initialization
+    - Model cache singleton usage
+    - Model loaded once per worker
 
 2. **TestSAHITilingConfiguration** (4 tests)
-   - 512×512 tile size
-   - 25% overlap ratio
-   - GREEDYNMM postprocessing
-   - Custom confidence threshold
+    - 512×512 tile size
+    - 25% overlap ratio
+    - GREEDYNMM postprocessing
+    - Custom confidence threshold
 
 3. **TestSAHIGREEDYNMMerging** (2 tests)
-   - Boundary detections merged to 1
-   - Distinct plants preserved
+    - Boundary detections merged to 1
+    - Distinct plants preserved
 
 4. **TestSAHICoordinateMapping** (2 tests)
-   - Coordinates in original image space
-   - All detections within bounds
+    - Coordinates in original image space
+    - All detections within bounds
 
 5. **TestSAHIBlackTileOptimization** (2 tests)
-   - auto_skip_black_tiles=True
-   - ~20% tile reduction
+    - auto_skip_black_tiles=True
+    - ~20% tile reduction
 
 6. **TestSAHISmallImageFallback** (2 tests)
-   - Small images use direct detection
-   - Threshold at 512px
+    - Small images use direct detection
+    - Threshold at 512px
 
 7. **TestSAHIErrorHandling** (4 tests)
-   - FileNotFoundError if missing
-   - ValueError if path is None
-   - RuntimeError if SAHI fails
-   - Empty segmento returns []
+    - FileNotFoundError if missing
+    - ValueError if path is None
+    - RuntimeError if SAHI fails
+    - Empty segmento returns []
 
 8. **TestSAHIConfidenceFiltering** (2 tests)
-   - Low confidence detections filtered
-   - Default threshold 0.25
+    - Low confidence detections filtered
+    - Default threshold 0.25
 
 9. **TestSAHIPerformanceLogging** (2 tests)
-   - Performance metrics logged
-   - Detection count returned
+    - Performance metrics logged
+    - Detection count returned
 
 10. **TestDetectionResultFormat** (2 tests)
     - Required fields present
@@ -173,32 +175,32 @@ def create_mock_sahi_result():
 ### Test Classes (6 Classes)
 
 1. **TestSAHIIntegrationBasic** (4 tests)
-   - Real segmento detection
-   - Many plants detected (≥100)
-   - Valid coordinates
-   - Empty segmento handling
+    - Real segmento detection
+    - Many plants detected (≥100)
+    - Valid coordinates
+    - Empty segmento handling
 
 2. **TestSAHIvsDirectDetection** (2 tests)
-   - SAHI detects 5-10× more plants
-   - Small plants detected
+    - SAHI detects 5-10× more plants
+    - Small plants detected
 
 3. **TestSAHIPerformanceBenchmarks** (3 tests)
-   - CPU: <10s for 3000×1500
-   - GPU: <3s for 3000×1500
-   - Linear scaling with image size
+    - CPU: <10s for 3000×1500
+    - GPU: <3s for 3000×1500
+    - Linear scaling with image size
 
 4. **TestSAHIEdgeCases** (4 tests)
-   - Very large images (5000×3000)
-   - Small images fallback
-   - High-density segmentos (1000+ plants)
-   - Low-quality images
+    - Very large images (5000×3000)
+    - Small images fallback
+    - High-density segmentos (1000+ plants)
+    - Low-quality images
 
 5. **TestModelCacheIntegration** (2 tests)
-   - Model loaded once
-   - Multiple workers supported
+    - Model loaded once
+    - Multiple workers supported
 
 6. **TestCoordinateAccuracy** (1 test)
-   - Ground truth match rate ≥85%
+    - Ground truth match rate ≥85%
 
 ### Performance Benchmarks
 
@@ -231,6 +233,7 @@ SAHI vs Direct YOLO:
 ### Conftest Files
 
 #### 1. `tests/unit/conftest.py`
+
 - Session-scoped fixtures (test data dir)
 - Mock fixtures (SAHI, ModelCache, Image)
 - Factory fixtures (create_mock_image, create_mock_sahi_result)
@@ -238,6 +241,7 @@ SAHI vs Direct YOLO:
 - Cleanup fixtures (reset_model_cache)
 
 #### 2. `tests/integration/conftest.py`
+
 - Real model loading (yolo_detection_model)
 - Test image fixtures (8 different image types)
 - Annotated test data (ground truth)
@@ -245,21 +249,22 @@ SAHI vs Direct YOLO:
 - GPU availability checks
 
 #### 3. `tests/unit/services/ml_processing/conftest.py`
+
 - ML-specific mocks
 - SAHI service instance fixture
 
 ### Required Test Images
 
-| Image | Size | Purpose | Plants |
-|-------|------|---------|--------|
-| `segmento_2000x1000.jpg` | 2000×1000 | Standard test | 200-300 |
-| `large_segmento_3000x1500.jpg` | 3000×1500 | Performance test | 500-800 |
-| `very_large_segmento_5000x3000.jpg` | 5000×3000 | Stress test | 1000+ |
-| `small_segmento_300x200.jpg` | 300×200 | Fallback test | 5-10 |
-| `empty_segmento.jpg` | 2000×1000 | Edge case | 0 |
-| `high_density_segmento.jpg` | 3000×1500 | Stress test | 1000+ |
-| `low_quality_segmento.jpg` | 2000×1000 | Robustness | varies |
-| `annotated_segmento.jpg` | 2000×1000 | Accuracy test | known |
+| Image                               | Size      | Purpose          | Plants  |
+|-------------------------------------|-----------|------------------|---------|
+| `segmento_2000x1000.jpg`            | 2000×1000 | Standard test    | 200-300 |
+| `large_segmento_3000x1500.jpg`      | 3000×1500 | Performance test | 500-800 |
+| `very_large_segmento_5000x3000.jpg` | 5000×3000 | Stress test      | 1000+   |
+| `small_segmento_300x200.jpg`        | 300×200   | Fallback test    | 5-10    |
+| `empty_segmento.jpg`                | 2000×1000 | Edge case        | 0       |
+| `high_density_segmento.jpg`         | 3000×1500 | Stress test      | 1000+   |
+| `low_quality_segmento.jpg`          | 2000×1000 | Robustness       | varies  |
+| `annotated_segmento.jpg`            | 2000×1000 | Accuracy test    | known   |
 
 ---
 
@@ -267,16 +272,16 @@ SAHI vs Direct YOLO:
 
 ### Coverage Targets by Module
 
-| Module/Function | Target | Critical |
-|-----------------|--------|----------|
-| `detect_in_segmento()` | 100% | ✅ YES |
-| SAHI configuration | 100% | ✅ YES |
-| Coordinate mapping | 100% | ✅ YES |
-| Error handling | 100% | ✅ YES |
-| Model cache integration | 100% | ✅ YES |
-| Black tile optimization | 90% | ⚠️ Important |
-| Small image fallback | 90% | ⚠️ Important |
-| Logging | 80% | Optional |
+| Module/Function         | Target | Critical     |
+|-------------------------|--------|--------------|
+| `detect_in_segmento()`  | 100%   | ✅ YES        |
+| SAHI configuration      | 100%   | ✅ YES        |
+| Coordinate mapping      | 100%   | ✅ YES        |
+| Error handling          | 100%   | ✅ YES        |
+| Model cache integration | 100%   | ✅ YES        |
+| Black tile optimization | 90%    | ⚠️ Important |
+| Small image fallback    | 90%    | ⚠️ Important |
+| Logging                 | 80%    | Optional     |
 
 ### Overall Target: ≥85%
 
@@ -484,17 +489,18 @@ jobs:
 
 ### Quick Reference
 
-| Document | Purpose | Lines | Key Content |
-|----------|---------|-------|-------------|
-| `ML003-testing-guide.md` | Unit test patterns | 1200+ | 30+ unit tests, mock patterns, helper functions |
-| `ML003-integration-tests.md` | Integration tests | 800+ | 15+ integration tests, performance benchmarks |
-| `ML003-test-fixtures.md` | Fixtures & config | 900+ | conftest.py files, pytest.ini, CI/CD |
-| `ML003-testing-best-practices.md` | Best practices | 800+ | Patterns, anti-patterns, debugging |
-| `ML003-TESTING-COMPLETE-SUMMARY.md` | This document | 600+ | Executive summary, checklists |
+| Document                            | Purpose            | Lines | Key Content                                     |
+|-------------------------------------|--------------------|-------|-------------------------------------------------|
+| `ML003-testing-guide.md`            | Unit test patterns | 1200+ | 30+ unit tests, mock patterns, helper functions |
+| `ML003-integration-tests.md`        | Integration tests  | 800+  | 15+ integration tests, performance benchmarks   |
+| `ML003-test-fixtures.md`            | Fixtures & config  | 900+  | conftest.py files, pytest.ini, CI/CD            |
+| `ML003-testing-best-practices.md`   | Best practices     | 800+  | Patterns, anti-patterns, debugging              |
+| `ML003-TESTING-COMPLETE-SUMMARY.md` | This document      | 600+  | Executive summary, checklists                   |
 
 ### Navigation Guide
 
 **For Testing Expert**:
+
 1. Start with: `ML003-TESTING-COMPLETE-SUMMARY.md` (this document)
 2. Implement unit tests: `ML003-testing-guide.md`
 3. Implement integration tests: `ML003-integration-tests.md`
@@ -502,6 +508,7 @@ jobs:
 5. Follow best practices: `ML003-testing-best-practices.md`
 
 **For Code Review**:
+
 1. Check coverage report
 2. Verify performance benchmarks
 3. Review test organization
@@ -530,14 +537,14 @@ jobs:
 
 ### Quality Gates
 
-| Gate | Requirement | Status |
-|------|-------------|--------|
-| **Unit Tests** | All pass, <2min total | ⏳ Pending |
+| Gate                  | Requirement           | Status    |
+|-----------------------|-----------------------|-----------|
+| **Unit Tests**        | All pass, <2min total | ⏳ Pending |
 | **Integration Tests** | All pass, <1min total | ⏳ Pending |
-| **Coverage** | ≥85% | ⏳ Pending |
-| **Performance** | CPU <10s, GPU <3s | ⏳ Pending |
-| **Accuracy** | SAHI ≥5× improvement | ⏳ Pending |
-| **No Flakiness** | 3× consecutive pass | ⏳ Pending |
+| **Coverage**          | ≥85%                  | ⏳ Pending |
+| **Performance**       | CPU <10s, GPU <3s     | ⏳ Pending |
+| **Accuracy**          | SAHI ≥5× improvement  | ⏳ Pending |
+| **No Flakiness**      | 3× consecutive pass   | ⏳ Pending |
 
 ---
 
@@ -562,6 +569,7 @@ jobs:
 - **Testing Expert**: Implements test suite (this package)
 
 **Sync points**:
+
 1. **Method signatures agreed**: Python Expert shares function signatures
 2. **Mid-implementation check** (30 min): Share progress
 3. **Final integration** (1 hour): Run tests against real implementation
@@ -602,17 +610,20 @@ jobs:
 ### Testing Expert Responsibilities
 
 **YOU WRITE**:
+
 - ✅ Unit tests (`tests/unit/`)
 - ✅ Integration tests (`tests/integration/`)
 - ✅ Test fixtures and factories
 - ✅ Performance benchmarks
 
 **YOU DO NOT**:
+
 - ❌ Modify `sahi_detection_service.py` (production code)
 - ❌ Change application logic
 - ❌ Add features to tested code
 
 **If you find a bug**, report to Team Leader:
+
 ```markdown
 ## Testing Expert → Team Leader
 **Bug Found**: GREEDYNMM threshold too low, merging adjacent plants
@@ -625,6 +636,7 @@ jobs:
 ### Coverage Target: ≥85%
 
 **How to achieve**:
+
 1. ✅ Test all public methods (100%)
 2. ✅ Test all error paths (100%)
 3. ✅ Test edge cases (empty, small, large images)
@@ -632,6 +644,7 @@ jobs:
 5. ⚠️ Logging can be <100% (acceptable)
 
 **Not required**:
+
 - ❌ Testing private methods (start with `_`)
 - ❌ Testing third-party library internals (SAHI)
 - ❌ Testing imports/constants
@@ -642,20 +655,23 @@ jobs:
 
 ### Package Completeness: ✅ 100%
 
-| Component | Status | Lines | Tests |
-|-----------|--------|-------|-------|
-| Unit test guide | ✅ Complete | 1200+ | 30+ |
-| Integration test guide | ✅ Complete | 800+ | 15+ |
-| Test fixtures | ✅ Complete | 900+ | N/A |
-| Best practices | ✅ Complete | 800+ | N/A |
-| This summary | ✅ Complete | 600+ | N/A |
-| **TOTAL** | **✅ COMPLETE** | **4300+** | **45+** |
+| Component              | Status         | Lines     | Tests   |
+|------------------------|----------------|-----------|---------|
+| Unit test guide        | ✅ Complete     | 1200+     | 30+     |
+| Integration test guide | ✅ Complete     | 800+      | 15+     |
+| Test fixtures          | ✅ Complete     | 900+      | N/A     |
+| Best practices         | ✅ Complete     | 800+      | N/A     |
+| This summary           | ✅ Complete     | 600+      | N/A     |
+| **TOTAL**              | **✅ COMPLETE** | **4300+** | **45+** |
 
 ### Ready for Implementation: ✅ YES
 
-**Testing Expert**: You now have everything needed to implement comprehensive tests for ML003 SAHI Detection Service. Follow the implementation checklist, maintain ≥85% coverage, and report results to Team Leader.
+**Testing Expert**: You now have everything needed to implement comprehensive tests for ML003 SAHI
+Detection Service. Follow the implementation checklist, maintain ≥85% coverage, and report results
+to Team Leader.
 
-**Critical Path**: This is the **most important test suite** in Sprint 02. Quality and coverage are non-negotiable.
+**Critical Path**: This is the **most important test suite** in Sprint 02. Quality and coverage are
+non-negotiable.
 
 ---
 
@@ -669,6 +685,7 @@ jobs:
 ## Contact & Support
 
 **Questions?** Refer to:
+
 1. This summary document
 2. Individual guide documents (ML003-*.md)
 3. Team Leader

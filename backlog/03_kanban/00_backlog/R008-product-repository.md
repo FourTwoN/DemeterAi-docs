@@ -1,6 +1,7 @@
 # R008: Product Repository
 
 ## Metadata
+
 - **Epic**: [epic-003-repositories.md](../../02_epics/epic-003-repositories.md)
 - **Sprint**: Sprint-01
 - **Status**: `backlog`
@@ -9,27 +10,36 @@
 - **Area**: `repositories`
 - **Assignee**: TBD
 - **Dependencies**:
-  - Blocks: [R016, R024, S007]
-  - Blocked by: [F006, F007, DB017, R007]
+    - Blocks: [R016, R024, S007]
+    - Blocked by: [F006, F007, DB017, R007]
 
 ## Related Documentation
-- **Engineering Plan**: [../../engineering_plan/backend/repository_layer.md](../../engineering_plan/backend/repository_layer.md)
+
+- **Engineering Plan
+  **: [../../engineering_plan/backend/repository_layer.md](../../engineering_plan/backend/repository_layer.md)
 - **Database ERD**: [../../database/database.mmd](../../database/database.mmd#L88-L96)
-- **Architecture**: [../../engineering_plan/03_architecture_overview.md](../../engineering_plan/03_architecture_overview.md)
+- **Architecture
+  **: [../../engineering_plan/03_architecture_overview.md](../../engineering_plan/03_architecture_overview.md)
 
 ## Description
 
-**What**: Implement repository class for `products` table (Level 3 of product hierarchy) with CRUD operations, SKU lookup, and search.
+**What**: Implement repository class for `products` table (Level 3 of product hierarchy) with CRUD
+operations, SKU lookup, and search.
 
-**Why**: Products are the core inventory items (individual species/varieties). Repository provides fast SKU lookup for barcode scanning, search for catalog browsing, and hierarchy navigation for taxonomy.
+**Why**: Products are the core inventory items (individual species/varieties). Repository provides
+fast SKU lookup for barcode scanning, search for catalog browsing, and hierarchy navigation for
+taxonomy.
 
-**Context**: Leaf level of product hierarchy. Each product links to stock batches, ML classifications, and pricing. SKU must be unique for inventory tracking.
+**Context**: Leaf level of product hierarchy. Each product links to stock batches, ML
+classifications, and pricing. SKU must be unique for inventory tracking.
 
 ## Acceptance Criteria
 
 - [ ] **AC1**: `ProductRepository` class inherits from `AsyncRepository[Product]`
-- [ ] **AC2**: Implements `get_by_sku(sku: str)` method with unique index (critical for barcode scanning)
-- [ ] **AC3**: Implements `search_products(search_term: str)` for catalog browsing (name + scientific name)
+- [ ] **AC2**: Implements `get_by_sku(sku: str)` method with unique index (critical for barcode
+  scanning)
+- [ ] **AC3**: Implements `search_products(search_term: str)` for catalog browsing (name +
+  scientific name)
 - [ ] **AC4**: Implements `get_by_family_id(family_id: int)` with eager loading of family → category
 - [ ] **AC5**: Implements `get_with_sample_images(product_id: int)` loading product images
 - [ ] **AC6**: Includes eager loading for family, category, and sample_images
@@ -38,11 +48,14 @@
 ## Technical Implementation Notes
 
 ### Architecture
+
 - **Layer**: Infrastructure (Repository)
-- **Dependencies**: F006 (Database connection), DB017 (Product model), R007 (ProductFamilyRepository)
+- **Dependencies**: F006 (Database connection), DB017 (Product model), R007 (
+  ProductFamilyRepository)
 - **Design Pattern**: Repository pattern, inherits AsyncRepository
 
 ### Code Hints
+
 ```python
 from typing import Optional, List
 from sqlalchemy import select, or_
@@ -188,6 +201,7 @@ class ProductRepository(AsyncRepository[Product]):
 ### Testing Requirements
 
 **Unit Tests**:
+
 ```python
 @pytest.mark.asyncio
 async def test_product_repo_get_by_sku(db_session, sample_product):
@@ -252,6 +266,7 @@ async def test_product_repo_needing_images(db_session, products_no_images):
 **Coverage Target**: ≥85%
 
 ### Performance Expectations
+
 - SKU lookup: <10ms (unique index on sku)
 - search_products: <30ms (ILIKE with LIMIT 100)
 - get_by_family_id: <20ms for 50 products per family
@@ -260,19 +275,20 @@ async def test_product_repo_needing_images(db_session, products_no_images):
 ## Handover Briefing
 
 **For the next developer:**
+
 - **Context**: Leaf level of product hierarchy. Core inventory entity linked to stock, ML, pricing
 - **Key decisions**:
-  - SKU unique globally (barcode scanning requirement)
-  - Search includes common_name, scientific_name, AND sku
-  - Sample images loaded separately (avoid N+1 in catalog)
-  - custom_attributes is JSONB for flexible metadata
+    - SKU unique globally (barcode scanning requirement)
+    - Search includes common_name, scientific_name, AND sku
+    - Sample images loaded separately (avoid N+1 in catalog)
+    - custom_attributes is JSONB for flexible metadata
 - **Known limitations**:
-  - Search is ILIKE (not full-text search)
-  - No product variants (size/color handled via product_sizes/packaging)
+    - Search is ILIKE (not full-text search)
+    - No product variants (size/color handled via product_sizes/packaging)
 - **Next steps**: R016 (StockBatchRepository) links products to inventory
 - **Questions to validate**:
-  - Should SKU be auto-generated or manual input?
-  - Do we need product versioning/history?
+    - Should SKU be auto-generated or manual input?
+    - Do we need product versioning/history?
 
 ## Definition of Done Checklist
 
@@ -288,6 +304,7 @@ async def test_product_repo_needing_images(db_session, products_no_images):
 - [ ] Performance benchmarks documented
 
 ## Time Tracking
+
 - **Estimated**: 3 story points (~6 hours)
 - **Actual**: TBD
 - **Started**: TBD

@@ -6,7 +6,9 @@
 
 ## Purpose
 
-This diagram provides an **executive-level view** of the complete photo upload and gallery management system, enabling users to upload cultivation photos, monitor processing, view results in a gallery, and handle errors gracefully.
+This diagram provides an **executive-level view** of the complete photo upload and gallery
+management system, enabling users to upload cultivation photos, monitor processing, view results in
+a gallery, and handle errors gracefully.
 
 ## Scope
 
@@ -20,46 +22,51 @@ This diagram provides an **executive-level view** of the complete photo upload a
 The diagram illustrates two primary user workflows:
 
 ### 1. Upload Workflow (Left Side)
+
 **User goal:** Upload photos and track processing status
 
 1. **Upload View**: User selects and uploads 1-100 photos via multipart/form-data
 2. **Backend Processing**:
-   - Saves files to temporary storage (/tmp/uploads/)
-   - Generates unique UUIDs for each photo
-   - Creates Celery jobs for asynchronous ML processing
-   - Returns 202 Accepted with job IDs
+    - Saves files to temporary storage (/tmp/uploads/)
+    - Generates unique UUIDs for each photo
+    - Creates Celery jobs for asynchronous ML processing
+    - Returns 202 Accepted with job IDs
 3. **Job Monitoring**:
-   - Frontend polls every 2 seconds for job status
-   - Displays progress bar (simulated based on typical processing time)
-   - Shows list of all jobs with status (pending/processing/completed/failed)
-   - Job list visible for 24-48 hours
+    - Frontend polls every 2 seconds for job status
+    - Displays progress bar (simulated based on typical processing time)
+    - Shows list of all jobs with status (pending/processing/completed/failed)
+    - Job list visible for 24-48 hours
 4. **Processing Pipeline**: Each photo goes through 4 phases (2-3 minutes per photo):
-   - **Phase 1**: S3 upload with circuit breaker (chunked, 20 images/batch) - 4-10s per chunk
-   - **Phase 2**: ML Parent task (geolocate → segment → classify) - 30-60s
-   - **Phase 3**: Child tasks (SAHI detection for segments, direct detection for boxes/plugs) - 1-2 min
-   - **Phase 4**: Callback (aggregate results → generate visualization → create stock batches) - 10-20s
-   - See `flows/procesamiento_ml_upload_s3_principal/` for complete pipeline details
+    - **Phase 1**: S3 upload with circuit breaker (chunked, 20 images/batch) - 4-10s per chunk
+    - **Phase 2**: ML Parent task (geolocate → segment → classify) - 30-60s
+    - **Phase 3**: Child tasks (SAHI detection for segments, direct detection for boxes/plugs) - 1-2
+      min
+    - **Phase 4**: Callback (aggregate results → generate visualization → create stock batches) -
+      10-20s
+    - See `flows/procesamiento_ml_upload_s3_principal/` for complete pipeline details
 
 ### 2. Gallery Workflow (Right Side)
+
 **User goal:** Browse uploaded photos and view details
 
 1. **Gallery View**:
-   - Displays all uploaded photos across all sessions
-   - Uses S3 thumbnail URLs for fast loading
-   - Filters: Date range, warehouse, status (all/success/errors)
-   - Pagination for large datasets
+    - Displays all uploaded photos across all sessions
+    - Uses S3 thumbnail URLs for fast loading
+    - Filters: Date range, warehouse, status (all/success/errors)
+    - Pagination for large datasets
 2. **Photo Detail**:
-   - Click photo to open storage_location detail view
-   - Shows detection results, historical timeline
-   - Displays trazabilidad (traceability) information
+    - Click photo to open storage_location detail view
+    - Shows detection results, historical timeline
+    - Displays trazabilidad (traceability) information
 3. **Error Handling**:
-   - Photos with warnings/errors highlighted in gallery
-   - User can click to view error details
-   - Option to fix errors and reprocess from S3
+    - Photos with warnings/errors highlighted in gallery
+    - User can click to view error details
+    - Option to fix errors and reprocess from S3
 
 ## Key Components
 
 ### Upload View Features
+
 - **Multi-file upload**: Drag-and-drop or file selector (up to 100 photos)
 - **Instant feedback**: Upload progress, file validation
 - **Job list**: All jobs for current session with real-time status
@@ -67,29 +74,32 @@ The diagram illustrates two primary user workflows:
 - **Persistence**: Job list remains visible for 24-48 hours
 
 ### Gallery View Features
+
 - **Thumbnail grid**: Fast loading using S3 presigned URLs
 - **Advanced filters**:
-  - Date range picker (last 7 days, 30 days, custom)
-  - Warehouse selector (multi-select)
-  - Status filter (all, success, errors only)
+    - Date range picker (last 7 days, 30 days, custom)
+    - Warehouse selector (multi-select)
+    - Status filter (all, success, errors only)
 - **Infinite scroll**: Lazy loading for performance
 - **Batch operations**: Delete multiple photos
 - **Status indicators**: Visual badges for success/warning/error states
 
 ### Error Recovery Flow
+
 - **Error types**:
-  - `needs_location`: GPS missing or outside cultivation area
-  - `needs_config`: Storage location not configured
-  - `needs_calibration`: Density parameters missing
+    - `needs_location`: GPS missing or outside cultivation area
+    - `needs_config`: Storage location not configured
+    - `needs_calibration`: Density parameters missing
 - **Recovery actions**:
-  - Click error badge → Open modal with error details
-  - Fix underlying issue (add location, configure storage, calibrate)
-  - Click "Reprocess" → Triggers new Celery job using S3 original
-  - No need to re-upload photo (saves time and bandwidth)
+    - Click error badge → Open modal with error details
+    - Fix underlying issue (add location, configure storage, calibrate)
+    - Click "Reprocess" → Triggers new Celery job using S3 original
+    - No need to re-upload photo (saves time and bandwidth)
 
 ## Database Schema
 
 ### s3_images Table
+
 Stores metadata for all uploaded images.
 
 ```sql
@@ -120,6 +130,7 @@ CREATE INDEX idx_s3_images_s3_key ON s3_images(s3_key_original);
 ```
 
 **Key fields:**
+
 - `image_id`: UUID generated by application, used as PRIMARY KEY
 - `s3_key_original`: Full-resolution image path in S3
 - `s3_key_thumbnail`: 300x300px thumbnail for gallery view
@@ -129,6 +140,7 @@ CREATE INDEX idx_s3_images_s3_key ON s3_images(s3_key_original);
 - `error_details`: Stores error messages for UI display
 
 ### photo_processing_sessions Table
+
 Links uploaded photos to ML processing results.
 
 ```sql
@@ -160,6 +172,7 @@ CREATE INDEX idx_sessions_created_at ON photo_processing_sessions(created_at DES
 ```
 
 **Key fields:**
+
 - `session_id`: UUID for frontend polling
 - `storage_location_id`: Nullable (filled after GPS matching or manual assignment)
 - `original_image_id`: Links to s3_images
@@ -172,9 +185,11 @@ CREATE INDEX idx_sessions_created_at ON photo_processing_sessions(created_at DES
 ### Upload Endpoints
 
 #### POST /api/v1/photos/upload
+
 Upload multiple photos and create processing jobs.
 
 **Request:**
+
 ```http
 POST /api/v1/photos/upload HTTP/1.1
 Content-Type: multipart/form-data; boundary=----WebKitFormBoundary
@@ -194,6 +209,7 @@ Content-Type: image/jpeg
 ```
 
 **Response:**
+
 ```json
 {
   "status": "accepted",
@@ -221,21 +237,25 @@ Content-Type: image/jpeg
 **Status Code:** 202 Accepted
 
 **Performance:**
+
 - Upload: 10-30s for 100 photos (depends on network)
 - Response time: < 500ms after upload completes
 
 ### Job Monitoring Endpoints
 
 #### GET /api/v1/photos/jobs/status
+
 Poll for job status updates.
 
 **Request:**
+
 ```http
 GET /api/v1/photos/jobs/status?upload_session_id=uuid-... HTTP/1.1
 Authorization: Bearer <token>
 ```
 
 **Response:**
+
 ```json
 {
   "upload_session_id": "uuid-...",
@@ -276,6 +296,7 @@ Authorization: Bearer <token>
 **Status Code:** 200 OK
 
 **Performance:**
+
 - Response time: < 50ms (Redis cache)
 - Poll interval: Every 2 seconds
 - Cache TTL: 1 second
@@ -283,15 +304,18 @@ Authorization: Bearer <token>
 ### Gallery Endpoints
 
 #### GET /api/v1/photos/gallery
+
 Retrieve gallery view with filters.
 
 **Request:**
+
 ```http
 GET /api/v1/photos/gallery?page=1&per_page=50&status=all&warehouse_id=3&date_from=2025-10-01 HTTP/1.1
 Authorization: Bearer <token>
 ```
 
 **Response:**
+
 ```json
 {
   "photos": [
@@ -328,14 +352,17 @@ Authorization: Bearer <token>
 ```
 
 **Performance:**
+
 - Response time: < 200ms
 - Thumbnail URLs: Presigned S3 URLs (valid for 1 hour)
 - Database query: Optimized with indexes
 
 #### GET /api/v1/photos/{image_id}
+
 Get detailed information for a single photo.
 
 **Response:**
+
 ```json
 {
   "image_id": "uuid-1",
@@ -391,9 +418,11 @@ Get detailed information for a single photo.
 ### Error Recovery Endpoints
 
 #### POST /api/v1/photos/{image_id}/reprocess
+
 Reprocess a failed photo from S3.
 
 **Request:**
+
 ```http
 POST /api/v1/photos/uuid-2/reprocess HTTP/1.1
 Authorization: Bearer <token>
@@ -406,6 +435,7 @@ Content-Type: application/json
 ```
 
 **Response:**
+
 ```json
 {
   "status": "accepted",
@@ -420,7 +450,8 @@ Content-Type: application/json
 
 ## Celery Tasks
 
-**IMPORTANT:** Processing happens through 4-phase pipeline with multiple task types. See `flows/procesamiento_ml_upload_s3_principal/` for complete details.
+**IMPORTANT:** Processing happens through 4-phase pipeline with multiple task types. See
+`flows/procesamiento_ml_upload_s3_principal/` for complete details.
 
 ### Phase 1: S3 Upload (Chunked)
 
@@ -443,6 +474,7 @@ Uploads photos to S3 with circuit breaker, extracts EXIF, generates thumbnails.
 Geolocates photo, runs YOLO segmentation, classifies masks, spawns child tasks.
 
 **Warning states:**
+
 - `needs_location`: No GPS or outside cultivation areas
 - `needs_config`: Location not configured
 - `needs_calibration`: Density estimation unavailable
@@ -472,6 +504,7 @@ Aggregates detections/estimations, generates visualization, creates stock batche
 ## S3 Storage Structure
 
 ### Bucket Organization
+
 ```
 demeter-photos/
 ├── originals/
@@ -496,6 +529,7 @@ demeter-photos/
 ```
 
 ### S3 Object Metadata
+
 ```json
 {
   "image_id": "uuid-1",
@@ -507,6 +541,7 @@ demeter-photos/
 ```
 
 ### Lifecycle Policies
+
 - **temp_uploads/**: Delete after 24 hours
 - **originals/**: Retain indefinitely (critical data)
 - **thumbnails/**: Retain for 90 days (regenerate on demand if deleted)
@@ -515,18 +550,21 @@ demeter-photos/
 ## Performance Considerations
 
 ### Upload View
+
 - **Multipart upload**: Concurrent file uploads (up to 6 parallel)
 - **Client-side validation**: Check file type/size before upload
 - **Progress tracking**: Real-time upload progress per file
 - **Chunked upload**: For files > 10MB (future optimization)
 
 ### Job Monitoring
+
 - **Redis cache**: Job status cached for 1 second (reduce DB queries)
 - **Polling interval**: 2 seconds (balance between freshness and load)
 - **Job expiration**: Job list visible for 24-48 hours, then archived
 - **Fake progress bar**: Estimated progress based on average processing time
 
 ### Gallery View
+
 - **Thumbnail optimization**: 300x300px JPEG (quality 80%)
 - **Lazy loading**: Load thumbnails as user scrolls
 - **Presigned URLs**: Generate S3 URLs with 1-hour expiration
@@ -534,6 +572,7 @@ demeter-photos/
 - **Pagination**: 50 items per page (configurable)
 
 ### Error Recovery
+
 - **Reprocess from S3**: No need to re-upload (saves bandwidth)
 - **Idempotent operations**: Safe to retry reprocessing
 - **Graceful degradation**: Show partial results even with errors
@@ -573,13 +612,14 @@ demeter-photos/
 
 ## Version History
 
-| Version | Date | Changes |
-|---------|------|---------|
-| 1.0.0 | 2025-10-08 | Initial comprehensive overview |
+| Version | Date       | Changes                        |
+|---------|------------|--------------------------------|
+| 1.0.0   | 2025-10-08 | Initial comprehensive overview |
 
 ---
 
 **Notes:**
+
 - Upload view and gallery view are separate pages (different routes)
 - Job list persists for 24-48 hours (allows user to check back later)
 - Gallery shows all photos across all sessions (not just current upload)

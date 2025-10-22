@@ -10,7 +10,8 @@
 
 ## Goal
 
-Implement Celery 5.4.0 async task processing with worker configuration for GPU (pool=solo), CPU (prefork), and I/O (gevent) workers, enabling the ML pipeline and background job execution.
+Implement Celery 5.4.0 async task processing with worker configuration for GPU (pool=solo), CPU (
+prefork), and I/O (gevent) workers, enabling the ML pipeline and background job execution.
 
 ---
 
@@ -30,6 +31,7 @@ Implement Celery 5.4.0 async task processing with worker configuration for GPU (
 ## Cards List (8 cards, 40 points)
 
 ### Worker Configuration (15 points)
+
 - **CEL001**: GPU worker config (pool=solo) (5pts) - **CRITICAL**
 - **CEL002**: CPU worker config (prefork) (3pts)
 - **CEL003**: I/O worker config (gevent) (3pts)
@@ -37,11 +39,13 @@ Implement Celery 5.4.0 async task processing with worker configuration for GPU (
 - **CEL005**: Flower monitoring setup (2pts)
 
 ### Task Implementation (20 points)
+
 - **CEL006**: ML parent task (segmentation) (8pts) - **CRITICAL PATH**
 - **CEL007**: ML child tasks (SAHI detection) (8pts) - **CRITICAL PATH**
 - **CEL008**: Chord callback (aggregation) (4pts)
 
 ### Reliability & Monitoring (5 points)
+
 - **CEL009**: Task retry with exponential backoff (2pts)
 - **CEL010**: Dead Letter Queue (DLQ) setup (2pts)
 - **CEL011**: Celery beat (periodic tasks - future) (1pt)
@@ -58,6 +62,7 @@ Implement Celery 5.4.0 async task processing with worker configuration for GPU (
 ## Technical Approach
 
 **CRITICAL: GPU Worker Configuration**
+
 ```python
 # MANDATORY: pool=solo for GPU workers
 CUDA_VISIBLE_DEVICES=0 celery -A app.celery_app worker \
@@ -69,11 +74,13 @@ CUDA_VISIBLE_DEVICES=0 celery -A app.celery_app worker \
 ```
 
 **Why pool=solo?**
+
 - prefork causes CUDA context conflicts
 - Model Singleton requires isolated GPU memory
 - Industry best practice for GPU workloads
 
 **Chord Pattern (ML Pipeline)**:
+
 ```python
 from celery import chord, group
 
@@ -103,6 +110,7 @@ def aggregate_results(results: list, photo_id: int):
 ```
 
 **Task Retry with Backoff**:
+
 ```python
 @celery_app.task(
     bind=True,
@@ -118,6 +126,7 @@ def upload_to_s3(self, file_path: str):
 ```
 
 **Correlation ID Propagation**:
+
 ```python
 # API controller
 correlation_id = get_correlation_id()

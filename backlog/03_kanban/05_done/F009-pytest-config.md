@@ -1,6 +1,7 @@
 # [F009] pytest Configuration - Testing Framework Setup
 
 ## Metadata
+
 - **Epic**: epic-001-foundation.md
 - **Sprint**: Sprint-00 (Week 1-2)
 - **Status**: `backlog`
@@ -9,22 +10,30 @@
 - **Area**: `foundation`
 - **Assignee**: TBD
 - **Dependencies**:
-  - Blocks: [TEST001-TEST015, all cards requiring tests]
-  - Blocked by: [F001, F002, F006]
+    - Blocks: [TEST001-TEST015, all cards requiring tests]
+    - Blocked by: [F001, F002, F006]
 
 ## Related Documentation
+
 - **Testing Strategy**: ../../engineering_plan/backend/README.md#testing-strategy
 - **Tech Stack**: ../../backlog/00_foundation/tech-stack.md#testing--quality
 
 ## Description
 
-Configure pytest 8.3.0 with async support, database fixtures, coverage reporting, and test database isolation for all unit and integration tests.
+Configure pytest 8.3.0 with async support, database fixtures, coverage reporting, and test database
+isolation for all unit and integration tests.
 
-**What**: Create `pyproject.toml` pytest configuration with pytest-asyncio for async tests, pytest-cov for coverage reporting, test database fixtures, and parallel test execution. Configure test discovery, markers, and coverage targets (≥80%).
+**What**: Create `pyproject.toml` pytest configuration with pytest-asyncio for async tests,
+pytest-cov for coverage reporting, test database fixtures, and parallel test execution. Configure
+test discovery, markers, and coverage targets (≥80%).
 
-**Why**: Automated testing prevents regressions. Async tests verify FastAPI/SQLAlchemy async code. Database fixtures ensure test isolation (each test gets clean database). Coverage metrics enforce quality standards.
+**Why**: Automated testing prevents regressions. Async tests verify FastAPI/SQLAlchemy async code.
+Database fixtures ensure test isolation (each test gets clean database). Coverage metrics enforce
+quality standards.
 
-**Context**: DemeterAI has async controllers, services, and repositories. Standard pytest doesn't support async. Without test database isolation, tests interfere with each other. Coverage <80% indicates untested critical paths.
+**Context**: DemeterAI has async controllers, services, and repositories. Standard pytest doesn't
+support async. Without test database isolation, tests interfere with each other. Coverage <80%
+indicates untested critical paths.
 
 ## Acceptance Criteria
 
@@ -80,9 +89,9 @@ Configure pytest 8.3.0 with async support, database fixtures, coverage reporting
   ```
 
 - [ ] **AC5**: Test isolation verified:
-  - Each test gets fresh database
-  - Tests can run in any order
-  - Tests can run in parallel (`pytest -n auto`)
+    - Each test gets fresh database
+    - Tests can run in any order
+    - Tests can run in parallel (`pytest -n auto`)
 
 - [ ] **AC6**: Coverage report generated:
   ```
@@ -99,6 +108,7 @@ Configure pytest 8.3.0 with async support, database fixtures, coverage reporting
 ## Technical Implementation Notes
 
 ### Architecture
+
 - Layer: Foundation (Testing Infrastructure)
 - Dependencies: pytest 8.3.0, pytest-asyncio 0.24.0, pytest-cov 6.0.0, httpx 0.27.0
 - Design pattern: Test fixtures, dependency injection
@@ -106,6 +116,7 @@ Configure pytest 8.3.0 with async support, database fixtures, coverage reporting
 ### Code Hints
 
 **tests/conftest.py structure:**
+
 ```python
 import pytest
 import pytest_asyncio
@@ -179,6 +190,7 @@ def sample_warehouse():
 ```
 
 **tests/unit/test_example.py:**
+
 ```python
 import pytest
 from app.services.warehouse_service import WarehouseService
@@ -193,6 +205,7 @@ async def test_warehouse_creation(db_session, sample_warehouse):
 ```
 
 **tests/integration/test_api_example.py:**
+
 ```python
 import pytest
 
@@ -209,6 +222,7 @@ async def test_health_endpoint(client):
 **Unit Tests**: N/A (testing infrastructure itself)
 
 **Integration Tests**:
+
 - [ ] Test pytest discovers tests:
   ```bash
   pytest --collect-only
@@ -232,6 +246,7 @@ async def test_health_endpoint(client):
   ```
 
 **Test Command**:
+
 ```bash
 # Create sample test first
 mkdir -p tests/unit
@@ -245,6 +260,7 @@ pytest -v
 ```
 
 ### Performance Expectations
+
 - Test execution: <100ms per unit test
 - Test database setup: <500ms per test
 - Coverage report generation: <2 seconds
@@ -253,25 +269,27 @@ pytest -v
 ## Handover Briefing
 
 **For the next developer:**
-- **Context**: This is the foundation for ALL testing - every card must include tests using this setup
+
+- **Context**: This is the foundation for ALL testing - every card must include tests using this
+  setup
 - **Key decisions**:
-  - Using pytest-asyncio (supports async/await in tests)
-  - Function-scoped database fixture (fresh DB per test, slower but isolated)
-  - Coverage threshold 80% (enforced in CI/CD)
-  - Test markers (unit, integration, slow) for selective execution
-  - httpx AsyncClient for FastAPI testing (not requests)
+    - Using pytest-asyncio (supports async/await in tests)
+    - Function-scoped database fixture (fresh DB per test, slower but isolated)
+    - Coverage threshold 80% (enforced in CI/CD)
+    - Test markers (unit, integration, slow) for selective execution
+    - httpx AsyncClient for FastAPI testing (not requests)
 - **Known limitations**:
-  - Test database must exist (manual creation: `createdb demeterai_test`)
-  - Parallel tests require separate database per worker (future optimization)
-  - Alembic migrations not run in tests (Base.metadata.create_all used instead)
+    - Test database must exist (manual creation: `createdb demeterai_test`)
+    - Parallel tests require separate database per worker (future optimization)
+    - Alembic migrations not run in tests (Base.metadata.create_all used instead)
 - **Next steps after this card**:
-  - TEST001-TEST015: Create test templates and patterns
-  - All feature cards (S001-S042, C001-C026) must include tests
-  - CI/CD runs `pytest --cov=app --cov-fail-under=80` (Sprint 05)
+    - TEST001-TEST015: Create test templates and patterns
+    - All feature cards (S001-S042, C001-C026) must include tests
+    - CI/CD runs `pytest --cov=app --cov-fail-under=80` (Sprint 05)
 - **Questions to ask**:
-  - Should we use factory_boy for test data generation? (reduces boilerplate)
-  - Should we mock external services or use real test instances? (S3, Redis)
-  - Should we add mutation testing? (verifies tests actually test logic)
+    - Should we use factory_boy for test data generation? (reduces boilerplate)
+    - Should we mock external services or use real test instances? (S3, Redis)
+    - Should we add mutation testing? (verifies tests actually test logic)
 
 ## Definition of Done Checklist
 
@@ -286,6 +304,7 @@ pytest -v
 - [ ] Test database created (`createdb demeterai_test`)
 
 ## Time Tracking
+
 - **Estimated**: 5 story points
 - **Actual**: TBD (fill after completion)
 - **Started**: TBD
@@ -305,22 +324,29 @@ pytest -v
 
 ### Acceptance Criteria Verification
 
-- [x] **AC1**: pyproject.toml contains pytest configuration with asyncio_mode="auto", cov-fail-under=80, and all required settings
+- [x] **AC1**: pyproject.toml contains pytest configuration with asyncio_mode="auto",
+  cov-fail-under=80, and all required settings
 - [x] **AC2**: tests/conftest.py created with db_session fixture (function-scoped, auto-rollback)
 - [x] **AC3**: FastAPI client fixture created with dependency override for get_db_session
-- [x] **AC4**: All test commands work (pytest, pytest -v, pytest --cov=app, pytest -m unit/integration)
+- [x] **AC4**: All test commands work (pytest, pytest -v, pytest --cov=app, pytest -m
+  unit/integration)
 - [x] **AC5**: Test isolation verified - each test gets fresh database, can run in any order
 - [x] **AC6**: Coverage report generated (HTML + term-missing) - 98.28% coverage achieved
 
 ### Implementation Summary
 
 **Files Modified:**
-- `/home/lucasg/proyectos/DemeterDocs/pyproject.toml` - Added complete pytest configuration with markers, coverage settings
+
+- `/home/lucasg/proyectos/DemeterDocs/pyproject.toml` - Added complete pytest configuration with
+  markers, coverage settings
 
 **Files Created:**
-- `/home/lucasg/proyectos/DemeterDocs/tests/conftest.py` - Shared fixtures (db_session, client, sample data factories)
+
+- `/home/lucasg/proyectos/DemeterDocs/tests/conftest.py` - Shared fixtures (db_session, client,
+  sample data factories)
 - `/home/lucasg/proyectos/DemeterDocs/tests/integration/__init__.py` - Integration tests package
-- `/home/lucasg/proyectos/DemeterDocs/tests/integration/test_api_health.py` - Health endpoint integration tests (3 tests)
+- `/home/lucasg/proyectos/DemeterDocs/tests/integration/test_api_health.py` - Health endpoint
+  integration tests (3 tests)
 - `/home/lucasg/proyectos/DemeterDocs/tests/unit/__init__.py` - Unit tests package
 - `/home/lucasg/proyectos/DemeterDocs/tests/unit/test_sample.py` - Sample unit tests (4 tests)
 
@@ -332,6 +358,7 @@ Coverage: 98.28% (target: ≥80%)
 ```
 
 **Test Commands Verified:**
+
 - `pytest` - ✅ 75 tests passed
 - `pytest -v` - ✅ Verbose output works
 - `pytest --cov=app` - ✅ Coverage: 98.28%
@@ -342,7 +369,8 @@ Coverage: 98.28% (target: ≥80%)
 
 ### Key Implementation Details
 
-1. **Test Database**: Using SQLite in-memory (aiosqlite) instead of PostgreSQL for tests (no Docker required until F012)
+1. **Test Database**: Using SQLite in-memory (aiosqlite) instead of PostgreSQL for tests (no Docker
+   required until F012)
 2. **Fixtures**: Function-scoped db_session ensures complete isolation between tests
 3. **Markers**: Automatic marker assignment based on test location (tests/unit/ → @pytest.mark.unit)
 4. **Coverage**: Enforced at ≥80% with --cov-fail-under=80 flag

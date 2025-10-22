@@ -7,7 +7,8 @@
 
 ## Overview
 
-DemeterAI deployment strategy uses **Docker Compose** for development and testing, with plans for production deployment on cloud infrastructure.
+DemeterAI deployment strategy uses **Docker Compose** for development and testing, with plans for
+production deployment on cloud infrastructure.
 
 ---
 
@@ -15,18 +16,18 @@ DemeterAI deployment strategy uses **Docker Compose** for development and testin
 
 ### Services
 
-| Service | Purpose | Pool Type | Replicas |
-|---------|---------|-----------|----------|
-| **api** | FastAPI web server | - | 2-4 |
-| **celery_gpu_0** | ML worker (GPU 0) | solo | 1 |
-| **celery_gpu_1** | ML worker (GPU 1) | solo | 1 |
-| **celery_cpu** | CPU worker (aggregation) | prefork | 1 (concurrency=16) |
-| **celery_io** | I/O worker (S3, DB) | gevent | 1 (concurrency=50) |
-| **db** | PostgreSQL + PostGIS | - | 1 |
-| **redis** | Celery broker/backend | - | 1 |
-| **flower** | Celery monitoring | - | 1 |
-| **prometheus** | Metrics collection | - | 1 |
-| **grafana** | Metrics visualization | - | 1 |
+| Service          | Purpose                  | Pool Type | Replicas           |
+|------------------|--------------------------|-----------|--------------------|
+| **api**          | FastAPI web server       | -         | 2-4                |
+| **celery_gpu_0** | ML worker (GPU 0)        | solo      | 1                  |
+| **celery_gpu_1** | ML worker (GPU 1)        | solo      | 1                  |
+| **celery_cpu**   | CPU worker (aggregation) | prefork   | 1 (concurrency=16) |
+| **celery_io**    | I/O worker (S3, DB)      | gevent    | 1 (concurrency=50) |
+| **db**           | PostgreSQL + PostGIS     | -         | 1                  |
+| **redis**        | Celery broker/backend    | -         | 1                  |
+| **flower**       | Celery monitoring        | -         | 1                  |
+| **prometheus**   | Metrics collection       | -         | 1                  |
+| **grafana**      | Metrics visualization    | -         | 1                  |
 
 ---
 
@@ -47,11 +48,13 @@ CUDA_VISIBLE_DEVICES=0 celery -A app worker \
 ```
 
 **Why pool=solo:**
+
 - prefork causes CUDA context conflicts
 - Model singleton pattern requires isolated GPU memory
 - Industry best practice for GPU workloads
 
 **Recycling:**
+
 - `--max-tasks-per-child=50`: Recycle worker after 50 tasks (prevent memory leaks)
 - `--max-memory-per-child=8GB`: Hard memory limit
 
@@ -163,6 +166,7 @@ python scripts/seed_data.py
 **URL:** `http://localhost:5555`
 
 **Features:**
+
 - Real-time task monitoring
 - Worker status
 - Task history
@@ -174,6 +178,7 @@ python scripts/seed_data.py
 **Grafana:** `http://localhost:3000` (admin/admin)
 
 **Metrics:**
+
 - API latency (p50, p95, p99)
 - ML inference time
 - GPU utilization
@@ -181,6 +186,7 @@ python scripts/seed_data.py
 - Database connection pool
 
 **Dashboards:**
+
 - API Performance
 - ML Pipeline Metrics
 - Database Health
@@ -193,6 +199,7 @@ python scripts/seed_data.py
 ### Database Backups
 
 **Daily automated backups:**
+
 ```bash
 # Backup script (runs via cron)
 pg_dump -h localhost -U user demeterai | gzip > backups/demeterai_$(date +%Y%m%d).sql.gz
@@ -201,6 +208,7 @@ pg_dump -h localhost -U user demeterai | gzip > backups/demeterai_$(date +%Y%m%d
 ```
 
 **Point-in-Time Recovery (PITR):**
+
 - WAL archiving to S3
 - RPO: 5 minutes
 - RTO: 30-60 minutes
@@ -208,9 +216,11 @@ pg_dump -h localhost -U user demeterai | gzip > backups/demeterai_$(date +%Y%m%d
 ### S3 Lifecycle Policies
 
 **Original photos:**
+
 - Delete after 90 days (keep processed images)
 
 **Processed images:**
+
 - Delete after 365 days
 
 ---
@@ -220,18 +230,22 @@ pg_dump -h localhost -U user demeterai | gzip > backups/demeterai_$(date +%Y%m%d
 ### Horizontal Scaling
 
 **API Servers:**
+
 - Scale on CPU > 70% or request queue > 100
 - Target: 2-4 replicas for 1000 concurrent users
 
 **GPU Workers:**
+
 - Fixed count (4× A100 for production)
 - No auto-scaling (GPU hardware is fixed)
 
 **CPU Workers:**
+
 - Scale on queue depth > 50 tasks
 - Target: 1-4 workers depending on load
 
 **I/O Workers:**
+
 - Scale on S3 upload queue > 200 tasks
 
 ---
@@ -303,16 +317,19 @@ redis-cli ping
 ### Common Issues
 
 **GPU Worker Fails:**
+
 - Check CUDA drivers: `nvidia-smi`
 - Verify `pool=solo` (NOT prefork)
 - Check model paths exist
 
 **S3 Upload Fails:**
+
 - Verify AWS credentials
 - Check bucket permissions
 - Review circuit breaker status (Flower)
 
 **High Database Load:**
+
 - Check slow query log
 - Review `pg_stat_activity`
 - Consider adding indexes

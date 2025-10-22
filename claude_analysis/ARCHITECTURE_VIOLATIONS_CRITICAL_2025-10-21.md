@@ -1,4 +1,5 @@
 # CRITICAL ARCHITECTURE VIOLATIONS AUDIT - DemeterAI v2.0
+
 ## Executive Summary
 
 **Status**: MULTIPLE CRITICAL VIOLATIONS DETECTED
@@ -11,7 +12,9 @@
 ## VIOLATION CATEGORY 1: CONTROLLERS IMPORTING REPOSITORIES DIRECTLY
 
 ### Critical Issue
-Controllers are **directly importing and instantiating repositories**, completely bypassing the service layer. This violates Clean Architecture principles and breaks the abstraction layer.
+
+Controllers are **directly importing and instantiating repositories**, completely bypassing the
+service layer. This violates Clean Architecture principles and breaks the abstraction layer.
 
 ### Violation Details
 
@@ -73,20 +76,22 @@ from app.repositories.stock_batch_repository import StockBatchRepository
 
 ### Impact Analysis
 
-| Impact Area | Severity | Description |
-|------------|----------|-------------|
-| **Abstraction Breach** | CRITICAL | Controllers directly coupled to repository implementation |
-| **Testing** | CRITICAL | Cannot mock repositories without rewriting controller logic |
-| **Maintainability** | CRITICAL | Repository changes require controller updates |
-| **Refactoring Risk** | CRITICAL | Cannot swap repository implementations |
-| **Production Risk** | CRITICAL | Database layer exposed to HTTP layer |
+| Impact Area            | Severity | Description                                                 |
+|------------------------|----------|-------------------------------------------------------------|
+| **Abstraction Breach** | CRITICAL | Controllers directly coupled to repository implementation   |
+| **Testing**            | CRITICAL | Cannot mock repositories without rewriting controller logic |
+| **Maintainability**    | CRITICAL | Repository changes require controller updates               |
+| **Refactoring Risk**   | CRITICAL | Cannot swap repository implementations                      |
+| **Production Risk**    | CRITICAL | Database layer exposed to HTTP layer                        |
 
 ---
 
 ## VIOLATION CATEGORY 2: SERVICES ACCESSING REPOSITORY.SESSION DIRECTLY
 
 ### Critical Issue
-Services are **directly accessing `self.repo.session.execute()`**, executing raw SQL queries instead of using repository methods. This violates the repository pattern and creates SQL injection risks.
+
+Services are **directly accessing `self.repo.session.execute()`**, executing raw SQL queries instead
+of using repository methods. This violates the repository pattern and creates SQL injection risks.
 
 ### Violation Details
 
@@ -146,21 +151,23 @@ session: AsyncSession = self.stock_batch_repo.session
 
 ### Impact Analysis
 
-| Impact Area | Severity | Description |
-|------------|----------|-------------|
-| **Repository Pattern Violation** | CRITICAL | Bypasses repository abstraction layer |
-| **SQL Injection** | CRITICAL | Raw SQL queries in services (not parameterized) |
-| **Encapsulation** | CRITICAL | Repository internals exposed to services |
-| **Code Duplication** | MAJOR | SQL queries scattered across multiple services |
-| **Query Optimization** | MAJOR | Cannot optimize at repository level |
-| **Testing** | CRITICAL | Cannot test service logic without database |
+| Impact Area                      | Severity | Description                                     |
+|----------------------------------|----------|-------------------------------------------------|
+| **Repository Pattern Violation** | CRITICAL | Bypasses repository abstraction layer           |
+| **SQL Injection**                | CRITICAL | Raw SQL queries in services (not parameterized) |
+| **Encapsulation**                | CRITICAL | Repository internals exposed to services        |
+| **Code Duplication**             | MAJOR    | SQL queries scattered across multiple services  |
+| **Query Optimization**           | MAJOR    | Cannot optimize at repository level             |
+| **Testing**                      | CRITICAL | Cannot test service logic without database      |
 
 ---
 
 ## VIOLATION CATEGORY 3: SERVICE CALLING CONTROLLER METHODS
 
 ### Critical Issue
-The `stock_controller.py` is calling `service.create_manual_initialization()` which **doesn't exist** in `BatchLifecycleService`.
+
+The `stock_controller.py` is calling `service.create_manual_initialization()` which **doesn't exist
+** in `BatchLifecycleService`.
 
 **File**: `/home/lucasg/proyectos/DemeterDocs/app/controllers/stock_controller.py`
 
@@ -189,21 +196,24 @@ class BatchLifecycleService:
 
 ### Impact Analysis
 
-| Impact Area | Severity | Description |
-|------------|----------|-------------|
-| **Runtime Error** | CRITICAL | AttributeError at runtime (method doesn't exist) |
-| **Feature Broken** | CRITICAL | Manual stock initialization endpoint will crash |
-| **Code Completeness** | CRITICAL | Incomplete implementation deployed |
-| **API Contract Violation** | CRITICAL | Endpoint documented but non-functional |
+| Impact Area                | Severity | Description                                      |
+|----------------------------|----------|--------------------------------------------------|
+| **Runtime Error**          | CRITICAL | AttributeError at runtime (method doesn't exist) |
+| **Feature Broken**         | CRITICAL | Manual stock initialization endpoint will crash  |
+| **Code Completeness**      | CRITICAL | Incomplete implementation deployed               |
+| **API Contract Violation** | CRITICAL | Endpoint documented but non-functional           |
 
 ---
 
 ## VIOLATION CATEGORY 4: CONTROLLERS WITH BUSINESS LOGIC
 
 ### Critical Issue
-Controllers contain **business logic and data transformation**, violating the "thin controller" principle.
 
-**File**: `/home/lucasg/proyectos/DemeterDocs/app/controllers/location_controller.py` (Lines 359-392)
+Controllers contain **business logic and data transformation**, violating the "thin controller"
+principle.
+
+**File**: `/home/lucasg/proyectos/DemeterDocs/app/controllers/location_controller.py` (Lines
+359-392)
 
 ```python
 # Lines 368-377 - BUSINESS LOGIC IN CONTROLLER
@@ -225,7 +235,8 @@ return {
 }
 ```
 
-**File**: `/home/lucasg/proyectos/DemeterDocs/app/controllers/analytics_controller.py` (Lines 105-136)
+**File**: `/home/lucasg/proyectos/DemeterDocs/app/controllers/analytics_controller.py` (Lines
+105-136)
 
 ```python
 # Lines 116-136 - BUSINESS LOGIC (Query building, data aggregation)
@@ -240,18 +251,19 @@ return {
 
 ### Impact Analysis
 
-| Impact Area | Severity | Description |
-|------------|----------|-------------|
-| **Architecture Violation** | CRITICAL | Controllers doing work meant for services |
-| **Testability** | CRITICAL | Cannot test business logic without HTTP layer |
-| **Reusability** | MAJOR | Logic duplicated if multiple endpoints need same transform |
-| **Maintainability** | MAJOR | Business rules scattered across layers |
+| Impact Area                | Severity | Description                                                |
+|----------------------------|----------|------------------------------------------------------------|
+| **Architecture Violation** | CRITICAL | Controllers doing work meant for services                  |
+| **Testability**            | CRITICAL | Cannot test business logic without HTTP layer              |
+| **Reusability**            | MAJOR    | Logic duplicated if multiple endpoints need same transform |
+| **Maintainability**        | MAJOR    | Business rules scattered across layers                     |
 
 ---
 
 ## VIOLATION CATEGORY 5: MISSING SERVICE METHOD IMPLEMENTATIONS
 
 ### Critical Issue
+
 Services are missing methods that controllers are trying to call.
 
 ### Missing Methods
@@ -291,18 +303,20 @@ class BatchLifecycleService:
 
 ### Impact Analysis
 
-| Impact Area | Severity | Description |
-|------------|----------|-------------|
-| **Runtime Errors** | CRITICAL | AttributeError when methods called |
-| **API Downtime** | CRITICAL | Endpoints will return 500 errors |
-| **Incomplete Implementation** | CRITICAL | Feature not delivered |
+| Impact Area                   | Severity | Description                        |
+|-------------------------------|----------|------------------------------------|
+| **Runtime Errors**            | CRITICAL | AttributeError when methods called |
+| **API Downtime**              | CRITICAL | Endpoints will return 500 errors   |
+| **Incomplete Implementation** | CRITICAL | Feature not delivered              |
 
 ---
 
 ## VIOLATION CATEGORY 6: DEPENDENCY INJECTION VIOLATIONS
 
 ### Critical Issue
-Services and controllers are creating service/repository instances instead of using dependency injection consistently.
+
+Services and controllers are creating service/repository instances instead of using dependency
+injection consistently.
 
 **File**: `/home/lucasg/proyectos/DemeterDocs/app/controllers/stock_controller.py` (Lines 105-121)
 
@@ -323,6 +337,7 @@ def get_batch_lifecycle_service(
 ```
 
 **Issue**: Controllers should NOT be responsible for:
+
 1. Creating repositories
 2. Creating services
 3. Wiring service dependencies
@@ -331,12 +346,12 @@ This logic should be in a dedicated dependency injection module or factory.
 
 ### Impact Analysis
 
-| Impact Area | Severity | Description |
-|------------|----------|-------------|
-| **Coupling** | MAJOR | Controllers tightly coupled to service/repo implementations |
-| **Testability** | MAJOR | Cannot inject mocks without modifying controllers |
-| **Maintainability** | MAJOR | Dependency wiring scattered across controller functions |
-| **Scalability** | MAJOR | Adding new services requires controller updates |
+| Impact Area         | Severity | Description                                                 |
+|---------------------|----------|-------------------------------------------------------------|
+| **Coupling**        | MAJOR    | Controllers tightly coupled to service/repo implementations |
+| **Testability**     | MAJOR    | Cannot inject mocks without modifying controllers           |
+| **Maintainability** | MAJOR    | Dependency wiring scattered across controller functions     |
+| **Scalability**     | MAJOR    | Adding new services requires controller updates             |
 
 ---
 
@@ -377,6 +392,7 @@ def get_product_service(
 ```
 
 **Why this is wrong**:
+
 1. Service is receiving `category_service` it doesn't use
 2. Controller is deciding what services to inject
 3. Service dependencies hard-coded in controller
@@ -385,28 +401,28 @@ def get_product_service(
 
 ## VIOLATION SUMMARY TABLE
 
-| Violation ID | Type | Severity | File | Line | Issue |
-|-------------|------|----------|------|------|-------|
-| V001 | Controller → Repository Import | CRITICAL | stock_controller.py | 33-34 | Direct repository imports |
-| V002 | Controller → Repository Import | CRITICAL | location_controller.py | 28-31 | Direct repository imports |
-| V003 | Controller → Repository Import | CRITICAL | config_controller.py | 25-28 | Direct repository imports |
-| V004 | Controller → Repository Import | CRITICAL | product_controller.py | 30-32 | Direct repository imports |
-| V005 | Controller → Repository Import | CRITICAL | analytics_controller.py | 28 | Direct repository imports |
-| V006 | Service → Session Direct Access | CRITICAL | product_service.py | 68, 159, 186 | Bypasses repository pattern |
-| V007 | Service → Session Direct Access | CRITICAL | storage_area_service.py | 251, 304, 347 | Bypasses repository pattern |
-| V008 | Service → Session Direct Access | CRITICAL | storage_location_service.py | Multiple | Bypasses repository pattern |
-| V009 | Service → Session Direct Access | CRITICAL | storage_bin_service.py | Multiple | Bypasses repository pattern |
-| V010 | Service → Session Direct Access | CRITICAL | stock_movement_service.py | 35 | Bypasses repository pattern |
-| V011 | Service → Session Direct Access | CRITICAL | analytics_service.py | 99 | Bypasses repository pattern |
-| V012 | Missing Service Method | CRITICAL | stock_controller.py | 269 | create_manual_initialization() doesn't exist |
-| V013 | Controller Business Logic | CRITICAL | location_controller.py | 359-392 | Business logic in controller |
-| V014 | Controller Business Logic | CRITICAL | analytics_controller.py | 105-136 | Business logic in controller |
-| V015 | Missing Service Methods | CRITICAL | stock_batch_service.py | Various | get_by_category_and_family(), get_all() missing |
-| V016 | Incomplete Service | CRITICAL | batch_lifecycle_service.py | 9 | __init__() takes no dependencies |
-| V017 | Dependency Injection | MAJOR | stock_controller.py | 105-121 | Controllers creating services |
-| V018 | Dependency Injection | MAJOR | location_controller.py | 52-119 | Controllers creating services |
-| V019 | Dependency Injection | MAJOR | product_controller.py | 56-85 | Controllers creating services |
-| V020 | Service Injection Issue | MAJOR | product_service.py | 85 | Receives unused category_service |
+| Violation ID | Type                            | Severity | File                        | Line          | Issue                                           |
+|--------------|---------------------------------|----------|-----------------------------|---------------|-------------------------------------------------|
+| V001         | Controller → Repository Import  | CRITICAL | stock_controller.py         | 33-34         | Direct repository imports                       |
+| V002         | Controller → Repository Import  | CRITICAL | location_controller.py      | 28-31         | Direct repository imports                       |
+| V003         | Controller → Repository Import  | CRITICAL | config_controller.py        | 25-28         | Direct repository imports                       |
+| V004         | Controller → Repository Import  | CRITICAL | product_controller.py       | 30-32         | Direct repository imports                       |
+| V005         | Controller → Repository Import  | CRITICAL | analytics_controller.py     | 28            | Direct repository imports                       |
+| V006         | Service → Session Direct Access | CRITICAL | product_service.py          | 68, 159, 186  | Bypasses repository pattern                     |
+| V007         | Service → Session Direct Access | CRITICAL | storage_area_service.py     | 251, 304, 347 | Bypasses repository pattern                     |
+| V008         | Service → Session Direct Access | CRITICAL | storage_location_service.py | Multiple      | Bypasses repository pattern                     |
+| V009         | Service → Session Direct Access | CRITICAL | storage_bin_service.py      | Multiple      | Bypasses repository pattern                     |
+| V010         | Service → Session Direct Access | CRITICAL | stock_movement_service.py   | 35            | Bypasses repository pattern                     |
+| V011         | Service → Session Direct Access | CRITICAL | analytics_service.py        | 99            | Bypasses repository pattern                     |
+| V012         | Missing Service Method          | CRITICAL | stock_controller.py         | 269           | create_manual_initialization() doesn't exist    |
+| V013         | Controller Business Logic       | CRITICAL | location_controller.py      | 359-392       | Business logic in controller                    |
+| V014         | Controller Business Logic       | CRITICAL | analytics_controller.py     | 105-136       | Business logic in controller                    |
+| V015         | Missing Service Methods         | CRITICAL | stock_batch_service.py      | Various       | get_by_category_and_family(), get_all() missing |
+| V016         | Incomplete Service              | CRITICAL | batch_lifecycle_service.py  | 9             | __init__() takes no dependencies                |
+| V017         | Dependency Injection            | MAJOR    | stock_controller.py         | 105-121       | Controllers creating services                   |
+| V018         | Dependency Injection            | MAJOR    | location_controller.py      | 52-119        | Controllers creating services                   |
+| V019         | Dependency Injection            | MAJOR    | product_controller.py       | 56-85         | Controllers creating services                   |
+| V020         | Service Injection Issue         | MAJOR    | product_service.py          | 85            | Receives unused category_service                |
 
 ---
 
@@ -415,24 +431,24 @@ def get_product_service(
 ### Immediate Production Risk
 
 1. **Endpoint Crashes** (CRITICAL)
-   - POST /api/v1/stock/manual will crash (method doesn't exist)
-   - GET /api/v1/analytics/daily-counts incomplete implementation
-   - GET /api/v1/locations/search has business logic in controller
+    - POST /api/v1/stock/manual will crash (method doesn't exist)
+    - GET /api/v1/analytics/daily-counts incomplete implementation
+    - GET /api/v1/locations/search has business logic in controller
 
 2. **Data Integrity** (CRITICAL)
-   - Raw SQL queries in services not parameterized
-   - No transaction management visible
-   - SQL injection vectors possible
+    - Raw SQL queries in services not parameterized
+    - No transaction management visible
+    - SQL injection vectors possible
 
 3. **Testability** (CRITICAL)
-   - Cannot test services without database
-   - Cannot mock repositories
-   - Cannot test controllers without services
+    - Cannot test services without database
+    - Cannot mock repositories
+    - Cannot test controllers without services
 
 4. **Maintainability** (CRITICAL)
-   - Repository changes break controllers
-   - Service changes require controller updates
-   - Business logic scattered across layers
+    - Repository changes break controllers
+    - Service changes require controller updates
+    - Business logic scattered across layers
 
 ### Quality Metrics
 
@@ -448,49 +464,49 @@ def get_product_service(
 ### Priority 1 (Blocker - Fix Before Deployment)
 
 1. **Create Dependency Injection Module** (`app/dependencies.py`)
-   - Centralize all service/repository creation
-   - Remove from controllers
-   - Use factory pattern
+    - Centralize all service/repository creation
+    - Remove from controllers
+    - Use factory pattern
 
 2. **Implement Missing Service Methods**
-   - Add to `StockBatchService`: `get_by_category_and_family()`, `get_all()`
-   - Complete `BatchLifecycleService.create_manual_initialization()`
-   - Add proper constructor to `BatchLifecycleService`
+    - Add to `StockBatchService`: `get_by_category_and_family()`, `get_all()`
+    - Complete `BatchLifecycleService.create_manual_initialization()`
+    - Add proper constructor to `BatchLifecycleService`
 
 3. **Remove Direct Repository Access from Controllers**
-   - Delete all `from app.repositories` imports in `app/controllers/`
-   - Verify only service imports remain
+    - Delete all `from app.repositories` imports in `app/controllers/`
+    - Verify only service imports remain
 
 4. **Replace Service.session.execute() Calls**
-   - Convert all `self.repo.session.execute()` to repository method calls
-   - Add methods to `BaseRepository` for common queries
+    - Convert all `self.repo.session.execute()` to repository method calls
+    - Add methods to `BaseRepository` for common queries
 
 ### Priority 2 (Medium - Fix This Sprint)
 
 1. **Extract Business Logic from Controllers**
-   - Move hierarchy traversal logic to service
-   - Move data transformation to response schemas
-   - Keep controllers thin (only HTTP handling)
+    - Move hierarchy traversal logic to service
+    - Move data transformation to response schemas
+    - Keep controllers thin (only HTTP handling)
 
 2. **Implement Proper Dependency Injection**
-   - Use FastAPI dependencies properly
-   - Add service factory
-   - Remove repository creation from controllers
+    - Use FastAPI dependencies properly
+    - Add service factory
+    - Remove repository creation from controllers
 
 3. **Add Repository Query Methods**
-   - Audit what queries services need
-   - Add them to repositories
-   - Deprecate direct session access
+    - Audit what queries services need
+    - Add them to repositories
+    - Deprecate direct session access
 
 ### Priority 3 (Nice to Have - Future)
 
 1. **Add Query Builder Pattern**
-   - For complex queries in repositories
-   - Reduce boilerplate
+    - For complex queries in repositories
+    - Reduce boilerplate
 
 2. **Implement Service Locator Pattern** (optional)
-   - For optional dependencies
-   - Reduces constructor coupling
+    - For optional dependencies
+    - Reduces constructor coupling
 
 ---
 
@@ -536,12 +552,14 @@ def get_product_service(
 ## CONCLUSION
 
 The codebase has **SYSTEMATIC architectural violations** that compromise:
+
 - Code quality
 - Testability
 - Maintainability
 - Security
 - Production readiness
 
-These are NOT minor issues - they are **BLOCKER-level violations** that must be fixed before production deployment.
+These are NOT minor issues - they are **BLOCKER-level violations** that must be fixed before
+production deployment.
 
 **Recommendation**: REJECT current code for production. Schedule architecture refactoring sprint.

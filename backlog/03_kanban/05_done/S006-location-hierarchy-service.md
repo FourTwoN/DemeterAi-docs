@@ -1,6 +1,7 @@
 # S006: LocationHierarchyService
 
 ## Metadata
+
 - **Epic**: [epic-004-services.md](../../02_epics/epic-004-services.md)
 - **Sprint**: Sprint-02
 - **Status**: `backlog`
@@ -9,21 +10,31 @@
 - **Area**: `services/location`
 - **Assignee**: TBD
 - **Dependencies**:
-  - Blocks: [C006, S013]
-  - Blocked by: [S001, S002, S003, S004]
+    - Blocks: [C006, S013]
+    - Blocked by: [S001, S002, S003, S004]
 
 ## Related Documentation
-- **Engineering Plan**: [../../engineering_plan/backend/service_layer.md](../../engineering_plan/backend/service_layer.md)
-- **Architecture**: [../../engineering_plan/03_architecture_overview.md](../../engineering_plan/03_architecture_overview.md)
-- **Workflows**: [../../engineering_plan/workflows/README.md](../../engineering_plan/workflows/README.md)
+
+- **Engineering Plan
+  **: [../../engineering_plan/backend/service_layer.md](../../engineering_plan/backend/service_layer.md)
+- **Architecture
+  **: [../../engineering_plan/03_architecture_overview.md](../../engineering_plan/03_architecture_overview.md)
+- **Workflows
+  **: [../../engineering_plan/workflows/README.md](../../engineering_plan/workflows/README.md)
 
 ## Description
 
-**What**: Implement `LocationHierarchyService` as an **aggregation service** that provides unified access to all 4 levels of the location hierarchy (warehouse → storage_area → storage_location → storage_bin).
+**What**: Implement `LocationHierarchyService` as an **aggregation service** that provides unified
+access to all 4 levels of the location hierarchy (warehouse → storage_area → storage_location →
+storage_bin).
 
-**Why**: Controllers and ML pipeline need a single entry point for location operations without knowing internal service dependencies. This service **orchestrates** S001-S004 and provides hierarchy-wide operations (tree navigation, breadcrumb paths, bulk operations).
+**Why**: Controllers and ML pipeline need a single entry point for location operations without
+knowing internal service dependencies. This service **orchestrates** S001-S004 and provides
+hierarchy-wide operations (tree navigation, breadcrumb paths, bulk operations).
 
-**Context**: Clean Architecture Application Layer. **Aggregation pattern** - wraps S001-S004 services to provide high-level operations. Critical for photo localization ML pipeline and location management UI.
+**Context**: Clean Architecture Application Layer. **Aggregation pattern** - wraps S001-S004
+services to provide high-level operations. Critical for photo localization ML pipeline and location
+management UI.
 
 ## Acceptance Criteria
 
@@ -307,6 +318,7 @@
 ## Technical Implementation Notes
 
 ### Architecture
+
 - **Layer**: Application (Service)
 - **Dependencies**: S001, S002, S003, S004 (ALL location services)
 - **Design Pattern**: **Aggregation / Facade pattern** - unified interface to complex subsystem
@@ -315,6 +327,7 @@
 ### Code Hints
 
 **Caching opportunity:**
+
 ```python
 from functools import lru_cache
 
@@ -325,6 +338,7 @@ async def _cached_hierarchy_tree(warehouse_id: Optional[int]):
 ```
 
 **N+1 query optimization:**
+
 ```python
 # In tree generation, use eager loading
 warehouses = await self.warehouse_service.get_active_warehouses(include_areas=True)
@@ -334,6 +348,7 @@ warehouses = await self.warehouse_service.get_active_warehouses(include_areas=Tr
 ### Testing Requirements
 
 **Unit Tests**:
+
 ```python
 @pytest.mark.asyncio
 async def test_full_hierarchy_gps_lookup():
@@ -391,6 +406,7 @@ async def test_hierarchy_validation():
 **Coverage Target**: ≥85%
 
 ### Performance Expectations
+
 - `get_full_hierarchy_by_gps`: <200ms (sequential service calls)
 - `get_hierarchy_tree` (1 warehouse): <500ms for 10 areas × 20 locations × 50 bins
 - `validate_hierarchy`: <100ms (3-4 sequential lookups)
@@ -400,9 +416,11 @@ async def test_hierarchy_validation():
 
 **For the next developer:**
 
-**Context**: LocationHierarchyService is an **aggregation service** (Facade pattern). It wraps S001-S004 to provide unified location operations. CRITICAL for ML pipeline and UI.
+**Context**: LocationHierarchyService is an **aggregation service** (Facade pattern). It wraps
+S001-S004 to provide unified location operations. CRITICAL for ML pipeline and UI.
 
 **Key decisions made**:
+
 1. **GPS lookup aggregation**: Single call returns all 4 levels (warehouse → area → location → bins)
 2. **Tree generation**: Recursive structure for location picker UI
 3. **Breadcrumb paths**: Navigation helper for UI
@@ -410,16 +428,19 @@ async def test_hierarchy_validation():
 5. **Bulk operations**: Create full hierarchy in one transaction
 
 **Known limitations**:
+
 - Tree generation can be slow for large hierarchies (consider pagination)
 - No caching by default (implement Redis for production)
 - GPS lookup is sequential (can't parallelize hierarchy traversal)
 
 **Next steps**:
+
 - C006: LocationHierarchyController (uses this service)
 - S013: PhotoUploadService (calls `get_full_hierarchy_by_gps()`)
 - ML Pipeline: Uses GPS lookup for photo localization
 
 **Questions to validate**:
+
 - Should tree generation be paginated (lazy loading)?
 - Cache invalidation strategy for hierarchy changes?
 - Should breadcrumb include GPS coordinates?
@@ -436,6 +457,7 @@ async def test_hierarchy_validation():
 - [ ] PR reviewed (2+ approvals)
 
 ## Time Tracking
+
 - **Estimated**: 5 story points (~10 hours)
 - **Actual**: TBD
 

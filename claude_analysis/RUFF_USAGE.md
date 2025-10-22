@@ -2,7 +2,8 @@
 
 ## Overview
 
-Ruff is a fast, all-in-one linter and formatter for Python, replacing Black, Flake8, isort, and more. It's 10-100x faster than traditional tools.
+Ruff is a fast, all-in-one linter and formatter for Python, replacing Black, Flake8, isort, and
+more. It's 10-100x faster than traditional tools.
 
 ## Quick Start
 
@@ -46,6 +47,7 @@ Ruff is configured in `pyproject.toml` under `[tool.ruff]`.
 ### Exclusions
 
 The following directories are excluded from linting:
+
 - `.git`, `.venv`, `venv`
 - `alembic/versions/*.py` (auto-generated migrations)
 - `__pycache__`, `.pytest_cache`, `.mypy_cache`, `.ruff_cache`
@@ -145,6 +147,7 @@ lint:
 ### VS Code
 
 Install the official Ruff extension:
+
 1. Install: `ms-python.ruff`
 2. Add to `settings.json`:
 
@@ -165,14 +168,15 @@ Install the official Ruff extension:
 
 1. Go to Settings > Tools > External Tools
 2. Add new tool:
-   - Name: Ruff Format
-   - Program: `ruff`
-   - Arguments: `format $FilePath$`
-   - Working directory: `$ProjectFileDir$`
+    - Name: Ruff Format
+    - Program: `ruff`
+    - Arguments: `format $FilePath$`
+    - Working directory: `$ProjectFileDir$`
 
 ## Performance
 
 Ruff is extremely fast:
+
 - **Linting**: <2 seconds for entire codebase
 - **Formatting**: <1 second for entire codebase
 - **Individual file**: <100ms
@@ -180,6 +184,7 @@ Ruff is extremely fast:
 ## Migration from Other Tools
 
 Ruff replaces:
+
 - **Black** → `ruff format`
 - **Flake8** → `ruff check` (E, F, W rules)
 - **isort** → `ruff check` (I rules)
@@ -212,12 +217,14 @@ ruff --version
 ### Import Sorting Issues
 
 If imports are not sorted correctly, check:
+
 1. `known-first-party = ["app"]` is set in `pyproject.toml`
 2. Run: `ruff check . --fix` to auto-organize imports
 
 ### Line Too Long Errors
 
-Ruff ignores E501 (line too long) because the formatter handles it automatically. If you see this error, run `ruff format .` first.
+Ruff ignores E501 (line too long) because the formatter handles it automatically. If you see this
+error, run `ruff format .` first.
 
 ## Best Practices
 
@@ -226,11 +233,13 @@ Ruff ignores E501 (line too long) because the formatter handles it automatically
    ruff format . && ruff check . --fix
    ```
 
-2. **Fix errors incrementally**: Use `--fix` to auto-fix most issues, then manually fix remaining ones.
+2. **Fix errors incrementally**: Use `--fix` to auto-fix most issues, then manually fix remaining
+   ones.
 
 3. **Don't ignore rules without reason**: Every ignored rule should have a comment explaining why.
 
-4. **Use per-file ignores**: If a rule doesn't apply to specific files (e.g., `__init__.py`), use `[tool.ruff.lint.per-file-ignores]`.
+4. **Use per-file ignores**: If a rule doesn't apply to specific files (e.g., `__init__.py`), use
+   `[tool.ruff.lint.per-file-ignores]`.
 
 5. **Keep configuration simple**: Only add exceptions when necessary.
 

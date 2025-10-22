@@ -1,4 +1,5 @@
 # Service→Service Pattern - Quick Reference Card
+
 **DemeterAI v2.0 Clean Architecture**
 
 ---
@@ -59,6 +60,7 @@ class BAD_ProductService:
 ```
 
 **Why This Is Wrong**:
+
 1. Bypasses business logic in CategoryService/FamilyService
 2. Bypasses validation rules
 3. Bypasses error handling

@@ -7,15 +7,19 @@
 
 ## Purpose
 
-This diagram documents the **photo detail view** that displays comprehensive information about a single photo, including detection results, storage location history, and traceability (trazabilidad) information. This is accessed by clicking a photo in the gallery.
+This diagram documents the **photo detail view** that displays comprehensive information about a
+single photo, including detection results, storage location history, and traceability (trazabilidad)
+information. This is accessed by clicking a photo in the gallery.
 
 ## Scope
 
 **Input:**
+
 - `image_id` (UUID): Photo identifier
 - User authentication token
 
 **Output:**
+
 - Full-resolution image with annotations
 - Detection results and confidence scores
 - Storage location information
@@ -24,6 +28,7 @@ This diagram documents the **photo detail view** that displays comprehensive inf
 - Download options (original, annotated, JSON)
 
 **Performance Target:**
+
 - Initial load: < 300ms
 - Image load: 1-3s (full resolution)
 - History query: < 100ms
@@ -34,6 +39,7 @@ This diagram documents the **photo detail view** that displays comprehensive inf
 ### Why Detail View?
 
 **Problem:** Users need to:
+
 - See full-resolution photo with detection annotations
 - Verify ML detection accuracy
 - View detection confidence scores
@@ -46,6 +52,7 @@ This diagram documents the **photo detail view** that displays comprehensive inf
 ### Detail View Features
 
 **Core features:**
+
 1. **Large image viewer**: Zoom, pan, annotations toggle
 2. **Detection summary**: Total count, confidence, quality score
 3. **Storage location info**: Full path, product, packaging
@@ -58,6 +65,7 @@ This diagram documents the **photo detail view** that displays comprehensive inf
 ### 1. Detail Page Layout (lines 120-260)
 
 **React/TypeScript component:**
+
 ```tsx
 interface PhotoDetail {
     image_id: string
@@ -185,6 +193,7 @@ function PhotoDetailPage({ imageId }: { imageId: string }) {
 ### 2. Image Viewer Component (lines 300-440)
 
 **Large image with zoom and annotations:**
+
 ```tsx
 function ImageViewer({ photo }: { photo: PhotoDetail }) {
     const [showAnnotations, setShowAnnotations] = useState(true)
@@ -262,6 +271,7 @@ function ImageViewer({ photo }: { photo: PhotoDetail }) {
 ### 3. Detection Summary Card (lines 480-600)
 
 **Overview of detection results:**
+
 ```tsx
 function DetectionSummary({ photo }: { photo: PhotoDetail }) {
     const session = photo.processing_session
@@ -359,6 +369,7 @@ function DetectionSummary({ photo }: { photo: PhotoDetail }) {
 ### 4. History Tab (lines 640-760)
 
 **Timeline of all photos for this storage location:**
+
 ```tsx
 function HistoryTab({ photo }: { photo: PhotoDetail }) {
     const history = photo.storage_location_history || []
@@ -441,6 +452,7 @@ function HistoryTab({ photo }: { photo: PhotoDetail }) {
 ### 5. Traceability Tab (lines 800-920)
 
 **Comprehensive audit trail:**
+
 ```tsx
 function TraceabilityTab({ photo }: { photo: PhotoDetail }) {
     return (
@@ -566,6 +578,7 @@ function TraceabilityTab({ photo }: { photo: PhotoDetail }) {
 ### 6. Download Menu (lines 960-1040)
 
 **Export options:**
+
 ```tsx
 function DownloadMenu({ photo }: { photo: PhotoDetail }) {
     const [menuOpen, setMenuOpen] = useState(false)
@@ -636,6 +649,7 @@ function downloadJSON(photo: PhotoDetail) {
 ### 7. Backend: Photo Detail Endpoint (lines 1080-1240)
 
 **FastAPI implementation:**
+
 ```python
 @router.get('/photos/{image_id}')
 async def get_photo_detail(
@@ -782,17 +796,17 @@ async def get_photo_detail(
 
 **Detail view load timing:**
 
-| Phase | Time | Details |
-|-------|------|---------|
-| **Database query** | 80ms | With JOINs and indexes |
-| **S3 presigned URLs** | 6ms | 3 URLs × 2ms each |
-| **History query** | 50ms | Last 20 sessions |
-| **JSON serialization** | 20ms | Build response |
-| **Network transfer** | 50ms | ~10KB payload |
-| **Frontend parse** | 10ms | Parse JSON |
-| **Initial render** | 100ms | React render |
-| **Image load** | 1-3s | Full-resolution (network) |
-| **Total (excluding image)** | ~300ms | User sees content |
+| Phase                       | Time   | Details                   |
+|-----------------------------|--------|---------------------------|
+| **Database query**          | 80ms   | With JOINs and indexes    |
+| **S3 presigned URLs**       | 6ms    | 3 URLs × 2ms each         |
+| **History query**           | 50ms   | Last 20 sessions          |
+| **JSON serialization**      | 20ms   | Build response            |
+| **Network transfer**        | 50ms   | ~10KB payload             |
+| **Frontend parse**          | 10ms   | Parse JSON                |
+| **Initial render**          | 100ms  | React render              |
+| **Image load**              | 1-3s   | Full-resolution (network) |
+| **Total (excluding image)** | ~300ms | User sees content         |
 
 ## Related Diagrams
 
@@ -801,13 +815,14 @@ async def get_photo_detail(
 
 ## Version History
 
-| Version | Date | Changes |
-|---------|------|---------|
-| 1.0.0 | 2025-10-08 | Initial photo detail display subflow |
+| Version | Date       | Changes                              |
+|---------|------------|--------------------------------------|
+| 1.0.0   | 2025-10-08 | Initial photo detail display subflow |
 
 ---
 
 **Notes:**
+
 - Detail view shows comprehensive information for single photo
 - Historical timeline shows all photos for storage location
 - Traceability provides complete audit trail

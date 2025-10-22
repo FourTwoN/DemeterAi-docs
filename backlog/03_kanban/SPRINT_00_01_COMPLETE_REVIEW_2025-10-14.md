@@ -28,26 +28,28 @@
 
 ### Critical Issues Found & Fixed
 
-| Issue | Severity | Status |
-|-------|----------|--------|
-| Classification schema mismatch | 🔴 CRITICAL | ✅ FIXED |
-| PostgreSQL ENUM type errors | 🔴 CRITICAL | ✅ FIXED |
-| Circular FK dependency | 🔴 CRITICAL | ✅ FIXED |
+| Issue                             | Severity    | Status  |
+|-----------------------------------|-------------|---------|
+| Classification schema mismatch    | 🔴 CRITICAL | ✅ FIXED |
+| PostgreSQL ENUM type errors       | 🔴 CRITICAL | ✅ FIXED |
+| Circular FK dependency            | 🔴 CRITICAL | ✅ FIXED |
 | Missing relationships (11 models) | 🔴 CRITICAL | ✅ FIXED |
-| PriceList FK reference bug | 🟡 MEDIUM | ✅ FIXED |
-| StorageBin PK rename | 🟡 MEDIUM | ✅ FIXED |
-| StorageBinType PK rename | 🟡 MEDIUM | ✅ FIXED |
+| PriceList FK reference bug        | 🟡 MEDIUM   | ✅ FIXED |
+| StorageBin PK rename              | 🟡 MEDIUM   | ✅ FIXED |
+| StorageBinType PK rename          | 🟡 MEDIUM   | ✅ FIXED |
 
 ---
 
 ## 1. Sprint Goals vs Completion
 
 ### Sprint 00: Development Environment Setup
+
 - **Planned**: 12 tasks, 65 story points
 - **Completed**: 12/12 tasks (100%)
 - **Status**: ✅ **COMPLETE**
 
 ### Sprint 01: Database Models & Repositories
+
 - **Planned**: 28 models + 28 repositories + migrations
 - **Completed Models**: 28/28 (100%)
 - **Completed Repositories**: BaseRepository only (1/28)
@@ -63,6 +65,7 @@
 **Problem**: Model did NOT match ERD
 
 **ERD Requirements** (lines 290-302):
+
 ```sql
 classifications {
   int product_conf
@@ -75,10 +78,12 @@ classifications {
 ```
 
 **Old (WRONG) Schema**:
+
 - `confidence` Numeric(5,4) - single field
 - `ml_metadata` JSONB - flexible metadata
 
 **New (CORRECT) Schema**:
+
 - `product_conf` Integer (0-100, nullable)
 - `packaging_conf` Integer (0-100, nullable)
 - `product_size_conf` Integer (0-100, nullable)
@@ -89,6 +94,7 @@ classifications {
 **Impact**: BREAKING CHANGE - All Classification tests rewritten (400+ lines)
 
 **Files Modified**:
+
 - `app/models/classification.py` (complete schema rewrite)
 - `tests/unit/models/test_classification.py` (complete test rewrite)
 
@@ -99,16 +105,19 @@ classifications {
 **Problem**: ENUM types using Python enum **names** (UPPERCASE) instead of **values** (lowercase)
 
 **Error**:
+
 ```
 invalid input value for enum storage_bin_status_enum: "active"
 Expected: "ACTIVE", "MAINTENANCE", "RETIRED"
 ```
 
-**Root Cause**: SQLAlchemy default behavior uses `StorageBinStatusEnum.ACTIVE` (name) not `"active"` (value)
+**Root Cause**: SQLAlchemy default behavior uses `StorageBinStatusEnum.ACTIVE` (name) not
+`"active"` (value)
 
 **Solution**: Added `values_callable=lambda x: [e.value for e in x]` to ALL Enum columns
 
 **Files Modified** (10 models):
+
 1. `app/models/storage_bin.py` (storage_bin_status_enum)
 2. `app/models/warehouse.py` (warehouse_type_enum)
 3. `app/models/storage_area.py` (position_enum)
@@ -121,6 +130,7 @@ Expected: "ACTIVE", "MAINTENANCE", "RETIRED"
 10. `tests/conftest.py` (enum cleanup in fixtures)
 
 **Example Fix**:
+
 ```python
 # BEFORE (wrong)
 status = Column(
@@ -146,12 +156,14 @@ status = Column(
 **Problem**: Circular FK references preventing table creation/drop
 
 **Circular Reference**:
+
 ```
 storage_locations.photo_session_id → photo_processing_sessions.id
 photo_processing_sessions.storage_location_id → storage_locations.location_id
 ```
 
 **Error**:
+
 ```
 CircularDependencyError: Cannot determine table creation order
 ```
@@ -159,9 +171,11 @@ CircularDependencyError: Cannot determine table creation order
 **Solution**: Added `use_alter=True` to the **cache** FK (storage_locations.photo_session_id)
 
 **Files Modified**:
+
 - `app/models/storage_location.py` (lines 175-186)
 
 **Fix**:
+
 ```python
 photo_session_id = Column(
     Integer,
@@ -177,6 +191,7 @@ photo_session_id = Column(
 ```
 
 **How It Works**:
+
 1. Create `photo_processing_sessions` table
 2. Create `storage_locations` table (without FK constraint)
 3. Add FK constraint via `ALTER TABLE` (after both tables exist)
@@ -188,6 +203,7 @@ photo_session_id = Column(
 **Problem**: 11 relationships commented out but their `back_populates` active, causing mapper errors
 
 **Error**:
+
 ```
 sqlalchemy.exc.InvalidRequestError: Mapper 'Mapper[StorageBinType(storage_bin_types)]'
 has no property 'density_parameters'.
@@ -196,25 +212,30 @@ has no property 'density_parameters'.
 **Relationships Uncommented** (11 total):
 
 #### DensityParameter Relationships (3 fixes):
+
 - ✅ `StorageBinType.density_parameters` → DensityParameter
 - ✅ `Product.density_parameters` → DensityParameter
 - ✅ `PackagingCatalog.density_parameters` → DensityParameter
 
 #### Detection Relationships (3 fixes):
+
 - ✅ `PhotoProcessingSession.detections` → Detection
 - ✅ `StockMovement.detections` → Detection
 - ✅ `Classification.detections` → Detection (verified)
 
 #### Estimation Relationships (3 fixes):
+
 - ✅ `PhotoProcessingSession.estimations` → Estimation
 - ✅ `StockMovement.estimations` → Estimation
 - ✅ `Classification.estimations` → Estimation (verified)
 
 #### PriceList Relationships (2 fixes):
+
 - ✅ `PackagingCatalog.price_list_items` → PriceList
 - ✅ `ProductCategory.price_list_items` → PriceList (also fixed back_populates mismatch)
 
 **Files Modified** (6 models):
+
 1. `app/models/storage_bin_type.py`
 2. `app/models/product.py`
 3. `app/models/packaging_catalog.py`
@@ -229,6 +250,7 @@ has no property 'density_parameters'.
 **Problem**: FK targeting wrong column name
 
 **ERD** (line 134):
+
 ```
 price_list {
     int product_categories_id FK
@@ -236,6 +258,7 @@ price_list {
 ```
 
 **ProductCategory Model**:
+
 ```python
 product_category_id = Column(
     "id",  # Database column name is "id"
@@ -245,16 +268,19 @@ product_category_id = Column(
 ```
 
 **Old (WRONG) FK**:
+
 ```python
 ForeignKey("product_categories.category_id")  # Column doesn't exist!
 ```
 
 **New (CORRECT) FK**:
+
 ```python
 ForeignKey("product_categories.product_category_id")  # Correct PK name
 ```
 
 **Files Modified**:
+
 - `app/models/price_list.py` (line ~49)
 
 ---
@@ -264,6 +290,7 @@ ForeignKey("product_categories.product_category_id")  # Correct PK name
 **Problem**: PK column name mismatch causing FK reference errors
 
 **ERD** (line 48):
+
 ```
 storage_bins {
     int id PK
@@ -276,6 +303,7 @@ storage_bins {
 **Reason**: Other models reference `StorageBin.storage_bin_id`, not `bin_id`
 
 **Files Modified**:
+
 - `app/models/storage_bin.py` (PK definition + __repr__)
 - `tests/integration/models/test_storage_bin.py` (FK references)
 - `tests/conftest.py` (fixture documentation)
@@ -292,6 +320,7 @@ storage_bins {
 **Reason**: `StorageBin` and `DensityParameter` reference `storage_bin_types.storage_bin_type_id`
 
 **Files Modified**:
+
 - `app/models/storage_bin_type.py` (PK definition + __repr__)
 - `tests/integration/models/test_storage_bin_type.py` (PK references)
 
@@ -302,12 +331,14 @@ storage_bins {
 **Problem**: Missing CHECK constraint for packaging logic
 
 **ERD Business Rule** (line 163-164):
+
 ```
 has_packaging boolean "default false"
 packaging_catalog_id int FK "nullable"
 ```
 
 **Constraint Added**:
+
 ```sql
 CHECK (
     has_packaging = FALSE
@@ -318,6 +349,7 @@ CHECK (
 **Meaning**: If `has_packaging=true`, then `packaging_catalog_id` MUST NOT be NULL
 
 **Files Modified**:
+
 - `app/models/stock_batch.py` (__table_args__)
 
 ---
@@ -327,18 +359,21 @@ CHECK (
 ### Test Database Setup ✅
 
 **Configuration**:
+
 - Database: PostgreSQL 18 + PostGIS 3.6
 - Port: 5434 (test DB on separate port from dev DB)
 - Container: `demeterai-db-test` (Docker Compose)
 - Status: ✅ **HEALTHY**
 
 **conftest.py Improvements**:
+
 1. ✅ Explicit ENUM type cleanup (before AND after tests)
 2. ✅ List of all 12 ENUM types to drop
 3. ✅ Proper transaction management (begin → yield → rollback)
 4. ✅ Complete table drop/create cycle per test
 
 **ENUM Cleanup Strategy**:
+
 ```python
 ENUM_TYPES = [
     "storage_bin_status_enum",
@@ -365,9 +400,11 @@ for enum_type in ENUM_TYPES:
 ### Classification Test Suite Rewrite ✅
 
 **Files Completely Rewritten**:
+
 - `tests/unit/models/test_classification.py` (400+ lines changed)
 
 **New Test Coverage**:
+
 1. ✅ Model instantiation with new schema (product_conf, packaging_conf, product_size_conf)
 2. ✅ FK validation (at least ONE FK required)
 3. ✅ Confidence fields (INTEGER 0-100, nullable)
@@ -378,6 +415,7 @@ for enum_type in ENUM_TYPES:
 8. ✅ Table metadata and constraints
 
 **Test Classes**:
+
 - `TestClassificationModel` (basic instantiation)
 - `TestClassificationConfidenceFields` (product_conf, packaging_conf, product_size_conf)
 - `TestClassificationFKValidation` (at least ONE FK rule)
@@ -396,6 +434,7 @@ for enum_type in ENUM_TYPES:
 ### Models Review: **EXCELLENT** (9.5/10)
 
 **Strengths**:
+
 - ✅ All 28 models match ERD exactly
 - ✅ Complete type hints (Mapped[])
 - ✅ Comprehensive docstrings (500+ lines per model)
@@ -406,6 +445,7 @@ for enum_type in ENUM_TYPES:
 - ✅ Foreign keys with correct ondelete behavior
 
 **Areas for Improvement**:
+
 - ⚠️ Some models have very long docstrings (could be summarized)
 - ⚠️ No Ruff/Mypy installed in environment (quality checks skipped)
 
@@ -414,6 +454,7 @@ for enum_type in ENUM_TYPES:
 ### Test Quality: **GOOD** (7.5/10)
 
 **Strengths**:
+
 - ✅ Comprehensive unit tests for models
 - ✅ Integration tests with real PostgreSQL database
 - ✅ Factory fixtures for test data generation
@@ -421,6 +462,7 @@ for enum_type in ENUM_TYPES:
 - ✅ Test database isolation (rollback per test)
 
 **Issues**:
+
 - ⚠️ **392 tests failing** (out of 505 total)
 - ⚠️ **185 tests with errors** (mostly integration tests)
 - ⚠️ Many tests expect old Classification schema
@@ -430,6 +472,7 @@ for enum_type in ENUM_TYPES:
 **Test Pass Rate**: 110/505 (21.8%) ⚠️
 
 **Breakdown by Type**:
+
 - Unit Tests: ~85% passing (good)
 - Integration Tests: ~10% passing (needs work)
 - Repository Tests: 0% passing (BaseRepository incomplete)
@@ -442,45 +485,48 @@ for enum_type in ENUM_TYPES:
 
 All 28 models now match `database/database.mmd` exactly:
 
-| Model | ERD Lines | Status |
-|-------|-----------|--------|
-| Warehouse | 8-19 | ✅ MATCH |
-| StorageArea | 20-32 | ✅ MATCH |
-| StorageLocation | 33-47 | ✅ MATCH |
-| StorageBin | 48-58 | ✅ MATCH |
-| StorageBinType | 59-74 | ✅ MATCH |
-| ProductCategory | 75-80 | ✅ MATCH |
-| ProductFamily | 81-87 | ✅ MATCH |
-| Product | 88-96 | ✅ MATCH |
-| ProductState | 97-104 | ✅ MATCH |
-| ProductSize | 105-113 | ✅ MATCH |
-| PackagingType | 114-119 | ✅ MATCH |
-| PackagingCatalog | 120-130 | ✅ MATCH |
-| PriceList | 131-144 | ✅ MATCH |
-| PackagingMaterial | 145-150 | ✅ MATCH |
-| PackagingColor | 151-155 | ✅ MATCH |
-| StockBatch | 156-177 | ✅ MATCH |
-| StockMovement | 178-194 | ✅ MATCH |
-| User | 195-206 | ✅ MATCH |
-| PhotoProcessingSession | 207-226 | ✅ MATCH |
-| S3Image | 227-245 | ✅ MATCH |
-| ProductSampleImage | 246-260 | ✅ MATCH |
-| Detection | 261-276 | ✅ MATCH |
-| Estimation | 277-289 | ✅ MATCH |
-| Classification | 290-302 | ✅ MATCH |
-| StorageLocationConfig | 303-314 | ✅ MATCH |
-| DensityParameter | 315-327 | ✅ MATCH |
+| Model                  | ERD Lines | Status  |
+|------------------------|-----------|---------|
+| Warehouse              | 8-19      | ✅ MATCH |
+| StorageArea            | 20-32     | ✅ MATCH |
+| StorageLocation        | 33-47     | ✅ MATCH |
+| StorageBin             | 48-58     | ✅ MATCH |
+| StorageBinType         | 59-74     | ✅ MATCH |
+| ProductCategory        | 75-80     | ✅ MATCH |
+| ProductFamily          | 81-87     | ✅ MATCH |
+| Product                | 88-96     | ✅ MATCH |
+| ProductState           | 97-104    | ✅ MATCH |
+| ProductSize            | 105-113   | ✅ MATCH |
+| PackagingType          | 114-119   | ✅ MATCH |
+| PackagingCatalog       | 120-130   | ✅ MATCH |
+| PriceList              | 131-144   | ✅ MATCH |
+| PackagingMaterial      | 145-150   | ✅ MATCH |
+| PackagingColor         | 151-155   | ✅ MATCH |
+| StockBatch             | 156-177   | ✅ MATCH |
+| StockMovement          | 178-194   | ✅ MATCH |
+| User                   | 195-206   | ✅ MATCH |
+| PhotoProcessingSession | 207-226   | ✅ MATCH |
+| S3Image                | 227-245   | ✅ MATCH |
+| ProductSampleImage     | 246-260   | ✅ MATCH |
+| Detection              | 261-276   | ✅ MATCH |
+| Estimation             | 277-289   | ✅ MATCH |
+| Classification         | 290-302   | ✅ MATCH |
+| StorageLocationConfig  | 303-314   | ✅ MATCH |
+| DensityParameter       | 315-327   | ✅ MATCH |
 
 **Primary Keys Verified** ✅:
+
 - All INT PKs use correct column names (id, warehouse_id, storage_bin_id, etc.)
 - UUID PKs correct (S3Image.image_id, StockMovement.movement_id, PhotoProcessingSession.session_id)
 
 **Foreign Keys Verified** ✅:
+
 - All FKs target correct column names
 - All ondelete behaviors match ERD (CASCADE, SET NULL, RESTRICT)
 - Circular dependency resolved with use_alter=True
 
 **ENUMs Verified** ✅:
+
 - All 12 ENUM types use lowercase values
 - All ENUM types match ERD specifications
 
@@ -490,51 +536,54 @@ All 28 models now match `database/database.mmd` exactly:
 
 ### Prerequisites Check
 
-| Prerequisite | Status |
-|--------------|--------|
-| All 28 models implemented | ✅ COMPLETE |
-| Models match ERD exactly | ✅ COMPLETE |
-| Test database configured | ✅ COMPLETE |
-| PostgreSQL + PostGIS working | ✅ COMPLETE |
-| ENUM types fixed | ✅ COMPLETE |
-| Circular dependencies resolved | ✅ COMPLETE |
-| Relationships configured | ✅ COMPLETE |
-| Unit tests passing | ⚠️ PARTIAL (85%) |
-| Integration tests passing | ❌ NEEDS WORK (10%) |
-| Alembic migrations created | ❌ TODO (0/7) |
-| Repositories implemented | ❌ TODO (1/28) |
+| Prerequisite                   | Status             |
+|--------------------------------|--------------------|
+| All 28 models implemented      | ✅ COMPLETE         |
+| Models match ERD exactly       | ✅ COMPLETE         |
+| Test database configured       | ✅ COMPLETE         |
+| PostgreSQL + PostGIS working   | ✅ COMPLETE         |
+| ENUM types fixed               | ✅ COMPLETE         |
+| Circular dependencies resolved | ✅ COMPLETE         |
+| Relationships configured       | ✅ COMPLETE         |
+| Unit tests passing             | ⚠️ PARTIAL (85%)   |
+| Integration tests passing      | ❌ NEEDS WORK (10%) |
+| Alembic migrations created     | ❌ TODO (0/7)       |
+| Repositories implemented       | ❌ TODO (1/28)      |
 
 ### Blockers for Sprint 02
 
 1. ❌ **BLOCKER**: Alembic migrations NOT created
-   - Need 7 migration files for all 28 tables
-   - Need migration for ENUMs
-   - Need migration for indexes and constraints
+    - Need 7 migration files for all 28 tables
+    - Need migration for ENUMs
+    - Need migration for indexes and constraints
 
 2. ⚠️ **WARNING**: Only 110/505 tests passing
-   - 392 tests failing (mostly integration tests expecting old schemas)
-   - 185 tests with errors (missing seed data, incomplete repositories)
-   - Need to update remaining tests for new Classification schema
+    - 392 tests failing (mostly integration tests expecting old schemas)
+    - 185 tests with errors (missing seed data, incomplete repositories)
+    - Need to update remaining tests for new Classification schema
 
 3. ⚠️ **WARNING**: Repositories incomplete
-   - Only BaseRepository implemented (1/28)
-   - Need 27 specialized repositories
-   - Integration tests depend on repositories
+    - Only BaseRepository implemented (1/28)
+    - Need 27 specialized repositories
+    - Integration tests depend on repositories
 
 ### Recommendations for Sprint 02
 
 **High Priority** (MUST DO before Sprint 02):
+
 1. Create Alembic migrations for all 28 models
 2. Run migrations on test database
 3. Fix remaining 392 failing tests
 4. Implement remaining 27 repositories
 
 **Medium Priority** (SHOULD DO):
+
 1. Add seed data for reference tables (ProductSize, ProductState, PackagingType, etc.)
 2. Increase test coverage to ≥80%
 3. Run Ruff and Mypy (install if needed)
 
 **Low Priority** (NICE TO HAVE):
+
 1. Add more integration test scenarios
 2. Performance testing with large datasets
 3. Document migration rollback procedures
@@ -570,6 +619,7 @@ All 28 models now match `database/database.mmd` exactly:
 ### Models Fixed/Created (19 files)
 
 **New Models Created**:
+
 1. `app/models/packaging_type.py`
 2. `app/models/packaging_material.py`
 3. `app/models/packaging_color.py`
@@ -585,6 +635,7 @@ All 28 models now match `database/database.mmd` exactly:
 13. `app/models/product_sample_image.py`
 
 **Existing Models Modified**:
+
 14. `app/models/classification.py` (complete schema rewrite)
 15. `app/models/storage_location.py` (circular dependency fix)
 16. `app/models/storage_bin.py` (ENUM fix, PK rename, relationships)
@@ -615,12 +666,14 @@ All 28 models now match `database/database.mmd` exactly:
 ## 9. Improvements Applied During Review
 
 ### Database Improvements
+
 1. ✅ Test database healthcheck now uses correct database name
 2. ✅ Test database port changed from 5433 → 5434 (conflict resolution)
 3. ✅ Test database uses named volume (persistence)
 4. ✅ ENUM types properly cleaned up between tests
 
 ### Model Improvements
+
 1. ✅ All models now use lowercase ENUM values
 2. ✅ All relationships properly configured with back_populates
 3. ✅ Circular dependency resolved with use_alter=True
@@ -629,6 +682,7 @@ All 28 models now match `database/database.mmd` exactly:
 6. ✅ Business rule constraints added (StockBatch.has_packaging)
 
 ### Test Improvements
+
 1. ✅ Classification tests rewritten for new schema
 2. ✅ Test fixtures updated for PK/FK renames
 3. ✅ ENUM cleanup strategy implemented
@@ -641,57 +695,59 @@ All 28 models now match `database/database.mmd` exactly:
 ### Critical Lessons
 
 1. **Always validate against ERD FIRST** before implementing models
-   - Classification model was completely wrong initially
-   - Cost: 400+ lines of test rewrites
+    - Classification model was completely wrong initially
+    - Cost: 400+ lines of test rewrites
 
 2. **ENUM types need explicit values_callable** in SQLAlchemy
-   - Default behavior uses enum NAMES not VALUES
-   - Cost: 10 models needed fixes, test database kept failing
+    - Default behavior uses enum NAMES not VALUES
+    - Cost: 10 models needed fixes, test database kept failing
 
 3. **Circular dependencies need use_alter=True** on cache FKs
-   - StorageLocation.photo_session_id is a cache, should use use_alter
-   - Cost: Tables couldn't be created/dropped
+    - StorageLocation.photo_session_id is a cache, should use use_alter
+    - Cost: Tables couldn't be created/dropped
 
 4. **Commented relationships break back_populates**
-   - 11 relationships were commented but their back_populates were active
-   - Cost: SQLAlchemy mapper initialization failed, NO tests could run
+    - 11 relationships were commented but their back_populates were active
+    - Cost: SQLAlchemy mapper initialization failed, NO tests could run
 
 5. **Primary key naming must match FK references**
-   - StorageBin used `bin_id` but FK refs used `storage_bin_id`
-   - Cost: FK reference errors in multiple models
+    - StorageBin used `bin_id` but FK refs used `storage_bin_id`
+    - Cost: FK reference errors in multiple models
 
 ### Process Improvements for Sprint 02
 
 1. ✅ **Create Alembic migrations IMMEDIATELY** after models
-   - Don't wait until end of sprint
-   - Validate migrations work with test database
+    - Don't wait until end of sprint
+    - Validate migrations work with test database
 
 2. ✅ **Run tests FREQUENTLY during development**
-   - Don't wait until 28 models are complete
-   - Catch issues early (ENUM types, relationships, etc.)
+    - Don't wait until 28 models are complete
+    - Catch issues early (ENUM types, relationships, etc.)
 
 3. ✅ **Validate each model against ERD BEFORE writing tests**
-   - Create a checklist: columns, types, FKs, constraints
-   - Saves massive rework later
+    - Create a checklist: columns, types, FKs, constraints
+    - Saves massive rework later
 
 4. ✅ **Use Ruff/Mypy from the start**
-   - Catch type errors early
-   - Enforce code quality standards
+    - Catch type errors early
+    - Enforce code quality standards
 
 5. ✅ **Implement repositories alongside models**
-   - Don't defer all 28 repositories to end
-   - Test integration early
+    - Don't defer all 28 repositories to end
+    - Test integration early
 
 ---
 
 ## 11. Sprint Velocity Calculation
 
 ### Sprint 00
+
 - **Planned**: 65 story points
 - **Completed**: 65 story points
 - **Velocity**: 100%
 
 ### Sprint 01 (Models Only)
+
 - **Planned Models**: 40 story points (28 models)
 - **Completed Models**: 40 story points (28/28 models)
 - **Velocity (Models)**: 100%
@@ -713,49 +769,49 @@ All 28 models now match `database/database.mmd` exactly:
 ### Before Sprint 02 Can Start (BLOCKERS)
 
 1. **Create Alembic Migrations** (CRITICAL)
-   - [ ] Migration for all 28 models
-   - [ ] Migration for all 12 ENUM types
-   - [ ] Migration for all indexes
-   - [ ] Migration for all CHECK constraints
-   - [ ] Test migrations on test database
-   - [ ] Document migration rollback procedures
-   - **Estimated Time**: 4-6 hours
+    - [ ] Migration for all 28 models
+    - [ ] Migration for all 12 ENUM types
+    - [ ] Migration for all indexes
+    - [ ] Migration for all CHECK constraints
+    - [ ] Test migrations on test database
+    - [ ] Document migration rollback procedures
+    - **Estimated Time**: 4-6 hours
 
 2. **Fix Failing Tests** (HIGH PRIORITY)
-   - [ ] Update remaining integration tests for new Classification schema
-   - [ ] Add seed data for reference tables
-   - [ ] Fix repository tests (implement missing repositories)
-   - [ ] Target: ≥80% test pass rate (400+/505 tests passing)
-   - **Estimated Time**: 8-10 hours
+    - [ ] Update remaining integration tests for new Classification schema
+    - [ ] Add seed data for reference tables
+    - [ ] Fix repository tests (implement missing repositories)
+    - [ ] Target: ≥80% test pass rate (400+/505 tests passing)
+    - **Estimated Time**: 8-10 hours
 
 3. **Implement Remaining Repositories** (HIGH PRIORITY)
-   - [ ] Implement 27 specialized repositories
-   - [ ] Add custom query methods per repository
-   - [ ] Write repository integration tests
-   - **Estimated Time**: 12-16 hours
+    - [ ] Implement 27 specialized repositories
+    - [ ] Add custom query methods per repository
+    - [ ] Write repository integration tests
+    - **Estimated Time**: 12-16 hours
 
 ### Quality Improvements (SHOULD DO)
 
 4. **Run Quality Checks**
-   - [ ] Install Ruff and Mypy in environment
-   - [ ] Run `ruff check app/ tests/`
-   - [ ] Run `mypy app/`
-   - [ ] Fix any linting/type errors
-   - **Estimated Time**: 2-3 hours
+    - [ ] Install Ruff and Mypy in environment
+    - [ ] Run `ruff check app/ tests/`
+    - [ ] Run `mypy app/`
+    - [ ] Fix any linting/type errors
+    - **Estimated Time**: 2-3 hours
 
 5. **Increase Test Coverage**
-   - [ ] Add more unit tests for new models
-   - [ ] Add integration tests for complex queries
-   - [ ] Target: ≥80% code coverage
-   - **Estimated Time**: 4-6 hours
+    - [ ] Add more unit tests for new models
+    - [ ] Add integration tests for complex queries
+    - [ ] Target: ≥80% code coverage
+    - **Estimated Time**: 4-6 hours
 
 ### Documentation (NICE TO HAVE)
 
 6. **Update Documentation**
-   - [ ] Document all model changes in CHANGELOG
-   - [ ] Update API documentation (if any)
-   - [ ] Update README with setup instructions
-   - **Estimated Time**: 1-2 hours
+    - [ ] Document all model changes in CHANGELOG
+    - [ ] Update API documentation (if any)
+    - [ ] Update README with setup instructions
+    - **Estimated Time**: 1-2 hours
 
 ---
 
@@ -764,6 +820,7 @@ All 28 models now match `database/database.mmd` exactly:
 ### Reviewer Verdict: ✅ **APPROVED WITH CONDITIONS**
 
 **Conditions for Sprint 02**:
+
 1. ✅ All 28 models implemented and match ERD exactly
 2. ❌ Alembic migrations MUST be created before Sprint 02
 3. ❌ Test pass rate MUST reach ≥80% (400+/505 tests)
@@ -772,11 +829,13 @@ All 28 models now match `database/database.mmd` exactly:
 ### Recommendations
 
 **For Tech Lead**:
+
 - Schedule 2-3 days for migration creation and testing
 - Schedule 1 week for repository implementation
 - Schedule 2-3 days for test fixes and coverage improvement
 
 **For Team**:
+
 - Continue following Clean Architecture principles
 - Maintain comprehensive docstrings
 - Write tests alongside code (TDD)
@@ -786,9 +845,13 @@ All 28 models now match `database/database.mmd` exactly:
 
 ## 14. Conclusion
 
-Sprint 00 and Sprint 01 (models) are **technically complete** with all 28 database models implemented and matching the ERD exactly. However, significant work remains on migrations, repositories, and test coverage before Sprint 02 can begin.
+Sprint 00 and Sprint 01 (models) are **technically complete** with all 28 database models
+implemented and matching the ERD exactly. However, significant work remains on migrations,
+repositories, and test coverage before Sprint 02 can begin.
 
-The review identified and corrected **8 critical issues** that would have caused major problems in Sprint 02:
+The review identified and corrected **8 critical issues** that would have caused major problems in
+Sprint 02:
+
 1. Classification schema mismatch (BREAKING CHANGE)
 2. PostgreSQL ENUM type errors (10 models affected)
 3. Circular dependency (preventing table creation)
@@ -798,7 +861,8 @@ The review identified and corrected **8 critical issues** that would have caused
 7. Missing business rule constraint (StockBatch)
 8. Test database setup issues
 
-All critical issues have been **FIXED** and documented. The codebase is now in a much better state to proceed to Sprint 02, pending completion of migrations and repositories.
+All critical issues have been **FIXED** and documented. The codebase is now in a much better state
+to proceed to Sprint 02, pending completion of migrations and repositories.
 
 **Overall Assessment**: GOOD (8.0/10)
 **Sprint 00**: COMPLETE (100%)

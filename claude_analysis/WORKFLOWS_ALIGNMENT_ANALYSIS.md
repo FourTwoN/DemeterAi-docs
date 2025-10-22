@@ -8,9 +8,11 @@
 
 ## Executive Summary
 
-This document provides a comprehensive analysis of all **38 Mermaid workflows** in the project against the **28 implemented services**.
+This document provides a comprehensive analysis of all **38 Mermaid workflows** in the project
+against the **28 implemented services**.
 
 **Key Findings**:
+
 - **✅ Workflows Documented**: 38 comprehensive Mermaid diagrams
 - **✅ Services Implemented**: 28 services (21 core + 7 ML-specific)
 - **⚠️ Critical Gaps**: 12 services missing (circular implementation)
@@ -23,17 +25,17 @@ This document provides a comprehensive analysis of all **38 Mermaid workflows** 
 
 ### 1.1 ML Processing Workflows (10 files)
 
-| Workflow | Scope | Steps | Status |
-|----------|-------|-------|--------|
-| `00_master_overview.mmd` | Complete pipeline overview | ~50 nodes | ✅ Documented |
-| `01_complete_pipeline_v4.mmd` | Full implementation details | ~340 nodes | ✅ Documented |
-| `02_api_entry_detailed.mmd` | API request handling | ~50 nodes | ⚠️ Partial impl |
-| `03_s3_upload_circuit_breaker_detailed.mmd` | S3 with circuit breaker | ~80 nodes | 🔴 NOT IMPL |
-| `04_ml_parent_segmentation_detailed.mmd` | YOLO segmentation | ~100 nodes | ⚠️ Partial impl |
-| `05_sahi_detection_child_detailed.mmd` | SAHI detection child | ~120 nodes | ⚠️ Partial impl |
-| `06_boxes_plugs_detection_detailed.mmd` | Direct detection child | ~60 nodes | ⚠️ Partial impl |
-| `07_callback_aggregation_detailed.mmd` | Results aggregation | ~100 nodes | 🔴 NOT IMPL |
-| `08_frontend_polling_detailed.mmd` | Frontend status polling | ~30 nodes | 🔴 NOT IMPL |
+| Workflow                                    | Scope                       | Steps      | Status          |
+|---------------------------------------------|-----------------------------|------------|-----------------|
+| `00_master_overview.mmd`                    | Complete pipeline overview  | ~50 nodes  | ✅ Documented    |
+| `01_complete_pipeline_v4.mmd`               | Full implementation details | ~340 nodes | ✅ Documented    |
+| `02_api_entry_detailed.mmd`                 | API request handling        | ~50 nodes  | ⚠️ Partial impl |
+| `03_s3_upload_circuit_breaker_detailed.mmd` | S3 with circuit breaker     | ~80 nodes  | 🔴 NOT IMPL     |
+| `04_ml_parent_segmentation_detailed.mmd`    | YOLO segmentation           | ~100 nodes | ⚠️ Partial impl |
+| `05_sahi_detection_child_detailed.mmd`      | SAHI detection child        | ~120 nodes | ⚠️ Partial impl |
+| `06_boxes_plugs_detection_detailed.mmd`     | Direct detection child      | ~60 nodes  | ⚠️ Partial impl |
+| `07_callback_aggregation_detailed.mmd`      | Results aggregation         | ~100 nodes | 🔴 NOT IMPL     |
+| `08_frontend_polling_detailed.mmd`          | Frontend status polling     | ~30 nodes  | 🔴 NOT IMPL     |
 
 **Status**: 1/9 fully documented, 5/9 partially implemented, 3/9 not implemented
 
@@ -41,11 +43,12 @@ This document provides a comprehensive analysis of all **38 Mermaid workflows** 
 
 ### 1.2 Stock Movements Workflows (1 file)
 
-| Workflow | Operations | Steps | Status |
-|----------|-----------|-------|--------|
+| Workflow                         | Operations                    | Steps      | Status          |
+|----------------------------------|-------------------------------|------------|-----------------|
 | `trasplante_plantado_muerte.mmd` | Plantado, Transplante, Muerte | ~230 nodes | 🔴 CRITICAL GAP |
 
 **Sub-operations**:
+
 - **Plantado** (Plant/Initialize): ~50 nodes - ⚠️ Partial (manual only)
 - **Transplante** (Transfer): ~80 nodes - 🔴 NOT IMPLEMENTED
 - **Muerte** (Death/Remove): ~40 nodes - 🔴 NOT IMPLEMENTED
@@ -56,20 +59,20 @@ This document provides a comprehensive analysis of all **38 Mermaid workflows** 
 
 ### 1.3 Manual Stock Initialization Workflow (1 file)
 
-| Workflow | Scope | Steps | Status |
-|----------|-------|-------|--------|
+| Workflow                    | Scope                 | Steps     | Status          |
+|-----------------------------|-----------------------|-----------|-----------------|
 | `00_comprehensive_view.mmd` | Manual stock creation | ~20 nodes | ⚠️ Partial impl |
 
 ---
 
 ### 1.4 Storage Location Configuration (4 files)
 
-| Workflow | Operation | Steps | Status |
-|----------|-----------|-------|--------|
-| `00_comprehensive_view.mmd` | Config overview | ~40 nodes | ✅ Documented |
-| `01_update_existing_config.mmd` | UPDATE path | ~20 nodes | ✅ Implemented |
-| `02_create_new_config.mmd` | CREATE path | ~25 nodes | ✅ Implemented |
-| `03_frontend_configuration_view.mmd` | UI/UX view | - | Frontend only |
+| Workflow                             | Operation       | Steps     | Status        |
+|--------------------------------------|-----------------|-----------|---------------|
+| `00_comprehensive_view.mmd`          | Config overview | ~40 nodes | ✅ Documented  |
+| `01_update_existing_config.mmd`      | UPDATE path     | ~20 nodes | ✅ Implemented |
+| `02_create_new_config.mmd`           | CREATE path     | ~25 nodes | ✅ Implemented |
+| `03_frontend_configuration_view.mmd` | UI/UX view      | -         | Frontend only |
 
 **Status**: Core logic implemented, frontend pending
 
@@ -77,13 +80,13 @@ This document provides a comprehensive analysis of all **38 Mermaid workflows** 
 
 ### 1.5 Price List Management (5 files)
 
-| Workflow | Operation | Steps | Status |
-|----------|-----------|-------|--------|
-| `00_comprehensive_view.mmd` | System overview | ~80 nodes | ✅ Documented |
-| `01_packaging_catalog_crud.mmd` | Packaging CRUD | ~40 nodes | ✅ Services ready |
-| `02_product_catalog_crud.mmd` | Product CRUD | ~50 nodes | ✅ Services ready |
-| `03_price_list_management.mmd` | Price CRUD | ~40 nodes | ✅ Services ready |
-| `04_bulk_edit_operations.mmd` | Bulk operations | ~60 nodes | 🔴 NOT IMPL |
+| Workflow                        | Operation       | Steps     | Status           |
+|---------------------------------|-----------------|-----------|------------------|
+| `00_comprehensive_view.mmd`     | System overview | ~80 nodes | ✅ Documented     |
+| `01_packaging_catalog_crud.mmd` | Packaging CRUD  | ~40 nodes | ✅ Services ready |
+| `02_product_catalog_crud.mmd`   | Product CRUD    | ~50 nodes | ✅ Services ready |
+| `03_price_list_management.mmd`  | Price CRUD      | ~40 nodes | ✅ Services ready |
+| `04_bulk_edit_operations.mmd`   | Bulk operations | ~60 nodes | 🔴 NOT IMPL      |
 
 **Status**: Individual CRUD complete, bulk operations not implemented
 
@@ -91,13 +94,13 @@ This document provides a comprehensive analysis of all **38 Mermaid workflows** 
 
 ### 1.6 Analytics & Reporting (5 files)
 
-| Workflow | Operation | Steps | Status |
-|----------|-----------|-------|--------|
-| `analiticas/00_comprehensive_view.mmd` | System overview | ~50 nodes | 📋 Controllers needed |
-| `analiticas/01_manual_filters_query.mmd` | Manual filters | ~40 nodes | 📋 Controllers needed |
-| `analiticas/02_sales_vs_stock_comparison.mmd` | Sales comparison | ~30 nodes | 📋 Controllers needed |
-| `analiticas/03_ai_powered_analytics.mmd` | AI analytics | ~45 nodes | 📋 Controllers needed |
-| `analiticas/04_data_export.mmd` | Export operations | ~35 nodes | 🔴 NOT IMPL |
+| Workflow                                      | Operation         | Steps     | Status                |
+|-----------------------------------------------|-------------------|-----------|-----------------------|
+| `analiticas/00_comprehensive_view.mmd`        | System overview   | ~50 nodes | 📋 Controllers needed |
+| `analiticas/01_manual_filters_query.mmd`      | Manual filters    | ~40 nodes | 📋 Controllers needed |
+| `analiticas/02_sales_vs_stock_comparison.mmd` | Sales comparison  | ~30 nodes | 📋 Controllers needed |
+| `analiticas/03_ai_powered_analytics.mmd`      | AI analytics      | ~45 nodes | 📋 Controllers needed |
+| `analiticas/04_data_export.mmd`               | Export operations | ~35 nodes | 🔴 NOT IMPL           |
 
 **Status**: Services ready, controllers and export not implemented
 
@@ -105,14 +108,14 @@ This document provides a comprehensive analysis of all **38 Mermaid workflows** 
 
 ### 1.7 Photo Upload Gallery (6 files)
 
-| Workflow | Operation | Steps | Status |
-|----------|-----------|-------|--------|
-| `photo_upload_gallery/00_comprehensive_view.mmd` | System overview | ~60 nodes | 📋 Controllers needed |
-| `photo_upload_gallery/01_photo_upload_initiation.mmd` | Upload start | ~20 nodes | 📋 Controllers needed |
-| `photo_upload_gallery/02_job_monitoring_progress.mmd` | Job monitoring | ~25 nodes | 📋 Controllers needed |
-| `photo_upload_gallery/03_photo_gallery_view.mmd` | Gallery display | ~30 nodes | 📋 Controllers needed |
-| `photo_upload_gallery/04_error_recovery_reprocessing.mmd` | Error handling | ~35 nodes | 📋 Controllers needed |
-| `photo_upload_gallery/05_photo_detail_display.mmd` | Detail view | ~20 nodes | 📋 Controllers needed |
+| Workflow                                                  | Operation       | Steps     | Status                |
+|-----------------------------------------------------------|-----------------|-----------|-----------------------|
+| `photo_upload_gallery/00_comprehensive_view.mmd`          | System overview | ~60 nodes | 📋 Controllers needed |
+| `photo_upload_gallery/01_photo_upload_initiation.mmd`     | Upload start    | ~20 nodes | 📋 Controllers needed |
+| `photo_upload_gallery/02_job_monitoring_progress.mmd`     | Job monitoring  | ~25 nodes | 📋 Controllers needed |
+| `photo_upload_gallery/03_photo_gallery_view.mmd`          | Gallery display | ~30 nodes | 📋 Controllers needed |
+| `photo_upload_gallery/04_error_recovery_reprocessing.mmd` | Error handling  | ~35 nodes | 📋 Controllers needed |
+| `photo_upload_gallery/05_photo_detail_display.mmd`        | Detail view     | ~20 nodes | 📋 Controllers needed |
 
 **Status**: Services ready, controllers needed for frontend integration
 
@@ -120,14 +123,14 @@ This document provides a comprehensive analysis of all **38 Mermaid workflows** 
 
 ### 1.8 Warehouse Map Views (6 files)
 
-| Workflow | Operation | Steps | Status |
-|----------|-----------|-------|--------|
-| `map_warehouse_views/00_comprehensive_view.mmd` | System overview | ~50 nodes | 📋 Controllers needed |
-| `map_warehouse_views/01_warehouse_map_overview.mmd` | Warehouse map | ~40 nodes | 📋 Controllers needed |
+| Workflow                                                  | Operation          | Steps     | Status                |
+|-----------------------------------------------------------|--------------------|-----------|-----------------------|
+| `map_warehouse_views/00_comprehensive_view.mmd`           | System overview    | ~50 nodes | 📋 Controllers needed |
+| `map_warehouse_views/01_warehouse_map_overview.mmd`       | Warehouse map      | ~40 nodes | 📋 Controllers needed |
 | `map_warehouse_views/02_warehouse_internal_structure.mmd` | Internal structure | ~30 nodes | 📋 Controllers needed |
-| `map_warehouse_views/03_storage_location_preview.mmd` | Location preview | ~25 nodes | 📋 Controllers needed |
-| `map_warehouse_views/04_storage_location_detail.mmd` | Detail view | ~35 nodes | 📋 Controllers needed |
-| `map_warehouse_views/05_historical_timeline.mmd` | Historical data | ~40 nodes | 📋 Controllers needed |
+| `map_warehouse_views/03_storage_location_preview.mmd`     | Location preview   | ~25 nodes | 📋 Controllers needed |
+| `map_warehouse_views/04_storage_location_detail.mmd`      | Detail view        | ~35 nodes | 📋 Controllers needed |
+| `map_warehouse_views/05_historical_timeline.mmd`          | Historical data    | ~40 nodes | 📋 Controllers needed |
 
 **Status**: Services ready, visualization controllers needed
 
@@ -137,31 +140,32 @@ This document provides a comprehensive analysis of all **38 Mermaid workflows** 
 
 ### 2.1 Core Services (21 files)
 
-| Service | Purpose | Status | Methods | Missing |
-|---------|---------|--------|---------|---------|
-| `warehouse_service.py` | Warehouse hierarchy | ✅ Complete | CRUD | - |
-| `storage_area_service.py` | Storage areas | ✅ Complete | CRUD | - |
-| `storage_location_service.py` | Storage locations | ✅ Complete | CRUD, geoquery | - |
-| `storage_location_config_service.py` | Location configs | ✅ Complete | CRUD | History tracking |
-| `storage_bin_service.py` | Storage bins | ✅ Complete | CRUD | - |
-| `storage_bin_type_service.py` | Bin types | ✅ Complete | CRUD | - |
-| `product_category_service.py` | Product categories | ✅ Complete | CRUD | - |
-| `product_family_service.py` | Product families | ✅ Complete | CRUD | - |
-| `product_size_service.py` | Product sizes | ✅ Complete | CRUD | - |
-| `product_state_service.py` | Product states | ✅ Complete | CRUD | - |
-| `packaging_catalog_service.py` | Packaging catalog | ✅ Complete | CRUD | - |
-| `packaging_type_service.py` | Packaging types | ✅ Complete | CRUD | - |
-| `packaging_color_service.py` | Packaging colors | ✅ Complete | CRUD | - |
-| `packaging_material_service.py` | Packaging materials | ✅ Complete | CRUD | - |
-| `price_list_service.py` | Price management | ✅ Complete | CRUD | Bulk operations |
-| `stock_batch_service.py` | Stock batches | ⚠️ Minimal | Create, get, update_qty | Lifecycle methods |
-| `stock_movement_service.py` | Movement audit | ⚠️ Minimal | Create, get_by_batch | Transfer operations |
-| `batch_lifecycle_service.py` | Batch lifecycle | ✅ Complete | Activate, deactivate | - |
-| `movement_validation_service.py` | Movement validation | ⚠️ Minimal | Basic validation | Complex rules |
-| `density_parameter_service.py` | Density params | ✅ Complete | CRUD | Auto-calibration |
-| `location_hierarchy_service.py` | Hierarchy ops | ✅ Complete | Get tree, validate | - |
+| Service                              | Purpose             | Status     | Methods                 | Missing             |
+|--------------------------------------|---------------------|------------|-------------------------|---------------------|
+| `warehouse_service.py`               | Warehouse hierarchy | ✅ Complete | CRUD                    | -                   |
+| `storage_area_service.py`            | Storage areas       | ✅ Complete | CRUD                    | -                   |
+| `storage_location_service.py`        | Storage locations   | ✅ Complete | CRUD, geoquery          | -                   |
+| `storage_location_config_service.py` | Location configs    | ✅ Complete | CRUD                    | History tracking    |
+| `storage_bin_service.py`             | Storage bins        | ✅ Complete | CRUD                    | -                   |
+| `storage_bin_type_service.py`        | Bin types           | ✅ Complete | CRUD                    | -                   |
+| `product_category_service.py`        | Product categories  | ✅ Complete | CRUD                    | -                   |
+| `product_family_service.py`          | Product families    | ✅ Complete | CRUD                    | -                   |
+| `product_size_service.py`            | Product sizes       | ✅ Complete | CRUD                    | -                   |
+| `product_state_service.py`           | Product states      | ✅ Complete | CRUD                    | -                   |
+| `packaging_catalog_service.py`       | Packaging catalog   | ✅ Complete | CRUD                    | -                   |
+| `packaging_type_service.py`          | Packaging types     | ✅ Complete | CRUD                    | -                   |
+| `packaging_color_service.py`         | Packaging colors    | ✅ Complete | CRUD                    | -                   |
+| `packaging_material_service.py`      | Packaging materials | ✅ Complete | CRUD                    | -                   |
+| `price_list_service.py`              | Price management    | ✅ Complete | CRUD                    | Bulk operations     |
+| `stock_batch_service.py`             | Stock batches       | ⚠️ Minimal | Create, get, update_qty | Lifecycle methods   |
+| `stock_movement_service.py`          | Movement audit      | ⚠️ Minimal | Create, get_by_batch    | Transfer operations |
+| `batch_lifecycle_service.py`         | Batch lifecycle     | ✅ Complete | Activate, deactivate    | -                   |
+| `movement_validation_service.py`     | Movement validation | ⚠️ Minimal | Basic validation        | Complex rules       |
+| `density_parameter_service.py`       | Density params      | ✅ Complete | CRUD                    | Auto-calibration    |
+| `location_hierarchy_service.py`      | Hierarchy ops       | ✅ Complete | Get tree, validate      | -                   |
 
 **Analysis**:
+
 - **✅ 14 services**: Complete CRUD + domain logic
 - **⚠️ 7 services**: Minimal implementation, need enhancement
 - **🔴 0 services**: Not started (already have stubs)
@@ -170,20 +174,21 @@ This document provides a comprehensive analysis of all **38 Mermaid workflows** 
 
 ### 2.2 ML Processing Services (7 files)
 
-| Service | Purpose | Status | Methods | Missing |
-|---------|---------|--------|---------|---------|
-| `model_cache.py` | Model singleton cache | ✅ Complete | Load, get | - |
-| `segmentation_service.py` | YOLO segmentation | ✅ Complete | Segment image | - |
-| `sahi_detection_service.py` | SAHI detection | ✅ Complete | Detect in segment | Classification link |
-| `band_estimation_service.py` | Band estimation | ✅ Complete | Estimate undetected | Auto-calibration |
-| `pipeline_coordinator.py` | Pipeline orchestration | ✅ Complete | Process complete | Callback trigger |
+| Service                      | Purpose                | Status     | Methods             | Missing             |
+|------------------------------|------------------------|------------|---------------------|---------------------|
+| `model_cache.py`             | Model singleton cache  | ✅ Complete | Load, get           | -                   |
+| `segmentation_service.py`    | YOLO segmentation      | ✅ Complete | Segment image       | -                   |
+| `sahi_detection_service.py`  | SAHI detection         | ✅ Complete | Detect in segment   | Classification link |
+| `band_estimation_service.py` | Band estimation        | ✅ Complete | Estimate undetected | Auto-calibration    |
+| `pipeline_coordinator.py`    | Pipeline orchestration | ✅ Complete | Process complete    | Callback trigger    |
 
 **Analysis**:
+
 - **✅ 5 services**: Core ML pipeline complete
 - **⚠️ Missing integrations**:
-  - Callback aggregation
-  - Classification service integration
-  - Stock batch creation from ML results
+    - Callback aggregation
+    - Classification service integration
+    - Stock batch creation from ML results
 
 ---
 
@@ -192,70 +197,79 @@ This document provides a comprehensive analysis of all **38 Mermaid workflows** 
 ### 3.1 ML Pipeline Gaps
 
 #### Gap 1: S3 Upload with Circuit Breaker (CRITICAL)
+
 **Location**: Workflow `03_s3_upload_circuit_breaker_detailed.mmd`
 **Impact**: Photo upload will fail if S3 is down; no resilience
 **Required**:
+
 - `S3UploadService` (new)
-  - `upload_batch(uuids: List[str]) → Summary`
-  - Circuit breaker state management
-  - Thumbnail generation (AVIF)
-  - EXIF metadata extraction
+    - `upload_batch(uuids: List[str]) → Summary`
+    - Circuit breaker state management
+    - Thumbnail generation (AVIF)
+    - EXIF metadata extraction
 - `ExifExtractionService` (new)
-  - Extract GPS, timestamp, camera info
+    - Extract GPS, timestamp, camera info
 - `CircuitBreakerManager` (new)
-  - State: OPEN, HALF_OPEN, CLOSED
-  - Threshold: 50% failure rate
-  - Timeout: 60s recovery
+    - State: OPEN, HALF_OPEN, CLOSED
+    - Threshold: 50% failure rate
+    - Timeout: 60s recovery
 
 **Estimation**: 3-4 tasks (1-2 days)
 
 ---
 
 #### Gap 2: Callback Aggregation (CRITICAL)
+
 **Location**: Workflow `07_callback_aggregation_detailed.mmd`
 **Impact**: ML results cannot be aggregated into stock batches; pipeline fails
 **Required**:
+
 - `AggregationService` (new)
-  - `aggregate_results(results: List[dict]) → AggregateResult`
-  - Weighted average confidence
-  - Total counts calculation
+    - `aggregate_results(results: List[dict]) → AggregateResult`
+    - Weighted average confidence
+    - Total counts calculation
 - `VisualizationService` (new)
-  - Draw detections (circles)
-  - Draw estimations (masks)
-  - Add legend and text
+    - Draw detections (circles)
+    - Draw estimations (masks)
+    - Add legend and text
 - `VisualizationCompressionService` (new)
-  - AVIF compression (quality=85)
-  - Thumbnail generation
+    - AVIF compression (quality=85)
+    - Thumbnail generation
 - Enhanced `StockBatchService`
-  - `create_from_ml_results(movements, classifications)`
-  - Auto-generate batch_code with date/sequence
-  - Comprehensive verification with rollback
+    - `create_from_ml_results(movements, classifications)`
+    - Auto-generate batch_code with date/sequence
+    - Comprehensive verification with rollback
 
 **Estimation**: 4-5 tasks (2 days)
 
 ---
 
 #### Gap 3: Classification Service (HIGH PRIORITY)
-**Location**: Workflows `05_sahi_detection_child_detailed.mmd`, `06_boxes_plugs_detection_detailed.mmd`
+
+**Location**: Workflows `05_sahi_detection_child_detailed.mmd`,
+`06_boxes_plugs_detection_detailed.mmd`
 **Impact**: Cannot link detections to product/packaging classification
 **Required**:
+
 - `ClassificationService` (new)
-  - `get_or_create(product_id, packaging_id, model_version)`
-  - Store metadata about the ML model used
-  - Support querying detections by classification
+    - `get_or_create(product_id, packaging_id, model_version)`
+    - Store metadata about the ML model used
+    - Support querying detections by classification
 
 **Estimation**: 1-2 tasks (4-8 hours)
 
 ---
 
 #### Gap 4: Geolocation Service (MEDIUM PRIORITY)
+
 **Location**: Workflow `04_ml_parent_segmentation_detailed.mmd`
 **Impact**: Cannot geolocate photos; manual location assignment required
 **Required**:
+
 - `GeolocationService` (new)
-  - `get_location_from_gps(lat, lon) → StorageLocation`
-  - Uses PostGIS ST_Contains for spatial queries
-  - Handles warning state if location not found
+    - `get_location_from_gps(lat, lon) → StorageLocation`
+    - Uses PostGIS ST_Contains for spatial queries
+    - Handles warning state if location not found
 
 **Estimation**: 1 task (4 hours)
 
@@ -264,32 +278,36 @@ This document provides a comprehensive analysis of all **38 Mermaid workflows** 
 ### 3.2 Stock Movement Gaps
 
 #### Gap 5: Transfer Service (CRITICAL - BLOCKING)
+
 **Location**: Workflow `trasplante_plantado_muerte.mmd` - Transplante operation
 **Impact**: Cannot transfer stock between locations; core business operation blocked
 **Required**:
+
 - `TransferService` (new)
-  - `transplant_stock(source_loc, dest_loc, product, quantity) → TransferResult`
-  - Two-phase transaction: OUT from source, IN to destination
-  - Atomic all-or-nothing
-  - Auto-create bins if needed
-  - Auto-create/find batches
-  - Comprehensive verification
-  - Deactivate source batch if quantity=0
+    - `transplant_stock(source_loc, dest_loc, product, quantity) → TransferResult`
+    - Two-phase transaction: OUT from source, IN to destination
+    - Atomic all-or-nothing
+    - Auto-create bins if needed
+    - Auto-create/find batches
+    - Comprehensive verification
+    - Deactivate source batch if quantity=0
 
 **Estimation**: 3-4 tasks (1.5 days)
 
 ---
 
 #### Gap 6: Death/Removal Service (MEDIUM)
+
 **Location**: Workflow `trasplante_plantado_muerte.mmd` - Muerte operation
 **Impact**: Cannot record plant death; inventory tracking incomplete
 **Required**:
+
 - `DeathService` (new)
-  - `record_death(location_id, product, quantity) → DeathResult`
-  - Track dead vs live separately
-  - Update quantity_empty_containers in batch
-  - Deactivate batch if all dead
-  - Audit trail with reason
+    - `record_death(location_id, product, quantity) → DeathResult`
+    - Track dead vs live separately
+    - Update quantity_empty_containers in batch
+    - Deactivate batch if all dead
+    - Audit trail with reason
 
 **Estimation**: 2 tasks (1 day)
 
@@ -298,29 +316,33 @@ This document provides a comprehensive analysis of all **38 Mermaid workflows** 
 ### 3.3 Export & Analytics Gaps
 
 #### Gap 7: Bulk Operations Service (MEDIUM)
+
 **Location**: Workflow `04_bulk_edit_operations.mmd`
 **Impact**: Cannot perform bulk price updates; admin operation blocked
 **Required**:
+
 - `BulkOperationService` (new)
-  - `bulk_update_prices(filter, operation, value)`
-  - `bulk_update_availability(filter, status)`
-  - `bulk_apply_discount(filter, percentage)`
-  - Transaction-wrapped
-  - Audit logging
+    - `bulk_update_prices(filter, operation, value)`
+    - `bulk_update_availability(filter, status)`
+    - `bulk_apply_discount(filter, percentage)`
+    - Transaction-wrapped
+    - Audit logging
 
 **Estimation**: 2 tasks (1 day)
 
 ---
 
 #### Gap 8: Export Service (MEDIUM)
+
 **Location**: Workflows `analiticas/04_data_export.mmd`, `photo_upload_gallery/`
 **Impact**: Cannot export reports; business reporting blocked
 **Required**:
+
 - `ExportService` (new)
-  - `export_to_excel(data, format)`
-  - `export_to_csv(data)`
-  - `export_to_pdf(data, template)`
-  - Templating for different report types
+    - `export_to_excel(data, format)`
+    - `export_to_csv(data)`
+    - `export_to_pdf(data, template)`
+    - Templating for different report types
 
 **Estimation**: 3 tasks (1.5 days)
 
@@ -329,8 +351,10 @@ This document provides a comprehensive analysis of all **38 Mermaid workflows** 
 ### 3.4 Enhancement Gaps
 
 #### Gap 9: StockMovementService Enhancements (HIGH)
+
 **Current**: Only create + get_by_batch
 **Needed**:
+
 - `validate_movement(movement)` → Validation result
 - `link_to_batch(movement, batch)`
 - `get_by_session(session_id)` → List of movements
@@ -341,8 +365,10 @@ This document provides a comprehensive analysis of all **38 Mermaid workflows** 
 ---
 
 #### Gap 10: StockBatchService Enhancements (HIGH)
+
 **Current**: Only create + get + update_qty
 **Needed**:
+
 - `find_or_create(location_id, product_id, packaging_id)`
 - `deactivate(batch_id)` → Mark as inactive
 - `get_by_location(location_id)` → Active batches
@@ -354,8 +380,10 @@ This document provides a comprehensive analysis of all **38 Mermaid workflows** 
 ---
 
 #### Gap 11: StorageLocationConfigService Enhancements (MEDIUM)
+
 **Current**: Basic CRUD
 **Needed**:
+
 - `deactivate(id)` → Atomic deactivation
 - `create_new_version(id, new_data)` → With history
 - `get_active_for_location(location_id)`
@@ -366,8 +394,10 @@ This document provides a comprehensive analysis of all **38 Mermaid workflows** 
 ---
 
 #### Gap 12: MovementValidationService Enhancements (MEDIUM)
+
 **Current**: Minimal validation
 **Needed**:
+
 - Complex business rule validation
 - Sufficient quantity checks
 - Cross-location validation
@@ -454,25 +484,25 @@ NOT IMPLEMENTED (12 services):
 **Must complete for photo processing to work**:
 
 1. **S3UploadService** (8 hours)
-   - Circuit breaker pattern
-   - EXIF extraction
-   - Thumbnail generation
-   - Status tracking
+    - Circuit breaker pattern
+    - EXIF extraction
+    - Thumbnail generation
+    - Status tracking
 
 2. **ClassificationService** (4 hours)
-   - Get or create logic
-   - Link to detections
-   - Model versioning
+    - Get or create logic
+    - Link to detections
+    - Model versioning
 
 3. **AggregationService** (8 hours)
-   - Aggregate totals
-   - Weighted confidence
-   - Visualization generation
-   - Batch creation
+    - Aggregate totals
+    - Weighted confidence
+    - Visualization generation
+    - Batch creation
 
 4. **GeolocationService** (4 hours)
-   - PostGIS queries
-   - Warning state handling
+    - PostGIS queries
+    - Warning state handling
 
 **Subtasks**: 4 services, ~6 tasks, 1.5 days
 
@@ -483,21 +513,21 @@ NOT IMPLEMENTED (12 services):
 **Must complete for inventory management**:
 
 1. **TransferService** (8 hours)
-   - Two-phase transaction
-   - Auto bin/batch creation
-   - Verification & rollback
+    - Two-phase transaction
+    - Auto bin/batch creation
+    - Verification & rollback
 
 2. **DeathService** (4 hours)
-   - Death recording
-   - Empty container tracking
+    - Death recording
+    - Empty container tracking
 
 3. **Enhance StockBatchService** (4 hours)
-   - Lifecycle methods
-   - Find or create logic
+    - Lifecycle methods
+    - Find or create logic
 
 4. **Enhance StockMovementService** (4 hours)
-   - Validation methods
-   - Batch linking
+    - Validation methods
+    - Batch linking
 
 **Subtasks**: 4 services, 4 tasks, 1 day
 
@@ -508,16 +538,16 @@ NOT IMPLEMENTED (12 services):
 **Nice-to-have business operations**:
 
 1. **BulkOperationService** (4 hours)
-   - Bulk price updates
-   - Bulk availability changes
+    - Bulk price updates
+    - Bulk availability changes
 
 2. **ExportService** (8 hours)
-   - Excel/CSV/PDF export
-   - Templating
+    - Excel/CSV/PDF export
+    - Templating
 
 3. **Enhance StorageLocationConfigService** (4 hours)
-   - Deactivation logic
-   - Version history
+    - Deactivation logic
+    - Version history
 
 **Subtasks**: 3 services, 3 tasks, 1 day
 
@@ -586,22 +616,22 @@ Before marking workflow complete:
 
 ### High Risk
 
-| Risk | Impact | Mitigation |
-|------|--------|-----------|
-| S3 circuit breaker not working | Photos fail to upload | Implement robust pattern, extensive testing |
-| ML callback aggregation incomplete | Results lost, pipeline hangs | Schema validation + transaction safety |
-| Transfer service race conditions | Stock counts corrupt | Use database locks, comprehensive verification |
-| Geolocation fails silently | Wrong counts assigned to wrong locations | Warning states, manual override |
+| Risk                               | Impact                                   | Mitigation                                     |
+|------------------------------------|------------------------------------------|------------------------------------------------|
+| S3 circuit breaker not working     | Photos fail to upload                    | Implement robust pattern, extensive testing    |
+| ML callback aggregation incomplete | Results lost, pipeline hangs             | Schema validation + transaction safety         |
+| Transfer service race conditions   | Stock counts corrupt                     | Use database locks, comprehensive verification |
+| Geolocation fails silently         | Wrong counts assigned to wrong locations | Warning states, manual override                |
 
 ---
 
 ### Medium Risk
 
-| Risk | Impact | Mitigation |
-|------|--------|-----------|
-| Classification service not robust | Detections not linked | Unit tests for idempotency |
-| Visualization generation slow | Callback takes >5 min | Async task, progress tracking |
-| Export service too complex | Export doesn't work | Start simple (CSV), add formats later |
+| Risk                              | Impact                | Mitigation                            |
+|-----------------------------------|-----------------------|---------------------------------------|
+| Classification service not robust | Detections not linked | Unit tests for idempotency            |
+| Visualization generation slow     | Callback takes >5 min | Async task, progress tracking         |
+| Export service too complex        | Export doesn't work   | Start simple (CSV), add formats later |
 
 ---
 
@@ -610,6 +640,7 @@ Before marking workflow complete:
 ### For Sprint 03 Completion
 
 **Priority 1 (MUST HAVE)**:
+
 - [x] All 14 base CRUD services (already done)
 - [x] ML pipeline services (segmentation, SAHI, band estimation) (already done)
 - [ ] S3UploadService with circuit breaker
@@ -621,12 +652,14 @@ Before marking workflow complete:
 - [ ] StockMovementService enhancements
 
 **Priority 2 (SHOULD HAVE)**:
+
 - [ ] DeathService
 - [ ] Enhance StorageLocationConfigService
 - [ ] Enhance MovementValidationService
 - [ ] BulkOperationService
 
 **Priority 3 (NICE TO HAVE)**:
+
 - [ ] ExportService
 - [ ] Analytics controllers
 - [ ] Visualization controllers

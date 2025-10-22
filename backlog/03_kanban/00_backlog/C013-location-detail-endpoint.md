@@ -1,6 +1,7 @@
 # [C013] Location Detail - GET /api/map/locations/{id}
 
 ## Metadata
+
 - **Epic**: epic-003-backend-implementation.md
 - **Sprint**: Sprint-04
 - **Status**: `backlog`
@@ -35,6 +36,7 @@ async def get_location_detail(
 **Coverage Target**: ≥80%
 
 ## Time Tracking
+
 - **Estimated**: 2 story points
 
 ---

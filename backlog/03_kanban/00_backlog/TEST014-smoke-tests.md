@@ -1,6 +1,7 @@
 # [TEST014] Smoke Tests (Critical Path Only)
 
 ## Metadata
+
 - **Epic**: epic-012-testing
 - **Sprint**: Sprint-03
 - **Priority**: `high`
@@ -8,9 +9,12 @@
 - **Dependencies**: Blocked by [TEST006]
 
 ## Description
-Minimal test suite for post-deployment verification: critical endpoints work, database accessible, Celery running.
+
+Minimal test suite for post-deployment verification: critical endpoints work, database accessible,
+Celery running.
 
 ## Acceptance Criteria
+
 - [ ] Smoke tests run in <2 minutes
 - [ ] Test only critical paths (health, login, stock summary)
 - [ ] Test database connectivity
@@ -19,7 +23,9 @@ Minimal test suite for post-deployment verification: critical endpoints work, da
 - [ ] Run after every deployment
 
 ## Implementation
+
 **tests/smoke/test_smoke.py:**
+
 ```python
 @pytest.mark.smoke
 def test_health_endpoint(client):
@@ -56,11 +62,13 @@ def test_stock_summary_accessible(client, auth_headers):
 ```
 
 **Run smoke tests only:**
+
 ```bash
 pytest -m smoke
 ```
 
 **CI/CD post-deployment:**
+
 ```yaml
 - name: Run smoke tests
   run: |
@@ -69,6 +77,7 @@ pytest -m smoke
 ```
 
 ## Testing
+
 - Run smoke tests after deploy
 - Verify complete in <2 minutes
 - If smoke tests fail, rollback deployment

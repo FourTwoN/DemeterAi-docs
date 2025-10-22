@@ -1,6 +1,7 @@
 # S011: ReconciliationService
 
 ## Metadata
+
 - **Epic**: [epic-004-services.md](../../02_epics/epic-004-services.md)
 - **Sprint**: Sprint-04
 - **Status**: `backlog`
@@ -9,20 +10,25 @@
 - **Area**: `services/stock`
 - **Assignee**: TBD
 - **Dependencies**:
-  - Blocks: [C010]
-  - Blocked by: [S007, S008]
+    - Blocks: [C010]
+    - Blocked by: [S007, S008]
 
 ## Description
 
-**What**: Implement `ReconciliationService` for **month-end reconciliation workflow** (automated sales calculation from photo comparison).
+**What**: Implement `ReconciliationService` for **month-end reconciliation workflow** (automated
+sales calculation from photo comparison).
 
-**Why**: Core of DemeterAI value proposition - automates monthly inventory reconciliation and calculates sales from photo comparisons.
+**Why**: Core of DemeterAI value proposition - automates monthly inventory reconciliation and
+calculates sales from photo comparisons.
 
-**Context**: Clean Architecture Application Layer. CRITICAL SERVICE. Orchestrates S007 (movements) and S008 (batches) to perform month-end reconciliation: `sales = start_photo + movements - end_photo`.
+**Context**: Clean Architecture Application Layer. CRITICAL SERVICE. Orchestrates S007 (movements)
+and S008 (batches) to perform month-end reconciliation:
+`sales = start_photo + movements - end_photo`.
 
 ## Acceptance Criteria
 
 - [ ] **AC1**: Month-end reconciliation workflow:
+
 ```python
 class ReconciliationService:
     def __init__(
@@ -86,6 +92,7 @@ class ReconciliationService:
 ```
 
 - [ ] **AC2**: Validate reconciliation (detect discrepancies):
+
 ```python
 async def validate_reconciliation(
     self,
@@ -121,11 +128,13 @@ async def validate_reconciliation(
 ## Technical Implementation Notes
 
 ### Architecture
+
 - **Layer**: Application (Service)
 - **Dependencies**: S007, S008
 - **Design Pattern**: Workflow orchestration
 
 ### Performance Expectations
+
 - `reconcile_month`: <500ms (includes movement aggregation)
 
 ## Handover Briefing
@@ -133,6 +142,7 @@ async def validate_reconciliation(
 **Context**: CRITICAL SERVICE for DemeterAI value proposition. Automates monthly reconciliation.
 
 **Key decisions**:
+
 - Formula: `sales = start + movements - end_photo`
 - Negative sales indicate errors (flag for review)
 - 5% tolerance for actual vs calculated sales
@@ -148,6 +158,7 @@ async def validate_reconciliation(
 - [ ] PR reviewed (2+ approvals)
 
 ## Time Tracking
+
 - **Estimated**: 8 story points (~16 hours)
 - **Actual**: TBD
 

@@ -8,7 +8,8 @@
 
 ## Overview
 
-This workflow documents the **manual stock initialization process**, an alternative method to initialize inventory for a storage location without using photos or ML processing.
+This workflow documents the **manual stock initialization process**, an alternative method to
+initialize inventory for a storage location without using photos or ML processing.
 
 ### Purpose
 
@@ -30,7 +31,8 @@ This workflow documents the **manual stock initialization process**, an alternat
 
 ### Diagrams
 
-1. **[00_comprehensive_view.mmd](./00_comprehensive_view.md)** - Complete end-to-end flow (high-level)
+1. **[00_comprehensive_view.mmd](./00_comprehensive_view.md)** - Complete end-to-end flow (
+   high-level)
 2. **[01_api_validation.mmd](./01_api_validation.md)** - API endpoint validation logic
 3. **[02_config_check.mmd](./02_config_check.md)** - Configuration validation (CRITICAL)
 4. **[03_batch_creation.mmd](./03_batch_creation.md)** - Stock batch creation process
@@ -42,6 +44,7 @@ This workflow documents the **manual stock initialization process**, an alternat
 ### 1. Configuration Validation (CRITICAL)
 
 **If `storage_location_config` exists:**
+
 - ✅ Validate `product_id` matches expected product
 - ✅ Validate `packaging_catalog_id` matches expected packaging
 - ❌ **Hard error** if mismatch (HTTP 400)
@@ -49,6 +52,7 @@ This workflow documents the **manual stock initialization process**, an alternat
 **Why:** Prevents user errors (wrong plant species in wrong location).
 
 **Example:**
+
 ```
 Config: Echeveria Golden in R7 pot
 User Input: Sedum Blue in R7 pot
@@ -58,6 +62,7 @@ Result: HTTP 400 - "Product mismatch"
 ### 2. No ML Processing
 
 **Unlike photo initialization:**
+
 - ❌ No YOLO segmentation/detection
 - ❌ No SAHI slicing
 - ❌ No area estimation
@@ -70,6 +75,7 @@ Result: HTTP 400 - "Product mismatch"
 ### 3. Single Batch Creation
 
 **User provides one total count:**
+
 - Creates single `stock_batch` record
 - No breakdown by size (unless user explicitly specifies size)
 - `quality_score` is NULL (no ML confidence)
@@ -77,6 +83,7 @@ Result: HTTP 400 - "Product mismatch"
 ### 4. Audit Trail
 
 **Full traceability:**
+
 - `stock_movements.source_type = "manual"`
 - `stock_movements.movement_type = "manual_init"`
 - `stock_movements.reason_description` includes username
@@ -125,19 +132,19 @@ HTTP 201 Created
 ### INSERT Operations
 
 1. **stock_movements**
-   - `movement_type`: `"manual_init"`
-   - `source_type`: `"manual"`
-   - `processing_session_id`: NULL
-   - `is_inbound`: true
+    - `movement_type`: `"manual_init"`
+    - `source_type`: `"manual"`
+    - `processing_session_id`: NULL
+    - `is_inbound`: true
 
 2. **stock_batches**
-   - `quantity_initial`: user input
-   - `quantity_current`: user input
-   - `quality_score`: NULL (no ML)
-   - `quantity_empty_containers`: 0
+    - `quantity_initial`: user input
+    - `quantity_current`: user input
+    - `quality_score`: NULL (no ML)
+    - `quantity_empty_containers`: 0
 
 3. **OPTIONAL: storage_location_config** (if missing)
-   - Auto-create with user-provided product/packaging
+    - Auto-create with user-provided product/packaging
 
 ### NO INSERT Operations
 
@@ -153,20 +160,22 @@ HTTP 201 Created
 
 ### Critical Errors
 
-| Error | HTTP | Message |
-|-------|------|---------|
-| **ProductMismatchException** | 400 | Product does not match configuration |
-| **PackagingMismatchException** | 400 | Packaging does not match configuration |
-| **StorageLocationNotFoundException** | 404 | Location not found |
-| **ValidationError** | 422 | Invalid request format |
+| Error                                | HTTP | Message                                |
+|--------------------------------------|------|----------------------------------------|
+| **ProductMismatchException**         | 400  | Product does not match configuration   |
+| **PackagingMismatchException**       | 400  | Packaging does not match configuration |
+| **StorageLocationNotFoundException** | 404  | Location not found                     |
+| **ValidationError**                  | 422  | Invalid request format                 |
 
 ### Recovery
 
 **Product Mismatch:**
+
 1. Update `storage_location_config` to new product, OR
 2. Re-enter manual count with correct product
 
 **Missing Location:**
+
 1. Create `storage_location` first
 2. Retry manual initialization
 
@@ -174,13 +183,15 @@ HTTP 201 Created
 
 ## Integration with Monthly Reconciliation
 
-Manual initialization **starts the baseline** for monthly reconciliation, just like photo initialization:
+Manual initialization **starts the baseline** for monthly reconciliation, just like photo
+initialization:
 
 ```
 Manual Init (baseline) → Movements (plantado, muerte) → Month-end Photo → Sales Calculation
 ```
 
 **Example:**
+
 ```
 Oct 1:  Manual init = 5,000 plants (manual_init)
 Oct:    +200 plantado, -100 muerte
@@ -192,23 +203,25 @@ Oct 31: Photo = 4,800 plants
 
 ## Performance
 
-| Aspect | Photo Init | Manual Init |
-|--------|-----------|-------------|
-| **Processing Time** | 5-10 minutes | <5 seconds |
-| **Accuracy** | 95%+ (ML) | Depends on user |
-| **Synchronous** | ❌ Async (Celery) | ✅ Immediate |
-| **Traceability** | High (detections) | Medium (movement only) |
+| Aspect              | Photo Init        | Manual Init            |
+|---------------------|-------------------|------------------------|
+| **Processing Time** | 5-10 minutes      | <5 seconds             |
+| **Accuracy**        | 95%+ (ML)         | Depends on user        |
+| **Synchronous**     | ❌ Async (Celery)  | ✅ Immediate            |
+| **Traceability**    | High (detections) | Medium (movement only) |
 
 ---
 
 ## Security & Authorization
 
 **Required Permissions:**
+
 - User must be authenticated (JWT token)
 - Role: Admin, Supervisor, or Worker
 - Viewer role: **cannot** create manual initializations
 
 **Audit Log:**
+
 - All manual initializations logged with username
 - Timestamp recorded
 - Cannot be deleted (only corrected via `ajuste` movements)
@@ -217,9 +230,12 @@ Oct 31: Photo = 4,800 plants
 
 ## Next Steps
 
-- **Implementation:** See [../../engineering_plan/workflows/manual_initialization.md](../../engineering_plan/workflows/manual_initialization.md)
-- **API Spec:** See [../../engineering_plan/api/endpoints_stock.md](../../engineering_plan/api/endpoints_stock.md)
-- **Backend Services:** See [../../engineering_plan/backend/service_layer.md](../../engineering_plan/backend/service_layer.md)
+- **Implementation:**
+  See [../../engineering_plan/workflows/manual_initialization.md](../../engineering_plan/workflows/manual_initialization.md)
+- **API Spec:**
+  See [../../engineering_plan/api/endpoints_stock.md](../../engineering_plan/api/endpoints_stock.md)
+- **Backend Services:**
+  See [../../engineering_plan/backend/service_layer.md](../../engineering_plan/backend/service_layer.md)
 
 ---
 

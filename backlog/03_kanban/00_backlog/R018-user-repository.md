@@ -1,6 +1,7 @@
 # R018: User Repository
 
 ## Metadata
+
 - **Epic**: [epic-003-repositories.md](../../02_epics/epic-003-repositories.md)
 - **Sprint**: Sprint-01
 - **Status**: `backlog`
@@ -9,20 +10,25 @@
 - **Area**: `repositories`
 - **Assignee**: TBD
 - **Dependencies**:
-  - Blocks: [R017, S015]
-  - Blocked by: [F006, F007, DB028]
+    - Blocks: [R017, S015]
+    - Blocked by: [F006, F007, DB028]
 
 ## Related Documentation
-- **Engineering Plan**: [../../engineering_plan/backend/repository_layer.md](../../engineering_plan/backend/repository_layer.md)
+
+- **Engineering Plan
+  **: [../../engineering_plan/backend/repository_layer.md](../../engineering_plan/backend/repository_layer.md)
 - **Database ERD**: [../../database/database.mmd](../../database/database.mmd#L195-L206)
 
 ## Description
 
-**What**: Implement repository class for `users` table with CRUD operations, email lookup, password hash validation, and role filtering.
+**What**: Implement repository class for `users` table with CRUD operations, email lookup, password
+hash validation, and role filtering.
 
-**Why**: Users represent system actors (admin, supervisor, worker, viewer). Repository provides authentication, authorization, and activity tracking.
+**Why**: Users represent system actors (admin, supervisor, worker, viewer). Repository provides
+authentication, authorization, and activity tracking.
 
-**Context**: Authentication/authorization foundation. Email is unique identifier. Password hash stored (never plaintext). Role-based access control.
+**Context**: Authentication/authorization foundation. Email is unique identifier. Password hash
+stored (never plaintext). Role-based access control.
 
 ## Acceptance Criteria
 
@@ -36,7 +42,8 @@
 
 ## Technical Implementation Notes
 
-**Code hints**: get_by_email (for authentication), get_by_role (admin/supervisor/worker/viewer), get_active_users (active=true), update_last_login (timestamp update).
+**Code hints**: get_by_email (for authentication), get_by_role (admin/supervisor/worker/viewer),
+get_active_users (active=true), update_last_login (timestamp update).
 
 **Security**: Never include password_hash in default options(). Only load for authentication.
 
@@ -51,6 +58,7 @@
 - [ ] PR reviewed (2+ approvals)
 
 ## Time Tracking
+
 - **Estimated**: 3 story points (~6 hours)
 - **Actual**: TBD
 

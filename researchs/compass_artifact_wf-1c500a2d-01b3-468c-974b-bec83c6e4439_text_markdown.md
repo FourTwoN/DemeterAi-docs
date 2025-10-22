@@ -1,14 +1,34 @@
 # Arquitectura ML de Producción para Detección de Plantas: Guía Técnica 2025
 
-Tu sistema procesará 600,000+ plantas usando YOLO v11 + SAHI con una arquitectura parent-child en Celery. **La configuración crítica: workers GPU con pool=solo (no prefork), Redis para coordinación + PostgreSQL para persistencia, particionamiento diario en detecciones, y asyncpg para 5x mejor rendimiento**. Las optimizaciones clave pueden reducir el tiempo de procesamiento de ~5 horas a ~90 minutos con 4 GPUs A100, mientras que las mejoras de base de datos pueden acelerar queries espaciales hasta **400x** con vistas materializadas. Este reporte identifica 15+ anti-patrones críticos en arquitecturas ML típicas y proporciona soluciones probadas en producción.
+Tu sistema procesará 600,000+ plantas usando YOLO v11 + SAHI con una arquitectura parent-child en
+Celery. **La configuración crítica: workers GPU con pool=solo (no prefork), Redis para
+coordinación + PostgreSQL para persistencia, particionamiento diario en detecciones, y asyncpg para
+5x mejor rendimiento**. Las optimizaciones clave pueden reducir el tiempo de procesamiento de ~5
+horas a ~90 minutos con 4 GPUs A100, mientras que las mejoras de base de datos pueden acelerar
+queries espaciales hasta **400x** con vistas materializadas. Este reporte identifica 15+
+anti-patrones críticos en arquitecturas ML típicas y proporciona soluciones probadas en producción.
 
 ## La configuración GPU que determina todo el rendimiento
 
-El descubrimiento más crítico para tu pipeline: **usar `--pool solo` es obligatorio para workers GPU**, no opcional. Múltiples implementaciones en producción confirman que prefork o gevent con GPUs causa conflictos de contexto CUDA que resultan en fallos aleatorios y memory leaks. Cada GPU debe tener exactamente un worker dedicado con `--concurrency=1`. La arquitectura correcta es: **1 worker solo por GPU para inferencia, 8 workers prefork en CPU para preprocessing, y workers gevent separados para I/O como uploads S3**.
+El descubrimiento más crítico para tu pipeline: **usar `--pool solo` es obligatorio para workers GPU
+**, no opcional. Múltiples implementaciones en producción confirman que prefork o gevent con GPUs
+causa conflictos de contexto CUDA que resultan en fallos aleatorios y memory leaks. Cada GPU debe
+tener exactamente un worker dedicado con `--concurrency=1`. La arquitectura correcta es: **1 worker
+solo por GPU para inferencia, 8 workers prefork en CPU para preprocessing, y workers gevent
+separados para I/O como uploads S3**.
 
-El patrón singleton para carga de modelos es esencial. Sin esto, cargar YOLO v11 en cada task consumiría 2-3 segundos por imagen versus los 0.1 segundos de inferencia real. La implementación usa una clase base Task personalizada con property lazy-loaded y thread lock para garantizar carga única. La memoria se gestiona con `worker_max_tasks_per_child=50` para reiniciar workers periódicamente y `worker_max_memory_per_child=8000000` (8GB) como límite hard. Después de cada 100 tasks, ejecutar explícitamente `torch.cuda.empty_cache()` previene OOM gradual.
+El patrón singleton para carga de modelos es esencial. Sin esto, cargar YOLO v11 en cada task
+consumiría 2-3 segundos por imagen versus los 0.1 segundos de inferencia real. La implementación usa
+una clase base Task personalizada con property lazy-loaded y thread lock para garantizar carga
+única. La memoria se gestiona con `worker_max_tasks_per_child=50` para reiniciar workers
+periódicamente y `worker_max_memory_per_child=8000000` (8GB) como límite hard. Después de cada 100
+tasks, ejecutar explícitamente `torch.cuda.empty_cache()` previene OOM gradual.
 
-La configuración broker requiere `visibility_timeout=43200` (12 horas) porque el timeout default de 1 hora causará que tasks largas de ML sean re-encoladas mientras aún ejecutan, duplicando trabajo. Para serialización, **msgpack reduce payload 34% versus JSON** mientras mantiene seguridad (pickle es prohibido en producción por permitir ejecución arbitraria de código). La compresión gzip adicional es crítica cuando pasas miles de detecciones entre tasks.
+La configuración broker requiere `visibility_timeout=43200` (12 horas) porque el timeout default de
+1 hora causará que tasks largas de ML sean re-encoladas mientras aún ejecutan, duplicando trabajo.
+Para serialización, **msgpack reduce payload 34% versus JSON** mientras mantiene seguridad (pickle
+es prohibido en producción por permitir ejecución arbitraria de código). La compresión gzip
+adicional es crítica cuando pasas miles de detecciones entre tasks.
 
 ### Orquestación parent-child con canvas patterns
 
@@ -25,9 +45,16 @@ workflow = chain(
 )
 ```
 
-Esto garantiza que preprocessing se completa antes de spawning paralelo, y agregación solo ejecuta cuando ambos children terminan. El patrón `chord` es alternativa cuando necesitas garantías más fuertes de callback único. Para result backend, el approach híbrido es superior: **Redis para task coordination (rápido, in-memory, expire después 1 hora) y PostgreSQL para resultados finales persistentes**. Esto evita saturar Redis con 600k resultados grandes mientras mantiene baja latencia para coordinación.
+Esto garantiza que preprocessing se completa antes de spawning paralelo, y agregación solo ejecuta
+cuando ambos children terminan. El patrón `chord` es alternativa cuando necesitas garantías más
+fuertes de callback único. Para result backend, el approach híbrido es superior: **Redis para task
+coordination (rápido, in-memory, expire después 1 hora) y PostgreSQL para resultados finales
+persistentes**. Esto evita saturar Redis con 600k resultados grandes mientras mantiene baja latencia
+para coordinación.
 
-Task routing usa exchanges separados y queues dedicados. Define `gpu_queue_0`, `gpu_queue_1`, etc., uno por GPU, más `cpu_queue` para preprocessing. La configuración de routing automático mapea tasks a queues:
+Task routing usa exchanges separados y queues dedicados. Define `gpu_queue_0`, `gpu_queue_1`, etc.,
+uno por GPU, más `cpu_queue` para preprocessing. La configuración de routing automático mapea tasks
+a queues:
 
 ```python
 task_routes = {
@@ -37,11 +64,14 @@ task_routes = {
 }
 ```
 
-Ejecuta workers con `CUDA_VISIBLE_DEVICES=0 celery worker --pool=solo --queues=gpu_queue_0` para aislar GPUs completamente.
+Ejecuta workers con `CUDA_VISIBLE_DEVICES=0 celery worker --pool=solo --queues=gpu_queue_0` para
+aislar GPUs completamente.
 
 ## Índices espaciales y particionamiento que aceleran queries 400x
 
-PostgreSQL + PostGIS para jerarquías geoespaciales de 4 niveles requiere estrategia específica. **GiST indexes son obligatorios** para polígonos (no SP-GiST que requiere datos no-overlapping, ni BRIN que asume orden espacial). Crea un índice GiST por cada nivel:
+PostgreSQL + PostGIS para jerarquías geoespaciales de 4 niveles requiere estrategia específica. *
+*GiST indexes son obligatorios** para polígonos (no SP-GiST que requiere datos no-overlapping, ni
+BRIN que asume orden espacial). Crea un índice GiST por cada nivel:
 
 ```sql
 CREATE INDEX idx_warehouse_geom ON warehouses USING GIST(geom);
@@ -51,7 +81,8 @@ CREATE INDEX idx_storage_bin_geom ON storage_bins USING GIST(geom);
 CREATE INDEX idx_detections_point ON detections USING GIST(point_geom);
 ```
 
-El patrón de query crítico es **usar && (bounding box) primero, luego ST_Within**. PostgreSQL evalúa && usando índice GiST rápidamente, luego aplica geometría exacta solo a candidatos:
+El patrón de query crítico es **usar && (bounding box) primero, luego ST_Within**. PostgreSQL
+evalúa && usando índice GiST rápidamente, luego aplica geometría exacta solo a candidatos:
 
 ```sql
 SELECT d.*
@@ -61,7 +92,9 @@ WHERE ST_Within(d.point_geom, b.geom)          -- Exact geometry
   AND d.detected_at >= NOW() - INTERVAL '7 days';
 ```
 
-Para jerarquías profundas, la extensión **ltree acelera traversal 10x** versus recursive CTEs. Agrega columna `path ltree` a cada nivel y actualiza con triggers. Queries como "todos los bins en warehouse X" se vuelven:
+Para jerarquías profundas, la extensión **ltree acelera traversal 10x** versus recursive CTEs.
+Agrega columna `path ltree` a cada nivel y actualiza con triggers. Queries como "todos los bins en
+warehouse X" se vuelven:
 
 ```sql
 SELECT * FROM storage_bins WHERE path <@ 'warehouse_x';
@@ -69,7 +102,8 @@ SELECT * FROM storage_bins WHERE path <@ 'warehouse_x';
 
 ### Particionamiento diario elimina 99% de data en queries
 
-Con miles de detecciones por foto, la tabla `detections` crecerá a millones de rows rápidamente. **Particionamiento por RANGE en detected_at con granularidad DAILY** es óptimo para tu escala:
+Con miles de detecciones por foto, la tabla `detections` crecerá a millones de rows rápidamente. *
+*Particionamiento por RANGE en detected_at con granularidad DAILY** es óptimo para tu escala:
 
 ```sql
 CREATE TABLE detections (
@@ -94,9 +128,12 @@ SELECT partman.create_parent(
 );
 ```
 
-Partition pruning elimina particiones completas en queries con filtro temporal, resultando en **speedups de 10-100x**. VACUUM en particiones es 100x más rápido que tabla monolítica. Retention policy es trivial: `DROP TABLE detections_20251001 CASCADE` elimina un día entero instantáneamente.
+Partition pruning elimina particiones completas en queries con filtro temporal, resultando en *
+*speedups de 10-100x**. VACUUM en particiones es 100x más rápido que tabla monolítica. Retention
+policy es trivial: `DROP TABLE detections_20251001 CASCADE` elimina un día entero instantáneamente.
 
-Índices se crean automáticamente en cada partición. Para queries mixtas temporal-espacial, usa **btree_gist extension** para índice compuesto:
+Índices se crean automáticamente en cada partición. Para queries mixtas temporal-espacial, usa *
+*btree_gist extension** para índice compuesto:
 
 ```sql
 CREATE EXTENSION btree_gist;
@@ -104,7 +141,8 @@ CREATE INDEX idx_detections_time_spatial
 ON detections USING GIST (detected_at, point_geom);
 ```
 
-Connection pooling con **PgBouncer en modo transaction** escala de 10,000 clientes concurrentes a 100 conexiones reales DB. Configuración crítica:
+Connection pooling con **PgBouncer en modo transaction** escala de 10,000 clientes concurrentes a
+100 conexiones reales DB. Configuración crítica:
 
 ```ini
 [pgbouncer]
@@ -115,7 +153,9 @@ reserve_pool_size = 5
 reserve_pool_timeout = 3
 ```
 
-SQLAlchemy usa `NullPool` cuando PgBouncer maneja pooling, evitando double-pooling. Para bulk inserts de miles de detecciones, **asyncpg con COPY protocol es 350x más rápido** que ORM standard (714k rows/sec vs 2k rows/sec):
+SQLAlchemy usa `NullPool` cuando PgBouncer maneja pooling, evitando double-pooling. Para bulk
+inserts de miles de detecciones, **asyncpg con COPY protocol es 350x más rápido** que ORM standard (
+714k rows/sec vs 2k rows/sec):
 
 ```python
 async def bulk_insert_detections(pool, detections):
@@ -129,7 +169,8 @@ async def bulk_insert_detections(pool, detections):
 
 ## SQLAlchemy 2.0 async patterns que evitan N+1 queries
 
-El anti-pattern más común en ORMs es N+1 queries en jerarquías. Para tu estructura de 4 niveles, **selectinload() es óptimo para colecciones (one-to-many), joinedload() para many-to-one**:
+El anti-pattern más común en ORMs es N+1 queries en jerarquías. Para tu estructura de 4 niveles, *
+*selectinload() es óptimo para colecciones (one-to-many), joinedload() para many-to-one**:
 
 ```python
 stmt = (
@@ -146,7 +187,9 @@ result = await session.execute(stmt)
 photos = result.unique().scalars().all()  # .unique() REQUIRED con joinedload
 ```
 
-Selectinload genera 1+N queries pero evita cartesian product explosion de joinedload en colecciones grandes. Para 1 photo con 1000 detections, joinedload retorna 1000 rows duplicadas versus selectinload que hace 2 queries totales.
+Selectinload genera 1+N queries pero evita cartesian product explosion de joinedload en colecciones
+grandes. Para 1 photo con 1000 detections, joinedload retorna 1000 rows duplicadas versus
+selectinload que hace 2 queries totales.
 
 El Session Manager pattern es fundamental para FastAPI async:
 
@@ -180,7 +223,8 @@ async def get_db_session():
         yield session
 ```
 
-El flag `expire_on_commit=False` previene lazy loading errors en código async donde accessing attributes después de commit causaría queries síncronas bloqueantes.
+El flag `expire_on_commit=False` previene lazy loading errors en código async donde accessing
+attributes después de commit causaría queries síncronas bloqueantes.
 
 ### Repository pattern y bulk operations
 
@@ -227,7 +271,9 @@ Esto causa exception inmediata si intentas lazy load, forzándote a usar eager l
 
 ## YOLO v11 + SAHI configuration para detección densa de plantas
 
-YOLO v11 (lanzado septiembre 2024) ofrece **22% menos parámetros y 25% más rápido que YOLOv8** manteniendo precisión superior. Para detección de objetos pequeños como plantas individuales, la configuración óptima es:
+YOLO v11 (lanzado septiembre 2024) ofrece **22% menos parámetros y 25% más rápido que YOLOv8**
+manteniendo precisión superior. Para detección de objetos pequeños como plantas individuales, la
+configuración óptima es:
 
 ```python
 from ultralytics import YOLO
@@ -243,11 +289,14 @@ results = model(
 )
 ```
 
-Para **cultivos con 600k+ plantas, confidence threshold de 0.20-0.25 y IOU de 0.40-0.45** balancean recall (no perder plantas) con precision (no detectar false positives). Threshold muy alto (0.50+) pierde plantas pequeñas o parcialmente ocluidas.
+Para **cultivos con 600k+ plantas, confidence threshold de 0.20-0.25 y IOU de 0.40-0.45** balancean
+recall (no perder plantas) con precision (no detectar false positives). Threshold muy alto (0.50+)
+pierde plantas pequeñas o parcialmente ocluidas.
 
 ### SAHI configuration para imágenes alta resolución
 
-SAHI (Slicing Aided Hyper Inference) resuelve detección de objetos pequeños en imágenes grandes dividiendo en slices con overlap:
+SAHI (Slicing Aided Hyper Inference) resuelve detección de objetos pequeños en imágenes grandes
+dividiendo en slices con overlap:
 
 ```python
 from sahi import AutoDetectionModel
@@ -270,9 +319,13 @@ result = get_sliced_prediction(
 )
 ```
 
-El paper original SAHI recomienda **overlap de 20-25%** como óptimo. Overlap muy bajo (\u003c10%) pierde detecciones en bordes; overlap muy alto (\u003e30%) aumenta compute sin mejora significativa.
+El paper original SAHI recomienda **overlap de 20-25%** como óptimo. Overlap muy bajo (\u003c10%)
+pierde detecciones en bordes; overlap muy alto (\u003e30%) aumenta compute sin mejora significativa.
 
-Para imágenes 8K o mayores, aumenta slice size a 1024x1024. Post-processing usa NMS (Non-Maximum Suppression) con métrica IOS para eliminar detecciones duplicadas entre slices. El throughput con SAHI es ~5x más lento que YOLO directo (12 img/sec vs 60 img/sec en RTX 3090), pero crítico para imágenes high-res donde plantas individuales serían invisibles para modelo.
+Para imágenes 8K o mayores, aumenta slice size a 1024x1024. Post-processing usa NMS (Non-Maximum
+Suppression) con métrica IOS para eliminar detecciones duplicadas entre slices. El throughput con
+SAHI es ~5x más lento que YOLO directo (12 img/sec vs 60 img/sec en RTX 3090), pero crítico para
+imágenes high-res donde plantas individuales serían invisibles para modelo.
 
 ### Batch processing y memory management
 
@@ -294,19 +347,23 @@ def batch_detect_plants(self, image_paths: List[str], batch_size=8):
     return results
 ```
 
-FP16 precision (half-precision) duplica speed en GPUs modernas sin pérdida perceptible de accuracy. Para máxima velocidad, exporta modelo a TensorRT con int8 quantization: `model.export(format='engine', int8=True)` da **3-4x speedup adicional** con ~1% accuracy loss (aceptable para counting).
+FP16 precision (half-precision) duplica speed en GPUs modernas sin pérdida perceptible de accuracy.
+Para máxima velocidad, exporta modelo a TensorRT con int8 quantization:
+`model.export(format='engine', int8=True)` da **3-4x speedup adicional** con ~1% accuracy loss (
+aceptable para counting).
 
 El tiempo esperado para procesar 600k imágenes:
 
-| Hardware | YOLO v11m | YOLO v11m + SAHI | Con Optimizaciones |
-|----------|-----------|------------------|--------------------|
-| 1x RTX 3090 | 2.8 horas | 14 horas | 8 horas (FP16+batch) |
-| 4x RTX 3090 | 45 minutos | 3.5 horas | 2 horas |
-| 4x A100 (40GB) | 35 minutos | 2.8 horas | **90 minutos** |
+| Hardware       | YOLO v11m  | YOLO v11m + SAHI | Con Optimizaciones   |
+|----------------|------------|------------------|----------------------|
+| 1x RTX 3090    | 2.8 horas  | 14 horas         | 8 horas (FP16+batch) |
+| 4x RTX 3090    | 45 minutos | 3.5 horas        | 2 horas              |
+| 4x A100 (40GB) | 35 minutos | 2.8 horas        | **90 minutos**       |
 
 ## Schema design híbrido y audit trails para integridad total
 
-Para la jerarquía geoespacial warehouse → storage_area → storage_location → storage_bin, el approach correcto es **normalización con denormalización selectiva**:
+Para la jerarquía geoespacial warehouse → storage_area → storage_location → storage_bin, el approach
+correcto es **normalización con denormalización selectiva**:
 
 ```sql
 -- Normalizado para integridad
@@ -329,18 +386,22 @@ CREATE INDEX idx_bins_warehouse ON storage_bins(warehouse_id);
 CREATE INDEX idx_bins_geom ON storage_bins USING GIST(bin_geom);
 ```
 
-Triggers mantienen consistency de campos denormalizados. Cuando location_id cambia (raro), trigger actualiza warehouse_id automáticamente. **El trade-off es 10-15% storage overhead por 5-10x faster queries** de detections por warehouse (query común en dashboards).
+Triggers mantienen consistency de campos denormalizados. Cuando location_id cambia (raro), trigger
+actualiza warehouse_id automáticamente. **El trade-off es 10-15% storage overhead por 5-10x faster
+queries** de detections por warehouse (query común en dashboards).
 
 ### ON DELETE behaviors estratificados
 
 La estrategia correcta de cascading elimina datos dependientes pero protege core business entities:
 
-- **Warehouse → Storage Area**: RESTRICT (prevenir eliminación accidental de ubicaciones con inventario)
+- **Warehouse → Storage Area**: RESTRICT (prevenir eliminación accidental de ubicaciones con
+  inventario)
 - **Area → Location**: RESTRICT
 - **Location → Bin**: RESTRICT
 - **Photo → Detection**: CASCADE (detecciones son derivadas, sin foto no tienen sentido)
 - **Detection → Estimation**: CASCADE (estimaciones dependen completamente de detección)
-- **Detection → Movement**: SET NULL (preservar historial de movimientos aunque detección se elimine)
+- **Detection → Movement**: SET NULL (preservar historial de movimientos aunque detección se
+  elimine)
 
 Esto previene eliminaciones catastróficas mientras permite cleanup natural de datos derivados.
 
@@ -367,7 +428,8 @@ CREATE TABLE audit.logged_actions (
 ) PARTITION BY RANGE (event_timestamp);
 ```
 
-Particiona audit logs por mes para lifecycle management fácil. Trigger function captura todos changes:
+Particiona audit logs por mes para lifecycle management fácil. Trigger function captura todos
+changes:
 
 ```sql
 CREATE OR REPLACE FUNCTION audit.log_changes()
@@ -408,7 +470,8 @@ END;
 $$ LANGUAGE plpgsql;
 ```
 
-El overhead es **3-5% en inserts/updates** - costo mínimo para compliance y debugging completo. Queries de audit son rápidas con índice en (table_name, record_id, event_timestamp).
+El overhead es **3-5% en inserts/updates** - costo mínimo para compliance y debugging completo.
+Queries de audit son rápidas con índice en (table_name, record_id, event_timestamp).
 
 ### Generated columns y materialized views aceleran agregaciones masivamente
 
@@ -424,7 +487,9 @@ GENERATED ALWAYS AS (
 CREATE INDEX idx_detections_area ON detections(bbox_area_sqm);
 ```
 
-Generated STORED columns pre-calculan valores al insert/update. El overhead es **~6% write penalty** pero queries con aggregations son **25-40x más rápidas** (450ms → 12ms en benchmarks). Para dashboards con stats diarias, materialized views son críticas:
+Generated STORED columns pre-calculan valores al insert/update. El overhead es **~6% write penalty**
+pero queries con aggregations son **25-40x más rápidas** (450ms → 12ms en benchmarks). Para
+dashboards con stats diarias, materialized views son críticas:
 
 ```sql
 CREATE MATERIALIZED VIEW mv_daily_detection_stats AS
@@ -443,7 +508,9 @@ GROUP BY warehouse_id, stat_date, class_label;
 CREATE UNIQUE INDEX ON mv_daily_detection_stats(warehouse_id, stat_date, class_label);
 ```
 
-Esto transforma queries de 3-8 segundos (agregando millones de rows) en **queries de 8-15ms** (escaneando centenares de rows pre-agregadas). Refresh concurrente cada 15 minutos con pg_cron mantiene data actualizada sin bloquear lecturas:
+Esto transforma queries de 3-8 segundos (agregando millones de rows) en **queries de 8-15ms** (
+escaneando centenares de rows pre-agregadas). Refresh concurrente cada 15 minutos con pg_cron
+mantiene data actualizada sin bloquear lecturas:
 
 ```sql
 CREATE EXTENSION pg_cron;
@@ -458,7 +525,8 @@ El speedup para dashboards es **150-400x** dependiendo de complejidad de agregac
 
 ## Error handling, circuit breakers y observability distribuida
 
-Resilience patterns son diferencia entre sistema que cae bajo load y sistema production-grade. **Circuit breaker con pybreaker + Redis backing** previene cascading failures:
+Resilience patterns son diferencia entre sistema que cae bajo load y sistema production-grade. *
+*Circuit breaker con pybreaker + Redis backing** previene cascading failures:
 
 ```python
 import pybreaker
@@ -481,7 +549,9 @@ def upload_to_s3(file_path, bucket, key):
     return s3_client.upload_file(file_path, bucket, key)
 ```
 
-Cuando S3 tiene problemas, circuit se abre después de 5 failures y rechaza requests inmediatamente sin esperar timeouts, protegiendo workers. Redis storage permite compartir state entre workers distribuidos.
+Cuando S3 tiene problemas, circuit se abre después de 5 failures y rechaza requests inmediatamente
+sin esperar timeouts, protegiendo workers. Redis storage permite compartir state entre workers
+distribuidos.
 
 ### Exponential backoff con full jitter es AWS-recommended
 
@@ -502,7 +572,9 @@ async def resilient_s3_upload(file_path, bucket, key):
         await s3.upload_file(file_path, bucket, key)
 ```
 
-Full jitter randomiza delays completamente (`sleep = random.uniform(0, min(cap, base * 2^attempt))`) evitando thundering herd cuando muchos workers retry simultáneamente. Esto **reduce carga 50% versus backoff sin jitter** según research de AWS.
+Full jitter randomiza delays completamente (`sleep = random.uniform(0, min(cap, base * 2^attempt))`)
+evitando thundering herd cuando muchos workers retry simultáneamente. Esto **reduce carga 50% versus
+backoff sin jitter** según research de AWS.
 
 ### Dead Letter Queue en Celery para failed tasks
 
@@ -536,7 +608,8 @@ def process_photo_task(self, photo_id):
             raise Reject(exc, requeue=False)
 ```
 
-Tasks en DLQ requieren investigación manual. Monitor DLQ depth con Prometheus alert cuando excede threshold.
+Tasks en DLQ requieren investigación manual. Monitor DLQ depth con Prometheus alert cuando excede
+threshold.
 
 ### OpenTelemetry para tracing distribuido FastAPI → Celery
 
@@ -572,11 +645,13 @@ async def process_image_endpoint(image: UploadFile):
         return {"task_id": task.id, "status": "processing"}
 ```
 
-Jaeger UI visualiza complete request flow desde API call → Celery task → DB query → S3 upload, con latency breakdown por step. Esto es invaluable para debugging performance issues en producción.
+Jaeger UI visualiza complete request flow desde API call → Celery task → DB query → S3 upload, con
+latency breakdown por step. Esto es invaluable para debugging performance issues en producción.
 
 ## S3 upload strategies y image optimization que ahorran 50% storage
 
-Para fotos de plantas (típicamente 5-20MB), **simple upload es suficiente**. Multipart es requerido solo para archivos \u003e100MB:
+Para fotos de plantas (típicamente 5-20MB), **simple upload es suficiente**. Multipart es requerido
+solo para archivos \u003e100MB:
 
 ```python
 from boto3.s3.transfer import TransferConfig
@@ -633,7 +708,8 @@ Para 600k imágenes a 15MB promedio:
 - **AVIF Q85**: **4.5 TB storage** (50% ahorro)
 - **Cost saving**: ~$1,200/año en S3 Standard
 
-Sirve AVIF con fallback WebP para browsers que no soportan AVIF (94% support en 2025). CloudFront puede hacer conversion automática con Lambda@Edge si necesitas.
+Sirve AVIF con fallback WebP para browsers que no soportan AVIF (94% support en 2025). CloudFront
+puede hacer conversion automática con Lambda@Edge si necesitas.
 
 Pre-signed URLs para uploads directos desde cliente con security:
 
@@ -651,13 +727,15 @@ url = s3_client.generate_presigned_url(
 )
 ```
 
-Nunca uses expiration \u003e1 hora para uploads - window más corto reduce attack surface si URL se leak.
+Nunca uses expiration \u003e1 hora para uploads - window más corto reduce attack surface si URL se
+leak.
 
 ## Anti-patterns críticos que destruyen performance y reliability
 
 Identificamos 15+ anti-patterns comunes en ML pipelines que debes evitar absolutamente:
 
 **Celery/GPU:**
+
 1. ❌ Usar prefork/gevent para GPU tasks (causa CUDA context conflicts)
 2. ❌ Cargar modelo en task function cada vez (100x slower)
 3. ❌ No configurar visibility_timeout para long tasks (duplica trabajo)
@@ -665,6 +743,7 @@ Identificamos 15+ anti-patterns comunes en ML pipelines que debes evitar absolut
 5. ❌ Ignorar result cleanup (Redis memory explosion)
 
 **Database:**
+
 6. ❌ No particionar tablas high-volume (queries 100x más lentas)
 7. ❌ Missing índices GiST en columnas geográficas (full table scans)
 8. ❌ Usar solo application-side validation (permite datos corruptos)
@@ -672,18 +751,21 @@ Identificamos 15+ anti-patterns comunes en ML pipelines que debes evitar absolut
 10. ❌ No usar connection pooling (exhaust connections bajo load)
 
 **SQLAlchemy:**
+
 11. ❌ Lazy loading en async code (causa queries síncronas bloqueantes)
 12. ❌ No usar eager loading para joins (N+1 query explosion)
 13. ❌ expire_on_commit=True con async (causa LazyLoadingErrors)
 14. ❌ Usar ORM para bulk operations (11x más lento que Core)
 
 **ML Pipeline:**
+
 15. ❌ No usar SAHI para high-res images (pierde objetos pequeños)
 16. ❌ Confidence threshold muy alto en escenas densas (pierde detecciones)
 17. ❌ No limpiar GPU cache periódicamente (gradual OOM)
 18. ❌ Procesar imágenes secuencialmente (ignora paralelismo disponible)
 
 **Resilience:**
+
 19. ❌ No implementar circuit breakers (cascading failures)
 20. ❌ Retry sin jitter (thundering herd problem)
 21. ❌ No tener Dead Letter Queue (failures desaparecen silenciosamente)
@@ -691,7 +773,8 @@ Identificamos 15+ anti-patterns comunes en ML pipelines que debes evitar absolut
 
 ## Mermaid diagrams avanzados para documentar arquitectura completa
 
-Mermaid es optimal choice para documentación por integración nativa con GitHub/GitLab y markdown. Aunque **no tiene swimlanes nativos**, subgraphs simulan layers arquitectónicos efectivamente:
+Mermaid es optimal choice para documentación por integración nativa con GitHub/GitLab y markdown.
+Aunque **no tiene swimlanes nativos**, subgraphs simulan layers arquitectónicos efectivamente:
 
 ```mermaid
 flowchart TB
@@ -753,13 +836,17 @@ flowchart LR
     style C fill:#32cd32,color:#fff
 ```
 
-**Limitations de Mermaid:** layout control limitado versus PlantUML, no soporta formal swimlanes, chaotic rendering con cambios pequeños. **Use PlantUML cuando necesitas:** C4 architecture models formales, UML compliant diagrams, layout control preciso. **Use Mermaid para:** 90% casos normales, quick diagrams, documentation embedded en markdown.
+**Limitations de Mermaid:** layout control limitado versus PlantUML, no soporta formal swimlanes,
+chaotic rendering con cambios pequeños. **Use PlantUML cuando necesitas:** C4 architecture models
+formales, UML compliant diagrams, layout control preciso. **Use Mermaid para:** 90% casos normales,
+quick diagrams, documentation embedded en markdown.
 
 ## Configuración completa production-ready para sistema 600k+ plantas
 
 Resumiendo todas las optimizaciones, la configuración completa para tu sistema:
 
 **Celery Configuration:**
+
 ```python
 # celery_config.py
 broker_url = 'redis://localhost:6379/0'
@@ -777,6 +864,7 @@ broker_transport_options = {'visibility_timeout': 43200}
 ```
 
 **Workers:**
+
 ```bash
 # GPU workers (1 per GPU)
 CUDA_VISIBLE_DEVICES=0 celery -A app worker --pool=solo --concurrency=1 --queues=gpu_queue_0 &
@@ -792,6 +880,7 @@ celery -A app worker --pool=gevent --concurrency=50 --queues=io_queue &
 ```
 
 **PostgreSQL Configuration (32GB RAM):**
+
 ```ini
 shared_buffers = 8GB
 effective_cache_size = 24GB
@@ -807,6 +896,7 @@ shared_preload_libraries = 'pg_stat_statements,auto_explain,pg_partman,pg_cron'
 ```
 
 **SQLAlchemy Engine:**
+
 ```python
 engine = create_async_engine(
     "postgresql+asyncpg://user:pass@localhost/plantdb",
@@ -823,6 +913,7 @@ engine = create_async_engine(
 ```
 
 **YOLO v11 Configuration:**
+
 ```python
 model = YOLO('yolov11m.pt')
 model.to('cuda')
@@ -842,33 +933,46 @@ results = model(
 
 **Expected Performance con esta configuración:**
 
-| Métrica | Target | Explicación |
-|---------|--------|-------------|
-| Throughput | 150-200 img/sec | 4x A100 GPUs con YOLO v11 + SAHI |
-| Processing time (600k) | **90-120 minutos** | Pipeline completo optimizado |
-| Detection insert | \u003c3ms | Bulk inserts con asyncpg COPY |
-| Spatial query | \u003c50ms | GiST indexes + partition pruning |
-| Dashboard load | \u003c100ms | Materialized views refreshed cada 15min |
-| Task failure rate | \u003c0.1% | Circuit breakers + DLQ + retries |
-| API P95 latency | \u003c200ms | Async everything, connection pooling |
-| GPU utilization | 85-90% | Batch processing optimizado |
+| Métrica                | Target             | Explicación                             |
+|------------------------|--------------------|-----------------------------------------|
+| Throughput             | 150-200 img/sec    | 4x A100 GPUs con YOLO v11 + SAHI        |
+| Processing time (600k) | **90-120 minutos** | Pipeline completo optimizado            |
+| Detection insert       | \u003c3ms          | Bulk inserts con asyncpg COPY           |
+| Spatial query          | \u003c50ms         | GiST indexes + partition pruning        |
+| Dashboard load         | \u003c100ms        | Materialized views refreshed cada 15min |
+| Task failure rate      | \u003c0.1%         | Circuit breakers + DLQ + retries        |
+| API P95 latency        | \u003c200ms        | Async everything, connection pooling    |
+| GPU utilization        | 85-90%             | Batch processing optimizado             |
 
 ## Conclusión y roadmap de implementación
 
-Este sistema procesará 600,000+ imágenes de plantas con arquitectura production-grade usando YOLO v11 + SAHI, Celery con workers especializados, PostgreSQL particionado con PostGIS, y resilience patterns completos. Las optimizaciones críticas son: **pool=solo para GPU workers, particionamiento diario de detecciones, asyncpg para bulk inserts, selectinload para eager loading, circuit breakers en servicios externos, y materialized views para dashboards**.
+Este sistema procesará 600,000+ imágenes de plantas con arquitectura production-grade usando YOLO
+v11 + SAHI, Celery con workers especializados, PostgreSQL particionado con PostGIS, y resilience
+patterns completos. Las optimizaciones críticas son: **pool=solo para GPU workers, particionamiento
+diario de detecciones, asyncpg para bulk inserts, selectinload para eager loading, circuit breakers
+en servicios externos, y materialized views para dashboards**.
 
-Los benchmarks demuestran speedups de **5-400x** en diferentes operaciones versus implementaciones naive. El costo total de storage se reduce 50% con AVIF compression. La arquitectura escala linealmente con GPUs adicionales.
+Los benchmarks demuestran speedups de **5-400x** en diferentes operaciones versus implementaciones
+naive. El costo total de storage se reduce 50% con AVIF compression. La arquitectura escala
+linealmente con GPUs adicionales.
 
 **Prioridades de implementación:**
 
-1. **Semana 1-2**: Setup Celery con GPU workers correctos (pool=solo), implementar modelo singleton pattern, configurar task routing
-2. **Semana 2-3**: Migrar a asyncpg, implementar bulk inserts, crear índices GiST en todas columnas geográficas
-3. **Semana 3-4**: Implementar particionamiento en detections/estimations, setup pg_partman para auto-management
-4. **Semana 4-5**: Deploy circuit breakers, exponential backoff, DLQ configuration, OpenTelemetry tracing
-5. **Semana 5-6**: Crear materialized views para dashboards, setup pg_cron para refreshes, implementar audit logging
-6. **Semana 6+**: Performance testing con load real, tuning basado en métricas, documentation completa con Mermaid diagrams
+1. **Semana 1-2**: Setup Celery con GPU workers correctos (pool=solo), implementar modelo singleton
+   pattern, configurar task routing
+2. **Semana 2-3**: Migrar a asyncpg, implementar bulk inserts, crear índices GiST en todas columnas
+   geográficas
+3. **Semana 3-4**: Implementar particionamiento en detections/estimations, setup pg_partman para
+   auto-management
+4. **Semana 4-5**: Deploy circuit breakers, exponential backoff, DLQ configuration, OpenTelemetry
+   tracing
+5. **Semana 5-6**: Crear materialized views para dashboards, setup pg_cron para refreshes,
+   implementar audit logging
+6. **Semana 6+**: Performance testing con load real, tuning basado en métricas, documentation
+   completa con Mermaid diagrams
 
 **Monitoring crítico desde día 1:**
+
 - Prometheus + Grafana para métricas Celery (usa celery-exporter)
 - Jaeger para distributed tracing
 - pg_stat_statements para query analysis
@@ -876,4 +980,6 @@ Los benchmarks demuestran speedups de **5-400x** en diferentes operaciones versu
 - DLQ depth con alertas cuando \u003e10 tasks
 - Circuit breaker state changes
 
-Esta arquitectura te da foundation sólida para escalar a millones de imágenes manteniendo sub-second latency en queries y high throughput en processing. Todas las recomendaciones están basadas en best practices October 2025 y probadas en sistemas production similares.
+Esta arquitectura te da foundation sólida para escalar a millones de imágenes manteniendo sub-second
+latency en queries y high throughput en processing. Todas las recomendaciones están basadas en best
+practices October 2025 y probadas en sistemas production similares.

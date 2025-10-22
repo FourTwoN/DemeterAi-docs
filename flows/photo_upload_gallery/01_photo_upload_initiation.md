@@ -7,16 +7,20 @@
 
 ## Purpose
 
-This diagram documents the **photo upload initiation flow** from the moment a user selects photos to the creation of asynchronous Celery jobs. This is the entry point for the entire photo processing pipeline.
+This diagram documents the **photo upload initiation flow** from the moment a user selects photos to
+the creation of asynchronous Celery jobs. This is the entry point for the entire photo processing
+pipeline.
 
 ## Scope
 
 **Input:**
+
 - Multiple image files (1-100 photos)
 - User authentication token
 - Optional metadata (warehouse_id, notes)
 
 **Output:**
+
 - Files saved to temporary storage (/tmp/uploads/)
 - S3 originals uploaded
 - UUIDs generated for each photo
@@ -24,6 +28,7 @@ This diagram documents the **photo upload initiation flow** from the moment a us
 - 202 Accepted response with job IDs
 
 **Performance Target:**
+
 - File upload: 10-30s for 100 photos (network-dependent)
 - Backend processing: < 500ms after upload completes
 - Total response time: < 1 second (excluding file transfer)
@@ -37,6 +42,7 @@ This diagram documents the **photo upload initiation flow** from the moment a us
 **Solution:** Multipart/form-data with streaming upload
 
 **Alternatives considered:**
+
 1. **Base64 encoded JSON** - 33% larger payload, slow encoding/decoding ❌
 2. **Multiple single-file requests** - Too many HTTP handshakes, slow ❌
 3. **Multipart/form-data** - Native browser support, efficient, chosen ✓
@@ -44,6 +50,7 @@ This diagram documents the **photo upload initiation flow** from the moment a us
 ### Upload Configuration
 
 **Frontend (JavaScript/TypeScript):**
+
 ```javascript
 const uploadConfig = {
     maxFiles: 100,              // Limit batch size
@@ -56,6 +63,7 @@ const uploadConfig = {
 ```
 
 **Backend (FastAPI):**
+
 ```python
 @router.post('/photos/upload')
 async def upload_photos(
@@ -79,6 +87,7 @@ async def upload_photos(
 ### 1. Client-Side File Selection (lines 84-120)
 
 **HTML5 File Input:**
+
 ```html
 <input
     type="file"
@@ -91,6 +100,7 @@ async def upload_photos(
 ```
 
 **Or drag-and-drop:**
+
 ```javascript
 function handleDrop(event) {
     event.preventDefault()
@@ -121,17 +131,20 @@ function handleDrop(event) {
 ### 2. Client-Side Validation (lines 140-180)
 
 **Validation checks:**
+
 1. **File count**: 1-100 files
 2. **File type**: JPEG or PNG only
 3. **File size**: < 20MB per file
 4. **Total size**: < 500MB total (optional)
 
 **Why validate on client?**
+
 - **Instant feedback**: No need to wait for server response
 - **Reduce server load**: Invalid requests never sent
 - **Better UX**: User sees errors before upload starts
 
 **Example validation:**
+
 ```javascript
 function validateFiles(files) {
     const errors = []
@@ -168,6 +181,7 @@ function validateFiles(files) {
 ### 3. Multipart Upload Request (lines 220-280)
 
 **JavaScript fetch API:**
+
 ```javascript
 async function uploadFiles(files, options = {}) {
     // Create FormData
@@ -224,6 +238,7 @@ async function uploadFiles(files, options = {}) {
 ```
 
 **Raw HTTP request:**
+
 ```http
 POST /api/v1/photos/upload HTTP/1.1
 Host: api.demeterai.com
@@ -255,6 +270,7 @@ Weekly inventory check - Greenhouse A
 ### 4. Backend: Save to Temporary Storage (lines 320-380)
 
 **FastAPI endpoint handler:**
+
 ```python
 import uuid
 import shutil
@@ -320,6 +336,7 @@ async def upload_photos(
 ```
 
 **Temp directory structure:**
+
 ```
 /tmp/uploads/
 └── {upload_session_id}/
@@ -329,6 +346,7 @@ async def upload_photos(
 ```
 
 **Cleanup policy:**
+
 - Files deleted after 24 hours (cron job)
 - Files deleted immediately after successful S3 upload
 - Files deleted on server restart (in /tmp/)
@@ -336,12 +354,14 @@ async def upload_photos(
 ### 5. EXIF Metadata Extraction (lines 420-500)
 
 **Why extract EXIF?**
+
 - **GPS coordinates**: Match photos to storage locations
 - **Timestamp**: Photo capture time (may differ from upload time)
 - **Camera info**: Useful for debugging image quality issues
 - **Orientation**: Correct image rotation
 
 **Python implementation:**
+
 ```python
 from PIL import Image
 from PIL.ExifTags import TAGS, GPSTAGS
@@ -455,21 +475,25 @@ def extract_gps_data(gps_info: Dict) -> Dict[str, float]:
 
 ### 6. S3 Upload (DEFERRED - Celery Tasks)
 
-**IMPORTANT:** S3 upload does NOT happen during the FastAPI endpoint. Files are saved to `/tmp/` and uploaded to S3 asynchronously via Celery tasks.
+**IMPORTANT:** S3 upload does NOT happen during the FastAPI endpoint. Files are saved to `/tmp/` and
+uploaded to S3 asynchronously via Celery tasks.
 
 **Upload strategy:**
+
 - Files saved to `/tmp/uploads/` during endpoint execution
 - S3 upload delegated to Celery tasks (`upload_s3_batch`)
 - Tasks process images in chunks of ~20 per batch
 - Circuit breaker pattern prevents S3 API exhaustion
 
 **Why defer to Celery?**
+
 1. **Fast API response**: Return 202 Accepted in < 500ms
 2. **Resilience**: Circuit breaker handles AWS outages gracefully
 3. **Retry logic**: Automatic exponential backoff on failures
 4. **Progress tracking**: Users can poll job status
 
 **Celery Task (Simplified):**
+
 ```python
 @app.task(bind=True, max_retries=3)
 def upload_s3_batch(self, chunk: List[str]):
@@ -499,21 +523,25 @@ def upload_s3_batch(self, chunk: List[str]):
 ```
 
 **Performance:**
+
 - Endpoint response: < 500ms (no S3 upload)
 - S3 upload per chunk (20 images): 4-10 seconds
 - Total for 100 images: 20-50 seconds (5 chunks × 4-10s)
 
 **For complete S3 upload implementation, see:**
+
 - `flows/procesamiento_ml_upload_s3_principal/03_s3_upload_circuit_breaker_detailed.mmd`
 
 ### 7. Thumbnail Generation (lines 680-740)
 
 **Why generate thumbnails?**
+
 - **Gallery performance**: 300x300px loads 100x faster than 4000x3000px
 - **Bandwidth savings**: Thumbnail ~30KB vs original ~5MB (167x smaller)
 - **User experience**: Instant gallery loading
 
 **Implementation:**
+
 ```python
 from PIL import Image
 from io import BytesIO
@@ -587,6 +615,7 @@ async def generate_and_upload_thumbnail(
 ### 8. Database Record Creation (lines 780-860)
 
 **Insert into s3_images table:**
+
 ```python
 from sqlalchemy.ext.asyncio import AsyncSession
 from datetime import datetime
@@ -642,6 +671,7 @@ async def create_image_record(
 ### 9. Celery Job Creation (CHUNKED - Batches of 20)
 
 **Create chunked Celery jobs for S3 upload:**
+
 ```python
 from celery import group, chunks
 from celery_app import celery_app
@@ -725,6 +755,7 @@ async def create_s3_upload_jobs(
 ```
 
 **Key differences from individual jobs:**
+
 - **100 images = 5 jobs** (not 100 jobs)
 - Each job processes 20 images sequentially
 - Uses Celery `group()` to execute chunks in parallel
@@ -733,6 +764,7 @@ async def create_s3_upload_jobs(
 ### 10. HTTP 202 Response (Chunked Jobs)
 
 **Return response to frontend:**
+
 ```python
 from fastapi import Response
 from fastapi.responses import JSONResponse
@@ -786,6 +818,7 @@ async def upload_photos(
 ```
 
 **Response example (100 images):**
+
 ```json
 {
   "status": "accepted",
@@ -801,6 +834,7 @@ async def upload_photos(
 ```
 
 **Key differences:**
+
 - Response shows **chunks** (5), not individual jobs (100)
 - `group_id` for polling entire batch
 - Estimated time in **seconds** (not minutes) since S3 upload is fast
@@ -810,33 +844,37 @@ async def upload_photos(
 
 **Complete upload flow timing (for 50 photos):**
 
-| Phase | Time | Details |
-|-------|------|---------|
-| **File selection** | < 1s | User clicks upload button |
-| **Client validation** | < 100ms | Check file types, sizes |
-| **Upload to server** | 15-30s | Multipart upload, network-dependent |
-| **Save to /tmp/** | 2-5s | Write files to disk (50 × 50ms) |
-| **Create DB records** | 1-2s | Bulk insert (50 records) |
-| **Create Celery jobs** | 200ms | Dispatch 3 chunked tasks (50/20 = 3 chunks) |
-| **Build response** | 50ms | JSON serialization |
-| **Total backend** | ~3-8s | From upload complete to 202 response |
+| Phase                  | Time    | Details                                     |
+|------------------------|---------|---------------------------------------------|
+| **File selection**     | < 1s    | User clicks upload button                   |
+| **Client validation**  | < 100ms | Check file types, sizes                     |
+| **Upload to server**   | 15-30s  | Multipart upload, network-dependent         |
+| **Save to /tmp/**      | 2-5s    | Write files to disk (50 × 50ms)             |
+| **Create DB records**  | 1-2s    | Bulk insert (50 records)                    |
+| **Create Celery jobs** | 200ms   | Dispatch 3 chunked tasks (50/20 = 3 chunks) |
+| **Build response**     | 50ms    | JSON serialization                          |
+| **Total backend**      | ~3-8s   | From upload complete to 202 response        |
 
 **DEFERRED (Async in Celery):**
+
 - **Extract EXIF**: 4-5s (happens in `upload_s3_batch` task)
 - **Upload to S3**: 15-20s (happens in `upload_s3_batch` task)
 - **Generate thumbnails**: 8-10s (happens in `upload_s3_batch` task)
 
 **User perceives:**
+
 - Upload progress: 15-30s (visible progress bar)
 - Backend processing: ~5s (fast response)
 - **Total: ~20-35s** from click to "processing started" message
 - S3 upload happens in background (user polls job status)
 
 **Bottlenecks:**
+
 1. **Network upload**: Largest factor (user's internet speed)
 2. **Disk I/O**: Writing to /tmp/ (mitigated by SSD)
 
 **Optimizations:**
+
 - S3 upload moved to Celery tasks (non-blocking API response)
 - EXIF extraction happens in Celery (not during upload)
 - Thumbnail generation happens in Celery (not during upload)
@@ -850,6 +888,7 @@ async def upload_photos(
 **Scenario:** User uploads non-image file
 
 **Client-side:**
+
 ```javascript
 if (!file.type.match(/image\/(jpeg|png)/)) {
     showError(`Invalid file type: ${file.name}`)
@@ -858,6 +897,7 @@ if (!file.type.match(/image\/(jpeg|png)/)) {
 ```
 
 **Server-side:**
+
 ```python
 if file.content_type not in ['image/jpeg', 'image/png']:
     raise HTTPException(400, f'Invalid file type: {file.content_type}')
@@ -868,6 +908,7 @@ if file.content_type not in ['image/jpeg', 'image/png']:
 **Scenario:** User uploads file > 20MB
 
 **Client-side:**
+
 ```javascript
 if (file.size > 20 * 1024 * 1024) {
     showError(`File too large: ${file.name} (${formatBytes(file.size)})`)
@@ -876,6 +917,7 @@ if (file.size > 20 * 1024 * 1024) {
 ```
 
 **Server-side:**
+
 ```python
 # FastAPI automatic request body size limit
 app.add_middleware(
@@ -889,6 +931,7 @@ app.add_middleware(
 **Scenario:** Network error, AWS down, credentials invalid
 
 **Retry logic:**
+
 ```python
 from tenacity import retry, stop_after_attempt, wait_exponential
 
@@ -902,6 +945,7 @@ async def upload_to_s3_with_retry(local_path, image_id, content_type, metadata):
 ```
 
 **Fallback:**
+
 ```python
 try:
     s3_data = await upload_to_s3_with_retry(...)
@@ -919,6 +963,7 @@ except Exception as e:
 **Scenario:** PostgreSQL connection pool exhausted
 
 **Retry with exponential backoff:**
+
 ```python
 from asyncio import sleep
 
@@ -943,6 +988,7 @@ async def create_image_record_with_retry(db, image_id, s3_data, exif_metadata, u
 **Scenario:** /tmp/ partition full
 
 **Check before writing:**
+
 ```python
 import shutil
 
@@ -964,13 +1010,14 @@ if not check_disk_space('/tmp/uploads', total_size * 2):  # 2x buffer
 
 ## Version History
 
-| Version | Date | Changes |
-|---------|------|---------|
-| 1.0.0 | 2025-10-08 | Initial photo upload initiation subflow |
+| Version | Date       | Changes                                 |
+|---------|------------|-----------------------------------------|
+| 1.0.0   | 2025-10-08 | Initial photo upload initiation subflow |
 
 ---
 
 **Notes:**
+
 - Files saved to /tmp/ are temporary (deleted after S3 upload)
 - S3 is source of truth (originals never deleted)
 - Thumbnail generation can be moved to background task for faster response

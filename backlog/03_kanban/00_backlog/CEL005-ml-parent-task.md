@@ -1,6 +1,7 @@
 # [CEL005] ML Parent Task ⚡⚡
 
 ## Metadata
+
 - **Epic**: epic-008
 - **Sprint**: Sprint-04
 - **Priority**: critical ⚡⚡ **CRITICAL PATH**
@@ -8,9 +9,12 @@
 - **Dependencies**: Blocks [Sprint completion], Blocked by [ML009, CEL004]
 
 ## Description
-Parent task that spawns ML child tasks (one per image) using chord pattern. **CRITICAL PATH** - blocks Sprint 04 completion.
+
+Parent task that spawns ML child tasks (one per image) using chord pattern. **CRITICAL PATH** -
+blocks Sprint 04 completion.
 
 ## Acceptance Criteria
+
 - [ ] Task `ml_parent_task(session_code, image_ids)`
 - [ ] Spawns one child task per image_id
 - [ ] Uses chord pattern → callback
@@ -18,6 +22,7 @@ Parent task that spawns ML child tasks (one per image) using chord pattern. **CR
 - [ ] Error handling with warning states
 
 ## Implementation
+
 ```python
 @app.task(bind=True)
 def ml_parent_task(self, session_code, image_ids):

@@ -11,6 +11,7 @@ Review and validate task `{{task-id}}` through all quality gates.
 ## Steps
 
 ### 1. Locate Task
+
 ```bash
 # Find task in in-progress, code-review, or testing
 TASK_FILE=$(find backlog/03_kanban/{02_in-progress,03_code-review,04_testing}/ -name "{{task-id}}-*.md" 2>/dev/null | head -1)
@@ -25,6 +26,7 @@ echo "Current stage: $CURRENT_STAGE"
 ```
 
 ### 2. Code Review (if in 02_in-progress/)
+
 ```bash
 # Check if implementation files exist
 SERVICE_FILE="app/services/[name]_service.py"
@@ -62,6 +64,7 @@ fi
 ```
 
 **Append review results**:
+
 ```markdown
 ## Team Leader Code Review ($(date +%Y-%m-%d\ %H:%M))
 **Status**: ✅ APPROVED / ❌ NEEDS CHANGES
@@ -82,6 +85,7 @@ fi
 ```
 
 ### 3. Testing Review (if in 03_code-review/)
+
 ```bash
 echo "Running tests..."
 
@@ -117,6 +121,7 @@ fi
 ```
 
 **Append test results**:
+
 ```markdown
 ## Team Leader Testing Review ($(date +%Y-%m-%d\ %H:%M))
 
@@ -133,6 +138,7 @@ fi
 ```
 
 ### 4. Final Quality Gates (if in 04_testing/)
+
 ```bash
 echo "🚪 Running Quality Gates..."
 
@@ -162,6 +168,7 @@ echo "✅ ALL QUALITY GATES PASSED"
 ```
 
 ### 5. Move Through Stages
+
 ```bash
 case "$CURRENT_STAGE" in
     "02_in-progress")
@@ -181,6 +188,7 @@ esac
 ```
 
 ### 6. Final Approval (if all gates passed)
+
 ```markdown
 ## Team Leader Final Approval ($(date +%Y-%m-%d\ %H:%M))
 **Status**: ✅ READY FOR COMPLETION
@@ -209,6 +217,7 @@ esac
 **Command**: `/review-task S001`
 
 **Output**:
+
 ```
 Located task: backlog/03_kanban/02_in-progress/S001-stock-movement-service.md
 

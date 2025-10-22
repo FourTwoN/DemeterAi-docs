@@ -13,266 +13,266 @@ config:
   layout: dagre
 ---
 flowchart TB
-  subgraph API_MANUAL["🎯 API CONTROLLER - POST /api/stock/manual"]
-    direction TB
-      START(["📋 Recibe Request Manual<br>JSON con datos operación<br>+ metadata usuario"])
-      VALIDATE_TYPE{"Validar<br>movement_type"}
-      RETURN_400["❌ Return 400<br>Invalid movement_type<br>Debe ser: plantar|transplante|muerte"]
-      PARSE_TYPE{"¿Qué tipo<br>operación?"}
-      ROUTE_PLANTAR["📍 Route: PLANTADO"]
-      ROUTE_TRANSPLANTE["🔄 Route: TRANSPLANTE"]
-      ROUTE_MUERTE["💀 Route: MUERTE"]
-      VALIDATE_COMMON["✅ Validaciones comunes<br>- user_id existe<br>- storage_location_id existe<br>- product_id existe<br>- quantity > 0"]
-      VALIDATION_FAILED{"¿Validación<br>OK?"}
-      RETURN_422["❌ Return 422<br>Validation Error<br>Detalle específico"]
-      API_END(["✅ API Response enviada<br>201 Created"])
-  end
+    subgraph API_MANUAL["🎯 API CONTROLLER - POST /api/stock/manual"]
+        direction TB
+        START(["📋 Recibe Request Manual<br>JSON con datos operación<br>+ metadata usuario"])
+        VALIDATE_TYPE{"Validar<br>movement_type"}
+        RETURN_400["❌ Return 400<br>Invalid movement_type<br>Debe ser: plantar|transplante|muerte"]
+        PARSE_TYPE{"¿Qué tipo<br>operación?"}
+        ROUTE_PLANTAR["📍 Route: PLANTADO"]
+        ROUTE_TRANSPLANTE["🔄 Route: TRANSPLANTE"]
+        ROUTE_MUERTE["💀 Route: MUERTE"]
+        VALIDATE_COMMON["✅ Validaciones comunes<br>- user_id existe<br>- storage_location_id existe<br>- product_id existe<br>- quantity > 0"]
+        VALIDATION_FAILED{"¿Validación<br>OK?"}
+        RETURN_422["❌ Return 422<br>Validation Error<br>Detalle específico"]
+        API_END(["✅ API Response enviada<br>201 Created"])
+    end
 
-  subgraph PLANTADO_FLOW["🌱 SERVICIO: Proceso Plantado"]
-    direction TB
-      PLANT_START(["⚙️ Service recibe<br>storage_location_id<br>product_id, packaging_id<br>product_state_id, product_size_id<br>quantity, notes<br>user_id"])
-      PLANT_GET_LOCATION[("📊 SELECT sl.id, sl.storage_area_id,<br>sl.warehouse_id<br>FROM storage_locations sl<br>WHERE sl.id = location_id<br>AND sl.active = true")]
-      PLANT_LOCATION_CHECK{"¿Location<br>existe?"}
-      PLANT_ERROR_LOC["🚨 ERROR 404<br>Storage location not found<br>O inactivo"]
-      PLANT_GET_CONFIG[("📊 SELECT slc.*<br>FROM storage_location_config slc<br>WHERE slc.storage_location_id = location_id<br>AND slc.active = true<br>LIMIT 1<br>⚠️ OPCIONAL - puede no existir")]
-      PLANT_FIND_BIN@{ label: "📊 SELECT sb.id, sb.status<br>FROM storage_bins sb<br>JOIN storage_bin_types sbt<br>  ON sb.storage_bin_type_id = sbt.id<br>WHERE sb.storage_location_id = location_id<br>AND sbt.category = BIN_CATEGORY<br>AND sb.status = 'active'<br>ORDER BY sb.created_at DESC<br>LIMIT 1<br>⚠️ BIN_CATEGORY inferido de packaging" }
-      PLANT_BIN_EXISTS{"¿Bin<br>existe?"}
-      PLANT_CREATE_BIN@{ label: "📊 INSERT INTO storage_bins<br>storage_location_id = location_id<br>storage_bin_type_id = TYPE_ID<br>code = auto-generated<br>label = descriptive<br>status = 'active'<br>created_at = NOW<br>RETURNING id AS bin_id<br>⚠️ Crear bin si no existe" }
-      PLANT_USE_BIN["✅ Usar bin_id existente"]
-      PLANT_GEN_MOVEMENT_ID["🆔 Generar movement_id<br>movement_id = gen_random_uuid()"]
-      PLANT_INSERT_MOVEMENT@{ label: "📊 INSERT INTO stock_movements<br>movement_id = UUID<br>batch_id = NULL<br>movement_type = 'plantar'<br>source_bin_id = NULL<br>destination_bin_id = bin_id<br>quantity = QUANTITY<br>user_id = USER_ID<br>unit_price = NULL<br>total_price = NULL<br>reason_description = NOTES<br>processing_session_id = NULL<br>source_type = 'manual'<br>is_inbound = true<br>created_at = NOW<br>RETURNING id AS movement_id_pk" }
-      PLANT_FIND_BATCH[("📊 SELECT sb.id, sb.quantity_current<br>FROM stock_batches sb<br>WHERE sb.current_storage_bin_id = bin_id<br>AND sb.product_id = product_id<br>AND sb.product_state_id = state_id<br>AND sb.product_size_id = size_id<br>AND sb.packaging_catalog_id = packaging_id<br>AND sb.has_packaging = true<br>ORDER BY sb.created_at DESC<br>LIMIT 1")]
-      PLANT_BATCH_EXISTS{"¿Batch<br>existe?"}
-      PLANT_GEN_BATCH_CODE@{ label: "📝 Generate batch_code<br>f'LOC{location_id}-PROD{product_id}-<br>{datetime.now().strftime('%Y%m%d')}-<br>{sequence.zfill(3)}'<br>Ejemplo: LOC15-PROD42-20250107-001" }
-      PLANT_INSERT_BATCH@{ label: "📊 INSERT INTO stock_batches<br>batch_code = GENERATED<br>current_storage_bin_id = bin_id<br>product_id = product_id<br>product_state_id = state_id<br>product_size_id = size_id<br>has_packaging = true<br>packaging_catalog_id = packaging_id<br>quantity_initial = quantity<br>quantity_current = quantity<br>quantity_empty_containers = 0<br>planting_date = CURRENT_DATE<br>quality_score = NULL<br>notes = 'Manual plantado'<br>created_at = NOW<br>RETURNING id AS batch_id" }
-      PLANT_UPDATE_BATCH@{ label: "📊 UPDATE stock_batches<br>SET quantity_current = quantity_current + QUANTITY<br>updated_at = NOW<br>WHERE id = batch_id<br>⚠️ Incrementar stock existente" }
-      PLANT_LINK_MOVEMENT[("📊 UPDATE stock_movements<br>SET batch_id = batch_id<br>WHERE id = movement_id_pk")]
-      PLANT_VERIFY["✅ VERIFICATION<br>⚠️ Verificar FKs válidos<br>⚠️ Verificar quantity > 0<br>⚠️ Verificar batch linked"]
-      PLANT_ALL_VALID{"Todo<br>válido?"}
-      PLANT_ROLLBACK["🔄 ROLLBACK<br>DELETE stock_movements<br>DELETE stock_batches si new<br>Log error completo"]
-      PLANT_ERROR_END(["❌ Service FAILURE<br>Return 500"])
-      PLANT_COMMIT["✅ COMMIT Transaction"]
-      PLANT_BUILD_RESPONSE["📦 Build response<br>movement_id: UUID<br>batch_id: int<br>bin_id: int<br>quantity_added: int<br>new_total: int<br>operation: 'plantado'"]
-      PLANT_END(["✅ Service SUCCESS<br>Return response dict"])
-  end
+subgraph PLANTADO_FLOW["🌱 SERVICIO: Proceso Plantado"]
+direction TB
+PLANT_START(["⚙️ Service recibe<br>storage_location_id<br>product_id, packaging_id<br>product_state_id, product_size_id<br>quantity, notes<br>user_id"])
+PLANT_GET_LOCATION[("📊 SELECT sl.id, sl.storage_area_id,<br>sl.warehouse_id<br>FROM storage_locations sl<br>WHERE sl.id = location_id<br>AND sl.active = true")]
+PLANT_LOCATION_CHECK{"¿Location<br>existe?"}
+PLANT_ERROR_LOC["🚨 ERROR 404<br>Storage location not found<br>O inactivo"]
+PLANT_GET_CONFIG[("📊 SELECT slc.*<br>FROM storage_location_config slc<br>WHERE slc.storage_location_id = location_id<br>AND slc.active = true<br>LIMIT 1<br>⚠️ OPCIONAL - puede no existir")]
+PLANT_FIND_BIN@{ label: "📊 SELECT sb.id, sb.status<br>FROM storage_bins sb<br>JOIN storage_bin_types sbt<br> ON sb.storage_bin_type_id = sbt.id<br>WHERE sb.storage_location_id = location_id<br>AND sbt.category = BIN_CATEGORY<br>AND sb.status = 'active'<br>ORDER BY sb.created_at DESC<br>LIMIT 1<br>⚠️ BIN_CATEGORY inferido de packaging" }
+PLANT_BIN_EXISTS{"¿Bin<br>existe?"}
+PLANT_CREATE_BIN@{ label: "📊 INSERT INTO storage_bins<br>storage_location_id = location_id<br>storage_bin_type_id = TYPE_ID<br>code = auto-generated<br>label = descriptive<br>status = 'active'<br>created_at = NOW<br>RETURNING id AS bin_id<br>⚠️ Crear bin si no existe" }
+PLANT_USE_BIN["✅ Usar bin_id existente"]
+PLANT_GEN_MOVEMENT_ID["🆔 Generar movement_id<br>movement_id = gen_random_uuid()"]
+PLANT_INSERT_MOVEMENT@{ label: "📊 INSERT INTO stock_movements<br>movement_id = UUID<br>batch_id = NULL<br>movement_type = 'plantar'<br>source_bin_id = NULL<br>destination_bin_id = bin_id<br>quantity = QUANTITY<br>user_id = USER_ID<br>unit_price = NULL<br>total_price = NULL<br>reason_description = NOTES<br>processing_session_id = NULL<br>source_type = 'manual'<br>is_inbound = true<br>created_at = NOW<br>RETURNING id AS movement_id_pk" }
+PLANT_FIND_BATCH[("📊 SELECT sb.id, sb.quantity_current<br>FROM stock_batches sb<br>WHERE sb.current_storage_bin_id = bin_id<br>AND sb.product_id = product_id<br>AND sb.product_state_id = state_id<br>AND sb.product_size_id = size_id<br>AND sb.packaging_catalog_id = packaging_id<br>AND sb.has_packaging = true<br>ORDER BY sb.created_at DESC<br>LIMIT 1")]
+PLANT_BATCH_EXISTS{"¿Batch<br>existe?"}
+PLANT_GEN_BATCH_CODE@{ label: "📝 Generate batch_code<br>f'LOC{location_id}-PROD{product_id}-<br>{datetime.now().strftime('%Y%m%d')}-<br>{sequence.zfill(3)}'<br>Ejemplo: LOC15-PROD42-20250107-001" }
+PLANT_INSERT_BATCH@{ label: "📊 INSERT INTO stock_batches<br>batch_code = GENERATED<br>current_storage_bin_id = bin_id<br>product_id = product_id<br>product_state_id = state_id<br>product_size_id = size_id<br>has_packaging = true<br>packaging_catalog_id = packaging_id<br>quantity_initial = quantity<br>quantity_current = quantity<br>quantity_empty_containers = 0<br>planting_date = CURRENT_DATE<br>quality_score = NULL<br>notes = 'Manual plantado'<br>created_at = NOW<br>RETURNING id AS batch_id" }
+PLANT_UPDATE_BATCH@{ label: "📊 UPDATE stock_batches<br>SET quantity_current = quantity_current + QUANTITY<br>updated_at = NOW<br>WHERE id = batch_id<br>⚠️ Incrementar stock existente" }
+PLANT_LINK_MOVEMENT[("📊 UPDATE stock_movements<br>SET batch_id = batch_id<br>WHERE id = movement_id_pk")]
+PLANT_VERIFY["✅ VERIFICATION<br>⚠️ Verificar FKs válidos<br>⚠️ Verificar quantity > 0<br>⚠️ Verificar batch linked"]
+PLANT_ALL_VALID{"Todo<br>válido?"}
+PLANT_ROLLBACK["🔄 ROLLBACK<br>DELETE stock_movements<br>DELETE stock_batches si new<br>Log error completo"]
+PLANT_ERROR_END(["❌ Service FAILURE<br>Return 500"])
+PLANT_COMMIT["✅ COMMIT Transaction"]
+PLANT_BUILD_RESPONSE["📦 Build response<br>movement_id: UUID<br>batch_id: int<br>bin_id: int<br>quantity_added: int<br>new_total: int<br>operation: 'plantado'"]
+PLANT_END(["✅ Service SUCCESS<br>Return response dict"])
+end
 
-  subgraph TRANSPLANTE_FLOW["🔄 SERVICIO: Proceso Transplante"]
-    direction TB
-      TRANS_START(["⚙️ Service recibe<br>source_location_id<br>destination_location_id<br>product_id, packaging_id<br>state_id, size_id<br>quantity, notes<br>user_id"])
-      TRANS_VALIDATE_LOCS[("📊 SELECT COUNT(*)<br>FROM storage_locations<br>WHERE id IN (source_id, dest_id)<br>AND active = true<br>⚠️ Ambas locations deben existir")]
-      TRANS_LOCS_VALID{"¿2 locations<br>activas?"}
-      TRANS_ERROR_LOCS["🚨 ERROR 404<br>Source o destination location<br>no existe o inactiva"]
-      TRANS_SAME_CHECK{"¿Source ==<br>Destination?"}
-      TRANS_ERROR_SAME["🚨 ERROR 400<br>Cannot transplant to same location<br>Use plantado para agregar"]
-      TRANS_FIND_SOURCE_BIN[("📊 SELECT sb.id<br>FROM storage_bins sb<br>WHERE sb.storage_location_id = source_id<br>AND sb.status = 'active'<br>ORDER BY sb.created_at DESC<br>LIMIT 1")]
-      TRANS_SOURCE_BIN_CHECK{"¿Source bin<br>existe?"}
-      TRANS_ERROR_NO_SOURCE["🚨 ERROR 404<br>No active bin in source location<br>Nothing to transplant"]
-      TRANS_FIND_SOURCE_BATCH[("📊 SELECT sb.id, sb.quantity_current<br>FROM stock_batches sb<br>WHERE sb.current_storage_bin_id = source_bin_id<br>AND sb.product_id = product_id<br>AND sb.product_state_id = state_id<br>AND sb.product_size_id = size_id<br>AND sb.packaging_catalog_id = packaging_id<br>LIMIT 1")]
-      TRANS_BATCH_CHECK{"¿Batch<br>encontrado?"}
-      TRANS_ERROR_NO_BATCH["🚨 ERROR 404<br>No matching batch in source<br>Check product/packaging/size"]
-      TRANS_QUANTITY_CHECK{"¿Suficiente<br>stock?"}
-      TRANS_ERROR_INSUFFICIENT["🚨 ERROR 400<br>Insufficient stock<br>Available: X, Requested: Y"]
-      TRANS_FIND_DEST_BIN[("📊 SELECT sb.id<br>FROM storage_bins sb<br>WHERE sb.storage_location_id = dest_id<br>AND sb.status = 'active'<br>ORDER BY created_at DESC<br>LIMIT 1")]
-      TRANS_DEST_BIN_CHECK{"¿Dest bin<br>existe?"}
-      TRANS_CREATE_DEST_BIN@{ label: "📊 INSERT INTO storage_bins<br>Similar a PLANTADO<br>Para destination location<br>RETURNING dest_bin_id" }
-      TRANS_USE_DEST_BIN["✅ Usar dest_bin_id existente"]
-      TRANS_GEN_MOVEMENT_OUT_ID["🆔 Gen movement_out_id = UUID"]
-      TRANS_INSERT_MOV_OUT@{ label: "📊 INSERT stock_movements OUT<br>movement_id = UUID_OUT<br>batch_id = source_batch_id<br>movement_type = 'transplante'<br>source_bin_id = source_bin_id<br>destination_bin_id = NULL<br>quantity = -QUANTITY<br>user_id = USER_ID<br>reason_description = NOTES<br>source_type = 'manual'<br>is_inbound = false<br>created_at = NOW<br>RETURNING id AS mov_out_pk<br>⚠️ Quantity NEGATIVO para egreso" }
-      TRANS_UPDATE_SOURCE@{ label: "📊 UPDATE stock_batches<br>SET quantity_current = quantity_current - QUANTITY<br>updated_at = NOW<br>WHERE id = source_batch_id<br>⚠️ Decrementar source" }
-      TRANS_CHECK_SOURCE_EMPTY{"¿Source<br>quantity = 0?"}
-      TRANS_DEACTIVATE_SOURCE[("📊 UPDATE stock_batches<br>SET current_storage_bin_id = NULL<br>notes = notes || ' - Trasplantado completamente'<br>WHERE id = source_batch_id<br>⚠️ Marcar como vacío")]
-      TRANS_GEN_MOVEMENT_IN_ID["🆔 Gen movement_in_id = UUID"]
-      TRANS_INSERT_MOV_IN@{ label: "📊 INSERT stock_movements IN<br>movement_id = UUID_IN<br>batch_id = NULL<br>movement_type = 'transplante'<br>source_bin_id = NULL<br>destination_bin_id = dest_bin_id<br>quantity = +QUANTITY<br>user_id = USER_ID<br>reason_description = NOTES<br>source_type = 'manual'<br>is_inbound = true<br>created_at = NOW<br>RETURNING id AS mov_in_pk<br>⚠️ Quantity POSITIVO para ingreso" }
-      TRANS_FIND_DEST_BATCH[("📊 SELECT sb.id<br>FROM stock_batches sb<br>WHERE sb.current_storage_bin_id = dest_bin_id<br>AND sb.product_id = product_id<br>AND sb.product_state_id = state_id<br>AND sb.product_size_id = size_id<br>AND sb.packaging_catalog_id = packaging_id<br>LIMIT 1")]
-      TRANS_DEST_BATCH_CHECK{"¿Dest batch<br>existe?"}
-      TRANS_CREATE_DEST_BATCH@{ label: "📊 INSERT stock_batches<br>Similar a PLANTADO<br>batch_code = GENERATED<br>current_storage_bin_id = dest_bin_id<br>quantity_initial = quantity<br>quantity_current = quantity<br>transplant_date = CURRENT_DATE<br>notes = 'From transplante'<br>RETURNING dest_batch_id" }
-      TRANS_UPDATE_DEST_BATCH@{ label: "📊 UPDATE stock_batches<br>SET quantity_current = quantity_current + QUANTITY<br>updated_at = NOW<br>WHERE id = dest_batch_id" }
-      TRANS_LINK_MOVEMENTS[("📊 UPDATE stock_movements<br>SET batch_id = dest_batch_id<br>WHERE id = mov_in_pk<br>⚠️ Link IN movement to dest batch")]
-      TRANS_VERIFY["✅ COMPREHENSIVE VERIFICATION<br>⚠️ Source decreased correctly<br>⚠️ Dest increased correctly<br>⚠️ Both movements linked<br>⚠️ Total quantity conserved"]
-      TRANS_ALL_VALID{"Todo<br>válido?"}
-      TRANS_ROLLBACK["🔄 ROLLBACK COMPLETO<br>DELETE movements<br>REVERT batch updates<br>Log error con traceback"]
-      TRANS_ERROR_END(["❌ Service FAILURE"])
-      TRANS_COMMIT["✅ COMMIT Transaction"]
-      TRANS_BUILD_RESPONSE["📦 Build response<br>source_movement_id: UUID<br>dest_movement_id: UUID<br>source_batch_remaining: int<br>dest_batch_total: int<br>quantity_moved: int<br>operation: 'transplante'"]
-      TRANS_END(["✅ Service SUCCESS"])
-  end
+subgraph TRANSPLANTE_FLOW["🔄 SERVICIO: Proceso Transplante"]
+direction TB
+TRANS_START(["⚙️ Service recibe<br>source_location_id<br>destination_location_id<br>product_id, packaging_id<br>state_id, size_id<br>quantity, notes<br>user_id"])
+TRANS_VALIDATE_LOCS[("📊 SELECT COUNT(*)<br>FROM storage_locations<br>WHERE id IN (source_id, dest_id)<br>AND active = true<br>⚠️ Ambas locations deben existir")]
+TRANS_LOCS_VALID{"¿2 locations<br>activas?"}
+TRANS_ERROR_LOCS["🚨 ERROR 404<br>Source o destination location<br>no existe o inactiva"]
+TRANS_SAME_CHECK{"¿Source ==<br>Destination?"}
+TRANS_ERROR_SAME["🚨 ERROR 400<br>Cannot transplant to same location<br>Use plantado para agregar"]
+TRANS_FIND_SOURCE_BIN[("📊 SELECT sb.id<br>FROM storage_bins sb<br>WHERE sb.storage_location_id = source_id<br>AND sb.status = 'active'<br>ORDER BY sb.created_at DESC<br>LIMIT 1")]
+TRANS_SOURCE_BIN_CHECK{"¿Source bin<br>existe?"}
+TRANS_ERROR_NO_SOURCE["🚨 ERROR 404<br>No active bin in source location<br>Nothing to transplant"]
+TRANS_FIND_SOURCE_BATCH[("📊 SELECT sb.id, sb.quantity_current<br>FROM stock_batches sb<br>WHERE sb.current_storage_bin_id = source_bin_id<br>AND sb.product_id = product_id<br>AND sb.product_state_id = state_id<br>AND sb.product_size_id = size_id<br>AND sb.packaging_catalog_id = packaging_id<br>LIMIT 1")]
+TRANS_BATCH_CHECK{"¿Batch<br>encontrado?"}
+TRANS_ERROR_NO_BATCH["🚨 ERROR 404<br>No matching batch in source<br>Check product/packaging/size"]
+TRANS_QUANTITY_CHECK{"¿Suficiente<br>stock?"}
+TRANS_ERROR_INSUFFICIENT["🚨 ERROR 400<br>Insufficient stock<br>Available: X, Requested: Y"]
+TRANS_FIND_DEST_BIN[("📊 SELECT sb.id<br>FROM storage_bins sb<br>WHERE sb.storage_location_id = dest_id<br>AND sb.status = 'active'<br>ORDER BY created_at DESC<br>LIMIT 1")]
+TRANS_DEST_BIN_CHECK{"¿Dest bin<br>existe?"}
+TRANS_CREATE_DEST_BIN@{ label: "📊 INSERT INTO storage_bins<br>Similar a PLANTADO<br>Para destination location<br>RETURNING dest_bin_id" }
+TRANS_USE_DEST_BIN["✅ Usar dest_bin_id existente"]
+TRANS_GEN_MOVEMENT_OUT_ID["🆔 Gen movement_out_id = UUID"]
+TRANS_INSERT_MOV_OUT@{ label: "📊 INSERT stock_movements OUT<br>movement_id = UUID_OUT<br>batch_id = source_batch_id<br>movement_type = 'transplante'<br>source_bin_id = source_bin_id<br>destination_bin_id = NULL<br>quantity = -QUANTITY<br>user_id = USER_ID<br>reason_description = NOTES<br>source_type = 'manual'<br>is_inbound = false<br>created_at = NOW<br>RETURNING id AS mov_out_pk<br>⚠️ Quantity NEGATIVO para egreso" }
+TRANS_UPDATE_SOURCE@{ label: "📊 UPDATE stock_batches<br>SET quantity_current = quantity_current - QUANTITY<br>updated_at = NOW<br>WHERE id = source_batch_id<br>⚠️ Decrementar source" }
+TRANS_CHECK_SOURCE_EMPTY{"¿Source<br>quantity = 0?"}
+TRANS_DEACTIVATE_SOURCE[("📊 UPDATE stock_batches<br>SET current_storage_bin_id = NULL<br>notes = notes || ' - Trasplantado completamente'<br>WHERE id = source_batch_id<br>⚠️ Marcar como vacío")]
+TRANS_GEN_MOVEMENT_IN_ID["🆔 Gen movement_in_id = UUID"]
+TRANS_INSERT_MOV_IN@{ label: "📊 INSERT stock_movements IN<br>movement_id = UUID_IN<br>batch_id = NULL<br>movement_type = 'transplante'<br>source_bin_id = NULL<br>destination_bin_id = dest_bin_id<br>quantity = +QUANTITY<br>user_id = USER_ID<br>reason_description = NOTES<br>source_type = 'manual'<br>is_inbound = true<br>created_at = NOW<br>RETURNING id AS mov_in_pk<br>⚠️ Quantity POSITIVO para ingreso" }
+TRANS_FIND_DEST_BATCH[("📊 SELECT sb.id<br>FROM stock_batches sb<br>WHERE sb.current_storage_bin_id = dest_bin_id<br>AND sb.product_id = product_id<br>AND sb.product_state_id = state_id<br>AND sb.product_size_id = size_id<br>AND sb.packaging_catalog_id = packaging_id<br>LIMIT 1")]
+TRANS_DEST_BATCH_CHECK{"¿Dest batch<br>existe?"}
+TRANS_CREATE_DEST_BATCH@{ label: "📊 INSERT stock_batches<br>Similar a PLANTADO<br>batch_code = GENERATED<br>current_storage_bin_id = dest_bin_id<br>quantity_initial = quantity<br>quantity_current = quantity<br>transplant_date = CURRENT_DATE<br>notes = 'From transplante'<br>RETURNING dest_batch_id" }
+TRANS_UPDATE_DEST_BATCH@{ label: "📊 UPDATE stock_batches<br>SET quantity_current = quantity_current + QUANTITY<br>updated_at = NOW<br>WHERE id = dest_batch_id" }
+TRANS_LINK_MOVEMENTS[("📊 UPDATE stock_movements<br>SET batch_id = dest_batch_id<br>WHERE id = mov_in_pk<br>⚠️ Link IN movement to dest batch")]
+TRANS_VERIFY["✅ COMPREHENSIVE VERIFICATION<br>⚠️ Source decreased correctly<br>⚠️ Dest increased correctly<br>⚠️ Both movements linked<br>⚠️ Total quantity conserved"]
+TRANS_ALL_VALID{"Todo<br>válido?"}
+TRANS_ROLLBACK["🔄 ROLLBACK COMPLETO<br>DELETE movements<br>REVERT batch updates<br>Log error con traceback"]
+TRANS_ERROR_END(["❌ Service FAILURE"])
+TRANS_COMMIT["✅ COMMIT Transaction"]
+TRANS_BUILD_RESPONSE["📦 Build response<br>source_movement_id: UUID<br>dest_movement_id: UUID<br>source_batch_remaining: int<br>dest_batch_total: int<br>quantity_moved: int<br>operation: 'transplante'"]
+TRANS_END(["✅ Service SUCCESS"])
+end
 
-  subgraph MUERTE_FLOW["💀 SERVICIO: Proceso Muerte"]
-    direction TB
-      DEATH_START(["⚙️ Service recibe<br>storage_location_id<br>product_id, packaging_id<br>state_id, size_id<br>quantity, notes<br>user_id"])
-      DEATH_FIND_BIN[("📊 SELECT sb.id<br>FROM storage_bins sb<br>WHERE sb.storage_location_id = location_id<br>AND sb.status = 'active'<br>LIMIT 1")]
-      DEATH_BIN_CHECK{"¿Bin<br>existe?"}
-      DEATH_ERROR_NO_BIN["🚨 ERROR 404<br>No active bin in location<br>Nothing to mark as death"]
-      DEATH_FIND_BATCH[("📊 SELECT sb.id, sb.quantity_current,<br>sb.quantity_empty_containers<br>FROM stock_batches sb<br>WHERE sb.current_storage_bin_id = bin_id<br>AND sb.product_id = product_id<br>AND sb.product_state_id = state_id<br>AND sb.product_size_id = size_id<br>AND sb.packaging_catalog_id = packaging_id<br>LIMIT 1")]
-      DEATH_BATCH_CHECK{"¿Batch<br>encontrado?"}
-      DEATH_ERROR_NO_BATCH["🚨 ERROR 404<br>No matching batch found<br>Check product/packaging/size"]
-      DEATH_QUANTITY_CHECK{"¿Suficiente<br>stock?"}
-      DEATH_ERROR_INSUFFICIENT["🚨 ERROR 400<br>Insufficient stock for muerte<br>Available: X, Requested: Y"]
-      DEATH_GEN_MOVEMENT_ID["🆔 Gen movement_id = UUID"]
-      DEATH_INSERT_MOVEMENT@{ label: "📊 INSERT INTO stock_movements<br>movement_id = UUID<br>batch_id = batch_id<br>movement_type = 'muerte'<br>source_bin_id = bin_id<br>destination_bin_id = NULL<br>quantity = -QUANTITY<br>user_id = USER_ID<br>reason_description = NOTES<br>source_type = 'manual'<br>is_inbound = false<br>created_at = NOW<br>RETURNING id AS movement_id_pk<br>⚠️ Quantity NEGATIVO" }
-      DEATH_UPDATE_BATCH@{ label: "📊 UPDATE stock_batches<br>SET quantity_current = quantity_current - QUANTITY<br>quantity_empty_containers = quantity_empty_containers + QUANTITY<br>updated_at = NOW<br>WHERE id = batch_id<br>⚠️ Decrementar vivos, incrementar vacíos" }
-      DEATH_CHECK_EMPTY{"¿Batch<br>quantity = 0?"}
-      DEATH_DEACTIVATE_BATCH[("📊 UPDATE stock_batches<br>SET current_storage_bin_id = NULL<br>notes = notes || ' - Todas muertas'<br>WHERE id = batch_id<br>⚠️ Marcar batch como completamente vacío")]
-      DEATH_VERIFY["✅ VERIFICATION<br>⚠️ Quantity decreased<br>⚠️ Empty containers increased<br>⚠️ Movement linked<br>⚠️ Sum(empty + current) = original"]
-      DEATH_ALL_VALID{"Todo<br>válido?"}
-      DEATH_ROLLBACK["🔄 ROLLBACK<br>DELETE movement<br>REVERT batch update<br>Log error"]
-      DEATH_ERROR_END(["❌ Service FAILURE"])
-      DEATH_COMMIT["✅ COMMIT Transaction"]
-      DEATH_BUILD_RESPONSE["📦 Build response<br>movement_id: UUID<br>batch_id: int<br>quantity_removed: int<br>remaining_alive: int<br>total_empty_containers: int<br>operation: 'muerte'"]
-      DEATH_END(["✅ Service SUCCESS"])
-  end
+subgraph MUERTE_FLOW["💀 SERVICIO: Proceso Muerte"]
+direction TB
+DEATH_START(["⚙️ Service recibe<br>storage_location_id<br>product_id, packaging_id<br>state_id, size_id<br>quantity, notes<br>user_id"])
+DEATH_FIND_BIN[("📊 SELECT sb.id<br>FROM storage_bins sb<br>WHERE sb.storage_location_id = location_id<br>AND sb.status = 'active'<br>LIMIT 1")]
+DEATH_BIN_CHECK{"¿Bin<br>existe?"}
+DEATH_ERROR_NO_BIN["🚨 ERROR 404<br>No active bin in location<br>Nothing to mark as death"]
+DEATH_FIND_BATCH[("📊 SELECT sb.id, sb.quantity_current,<br>sb.quantity_empty_containers<br>FROM stock_batches sb<br>WHERE sb.current_storage_bin_id = bin_id<br>AND sb.product_id = product_id<br>AND sb.product_state_id = state_id<br>AND sb.product_size_id = size_id<br>AND sb.packaging_catalog_id = packaging_id<br>LIMIT 1")]
+DEATH_BATCH_CHECK{"¿Batch<br>encontrado?"}
+DEATH_ERROR_NO_BATCH["🚨 ERROR 404<br>No matching batch found<br>Check product/packaging/size"]
+DEATH_QUANTITY_CHECK{"¿Suficiente<br>stock?"}
+DEATH_ERROR_INSUFFICIENT["🚨 ERROR 400<br>Insufficient stock for muerte<br>Available: X, Requested: Y"]
+DEATH_GEN_MOVEMENT_ID["🆔 Gen movement_id = UUID"]
+DEATH_INSERT_MOVEMENT@{ label: "📊 INSERT INTO stock_movements<br>movement_id = UUID<br>batch_id = batch_id<br>movement_type = 'muerte'<br>source_bin_id = bin_id<br>destination_bin_id = NULL<br>quantity = -QUANTITY<br>user_id = USER_ID<br>reason_description = NOTES<br>source_type = 'manual'<br>is_inbound = false<br>created_at = NOW<br>RETURNING id AS movement_id_pk<br>⚠️ Quantity NEGATIVO" }
+DEATH_UPDATE_BATCH@{ label: "📊 UPDATE stock_batches<br>SET quantity_current = quantity_current - QUANTITY<br>quantity_empty_containers = quantity_empty_containers + QUANTITY<br>updated_at = NOW<br>WHERE id = batch_id<br>⚠️ Decrementar vivos, incrementar vacíos" }
+DEATH_CHECK_EMPTY{"¿Batch<br>quantity = 0?"}
+DEATH_DEACTIVATE_BATCH[("📊 UPDATE stock_batches<br>SET current_storage_bin_id = NULL<br>notes = notes || ' - Todas muertas'<br>WHERE id = batch_id<br>⚠️ Marcar batch como completamente vacío")]
+DEATH_VERIFY["✅ VERIFICATION<br>⚠️ Quantity decreased<br>⚠️ Empty containers increased<br>⚠️ Movement linked<br>⚠️ Sum(empty + current) = original"]
+DEATH_ALL_VALID{"Todo<br>válido?"}
+DEATH_ROLLBACK["🔄 ROLLBACK<br>DELETE movement<br>REVERT batch update<br>Log error"]
+DEATH_ERROR_END(["❌ Service FAILURE"])
+DEATH_COMMIT["✅ COMMIT Transaction"]
+DEATH_BUILD_RESPONSE["📦 Build response<br>movement_id: UUID<br>batch_id: int<br>quantity_removed: int<br>remaining_alive: int<br>total_empty_containers: int<br>operation: 'muerte'"]
+DEATH_END(["✅ Service SUCCESS"])
+end
 
-  START --> VALIDATE_TYPE
-  VALIDATE_TYPE -- ❌ Invalid --> RETURN_400
-  VALIDATE_TYPE -- ✅ Valid --> PARSE_TYPE
-  PARSE_TYPE -- plantar --> ROUTE_PLANTAR
-  PARSE_TYPE -- transplante --> ROUTE_TRANSPLANTE
-  PARSE_TYPE -- muerte --> ROUTE_MUERTE
-  ROUTE_PLANTAR --> VALIDATE_COMMON
-  ROUTE_TRANSPLANTE --> VALIDATE_COMMON
-  ROUTE_MUERTE --> VALIDATE_COMMON
-  VALIDATE_COMMON --> VALIDATION_FAILED
-  VALIDATION_FAILED -- ❌ Error --> RETURN_422
-  VALIDATION_FAILED -- ✅ OK + plantar --> PLANT_START
-  VALIDATION_FAILED -- ✅ OK + transplante --> TRANS_START
-  VALIDATION_FAILED -- ✅ OK + muerte --> DEATH_START
+START --> VALIDATE_TYPE
+VALIDATE_TYPE -- ❌ Invalid --> RETURN_400
+VALIDATE_TYPE -- ✅ Valid --> PARSE_TYPE
+PARSE_TYPE -- plantar --> ROUTE_PLANTAR
+PARSE_TYPE -- transplante --> ROUTE_TRANSPLANTE
+PARSE_TYPE -- muerte --> ROUTE_MUERTE
+ROUTE_PLANTAR --> VALIDATE_COMMON
+ROUTE_TRANSPLANTE --> VALIDATE_COMMON
+ROUTE_MUERTE --> VALIDATE_COMMON
+VALIDATE_COMMON --> VALIDATION_FAILED
+VALIDATION_FAILED -- ❌ Error --> RETURN_422
+VALIDATION_FAILED -- ✅ OK + plantar --> PLANT_START
+VALIDATION_FAILED -- ✅ OK + transplante --> TRANS_START
+VALIDATION_FAILED -- ✅ OK + muerte --> DEATH_START
 
-  PLANT_START --> PLANT_GET_LOCATION
-  PLANT_GET_LOCATION --> PLANT_LOCATION_CHECK
-  PLANT_LOCATION_CHECK -- ❌ No --> PLANT_ERROR_LOC
-  PLANT_LOCATION_CHECK -- ✅ Sí --> PLANT_GET_CONFIG
-  PLANT_GET_CONFIG --> PLANT_FIND_BIN
-  PLANT_FIND_BIN --> PLANT_BIN_EXISTS
-  PLANT_BIN_EXISTS -- ❌ No --> PLANT_CREATE_BIN
-  PLANT_BIN_EXISTS -- ✅ Sí --> PLANT_USE_BIN
-  PLANT_CREATE_BIN --> PLANT_GEN_MOVEMENT_ID
-  PLANT_USE_BIN --> PLANT_GEN_MOVEMENT_ID
-  PLANT_GEN_MOVEMENT_ID --> PLANT_INSERT_MOVEMENT
-  PLANT_INSERT_MOVEMENT --> PLANT_FIND_BATCH
-  PLANT_FIND_BATCH --> PLANT_BATCH_EXISTS
-  PLANT_BATCH_EXISTS -- ❌ No --> PLANT_GEN_BATCH_CODE
-  PLANT_GEN_BATCH_CODE --> PLANT_INSERT_BATCH
-  PLANT_INSERT_BATCH --> PLANT_LINK_MOVEMENT
-  PLANT_BATCH_EXISTS -- ✅ Sí --> PLANT_UPDATE_BATCH
-  PLANT_UPDATE_BATCH --> PLANT_LINK_MOVEMENT
-  PLANT_LINK_MOVEMENT --> PLANT_VERIFY
-  PLANT_VERIFY --> PLANT_ALL_VALID
-  PLANT_ALL_VALID -- ❌ Error --> PLANT_ROLLBACK
-  PLANT_ROLLBACK --> PLANT_ERROR_END
-  PLANT_ALL_VALID -- ✅ OK --> PLANT_COMMIT
-  PLANT_COMMIT --> PLANT_BUILD_RESPONSE
-  PLANT_BUILD_RESPONSE --> PLANT_END
-  PLANT_END --> API_END
+PLANT_START --> PLANT_GET_LOCATION
+PLANT_GET_LOCATION --> PLANT_LOCATION_CHECK
+PLANT_LOCATION_CHECK -- ❌ No --> PLANT_ERROR_LOC
+PLANT_LOCATION_CHECK -- ✅ Sí --> PLANT_GET_CONFIG
+PLANT_GET_CONFIG --> PLANT_FIND_BIN
+PLANT_FIND_BIN --> PLANT_BIN_EXISTS
+PLANT_BIN_EXISTS -- ❌ No --> PLANT_CREATE_BIN
+PLANT_BIN_EXISTS -- ✅ Sí --> PLANT_USE_BIN
+PLANT_CREATE_BIN --> PLANT_GEN_MOVEMENT_ID
+PLANT_USE_BIN --> PLANT_GEN_MOVEMENT_ID
+PLANT_GEN_MOVEMENT_ID --> PLANT_INSERT_MOVEMENT
+PLANT_INSERT_MOVEMENT --> PLANT_FIND_BATCH
+PLANT_FIND_BATCH --> PLANT_BATCH_EXISTS
+PLANT_BATCH_EXISTS -- ❌ No --> PLANT_GEN_BATCH_CODE
+PLANT_GEN_BATCH_CODE --> PLANT_INSERT_BATCH
+PLANT_INSERT_BATCH --> PLANT_LINK_MOVEMENT
+PLANT_BATCH_EXISTS -- ✅ Sí --> PLANT_UPDATE_BATCH
+PLANT_UPDATE_BATCH --> PLANT_LINK_MOVEMENT
+PLANT_LINK_MOVEMENT --> PLANT_VERIFY
+PLANT_VERIFY --> PLANT_ALL_VALID
+PLANT_ALL_VALID -- ❌ Error --> PLANT_ROLLBACK
+PLANT_ROLLBACK --> PLANT_ERROR_END
+PLANT_ALL_VALID -- ✅ OK --> PLANT_COMMIT
+PLANT_COMMIT --> PLANT_BUILD_RESPONSE
+PLANT_BUILD_RESPONSE --> PLANT_END
+PLANT_END --> API_END
 
-  TRANS_START --> TRANS_VALIDATE_LOCS
-  TRANS_VALIDATE_LOCS --> TRANS_LOCS_VALID
-  TRANS_LOCS_VALID -- ❌ No --> TRANS_ERROR_LOCS
-  TRANS_LOCS_VALID -- ✅ Sí --> TRANS_SAME_CHECK
-  TRANS_SAME_CHECK -- ✅ Sí --> TRANS_ERROR_SAME
-  TRANS_SAME_CHECK -- ❌ No --> TRANS_FIND_SOURCE_BIN
-  TRANS_FIND_SOURCE_BIN --> TRANS_SOURCE_BIN_CHECK
-  TRANS_SOURCE_BIN_CHECK -- ❌ No --> TRANS_ERROR_NO_SOURCE
-  TRANS_SOURCE_BIN_CHECK -- ✅ Sí --> TRANS_FIND_SOURCE_BATCH
-  TRANS_FIND_SOURCE_BATCH --> TRANS_BATCH_CHECK
-  TRANS_BATCH_CHECK -- ❌ No --> TRANS_ERROR_NO_BATCH
-  TRANS_BATCH_CHECK -- ✅ Sí --> TRANS_QUANTITY_CHECK
-  TRANS_QUANTITY_CHECK -- ❌ Insuficiente --> TRANS_ERROR_INSUFFICIENT
-  TRANS_QUANTITY_CHECK -- ✅ Suficiente --> TRANS_FIND_DEST_BIN
-  TRANS_FIND_DEST_BIN --> TRANS_DEST_BIN_CHECK
-  TRANS_DEST_BIN_CHECK -- ❌ No --> TRANS_CREATE_DEST_BIN
-  TRANS_DEST_BIN_CHECK -- ✅ Sí --> TRANS_USE_DEST_BIN
-  TRANS_CREATE_DEST_BIN --> TRANS_GEN_MOVEMENT_OUT_ID
-  TRANS_USE_DEST_BIN --> TRANS_GEN_MOVEMENT_OUT_ID
-  TRANS_GEN_MOVEMENT_OUT_ID --> TRANS_INSERT_MOV_OUT
-  TRANS_INSERT_MOV_OUT --> TRANS_UPDATE_SOURCE
-  TRANS_UPDATE_SOURCE --> TRANS_CHECK_SOURCE_EMPTY
-  TRANS_CHECK_SOURCE_EMPTY -- ✅ Sí --> TRANS_DEACTIVATE_SOURCE
-  TRANS_CHECK_SOURCE_EMPTY -- ❌ No --> TRANS_GEN_MOVEMENT_IN_ID
-  TRANS_DEACTIVATE_SOURCE --> TRANS_GEN_MOVEMENT_IN_ID
-  TRANS_GEN_MOVEMENT_IN_ID --> TRANS_INSERT_MOV_IN
-  TRANS_INSERT_MOV_IN --> TRANS_FIND_DEST_BATCH
-  TRANS_FIND_DEST_BATCH --> TRANS_DEST_BATCH_CHECK
-  TRANS_DEST_BATCH_CHECK -- ❌ No --> TRANS_CREATE_DEST_BATCH
-  TRANS_DEST_BATCH_CHECK -- ✅ Sí --> TRANS_UPDATE_DEST_BATCH
-  TRANS_CREATE_DEST_BATCH --> TRANS_LINK_MOVEMENTS
-  TRANS_UPDATE_DEST_BATCH --> TRANS_LINK_MOVEMENTS
-  TRANS_LINK_MOVEMENTS --> TRANS_VERIFY
-  TRANS_VERIFY --> TRANS_ALL_VALID
-  TRANS_ALL_VALID -- ❌ Error --> TRANS_ROLLBACK
-  TRANS_ROLLBACK --> TRANS_ERROR_END
-  TRANS_ALL_VALID -- ✅ OK --> TRANS_COMMIT
-  TRANS_COMMIT --> TRANS_BUILD_RESPONSE
-  TRANS_BUILD_RESPONSE --> TRANS_END
-  TRANS_END --> API_END
+TRANS_START --> TRANS_VALIDATE_LOCS
+TRANS_VALIDATE_LOCS --> TRANS_LOCS_VALID
+TRANS_LOCS_VALID -- ❌ No --> TRANS_ERROR_LOCS
+TRANS_LOCS_VALID -- ✅ Sí --> TRANS_SAME_CHECK
+TRANS_SAME_CHECK -- ✅ Sí --> TRANS_ERROR_SAME
+TRANS_SAME_CHECK -- ❌ No --> TRANS_FIND_SOURCE_BIN
+TRANS_FIND_SOURCE_BIN --> TRANS_SOURCE_BIN_CHECK
+TRANS_SOURCE_BIN_CHECK -- ❌ No --> TRANS_ERROR_NO_SOURCE
+TRANS_SOURCE_BIN_CHECK -- ✅ Sí --> TRANS_FIND_SOURCE_BATCH
+TRANS_FIND_SOURCE_BATCH --> TRANS_BATCH_CHECK
+TRANS_BATCH_CHECK -- ❌ No --> TRANS_ERROR_NO_BATCH
+TRANS_BATCH_CHECK -- ✅ Sí --> TRANS_QUANTITY_CHECK
+TRANS_QUANTITY_CHECK -- ❌ Insuficiente --> TRANS_ERROR_INSUFFICIENT
+TRANS_QUANTITY_CHECK -- ✅ Suficiente --> TRANS_FIND_DEST_BIN
+TRANS_FIND_DEST_BIN --> TRANS_DEST_BIN_CHECK
+TRANS_DEST_BIN_CHECK -- ❌ No --> TRANS_CREATE_DEST_BIN
+TRANS_DEST_BIN_CHECK -- ✅ Sí --> TRANS_USE_DEST_BIN
+TRANS_CREATE_DEST_BIN --> TRANS_GEN_MOVEMENT_OUT_ID
+TRANS_USE_DEST_BIN --> TRANS_GEN_MOVEMENT_OUT_ID
+TRANS_GEN_MOVEMENT_OUT_ID --> TRANS_INSERT_MOV_OUT
+TRANS_INSERT_MOV_OUT --> TRANS_UPDATE_SOURCE
+TRANS_UPDATE_SOURCE --> TRANS_CHECK_SOURCE_EMPTY
+TRANS_CHECK_SOURCE_EMPTY -- ✅ Sí --> TRANS_DEACTIVATE_SOURCE
+TRANS_CHECK_SOURCE_EMPTY -- ❌ No --> TRANS_GEN_MOVEMENT_IN_ID
+TRANS_DEACTIVATE_SOURCE --> TRANS_GEN_MOVEMENT_IN_ID
+TRANS_GEN_MOVEMENT_IN_ID --> TRANS_INSERT_MOV_IN
+TRANS_INSERT_MOV_IN --> TRANS_FIND_DEST_BATCH
+TRANS_FIND_DEST_BATCH --> TRANS_DEST_BATCH_CHECK
+TRANS_DEST_BATCH_CHECK -- ❌ No --> TRANS_CREATE_DEST_BATCH
+TRANS_DEST_BATCH_CHECK -- ✅ Sí --> TRANS_UPDATE_DEST_BATCH
+TRANS_CREATE_DEST_BATCH --> TRANS_LINK_MOVEMENTS
+TRANS_UPDATE_DEST_BATCH --> TRANS_LINK_MOVEMENTS
+TRANS_LINK_MOVEMENTS --> TRANS_VERIFY
+TRANS_VERIFY --> TRANS_ALL_VALID
+TRANS_ALL_VALID -- ❌ Error --> TRANS_ROLLBACK
+TRANS_ROLLBACK --> TRANS_ERROR_END
+TRANS_ALL_VALID -- ✅ OK --> TRANS_COMMIT
+TRANS_COMMIT --> TRANS_BUILD_RESPONSE
+TRANS_BUILD_RESPONSE --> TRANS_END
+TRANS_END --> API_END
 
-  DEATH_START --> DEATH_FIND_BIN
-  DEATH_FIND_BIN --> DEATH_BIN_CHECK
-  DEATH_BIN_CHECK -- ❌ No --> DEATH_ERROR_NO_BIN
-  DEATH_BIN_CHECK -- ✅ Sí --> DEATH_FIND_BATCH
-  DEATH_FIND_BATCH --> DEATH_BATCH_CHECK
-  DEATH_BATCH_CHECK -- ❌ No --> DEATH_ERROR_NO_BATCH
-  DEATH_BATCH_CHECK -- ✅ Sí --> DEATH_QUANTITY_CHECK
-  DEATH_QUANTITY_CHECK -- ❌ Insuficiente --> DEATH_ERROR_INSUFFICIENT
-  DEATH_QUANTITY_CHECK -- ✅ Suficiente --> DEATH_GEN_MOVEMENT_ID
-  DEATH_GEN_MOVEMENT_ID --> DEATH_INSERT_MOVEMENT
-  DEATH_INSERT_MOVEMENT --> DEATH_UPDATE_BATCH
-  DEATH_UPDATE_BATCH --> DEATH_CHECK_EMPTY
-  DEATH_CHECK_EMPTY -- ✅ Sí --> DEATH_DEACTIVATE_BATCH
-  DEATH_CHECK_EMPTY -- ❌ No --> DEATH_VERIFY
-  DEATH_DEACTIVATE_BATCH --> DEATH_VERIFY
-  DEATH_VERIFY --> DEATH_ALL_VALID
-  DEATH_ALL_VALID -- ❌ Error --> DEATH_ROLLBACK
-  DEATH_ROLLBACK --> DEATH_ERROR_END
-  DEATH_ALL_VALID -- ✅ OK --> DEATH_COMMIT
-  DEATH_COMMIT --> DEATH_BUILD_RESPONSE
-  DEATH_BUILD_RESPONSE --> DEATH_END
-  DEATH_END --> API_END
+DEATH_START --> DEATH_FIND_BIN
+DEATH_FIND_BIN --> DEATH_BIN_CHECK
+DEATH_BIN_CHECK -- ❌ No --> DEATH_ERROR_NO_BIN
+DEATH_BIN_CHECK -- ✅ Sí --> DEATH_FIND_BATCH
+DEATH_FIND_BATCH --> DEATH_BATCH_CHECK
+DEATH_BATCH_CHECK -- ❌ No --> DEATH_ERROR_NO_BATCH
+DEATH_BATCH_CHECK -- ✅ Sí --> DEATH_QUANTITY_CHECK
+DEATH_QUANTITY_CHECK -- ❌ Insuficiente --> DEATH_ERROR_INSUFFICIENT
+DEATH_QUANTITY_CHECK -- ✅ Suficiente --> DEATH_GEN_MOVEMENT_ID
+DEATH_GEN_MOVEMENT_ID --> DEATH_INSERT_MOVEMENT
+DEATH_INSERT_MOVEMENT --> DEATH_UPDATE_BATCH
+DEATH_UPDATE_BATCH --> DEATH_CHECK_EMPTY
+DEATH_CHECK_EMPTY -- ✅ Sí --> DEATH_DEACTIVATE_BATCH
+DEATH_CHECK_EMPTY -- ❌ No --> DEATH_VERIFY
+DEATH_DEACTIVATE_BATCH --> DEATH_VERIFY
+DEATH_VERIFY --> DEATH_ALL_VALID
+DEATH_ALL_VALID -- ❌ Error --> DEATH_ROLLBACK
+DEATH_ROLLBACK --> DEATH_ERROR_END
+DEATH_ALL_VALID -- ✅ OK --> DEATH_COMMIT
+DEATH_COMMIT --> DEATH_BUILD_RESPONSE
+DEATH_BUILD_RESPONSE --> DEATH_END
+DEATH_END --> API_END
 
-  PLANT_FIND_BIN@{ shape: cylinder }
-  PLANT_CREATE_BIN@{ shape: cylinder }
-  PLANT_INSERT_MOVEMENT@{ shape: cylinder }
-  PLANT_GEN_BATCH_CODE@{ shape: rect }
-  PLANT_INSERT_BATCH@{ shape: cylinder }
-  PLANT_UPDATE_BATCH@{ shape: cylinder }
-  TRANS_INSERT_MOV_OUT@{ shape: cylinder }
-  TRANS_UPDATE_SOURCE@{ shape: cylinder }
-  TRANS_INSERT_MOV_IN@{ shape: cylinder }
-  TRANS_CREATE_DEST_BATCH@{ shape: cylinder }
-  TRANS_UPDATE_DEST_BATCH@{ shape: cylinder }
-  DEATH_INSERT_MOVEMENT@{ shape: cylinder }
-  DEATH_UPDATE_BATCH@{ shape: cylinder }
+PLANT_FIND_BIN@{ shape: cylinder }
+PLANT_CREATE_BIN@{ shape: cylinder }
+PLANT_INSERT_MOVEMENT@{ shape: cylinder }
+PLANT_GEN_BATCH_CODE@{ shape: rect }
+PLANT_INSERT_BATCH@{ shape: cylinder }
+PLANT_UPDATE_BATCH@{ shape: cylinder }
+TRANS_INSERT_MOV_OUT@{ shape: cylinder }
+TRANS_UPDATE_SOURCE@{ shape: cylinder }
+TRANS_INSERT_MOV_IN@{ shape: cylinder }
+TRANS_CREATE_DEST_BATCH@{ shape: cylinder }
+TRANS_UPDATE_DEST_BATCH@{ shape: cylinder }
+DEATH_INSERT_MOVEMENT@{ shape: cylinder }
+DEATH_UPDATE_BATCH@{ shape: cylinder }
 
-  RETURN_400:::errorStyle
-  RETURN_422:::errorStyle
-  PLANT_ERROR_LOC:::errorStyle
-  PLANT_ROLLBACK:::errorStyle
-  PLANT_ERROR_END:::errorStyle
-  PLANT_COMMIT:::successStyle
-  PLANT_END:::successStyle
-  TRANS_ERROR_LOCS:::errorStyle
-  TRANS_ERROR_SAME:::errorStyle
-  TRANS_ERROR_NO_SOURCE:::errorStyle
-  TRANS_ERROR_NO_BATCH:::errorStyle
-  TRANS_ERROR_INSUFFICIENT:::errorStyle
-  TRANS_ROLLBACK:::errorStyle
-  TRANS_ERROR_END:::errorStyle
-  TRANS_COMMIT:::successStyle
-  TRANS_END:::successStyle
-  DEATH_ERROR_NO_BIN:::errorStyle
-  DEATH_ERROR_NO_BATCH:::errorStyle
-  DEATH_ERROR_INSUFFICIENT:::errorStyle
-  DEATH_ROLLBACK:::errorStyle
-  DEATH_ERROR_END:::errorStyle
-  DEATH_COMMIT:::successStyle
-  DEATH_END:::successStyle
-  API_END:::successStyle
-  PLANT_CREATE_BIN:::criticalStyle
-  PLANT_GEN_BATCH_CODE:::criticalStyle
-  TRANS_CREATE_DEST_BIN:::criticalStyle
-  TRANS_CREATE_DEST_BATCH:::criticalStyle
+RETURN_400:::errorStyle
+RETURN_422:::errorStyle
+PLANT_ERROR_LOC:::errorStyle
+PLANT_ROLLBACK:::errorStyle
+PLANT_ERROR_END:::errorStyle
+PLANT_COMMIT:::successStyle
+PLANT_END:::successStyle
+TRANS_ERROR_LOCS:::errorStyle
+TRANS_ERROR_SAME:::errorStyle
+TRANS_ERROR_NO_SOURCE:::errorStyle
+TRANS_ERROR_NO_BATCH:::errorStyle
+TRANS_ERROR_INSUFFICIENT:::errorStyle
+TRANS_ROLLBACK:::errorStyle
+TRANS_ERROR_END:::errorStyle
+TRANS_COMMIT:::successStyle
+TRANS_END:::successStyle
+DEATH_ERROR_NO_BIN:::errorStyle
+DEATH_ERROR_NO_BATCH:::errorStyle
+DEATH_ERROR_INSUFFICIENT:::errorStyle
+DEATH_ROLLBACK:::errorStyle
+DEATH_ERROR_END:::errorStyle
+DEATH_COMMIT:::successStyle
+DEATH_END:::successStyle
+API_END:::successStyle
+PLANT_CREATE_BIN:::criticalStyle
+PLANT_GEN_BATCH_CODE:::criticalStyle
+TRANS_CREATE_DEST_BIN:::criticalStyle
+TRANS_CREATE_DEST_BATCH:::criticalStyle
 
-  classDef errorStyle fill:#f44336,color:#fff,stroke:#b71c1c,stroke-width:2px
-  classDef successStyle fill:#4CAF50,color:#fff,stroke:#2E7D32,stroke-width:2px
-  classDef warningStyle fill:#FFF9C4,stroke:#F9A825,stroke-width:2px
-  classDef criticalStyle fill:#FFF3E0,stroke:#F57C00,stroke-width:3px
-  classDef processingStyle fill:#E3F2FD,stroke:#1976D2,stroke-width:2px
+classDef errorStyle fill: #f44336, color: #fff, stroke: #b71c1c, stroke-width: 2px
+classDef successStyle fill: #4CAF50, color: #fff, stroke: #2E7D32, stroke-width: 2px
+classDef warningStyle fill: #FFF9C4, stroke: #F9A825, stroke-width: 2px
+classDef criticalStyle fill: #FFF3E0, stroke: #F57C00, stroke-width: 3px
+classDef processingStyle fill: #E3F2FD, stroke: #1976D2, stroke-width: 2px

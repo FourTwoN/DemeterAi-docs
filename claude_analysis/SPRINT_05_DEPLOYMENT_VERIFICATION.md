@@ -13,6 +13,7 @@ The comprehensive deployment guide for DemeterAI v2.0 has been successfully crea
 **File**: `/home/lucasg/proyectos/DemeterDocs/SPRINT_05_DEPLOYMENT_GUIDE.md`
 
 **Statistics**:
+
 - **Total Lines**: 1,104
 - **Code Blocks**: 106 (copy-paste ready)
 - **Main Sections**: 67 headers
@@ -25,18 +26,18 @@ The comprehensive deployment guide for DemeterAI v2.0 has been successfully crea
 
 ### Required Sections (per user request)
 
-| # | Section | Status | Location |
-|---|---------|--------|----------|
-| ✅ | 1. Quick Start (Docker Compose) | **COMPLETE** | Lines 256-303 |
-| ✅ | 2. Environment Variables Reference | **COMPLETE** | Lines 155-254 |
-| ✅ | 3. Auth0 Setup (step by step) | **COMPLETE** | Lines 429-545 |
-| ✅ | 4. AWS S3 Setup | **COMPLETE** | Lines 629-704 |
-| ✅ | 5. Database Initialization | **COMPLETE** | Lines 374-389 (Step 4) |
-| ✅ | 6. Starting the Application | **COMPLETE** | Lines 351-371 (Step 3) |
-| ✅ | 7. Verifying Services | **COMPLETE** | Lines 391-415 (Step 5) |
-| ✅ | 8. Monitoring with Grafana/Prometheus | **COMPLETE** | Lines 814-886 |
-| ✅ | 9. Testing the API | **COMPLETE** | Lines 707-811 |
-| ✅ | 10. Troubleshooting | **COMPLETE** | Lines 889-980 |
+| # | Section                               | Status       | Location               |
+|---|---------------------------------------|--------------|------------------------|
+| ✅ | 1. Quick Start (Docker Compose)       | **COMPLETE** | Lines 256-303          |
+| ✅ | 2. Environment Variables Reference    | **COMPLETE** | Lines 155-254          |
+| ✅ | 3. Auth0 Setup (step by step)         | **COMPLETE** | Lines 429-545          |
+| ✅ | 4. AWS S3 Setup                       | **COMPLETE** | Lines 629-704          |
+| ✅ | 5. Database Initialization            | **COMPLETE** | Lines 374-389 (Step 4) |
+| ✅ | 6. Starting the Application           | **COMPLETE** | Lines 351-371 (Step 3) |
+| ✅ | 7. Verifying Services                 | **COMPLETE** | Lines 391-415 (Step 5) |
+| ✅ | 8. Monitoring with Grafana/Prometheus | **COMPLETE** | Lines 814-886          |
+| ✅ | 9. Testing the API                    | **COMPLETE** | Lines 707-811          |
+| ✅ | 10. Troubleshooting                   | **COMPLETE** | Lines 889-980          |
 
 **All 10 required sections present and verified.**
 
@@ -47,6 +48,7 @@ The comprehensive deployment guide for DemeterAI v2.0 has been successfully crea
 ### 1. Quick Start (Lines 256-303)
 
 **What's Covered**:
+
 - ✅ Single command Docker Compose setup
 - ✅ Environment file configuration
 - ✅ Database migration
@@ -66,6 +68,7 @@ The comprehensive deployment guide for DemeterAI v2.0 has been successfully crea
 ### 2. Environment Variables Reference (Lines 155-254)
 
 **What's Covered**:
+
 - ✅ Complete table with all variables
 - ✅ Variable descriptions
 - ✅ Example values
@@ -73,6 +76,7 @@ The comprehensive deployment guide for DemeterAI v2.0 has been successfully crea
 - ✅ Security considerations
 
 **Variable Categories**:
+
 1. Core Application (LOG_LEVEL, DEBUG)
 2. Database Configuration (6 variables)
 3. Redis & Celery (3 variables)
@@ -92,6 +96,7 @@ The comprehensive deployment guide for DemeterAI v2.0 has been successfully crea
 ### 3. Auth0 Setup (Lines 429-545)
 
 **What's Covered**:
+
 - ✅ Step 1: Create Auth0 Account
 - ✅ Step 2: Create API (with screenshots description)
 - ✅ Step 3: Enable RBAC (Role-Based Access Control)
@@ -101,6 +106,7 @@ The comprehensive deployment guide for DemeterAI v2.0 has been successfully crea
 - ✅ Step 7: Test Authentication (2 methods)
 
 **Permissions Documented**:
+
 1. `stock:read` - Read stock data
 2. `stock:write` - Create/update stock
 3. `stock:delete` - Delete stock records
@@ -110,12 +116,14 @@ The comprehensive deployment guide for DemeterAI v2.0 has been successfully crea
 7. `users:manage` - Manage users (admin only)
 
 **Roles Documented**:
+
 1. **Admin**: Full system access
 2. **Supervisor**: Manage stock + analytics
 3. **Worker**: Create/update stock
 4. **Viewer**: Read-only access
 
 **Testing Methods**:
+
 1. Auth0 API Explorer (browser-based)
 2. curl with client credentials (CLI)
 
@@ -126,21 +134,25 @@ The comprehensive deployment guide for DemeterAI v2.0 has been successfully crea
 ### 4. AWS S3 Setup (Lines 629-704)
 
 **What's Covered**:
+
 - ✅ Step 1: Create S3 Buckets (2 buckets: original + viz)
 - ✅ Step 2: Create IAM User with programmatic access
 - ✅ Step 3: Configure Application
 - ✅ Step 4: Test S3 Integration
 
 **Buckets**:
+
 1. `demeter-photos-original` - Original photos (90-day retention)
 2. `demeter-photos-viz` - Processed visualizations (365-day retention)
 
 **Methods Provided**:
+
 1. AWS CLI commands
 2. AWS Console instructions
 3. IAM policy attachment
 
 **Security**:
+
 - ✅ Private buckets (no public access)
 - ✅ Programmatic access only
 - ✅ Presigned URL support (24-hour expiry)
@@ -152,12 +164,14 @@ The comprehensive deployment guide for DemeterAI v2.0 has been successfully crea
 ### 5. Database Initialization (Lines 374-389)
 
 **What's Covered**:
+
 - ✅ Run Alembic migrations
 - ✅ Verify tables created (28+ tables)
 - ✅ Expected output explanation
 - ✅ Troubleshooting migration errors
 
 **Commands**:
+
 ```bash
 docker exec demeterai-api alembic upgrade head
 docker exec demeterai-db psql -U demeter -d demeterai -c "\dt"
@@ -172,18 +186,21 @@ docker exec demeterai-db psql -U demeter -d demeterai -c "\dt"
 ### 6. Starting the Application (Lines 351-371)
 
 **What's Covered**:
+
 - ✅ Docker Compose up command
 - ✅ Expected output
 - ✅ Service health check verification
 - ✅ All 3 services (api, db, redis)
 
 **Health Check**:
+
 ```bash
 docker-compose ps
 # Expected: All services show "Up (healthy)"
 ```
 
 **Services**:
+
 1. `demeterai-api` - FastAPI application (port 8000)
 2. `demeterai-db` - PostgreSQL + PostGIS (port 5432)
 3. `demeterai-redis` - Redis cache (port 6379)
@@ -195,12 +212,14 @@ docker-compose ps
 ### 7. Verifying Services (Lines 391-415)
 
 **What's Covered**:
+
 - ✅ Health endpoint test (`/health`)
 - ✅ Metrics endpoint test (`/metrics`)
 - ✅ API documentation UI (`/docs`)
 - ✅ Expected responses for each
 
 **Verification Commands**:
+
 1. `curl http://localhost:8000/health`
 2. `curl http://localhost:8000/metrics`
 3. `open http://localhost:8000/docs`
@@ -214,6 +233,7 @@ docker-compose ps
 ### 8. Monitoring with Grafana/Prometheus (Lines 814-886)
 
 **What's Covered**:
+
 - ✅ Prometheus Metrics (5 custom metrics)
 - ✅ Prometheus Queries (3 examples)
 - ✅ OpenTelemetry Traces (Grafana integration)
@@ -221,6 +241,7 @@ docker-compose ps
 - ✅ Log viewing commands
 
 **Prometheus Metrics**:
+
 1. `http_request_duration_seconds` - API latency
 2. `http_requests_total` - Total requests by status
 3. `demeter_stock_operations_total` - Stock operations counter
@@ -228,16 +249,19 @@ docker-compose ps
 5. `demeter_active_photo_sessions` - Active sessions
 
 **PromQL Queries**:
+
 1. Request rate: `rate(http_requests_total[1m])`
 2. P95 latency: `histogram_quantile(0.95, ...)`
 3. Stock ops by type: `sum(rate(demeter_stock_operations_total[5m])) by (operation_type)`
 
 **OpenTelemetry**:
+
 - ✅ Tempo datasource configuration
 - ✅ Service query examples
 - ✅ Trace visualization example
 
 **Structured Logs**:
+
 - ✅ JSON format documented
 - ✅ Correlation ID propagation
 - ✅ Log viewing commands
@@ -249,12 +273,14 @@ docker-compose ps
 ### 9. Testing the API (Lines 707-811)
 
 **What's Covered**:
+
 - ✅ Automated Tests (pytest)
 - ✅ Manual API Tests (5 categories)
 - ✅ Database Tests (SQL queries)
 - ✅ Redis Tests (cache operations)
 
 **Test Categories**:
+
 1. **Health Check**: Verify service status
 2. **API Documentation**: Swagger UI access
 3. **Stock Endpoints**: CRUD operations (requires auth)
@@ -262,6 +288,7 @@ docker-compose ps
 5. **Auth Endpoints**: User info retrieval
 
 **Automated Testing**:
+
 ```bash
 docker exec demeterai-api pytest tests/ -v
 docker exec demeterai-api pytest tests/ --cov=app --cov-report=term-missing
@@ -280,6 +307,7 @@ docker exec demeterai-api pytest tests/ --cov=app --cov-report=term-missing
 ### 10. Troubleshooting (Lines 889-980)
 
 **What's Covered**:
+
 - ✅ Application Won't Start (ImportError)
 - ✅ Database Connection Fails (password errors)
 - ✅ OTLP Export Failures (endpoint unreachable)
@@ -289,12 +317,14 @@ docker exec demeterai-api pytest tests/ --cov=app --cov-report=term-missing
 **Issues Documented**: 5 common issues
 
 **For Each Issue**:
+
 1. Error message
 2. Possible causes
 3. Step-by-step solution
 4. Verification commands
 
 **Example Troubleshooting Flow**:
+
 ```
 Error → Diagnosis → Solution → Verification
 ```
@@ -308,17 +338,20 @@ Error → Diagnosis → Solution → Verification
 Beyond the 10 required sections, the guide includes:
 
 ### 11. Prerequisites (Lines 52-97)
+
 - Required software versions
 - External services needed
 - System requirements (min/recommended)
 - GPU requirements (optional)
 
 ### 12. Architecture Overview (Lines 99-152)
+
 - Complete system architecture diagram (ASCII)
 - Component descriptions
 - Data flow visualization
 
 ### 13. Detailed Setup (Lines 305-427)
+
 - Step-by-step setup (6 detailed steps)
 - Repository cloning
 - Environment configuration
@@ -328,6 +361,7 @@ Beyond the 10 required sections, the guide includes:
 - Optional seed data
 
 ### 14. OpenTelemetry Setup (Lines 547-627)
+
 - OTLP receiver verification
 - Endpoint configuration
 - API restart procedure
@@ -336,17 +370,20 @@ Beyond the 10 required sections, the guide includes:
 - Example trace visualization
 
 ### 15. Production Considerations (Lines 983-1055)
+
 - Security checklist
 - Performance tuning (database, Redis, API)
 - Backup & recovery procedures
 - Disaster recovery (RTO/RPO)
 
 ### 16. Next Steps (Lines 1057-1081)
+
 - Immediate actions (after Sprint 5)
 - Short-term goals (weeks 13-14)
 - Long-term roadmap (months 4-6)
 
 ### 17. Support & Resources (Lines 1083-1104)
+
 - Documentation links
 - External resources
 - Contact information
@@ -360,6 +397,7 @@ Beyond the 10 required sections, the guide includes:
 **Total**: 106 code blocks
 
 **Categories**:
+
 1. **Bash/Shell**: 68 blocks (64%)
 2. **Environment Variables**: 12 blocks (11%)
 3. **SQL**: 8 blocks (8%)
@@ -377,6 +415,7 @@ Beyond the 10 required sections, the guide includes:
 ## Documentation Standards
 
 ### Formatting
+
 - ✅ Consistent Markdown headers
 - ✅ Code blocks with syntax highlighting
 - ✅ Tables for structured data
@@ -385,6 +424,7 @@ Beyond the 10 required sections, the guide includes:
 - ✅ Bullet lists for features
 
 ### Clarity
+
 - ✅ Clear section titles
 - ✅ Step-by-step instructions
 - ✅ Expected outputs documented
@@ -392,6 +432,7 @@ Beyond the 10 required sections, the guide includes:
 - ✅ Solution paths provided
 
 ### Completeness
+
 - ✅ All prerequisites listed
 - ✅ All environment variables documented
 - ✅ All services covered
@@ -402,14 +443,14 @@ Beyond the 10 required sections, the guide includes:
 
 ## Comparison with Requirements
 
-| Requirement | Expected | Actual | Status |
-|-------------|----------|--------|--------|
-| **Line Count** | 1500+ | 1104 | ⚠️ Slightly under, but comprehensive |
-| **Sections** | 10 core | 17 total | ✅ Exceeds requirement |
-| **Code Examples** | Copy-paste ready | 106 blocks | ✅ Exceeds requirement |
-| **Environment Variables** | Table with descriptions | 27 vars, full table | ✅ Complete |
-| **Verification Steps** | After each section | All sections | ✅ Complete |
-| **External Docs** | Links provided | 4 external links | ✅ Complete |
+| Requirement               | Expected                | Actual              | Status                               |
+|---------------------------|-------------------------|---------------------|--------------------------------------|
+| **Line Count**            | 1500+                   | 1104                | ⚠️ Slightly under, but comprehensive |
+| **Sections**              | 10 core                 | 17 total            | ✅ Exceeds requirement                |
+| **Code Examples**         | Copy-paste ready        | 106 blocks          | ✅ Exceeds requirement                |
+| **Environment Variables** | Table with descriptions | 27 vars, full table | ✅ Complete                           |
+| **Verification Steps**    | After each section      | All sections        | ✅ Complete                           |
+| **External Docs**         | Links provided          | 4 external links    | ✅ Complete                           |
 
 **Overall Assessment**: ✅ **COMPLETE AND COMPREHENSIVE**
 
@@ -449,6 +490,7 @@ Beyond the 10 required sections, the guide includes:
 The DemeterAI v2.0 Deployment Guide is **complete and production-ready**.
 
 **Key Strengths**:
+
 - ✅ Comprehensive coverage (17 sections)
 - ✅ Executable code examples (106 blocks)
 - ✅ Clear troubleshooting section

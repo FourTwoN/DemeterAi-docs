@@ -10,7 +10,8 @@
 
 ## Goal
 
-Create comprehensive developer documentation including API documentation, architecture guides, onboarding tutorials, and troubleshooting guides for team productivity.
+Create comprehensive developer documentation including API documentation, architecture guides,
+onboarding tutorials, and troubleshooting guides for team productivity.
 
 ---
 
@@ -28,16 +29,19 @@ Create comprehensive developer documentation including API documentation, archit
 ## Cards List (6 cards, 30 points)
 
 ### API Documentation (10 points)
+
 - **DOC001**: OpenAPI spec generation (FastAPI auto-docs) (3pts)
 - **DOC002**: API endpoint documentation (descriptions, examples) (5pts)
 - **DOC003**: Postman collection export (2pts)
 
 ### Architecture Documentation (10 points)
+
 - **DOC004**: Architecture decision records (ADRs) (5pts)
 - **DOC005**: System architecture diagrams (3pts)
 - **DOC006**: Database schema documentation (2pts)
 
 ### Developer Guides (10 points)
+
 - **DOC007**: Developer onboarding guide (5pts)
 - **DOC008**: Local development setup (2pts)
 - **DOC009**: Troubleshooting guide (3pts)
@@ -54,6 +58,7 @@ Create comprehensive developer documentation including API documentation, archit
 ## Technical Approach
 
 **OpenAPI Auto-Generation**:
+
 ```python
 from fastapi import FastAPI
 
@@ -91,6 +96,7 @@ async def manual_init(request: ManualStockInitRequest):
 ```
 
 **ADR Template**:
+
 ```markdown
 # ADR-002: UUID for s3_images.image_id
 

@@ -7,20 +7,25 @@
 
 ## Purpose
 
-This diagram documents the **frontend real-time polling mechanism** that allows web/mobile clients to track processing progress and retrieve final results. This is the final piece connecting the backend pipeline (diagrams 02-07) to the user interface.
+This diagram documents the **frontend real-time polling mechanism** that allows web/mobile clients
+to track processing progress and retrieve final results. This is the final piece connecting the
+backend pipeline (diagrams 02-07) to the user interface.
 
 ## Scope
 
 **Input:**
+
 - `session_id` (UUID): Returned from initial upload API (diagram 02)
 - User authentication token
 
 **Output:**
+
 - Real-time progress updates (every 2 seconds)
 - Final session summary when complete
 - Rendered UI with results, quality assessment, download links
 
 **Performance Target:**
+
 - Poll response: < 100ms (cached)
 - Final summary fetch: < 500ms
 - Total UI render: < 200ms
@@ -34,6 +39,7 @@ This diagram documents the **frontend real-time polling mechanism** that allows 
 **Solution:** Long polling with fixed 2-second interval
 
 **Alternatives considered:**
+
 1. **WebSockets** - More efficient, but requires persistent connections (infrastructure complexity)
 2. **Server-Sent Events (SSE)** - One-way push, simpler than WebSocket but less browser support
 3. **Long Polling (HTTP)** - Simple, universally supported, chosen approach ✓
@@ -53,11 +59,13 @@ const pollingConfig = {
 ```
 
 **Poll rate calculation:**
+
 - 50 images × 20s avg = 1000s total = ~16 minutes
 - 16 minutes × 30 polls/minute = 480 total poll requests
 - Cost: 480 × 2ms (cache hit) = ~1 second total overhead
 
 **Cost-benefit analysis:**
+
 - Server load: Negligible (Redis cache, 2ms per poll)
 - User experience: Excellent (real-time feedback, no page refresh)
 - Network cost: Minimal (small JSON payloads, ~1KB each)
@@ -67,6 +75,7 @@ const pollingConfig = {
 ### 1. Polling Loop Implementation (lines 84-120)
 
 **JavaScript/TypeScript:**
+
 ```javascript
 async function startPolling(sessionId) {
     const pollingState = {
@@ -106,6 +115,7 @@ async function startPolling(sessionId) {
 ```
 
 **Key patterns:**
+
 - `async/await` for clean asynchronous code
 - `while` loop with exit conditions (completed or timeout)
 - Error handling with retry logic
@@ -114,6 +124,7 @@ async function startPolling(sessionId) {
 ### 2. Progress Endpoint Handler (lines 160-231)
 
 **FastAPI implementation:**
+
 ```python
 @router.get('/sessions/{session_id}/progress')
 async def get_session_progress(
@@ -147,6 +158,7 @@ async def get_session_progress(
 ```
 
 **Why Redis cache with 1-second TTL:**
+
 - **Without cache:** 480 polls × 50ms DB query = 24 seconds total overhead
 - **With cache (1s TTL):** 480 polls × 2ms Redis GET = 1 second total overhead
 - **Cache hit rate:** ~98% (multiple clients polling same session)
@@ -155,6 +167,7 @@ async def get_session_progress(
 ### 3. Progress Calculation Query (lines 190-231)
 
 **PostgreSQL query:**
+
 ```sql
 SELECT
     s.status,
@@ -171,12 +184,14 @@ GROUP BY s.id
 ```
 
 **Calculate metrics:**
+
 ```python
 progress_percent = (images_completed / images_total) * 100
 estimated_remaining_s = (images_total - images_completed) * avg_time_per_image
 ```
 
 **Result example:**
+
 ```json
 {
   "session_id": "uuid-...",
@@ -199,6 +214,7 @@ estimated_remaining_s = (images_total - images_completed) * avg_time_per_image
 **Two-phase retrieval:**
 
 **Phase 1: Detect completion** (poll endpoint returns 200 OK)
+
 ```javascript
 if (response.status === 200 && response.data.status === 'completed') {
     clearInterval(pollingInterval)  // Stop polling
@@ -207,6 +223,7 @@ if (response.status === 200 && response.data.status === 'completed') {
 ```
 
 **Phase 2: Fetch full summary** (separate endpoint for large payload)
+
 ```javascript
 async function fetchFullSummary(sessionId) {
     const response = await fetch(`/api/v1/sessions/${sessionId}/summary`)
@@ -218,11 +235,13 @@ async function fetchFullSummary(sessionId) {
 ```
 
 **Why separate endpoints:**
+
 1. **Progress endpoint:** Lightweight (500 bytes), polled frequently (every 2s)
 2. **Summary endpoint:** Heavy (5-50 KB), fetched once when complete
 3. **Separation reduces network cost:** 480 × 500B = 240KB vs single 50KB fetch
 
 **Redis cache critical here:**
+
 ```python
 # Cache populated by callback (diagram 07)
 cache_key = f'session_summary:{session_id}'
@@ -242,6 +261,7 @@ else:
 ### 5. UI Rendering (lines 401-509)
 
 **Component hierarchy:**
+
 ```
 ResultsPage
 ├── SummaryCards (total plants, density, quality)
@@ -262,6 +282,7 @@ ResultsPage
 ```
 
 **React example:**
+
 ```jsx
 function ResultsPage({ summary }) {
     return (
@@ -302,6 +323,7 @@ function ResultsPage({ summary }) {
 ### 6. Quality Badge Rendering (lines 441-474)
 
 **Visual design:**
+
 ```javascript
 function QualityBadge({ band, score, factors }) {
     const config = {
@@ -341,6 +363,7 @@ function QualityBadge({ band, score, factors }) {
 ```
 
 **Factor breakdown:**
+
 ```
 Confidence: 92% ✓
 Coverage:   92% ✓
@@ -352,14 +375,15 @@ Failures:   100% ✓
 
 **Available exports:**
 
-| Format | Description | Generation Time | Size | Use Case |
-|--------|-------------|----------------|------|----------|
-| **PDF Report** | Executive summary, maps, recommendations | ~5s (on-demand) | 2-5 MB | Customer delivery, presentations |
-| **CSV Export** | Per-image statistics, coordinates | Instant (pre-generated) | 50-500 KB | Excel analysis, data science |
-| **GeoJSON** | Field boundaries, detection points | ~2s (on-demand) | 100-500 KB | QGIS, ArcGIS, geospatial analysis |
-| **Raw Data (ZIP)** | Original images, JSON metadata | Instant (pre-signed S3 URLs) | 500MB-2GB | Archival, re-processing |
+| Format             | Description                              | Generation Time              | Size       | Use Case                          |
+|--------------------|------------------------------------------|------------------------------|------------|-----------------------------------|
+| **PDF Report**     | Executive summary, maps, recommendations | ~5s (on-demand)              | 2-5 MB     | Customer delivery, presentations  |
+| **CSV Export**     | Per-image statistics, coordinates        | Instant (pre-generated)      | 50-500 KB  | Excel analysis, data science      |
+| **GeoJSON**        | Field boundaries, detection points       | ~2s (on-demand)              | 100-500 KB | QGIS, ArcGIS, geospatial analysis |
+| **Raw Data (ZIP)** | Original images, JSON metadata           | Instant (pre-signed S3 URLs) | 500MB-2GB  | Archival, re-processing           |
 
 **PDF report generation:**
+
 ```python
 @router.get('/sessions/{session_id}/report.pdf')
 async def generate_pdf_report(session_id: UUID):
@@ -386,19 +410,20 @@ async def generate_pdf_report(session_id: UUID):
 
 **Complete user journey timing:**
 
-| Phase | Time | Details |
-|-------|------|---------|
-| **Upload images** | 5-30s | Multipart form upload, S3 transfer |
-| **Initial response** | 100ms | API creates session, returns `session_id` |
-| **Start polling** | 1ms | Initialize polling loop |
-| **Poll iterations** | 480 × 2ms = 1s | Redis cache hits, 2s interval |
-| **Processing (backend)** | 15-30 min | GPU inference (diagrams 04-07) |
-| **Completion detection** | 2ms | Poll returns 200 OK |
-| **Fetch summary** | 1ms | Redis cache hit |
-| **Render UI** | 100-200ms | React rendering, map initialization |
-| **Total overhead** | ~30s | Network + polling + render |
+| Phase                    | Time           | Details                                   |
+|--------------------------|----------------|-------------------------------------------|
+| **Upload images**        | 5-30s          | Multipart form upload, S3 transfer        |
+| **Initial response**     | 100ms          | API creates session, returns `session_id` |
+| **Start polling**        | 1ms            | Initialize polling loop                   |
+| **Poll iterations**      | 480 × 2ms = 1s | Redis cache hits, 2s interval             |
+| **Processing (backend)** | 15-30 min      | GPU inference (diagrams 04-07)            |
+| **Completion detection** | 2ms            | Poll returns 200 OK                       |
+| **Fetch summary**        | 1ms            | Redis cache hit                           |
+| **Render UI**            | 100-200ms      | React rendering, map initialization       |
+| **Total overhead**       | ~30s           | Network + polling + render                |
 
 **User perceives:**
+
 - Upload: 10s
 - "Processing" state: 16 minutes (with live progress bar)
 - Results appear: Instant (< 500ms after completion)
@@ -410,6 +435,7 @@ async def generate_pdf_report(session_id: UUID):
 **Scenario:** Session takes > 6 minutes (unusual)
 
 **Behavior:**
+
 ```javascript
 if (retryCount >= maxRetries) {
     showError({
@@ -424,6 +450,7 @@ if (retryCount >= maxRetries) {
 ```
 
 **Recovery options:**
+
 1. Manual refresh (continue polling)
 2. Email notification when ready (backend sends email)
 3. Contact support with `session_id`
@@ -433,6 +460,7 @@ if (retryCount >= maxRetries) {
 **Scenario:** API unavailable, network timeout
 
 **Exponential backoff:**
+
 ```javascript
 async function handleNetworkError(error, pollingState) {
     const retryDelay = Math.min(30, Math.pow(2, pollingState.errorCount)) * 1000
@@ -454,6 +482,7 @@ async function handleNetworkError(error, pollingState) {
 ```
 
 **Retry delays:**
+
 - Retry 1: 2s delay
 - Retry 2: 4s delay
 - Retry 3: 8s delay (show warning)
@@ -466,6 +495,7 @@ async function handleNetworkError(error, pollingState) {
 **Scenario:** User token expires during long processing
 
 **Behavior:**
+
 ```javascript
 if (response.status === 401) {
     // Save current state
@@ -487,6 +517,7 @@ if (resumeSessionId) {
 **Scenario:** Too many requests (unusual, frontend respects 2s interval)
 
 **Behavior:**
+
 ```javascript
 if (response.status === 429) {
     const retryAfter = response.headers.get('Retry-After') || 10
@@ -507,16 +538,19 @@ if (response.status === 429) {
 **Future:** WebSocket push notifications
 
 **Benefits:**
+
 - Reduce server load by 95% (no polling, only push on updates)
 - Instant notifications (no 2s delay)
 - Lower network cost (no redundant requests)
 
 **Trade-offs:**
+
 - Infrastructure complexity (WebSocket server, connection pooling)
 - Browser compatibility (though widely supported now)
 - Firewall/proxy issues (some corporate networks block WebSockets)
 
 **Implementation:**
+
 ```javascript
 const ws = new WebSocket(`wss://api.demeterai.com/sessions/${sessionId}/subscribe`)
 
@@ -575,13 +609,14 @@ if (progress.progress_percent < 50) {
 
 ## Version History
 
-| Version | Date | Changes |
-|---------|------|---------|
-| 1.0.0 | 2025-10-08 | Initial detailed frontend polling subflow |
+| Version | Date       | Changes                                   |
+|---------|------------|-------------------------------------------|
+| 1.0.0   | 2025-10-08 | Initial detailed frontend polling subflow |
 
 ---
 
 **Notes:**
+
 - Polling is simple and reliable (chosen for MVP)
 - Redis cache is CRITICAL for performance (2ms vs 50ms responses)
 - WebSocket migration recommended for v2.0 (95% load reduction)

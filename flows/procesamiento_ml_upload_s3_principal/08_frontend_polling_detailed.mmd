@@ -6,636 +6,635 @@ version: "1.0.0"
 mermaid_version: "v11.3.0+"
 description: "Ultra-detailed subflow: Frontend real-time polling, progress tracking, result retrieval with Redis caching"
 parent_diagram: "01_complete_pipeline_v4.mmd"
-related_diagrams: ["02_api_entry_detailed.mmd", "07_callback_aggregation_detailed.mmd"]
+related_diagrams: [ "02_api_entry_detailed.mmd", "07_callback_aggregation_detailed.mmd" ]
 ---
 
 flowchart TD
-    %% =================================================================
-    %% DIAGRAM 08: FRONTEND POLLING & RESULT RETRIEVAL
-    %% =================================================================
-    %%
-    %% PURPOSE:
-    %% Shows how the frontend (web/mobile) polls the API for real-time
-    %% progress updates during image processing and retrieves final
-    %% results when session completes.
-    %%
-    %% CONTEXT:
-    %% After user uploads images (diagram 02), backend processes them
-    %% asynchronously. Frontend cannot block waiting → must poll.
-    %%
-    %% POLLING STRATEGY:
-    %% - During processing: Poll every 2s for progress updates
-    %% - After completion: Fetch full summary from cache/DB
-    %% - Use exponential backoff if server busy
-    %% - WebSocket alternative (future optimization)
-    %%
-    %% SCOPE: Client-side flow from upload confirmation to result display
-    %% INPUT: session_id (from upload API response)
-    %% OUTPUT: Real-time progress + final summary rendered in UI
-    %%
-    %% PERFORMANCE TARGET: < 100ms per poll (cached), < 500ms final fetch
-    %% =================================================================
-
+%% =================================================================
+%% DIAGRAM 08: FRONTEND POLLING & RESULT RETRIEVAL
+%% =================================================================
+%%
+%% PURPOSE:
+%% Shows how the frontend (web/mobile) polls the API for real-time
+%% progress updates during image processing and retrieves final
+%% results when session completes.
+%%
+%% CONTEXT:
+%% After user uploads images (diagram 02), backend processes them
+%% asynchronously. Frontend cannot block waiting → must poll.
+%%
+%% POLLING STRATEGY:
+%% - During processing: Poll every 2s for progress updates
+%% - After completion: Fetch full summary from cache/DB
+%% - Use exponential backoff if server busy
+%% - WebSocket alternative (future optimization)
+%%
+%% SCOPE: Client-side flow from upload confirmation to result display
+%% INPUT: session_id (from upload API response)
+%% OUTPUT: Real-time progress + final summary rendered in UI
+%%
+%% PERFORMANCE TARGET: < 100ms per poll (cached), < 500ms final fetch
+%% =================================================================
     START@{ shape: stadium, label: "🚀 Frontend Upload Complete
-    User Action: Upload photos via form
-    API Response: {
-        'session_id': UUID('...'),
-        'status': 'processing',
-        'images_received': 50
-    }
+User Action: Upload photos via form
+API Response: {
+'session_id': UUID('...'),
+'status': 'processing',
+'images_received': 50
+}
 
-    Next Action: Start polling for progress
+Next Action: Start polling for progress
 
-    ⏱️ Initial upload: 5-30s (depends on count)" }
+⏱️ Initial upload: 5-30s (depends on count)" }
 
-    %% =================================================================
-    %% SECTION 1: INITIALIZE POLLING
-    %% =================================================================
+%% =================================================================
+%% SECTION 1: INITIALIZE POLLING
+%% =================================================================
 
-    START --> INIT_POLLING
+START --> INIT_POLLING
 
-    INIT_POLLING@{ shape: subproc, label: "🔄 Initialize Polling State
+INIT_POLLING@{ shape: subproc, label: "🔄 Initialize Polling State
 
-    JavaScript/TypeScript Code:
-    const pollingState = {
-        sessionId: uploadResponse.session_id,
-        pollInterval: 2000,  // 2 seconds
-        maxRetries: 180,  // 180 × 2s = 6 minutes max
-        retryCount: 0,
-        lastStatus: 'processing',
-        progressData: null
-    }
+JavaScript/TypeScript Code:
+const pollingState = {
+sessionId: uploadResponse.session_id,
+pollInterval: 2000, // 2 seconds
+maxRetries: 180, // 180 × 2s = 6 minutes max
+retryCount: 0,
+lastStatus: 'processing',
+progressData: null
+}
 
-    // Start polling loop
-    startPolling(pollingState)
+// Start polling loop
+startPolling(pollingState)
 
-    UI Update:
-    - Show spinner/progress bar
-    - Display \"Processing images...\"
-    - Disable upload button
-    - Show estimated time (based on image count)
+UI Update:
+- Show spinner/progress bar
+- Display \"Processing images...\"
+- Disable upload button
+- Show estimated time (based on image count)
 
-    Estimated Time Calculation:
-    images_count × 20s (avg per image) / parallel_workers
-    50 images × 20s / 4 workers = ~250s = 4 minutes
+Estimated Time Calculation:
+images_count × 20s (avg per image) / parallel_workers
+50 images × 20s / 4 workers = ~250s = 4 minutes
 
-    ⏱️ ~1ms (client-side)" }
+⏱️ ~1ms (client-side)" }
 
-    INIT_POLLING --> POLL_LOOP_START
+INIT_POLLING --> POLL_LOOP_START
 
-    %% =================================================================
-    %% SECTION 2: POLLING LOOP
-    %% =================================================================
+%% =================================================================
+%% SECTION 2: POLLING LOOP
+%% =================================================================
 
-    POLL_LOOP_START@{ shape: stadium, label: "⏱️ Polling Loop Iteration
-    Loop: Every 2 seconds
-    Timeout: 6 minutes max
-    Method: async/await fetch API" }
+POLL_LOOP_START@{ shape: stadium, label: "⏱️ Polling Loop Iteration
+Loop: Every 2 seconds
+Timeout: 6 minutes max
+Method: async/await fetch API" }
 
-    POLL_LOOP_START --> CHECK_RETRY_LIMIT
+POLL_LOOP_START --> CHECK_RETRY_LIMIT
 
-    CHECK_RETRY_LIMIT@{ shape: diamond, label: "Retry count
-    < max retries?" }
+CHECK_RETRY_LIMIT@{ shape: diamond, label: "Retry count
+< max retries?" }
 
-    CHECK_RETRY_LIMIT -->|No| TIMEOUT_ERROR
-    CHECK_RETRY_LIMIT -->|Yes| SEND_POLL_REQUEST
+CHECK_RETRY_LIMIT -->|No|TIMEOUT_ERROR
+CHECK_RETRY_LIMIT -->|Yes|SEND_POLL_REQUEST
 
-    TIMEOUT_ERROR@{ shape: subproc, label: "⏰ Polling Timeout Error
+TIMEOUT_ERROR@{ shape: subproc, label: "⏰ Polling Timeout Error
 
-    After 6 minutes without completion:
-    - Show error message to user
-    - Suggest manual refresh
-    - Log timeout event to analytics
-    - Keep session_id for manual retry
+After 6 minutes without completion:
+- Show error message to user
+- Suggest manual refresh
+- Log timeout event to analytics
+- Keep session_id for manual retry
 
-    Error Message Example:
-    Processing is taking longer than expected.
-    Please refresh or contact support.
+Error Message Example:
+Processing is taking longer than expected.
+Please refresh or contact support.
 
-    Recovery Options:
-    1. Manual refresh button
-    2. Link to support with session_id
-    3. Email notification when ready
+Recovery Options:
+1. Manual refresh button
+2. Link to support with session_id
+3. Email notification when ready
 
-    ⏱️ ~1ms (client-side)" }
-
-    TIMEOUT_ERROR --> END_ERROR
-
-    END_ERROR@{ shape: stadium, label: "❌ Polling Stopped (Timeout)
-    User sees error message
-    Can retry manually" }
-
-    %% =================================================================
-    %% SECTION 3: SEND POLL REQUEST TO API
-    %% =================================================================
-
-    SEND_POLL_REQUEST@{ shape: subproc, label: "📡 Send Poll Request
-
-    JavaScript Code:
-    const response = await fetch(
-        `/api/v1/sessions/${sessionId}/progress`,
-        {
-            method: 'GET',
-            headers: {
-                'Authorization': `Bearer ${userToken}`,
-                'Content-Type': 'application/json'
-            }
-        }
-    )
-
-    API Endpoint: GET /api/v1/sessions/{session_id}/progress
-
-    Expected Response Codes:
-    - 200 OK: Progress data available
-    - 202 Accepted: Still processing (no new progress)
-    - 404 Not Found: Invalid session_id
-    - 500 Server Error: Retry with backoff
-
-    ⏱️ ~50-200ms (API request + network)" }
-
-    SEND_POLL_REQUEST --> API_ENDPOINT
-
-    %% =================================================================
-    %% SECTION 4: API ENDPOINT HANDLER
-    %% =================================================================
-
-    API_ENDPOINT@{ shape: subproc, label: "🔍 API: GET /sessions/{id}/progress
-
-    FastAPI Handler:
-    @router.get('/sessions/{session_id}/progress')
-    async def get_session_progress(
-        session_id: UUID,
-        db: AsyncSession = Depends(get_db),
-        redis: Redis = Depends(get_redis)
-    ):
-        '''Get real-time progress for session'''
-
-        # Try Redis cache first (fastest)
-        cache_key = f'session_progress:{session_id}'
-        cached = await redis.get(cache_key)
-
-        if cached:
-            return JSONResponse(json.loads(cached))
-
-        # Fallback to database
-        session = await db.get(Session, session_id)
-        if not session:
-            raise HTTPException(404, 'Session not found')
-
-        progress = await calculate_progress(session)
-
-        # Cache for 1 second (reduce DB load)
-        await redis.setex(cache_key, 1, json.dumps(progress))
-
-        return progress
-
-    ⏱️ Cache hit: ~2ms | Cache miss: ~50ms (DB query)
-    🔥 CRITICAL: Redis cache essential for high poll rate" }
+⏱️ ~1ms (client-side)" }
+
+TIMEOUT_ERROR --> END_ERROR
+
+END_ERROR@{ shape: stadium, label: "❌ Polling Stopped (Timeout)
+User sees error message
+Can retry manually" }
+
+%% =================================================================
+%% SECTION 3: SEND POLL REQUEST TO API
+%% =================================================================
+
+SEND_POLL_REQUEST@{ shape: subproc, label: "📡 Send Poll Request
+
+JavaScript Code:
+const response = await fetch(
+`/api/v1/sessions/${sessionId}/progress`,
+{
+method: 'GET',
+headers: {
+'Authorization': `Bearer ${userToken}`,
+'Content-Type': 'application/json'
+}
+}
+)
+
+API Endpoint: GET /api/v1/sessions/{session_id}/progress
+
+Expected Response Codes:
+- 200 OK: Progress data available
+- 202 Accepted: Still processing (no new progress)
+- 404 Not Found: Invalid session_id
+- 500 Server Error: Retry with backoff
+
+⏱️ ~50-200ms (API request + network)" }
+
+SEND_POLL_REQUEST --> API_ENDPOINT
+
+%% =================================================================
+%% SECTION 4: API ENDPOINT HANDLER
+%% =================================================================
+
+API_ENDPOINT@{ shape: subproc, label: "🔍 API: GET /sessions/{id}/progress
+
+FastAPI Handler:
+@router.get('/sessions/{session_id}/progress')
+async def get_session_progress(
+session_id: UUID,
+db: AsyncSession = Depends(get_db),
+redis: Redis = Depends(get_redis)
+):
+'''Get real-time progress for session'''
+
+# Try Redis cache first (fastest)
+cache_key = f'session_progress:{session_id}'
+cached = await redis.get(cache_key)
+
+if cached:
+return JSONResponse(json.loads(cached))
+
+# Fallback to database
+session = await db.get(Session, session_id)
+if not session:
+raise HTTPException(404, 'Session not found')
+
+progress = await calculate_progress(session)
+
+# Cache for 1 second (reduce DB load)
+await redis.setex(cache_key, 1, json.dumps(progress))
+
+return progress
+
+⏱️ Cache hit: ~2ms | Cache miss: ~50ms (DB query)
+🔥 CRITICAL: Redis cache essential for high poll rate" }
 
-    API_ENDPOINT --> CALCULATE_PROGRESS
+API_ENDPOINT --> CALCULATE_PROGRESS
 
-    CALCULATE_PROGRESS@{ shape: cyl, label: "📊 Calculate Progress
-
-    Query:
-    SELECT
-        s.status,
-        s.images_total,
-        COUNT(DISTINCT d.image_id) as images_completed,
-        AVG(d.processing_time_s) as avg_time_per_image
-    FROM sessions s
-    LEFT JOIN detection_summaries d ON d.image_id IN (
-        SELECT id FROM s3_images WHERE session_id = s.id
-    )
-    WHERE s.id = :session_id
-    GROUP BY s.id
+CALCULATE_PROGRESS@{ shape: cyl, label: "📊 Calculate Progress
+
+Query:
+SELECT
+s.status,
+s.images_total,
+COUNT(DISTINCT d.image_id) as images_completed,
+AVG(d.processing_time_s) as avg_time_per_image
+FROM sessions s
+LEFT JOIN detection_summaries d ON d.image_id IN (
+SELECT id FROM s3_images WHERE session_id = s.id
+)
+WHERE s.id = :session_id
+GROUP BY s.id
 
-    Calculate:
-    progress_percent = (images_completed / images_total) × 100
-    estimated_remaining_s = (images_total - images_completed) × avg_time_per_image
+Calculate:
+progress_percent = (images_completed / images_total) × 100
+estimated_remaining_s = (images_total - images_completed) × avg_time_per_image
 
-    Result:
-    {
-        'session_id': str(session_id),
-        'status': 'processing',  # or 'completed', 'failed'
-        'progress_percent': 72.5,
-        'images_total': 50,
-        'images_completed': 36,
-        'images_failed': 1,
-        'avg_time_per_image_s': 18.3,
-        'estimated_remaining_s': 256,  # ~4 minutes
-        'started_at': '2025-10-08T10:30:00Z',
-        'updated_at': '2025-10-08T10:35:15Z'
-    }
+Result:
+{
+'session_id': str(session_id),
+'status': 'processing', # or 'completed', 'failed'
+'progress_percent': 72.5,
+'images_total': 50,
+'images_completed': 36,
+'images_failed': 1,
+'avg_time_per_image_s': 18.3,
+'estimated_remaining_s': 256, # ~4 minutes
+'started_at': '2025-10-08T10:30:00Z',
+'updated_at': '2025-10-08T10:35:15Z'
+}
 
-    ⏱️ ~30-50ms (JOIN + aggregation)" }
+⏱️ ~30-50ms (JOIN + aggregation)" }
 
-    CALCULATE_PROGRESS --> CHECK_STATUS
+CALCULATE_PROGRESS --> CHECK_STATUS
 
-    CHECK_STATUS@{ shape: diamond, label: "Status ==
-    'completed'?" }
+CHECK_STATUS@{ shape: diamond, label: "Status ==
+'completed'?" }
 
-    CHECK_STATUS -->|No| RETURN_PROGRESS
-    CHECK_STATUS -->|Yes| GET_SUMMARY_CACHE
+CHECK_STATUS -->|No|RETURN_PROGRESS
+CHECK_STATUS -->|Yes|GET_SUMMARY_CACHE
 
-    %% =================================================================
-    %% SECTION 5A: RETURN IN-PROGRESS STATUS
-    %% =================================================================
+%% =================================================================
+%% SECTION 5A: RETURN IN-PROGRESS STATUS
+%% =================================================================
 
-    RETURN_PROGRESS@{ shape: subproc, label: "📤 Return Progress (202 Accepted)
+RETURN_PROGRESS@{ shape: subproc, label: "📤 Return Progress (202 Accepted)
 
-    HTTP Response:
-    {
-        'status': 'processing',
-        'progress_percent': 72.5,
-        'images_completed': 36,
-        'images_total': 50,
-        'estimated_remaining_s': 256
-    }
+HTTP Response:
+{
+'status': 'processing',
+'progress_percent': 72.5,
+'images_completed': 36,
+'images_total': 50,
+'estimated_remaining_s': 256
+}
 
-    Status Code: 202 Accepted (not 200!)
-    - 202 means \"accepted but not complete\"
-    - Frontend continues polling
+Status Code: 202 Accepted (not 200!)
+- 202 means \"accepted but not complete\"
+- Frontend continues polling
 
-    ⏱️ ~1ms (JSON serialization)" }
+⏱️ ~1ms (JSON serialization)" }
 
-    RETURN_PROGRESS --> RECEIVE_PROGRESS_RESPONSE
+RETURN_PROGRESS --> RECEIVE_PROGRESS_RESPONSE
 
-    RECEIVE_PROGRESS_RESPONSE@{ shape: subproc, label: "📥 Frontend Receives Progress
+RECEIVE_PROGRESS_RESPONSE@{ shape: subproc, label: "📥 Frontend Receives Progress
 
-    JavaScript Code:
-    if (response.status === 202) {
-        // Still processing
-        updateProgressBar(response.progress_percent)
-        updateStatusText(
-            `Processing: ${response.images_completed}/${response.images_total} images`
-        )
-        updateEstimatedTime(response.estimated_remaining_s)
+JavaScript Code:
+if (response.status === 202) {
+// Still processing
+updateProgressBar(response.progress_percent)
+updateStatusText(
+`Processing: ${response.images_completed}/${response.images_total} images`
+)
+updateEstimatedTime(response.estimated_remaining_s)
 
-        // Continue polling
-        setTimeout(() => pollAgain(), pollingState.pollInterval)
-    }
+// Continue polling
+setTimeout(() => pollAgain(), pollingState.pollInterval)
+}
 
-    UI Updates:
-    - Progress bar: 72.5%
-    - Status text: \"Processing: 36/50 images\"
-    - Estimated time: \"~4 minutes remaining\"
-    - Last updated: \"10:35:15\"
+UI Updates:
+- Progress bar: 72.5%
+- Status text: \"Processing: 36/50 images\"
+- Estimated time: \"~4 minutes remaining\"
+- Last updated: \"10:35:15\"
 
-    ⏱️ ~5ms (DOM updates)" }
+⏱️ ~5ms (DOM updates)" }
 
-    RECEIVE_PROGRESS_RESPONSE --> WAIT_INTERVAL
+RECEIVE_PROGRESS_RESPONSE --> WAIT_INTERVAL
 
-    WAIT_INTERVAL@{ shape: subproc, label: "⏳ Wait Poll Interval
+WAIT_INTERVAL@{ shape: subproc, label: "⏳ Wait Poll Interval
 
-    setTimeout(() => pollAgain(), 2000)
+setTimeout(() => pollAgain(), 2000)
 
-    Poll interval: 2 seconds (constant)
+Poll interval: 2 seconds (constant)
 
-    Alternative: Exponential backoff
-    - First 10 polls: 2s
-    - Next 20 polls: 5s
-    - After 30 polls: 10s
-    (Reduce server load for long sessions)
+Alternative: Exponential backoff
+- First 10 polls: 2s
+- Next 20 polls: 5s
+- After 30 polls: 10s
+(Reduce server load for long sessions)
 
-    ⏱️ 2000ms (wait time)" }
+⏱️ 2000ms (wait time)" }
 
-    WAIT_INTERVAL --> INCREMENT_RETRY
+WAIT_INTERVAL --> INCREMENT_RETRY
 
-    INCREMENT_RETRY@{ shape: subproc, label: "➕ Increment Retry Counter
+INCREMENT_RETRY@{ shape: subproc, label: "➕ Increment Retry Counter
 
-    pollingState.retryCount++
+pollingState.retryCount++
 
-    Track total poll attempts:
-    - For timeout detection
-    - For analytics (avg polls per session)
+Track total poll attempts:
+- For timeout detection
+- For analytics (avg polls per session)
 
-    ⏱️ ~0.1ms" }
+⏱️ ~0.1ms" }
 
-    INCREMENT_RETRY --> POLL_LOOP_START
+INCREMENT_RETRY --> POLL_LOOP_START
 
-    %% =================================================================
-    %% SECTION 5B: SESSION COMPLETED - FETCH SUMMARY
-    %% =================================================================
+%% =================================================================
+%% SECTION 5B: SESSION COMPLETED - FETCH SUMMARY
+%% =================================================================
 
-    GET_SUMMARY_CACHE@{ shape: subproc, label: "💾 Check Redis Cache for Summary
+GET_SUMMARY_CACHE@{ shape: subproc, label: "💾 Check Redis Cache for Summary
 
-    Redis Key: session_summary:{session_id}
+Redis Key: session_summary:{session_id}
 
-    This cache was populated by callback (diagram 07)
+This cache was populated by callback (diagram 07)
 
-    Python (API):
-    cache_key = f'session_summary:{session_id}'
-    cached_summary = await redis.get(cache_key)
+Python (API):
+cache_key = f'session_summary:{session_id}'
+cached_summary = await redis.get(cache_key)
 
-    if cached_summary:
-        return JSONResponse(json.loads(cached_summary))
-    else:
-        # Fallback to DB
-        return await fetch_summary_from_db(session_id)
+if cached_summary:
+return JSONResponse(json.loads(cached_summary))
+else:
+# Fallback to DB
+return await fetch_summary_from_db(session_id)
 
-    Cache Hit Rate: ~95% (callback pre-populates)
-    Cache Miss: Race condition (callback not finished yet)
+Cache Hit Rate: ~95% (callback pre-populates)
+Cache Miss: Race condition (callback not finished yet)
 
-    ⏱️ Cache hit: ~1ms | Cache miss: ~100ms (DB query)" }
+⏱️ Cache hit: ~1ms | Cache miss: ~100ms (DB query)" }
 
-    GET_SUMMARY_CACHE --> CHECK_CACHE_HIT
+GET_SUMMARY_CACHE --> CHECK_CACHE_HIT
 
-    CHECK_CACHE_HIT@{ shape: diamond, label: "Cache hit?" }
+CHECK_CACHE_HIT@{ shape: diamond, label: "Cache hit?" }
 
-    CHECK_CACHE_HIT -->|Yes| RETURN_SUMMARY
-    CHECK_CACHE_HIT -->|No| FETCH_SUMMARY_DB
+CHECK_CACHE_HIT -->|Yes|RETURN_SUMMARY
+CHECK_CACHE_HIT -->|No|FETCH_SUMMARY_DB
 
-    FETCH_SUMMARY_DB@{ shape: cyl, label: "🗄️ Fetch Summary from Database
+FETCH_SUMMARY_DB@{ shape: cyl, label: "🗄️ Fetch Summary from Database
 
-    Query:
-    SELECT
-        summary_json,
-        quality_score,
-        quality_band,
-        total_plants_estimated,
-        total_infrastructure,
-        completed_at
-    FROM session_summaries
-    WHERE session_id = :session_id
+Query:
+SELECT
+summary_json,
+quality_score,
+quality_band,
+total_plants_estimated,
+total_infrastructure,
+completed_at
+FROM session_summaries
+WHERE session_id = :session_id
 
-    Fallback Path (rare):
-    - Callback finished but Redis cache evicted
-    - Direct DB query (acceptable latency)
+Fallback Path (rare):
+- Callback finished but Redis cache evicted
+- Direct DB query (acceptable latency)
 
-    After fetch: Re-populate cache
-    await redis.setex(cache_key, 3600, json.dumps(summary))
+After fetch: Re-populate cache
+await redis.setex(cache_key, 3600, json.dumps(summary))
 
-    ⏱️ ~80-150ms (complex query + cache write)" }
+⏱️ ~80-150ms (complex query + cache write)" }
 
-    FETCH_SUMMARY_DB --> RETURN_SUMMARY
+FETCH_SUMMARY_DB --> RETURN_SUMMARY
 
-    RETURN_SUMMARY@{ shape: subproc, label: "📤 Return Summary (200 OK)
+RETURN_SUMMARY@{ shape: subproc, label: "📤 Return Summary (200 OK)
 
-    HTTP Response: 200 OK
-    {
-        'status': 'completed',
-        'session_id': '...',
-        'completed_at': '2025-10-08T10:40:23Z',
+HTTP Response: 200 OK
+{
+'status': 'completed',
+'session_id': '...',
+'completed_at': '2025-10-08T10:40:23Z',
 
-        'plant_detection': {
-            'total_estimated': 9834,
-            'total_detected': 7821,
-            'confidence': 'HIGH',
-            'images_processed': 50
-        },
+'plant_detection': {
+'total_estimated': 9834,
+'total_detected': 7821,
+'confidence': 'HIGH',
+'images_processed': 50
+},
 
-        'field_metrics': {
-            'area_ha': 12.5,
-            'plant_density_per_ha': 787
-        },
+'field_metrics': {
+'area_ha': 12.5,
+'plant_density_per_ha': 787
+},
 
-        'quality': {
-            'overall_score': 0.87,
-            'quality_band': 'EXCELLENT'
-        },
+'quality': {
+'overall_score': 0.87,
+'quality_band': 'EXCELLENT'
+},
 
-        'infrastructure_detection': { ... },
+'infrastructure_detection': { ... },
 
-        'download_links': {
-            'pdf_report': '/api/v1/sessions/{id}/report.pdf',
-            'csv_export': '/api/v1/sessions/{id}/export.csv',
-            'geojson': '/api/v1/sessions/{id}/detections.geojson'
-        }
-    }
+'download_links': {
+'pdf_report': '/api/v1/sessions/{id}/report.pdf',
+'csv_export': '/api/v1/sessions/{id}/export.csv',
+'geojson': '/api/v1/sessions/{id}/detections.geojson'
+}
+}
 
-    ⏱️ ~1-5ms (JSON serialization)" }
+⏱️ ~1-5ms (JSON serialization)" }
 
-    RETURN_SUMMARY --> RECEIVE_SUMMARY_RESPONSE
+RETURN_SUMMARY --> RECEIVE_SUMMARY_RESPONSE
 
-    %% =================================================================
-    %% SECTION 6: FRONTEND RENDERS RESULTS
-    %% =================================================================
+%% =================================================================
+%% SECTION 6: FRONTEND RENDERS RESULTS
+%% =================================================================
 
-    RECEIVE_SUMMARY_RESPONSE@{ shape: subproc, label: "📥 Frontend Receives Summary
+RECEIVE_SUMMARY_RESPONSE@{ shape: subproc, label: "📥 Frontend Receives Summary
 
-    JavaScript Code:
-    if (response.status === 200 && response.data.status === 'completed') {
-        // Stop polling
-        clearInterval(pollingInterval)
+JavaScript Code:
+if (response.status === 200 && response.data.status === 'completed') {
+// Stop polling
+clearInterval(pollingInterval)
 
-        // Render results
-        renderResultsSummary(response.data)
-        renderQualityBadge(response.data.quality)
-        renderDownloadButtons(response.data.download_links)
+// Render results
+renderResultsSummary(response.data)
+renderQualityBadge(response.data.quality)
+renderDownloadButtons(response.data.download_links)
 
-        // Analytics event
-        trackEvent('session_completed', {
-            session_id: sessionId,
-            quality_band: response.data.quality.quality_band,
-            total_plants: response.data.plant_detection.total_estimated
-        })
-    }
+// Analytics event
+trackEvent('session_completed', {
+session_id: sessionId,
+quality_band: response.data.quality.quality_band,
+total_plants: response.data.plant_detection.total_estimated
+})
+}
 
-    ⏱️ ~50-100ms (React/Vue rendering)" }
+⏱️ ~50-100ms (React/Vue rendering)" }
 
-    RECEIVE_SUMMARY_RESPONSE --> RENDER_SUMMARY
+RECEIVE_SUMMARY_RESPONSE --> RENDER_SUMMARY
 
-    RENDER_SUMMARY@{ shape: subproc, label: "🎨 Render Results in UI
+RENDER_SUMMARY@{ shape: subproc, label: "🎨 Render Results in UI
 
-    UI Components:
+UI Components:
 
-    1. Summary Cards:
-       ┌─────────────────────────────┐
-       │ 🌱 Total Plants: 9,834      │
-       │ 📊 Density: 787 plants/ha   │
-       │ ⭐ Quality: EXCELLENT        │
-       └─────────────────────────────┘
+1. Summary Cards:
+┌─────────────────────────────┐
+│ 🌱 Total Plants: 9,834 │
+│ 📊 Density: 787 plants/ha │
+│ ⭐ Quality: EXCELLENT │
+└─────────────────────────────┘
 
-    2. Quality Badge:
-       ⭐⭐⭐⭐⭐ EXCELLENT (0.87/1.0)
+2. Quality Badge:
+⭐⭐⭐⭐⭐ EXCELLENT (0.87/1.0)
 
-    3. Progress Details:
-       - Images processed: 50/50
-       - Processing time: 16 minutes
-       - Confidence: HIGH
+3. Progress Details:
+- Images processed: 50/50
+- Processing time: 16 minutes
+- Confidence: HIGH
 
-    4. Infrastructure (if present):
-       - Electrical boxes: 15
-       - Industrial plugs: 8
-       - View on map →
+4. Infrastructure (if present):
+- Electrical boxes: 15
+- Industrial plugs: 8
+- View on map →
 
-    5. Download Buttons:
-       [📄 Download PDF Report]
-       [📊 Export CSV Data]
-       [🗺️ Download GeoJSON]
+5. Download Buttons:
+[📄 Download PDF Report]
+[📊 Export CSV Data]
+[🗺️ Download GeoJSON]
 
-    6. Field Map (if GPS available):
-       - Show field boundary
-       - Overlay plant density heatmap
-       - Infrastructure markers
+6. Field Map (if GPS available):
+- Show field boundary
+- Overlay plant density heatmap
+- Infrastructure markers
 
-    ⏱️ ~100-200ms (full page render + map)" }
+⏱️ ~100-200ms (full page render + map)" }
 
-    RENDER_SUMMARY --> RENDER_QUALITY
+RENDER_SUMMARY --> RENDER_QUALITY
 
-    RENDER_QUALITY@{ shape: subproc, label: "⭐ Render Quality Assessment
+RENDER_QUALITY@{ shape: subproc, label: "⭐ Render Quality Assessment
 
-    Component: QualityBadge
+Component: QualityBadge
 
-    quality_band === 'EXCELLENT':
-        color: green
-        icon: ⭐⭐⭐⭐⭐
-        message: \"High-quality results ready for customer delivery\"
+quality_band === 'EXCELLENT':
+color: green
+icon: ⭐⭐⭐⭐⭐
+message: \"High-quality results ready for customer delivery\"
 
-    quality_band === 'GOOD':
-        color: blue
-        icon: ⭐⭐⭐⭐
-        message: \"Good results. Minor quality factors noted.\"
+quality_band === 'GOOD':
+color: blue
+icon: ⭐⭐⭐⭐
+message: \"Good results. Minor quality factors noted.\"
 
-    quality_band === 'FAIR':
-        color: yellow
-        icon: ⭐⭐⭐
-        message: \"Fair results. Manual review recommended.\"
+quality_band === 'FAIR':
+color: yellow
+icon: ⭐⭐⭐
+message: \"Fair results. Manual review recommended.\"
 
-    quality_band === 'POOR':
-        color: red
-        icon: ⭐⭐
-        message: \"Low quality. Consider re-capturing images.\"
+quality_band === 'POOR':
+color: red
+icon: ⭐⭐
+message: \"Low quality. Consider re-capturing images.\"
 
-    Show breakdown:
-    - Confidence: 92% ✓
-    - Coverage: 92% ✓
-    - Consistency: 78% ⚠️
-    - Failures: 100% ✓
+Show breakdown:
+- Confidence: 92% ✓
+- Coverage: 92% ✓
+- Consistency: 78% ⚠️
+- Failures: 100% ✓
 
-    ⏱️ ~20ms (component render)" }
+⏱️ ~20ms (component render)" }
 
-    RENDER_QUALITY --> RENDER_DOWNLOADS
+RENDER_QUALITY --> RENDER_DOWNLOADS
 
-    RENDER_DOWNLOADS@{ shape: subproc, label: "📥 Render Download Options
+RENDER_DOWNLOADS@{ shape: subproc, label: "📥 Render Download Options
 
-    Download Buttons:
+Download Buttons:
 
-    1. PDF Report (most common):
-       - Executive summary
-       - Plant count + density
-       - Quality assessment
-       - Field map with detections
-       - Infrastructure inventory
-       - Recommendations
-       → Generated on-demand (first click: ~5s)
+1. PDF Report (most common):
+- Executive summary
+- Plant count + density
+- Quality assessment
+- Field map with detections
+- Infrastructure inventory
+- Recommendations
+→ Generated on-demand (first click: ~5s)
 
-    2. CSV Export:
-       - Per-image statistics
-       - Detection coordinates
-       - Confidence scores
-       - Timestamps
-       → Pre-generated, instant download
+2. CSV Export:
+- Per-image statistics
+- Detection coordinates
+- Confidence scores
+- Timestamps
+→ Pre-generated, instant download
 
-    3. GeoJSON (if GPS available):
-       - Field boundary polygon
-       - Plant detection points (sampled)
-       - Infrastructure locations (all)
-       - Compatible with QGIS, ArcGIS
-       → Generated on-demand (~2s)
+3. GeoJSON (if GPS available):
+- Field boundary polygon
+- Plant detection points (sampled)
+- Infrastructure locations (all)
+- Compatible with QGIS, ArcGIS
+→ Generated on-demand (~2s)
 
-    4. Raw Data (ZIP):
-       - Original images (AVIF format)
-       - Detection bboxes (JSON)
-       - Model metadata
-       → Large download (500MB-2GB)
+4. Raw Data (ZIP):
+- Original images (AVIF format)
+- Detection bboxes (JSON)
+- Model metadata
+→ Large download (500MB-2GB)
 
-    ⏱️ ~30ms (button rendering)" }
+⏱️ ~30ms (button rendering)" }
 
-    RENDER_DOWNLOADS --> STOP_POLLING
+RENDER_DOWNLOADS --> STOP_POLLING
 
-    STOP_POLLING@{ shape: subproc, label: "🛑 Stop Polling Loop
+STOP_POLLING@{ shape: subproc, label: "🛑 Stop Polling Loop
 
-    JavaScript Code:
-    clearInterval(pollingInterval)
+JavaScript Code:
+clearInterval(pollingInterval)
 
-    // Mark session as complete in local state
-    sessionCache.set(sessionId, {
-        status: 'completed',
-        summary: summaryData,
-        cached_at: Date.now()
-    })
+// Mark session as complete in local state
+sessionCache.set(sessionId, {
+status: 'completed',
+summary: summaryData,
+cached_at: Date.now()
+})
 
-    // If user navigates away and returns:
-    // Check sessionCache first (avoid re-polling)
+// If user navigates away and returns:
+// Check sessionCache first (avoid re-polling)
 
-    Final State:
-    - Polling loop stopped
-    - Results rendered
-    - User can interact with summary
-    - Download buttons active
+Final State:
+- Polling loop stopped
+- Results rendered
+- User can interact with summary
+- Download buttons active
 
-    ⏱️ ~1ms" }
+⏱️ ~1ms" }
 
-    STOP_POLLING --> END_SUCCESS
+STOP_POLLING --> END_SUCCESS
 
-    END_SUCCESS@{ shape: stadium, label: "✅ Results Displayed
+END_SUCCESS@{ shape: stadium, label: "✅ Results Displayed
 
-    Total Time (typical):
-    - Upload: 10s
-    - Processing: 16 min (backend)
-    - Polling: 480 requests (2s interval)
-    - Final fetch: 1ms (cache hit)
-    - Render: 200ms
+Total Time (typical):
+- Upload: 10s
+- Processing: 16 min (backend)
+- Polling: 480 requests (2s interval)
+- Final fetch: 1ms (cache hit)
+- Render: 200ms
 
-    User Experience:
-    - Real-time progress updates
-    - No page refresh needed
-    - Instant results when ready
-    - Download options available
+User Experience:
+- Real-time progress updates
+- No page refresh needed
+- Instant results when ready
+- Download options available
 
-    Success Metrics:
-    ✓ Sub-100ms poll responses
-    ✓ 95%+ cache hit rate
-    ✓ No timeout errors
-    ✓ Results rendered < 500ms" }
+Success Metrics:
+✓ Sub-100ms poll responses
+✓ 95%+ cache hit rate
+✓ No timeout errors
+✓ Results rendered < 500ms" }
 
-    %% =================================================================
-    %% SECTION 7: ERROR HANDLING
-    %% =================================================================
+%% =================================================================
+%% SECTION 7: ERROR HANDLING
+%% =================================================================
 
-    SEND_POLL_REQUEST -.->|Network Error| HANDLE_NETWORK_ERROR
+SEND_POLL_REQUEST -.->|Network Error| HANDLE_NETWORK_ERROR
 
-    HANDLE_NETWORK_ERROR@{ shape: subproc, label: "🌐 Handle Network Error
+HANDLE_NETWORK_ERROR@{ shape: subproc, label: "🌐 Handle Network Error
 
-    Error Types:
-    1. Network timeout (> 30s)
-    2. Server unavailable (503)
-    3. Rate limit exceeded (429)
-    4. Authentication expired (401)
+Error Types:
+1. Network timeout (> 30s)
+2. Server unavailable (503)
+3. Rate limit exceeded (429)
+4. Authentication expired (401)
 
-    Recovery Strategy:
-    - Retry with exponential backoff
-    - Max 3 retries before showing error
-    - Cache last known progress (offline-first)
+Recovery Strategy:
+- Retry with exponential backoff
+- Max 3 retries before showing error
+- Cache last known progress (offline-first)
 
-    Exponential Backoff:
-    retry_delay = min(30, 2^retry_count) seconds
-    - Retry 1: 2s delay
-    - Retry 2: 4s delay
-    - Retry 3: 8s delay
+Exponential Backoff:
+retry_delay = min(30, 2^retry_count) seconds
+- Retry 1: 2s delay
+- Retry 2: 4s delay
+- Retry 3: 8s delay
 
-    If all retries fail:
-    - Show error message
-    - Suggest manual refresh
-    - Log to error tracking (Sentry)
+If all retries fail:
+- Show error message
+- Suggest manual refresh
+- Log to error tracking (Sentry)
 
-    ⏱️ Variable (depends on retry count)" }
+⏱️ Variable (depends on retry count)" }
 
-    HANDLE_NETWORK_ERROR --> POLL_LOOP_START
+HANDLE_NETWORK_ERROR --> POLL_LOOP_START
 
-    %% =================================================================
-    %% STYLING
-    %% =================================================================
+%% =================================================================
+%% STYLING
+%% =================================================================
 
-    classDef criticalNode fill:#ff6b6b,stroke:#c92a2a,stroke-width:3px,color:#fff
-    classDef cacheNode fill:#ffd43b,stroke:#fab005,stroke-width:2px,color:#000
-    classDef dbNode fill:#4dabf7,stroke:#1971c2,stroke-width:2px,color:#fff
-    classDef uiNode fill:#51cf66,stroke:#2f9e44,stroke-width:2px,color:#000
-    classDef errorNode fill:#e03131,stroke:#c92a2a,stroke-width:2px,color:#fff
+classDef criticalNode fill:#ff6b6b, stroke: #c92a2a, stroke-width: 3px,color: #fff
+classDef cacheNode fill: #ffd43b,stroke: #fab005, stroke-width: 2px, color:#000
+classDef dbNode fill: #4dabf7, stroke:#1971c2, stroke-width: 2px, color: #fff
+classDef uiNode fill: #51cf66, stroke: #2f9e44,stroke-width: 2px, color: #000
+classDef errorNode fill: #e03131, stroke: #c92a2a, stroke-width:2px, color: #fff
 
-    class GET_SUMMARY_CACHE,RETURN_SUMMARY criticalNode
-    class RETURN_PROGRESS cacheNode
-    class CALCULATE_PROGRESS,FETCH_SUMMARY_DB dbNode
-    class RENDER_SUMMARY,RENDER_QUALITY,RENDER_DOWNLOADS uiNode
-    class TIMEOUT_ERROR,HANDLE_NETWORK_ERROR errorNode
+class GET_SUMMARY_CACHE,RETURN_SUMMARY criticalNode
+class RETURN_PROGRESS cacheNode
+class CALCULATE_PROGRESS, FETCH_SUMMARY_DB dbNode
+class RENDER_SUMMARY, RENDER_QUALITY,RENDER_DOWNLOADS uiNode
+class TIMEOUT_ERROR,HANDLE_NETWORK_ERROR errorNode

@@ -7,15 +7,19 @@
 
 ## Purpose
 
-This diagram documents the **electrical infrastructure detection task** for agricultural field auditing. Unlike plant counting (diagram 05), this task identifies and locates electrical boxes, plugs, meters, and junction boxes for maintenance planning and safety audits.
+This diagram documents the **electrical infrastructure detection task** for agricultural field
+auditing. Unlike plant counting (diagram 05), this task identifies and locates electrical boxes,
+plugs, meters, and junction boxes for maintenance planning and safety audits.
 
 ## Scope
 
 **Input:**
+
 - `image_id_pk` (UUID): Primary key of the image
 - `detection_type` (str): 'boxes' | 'plugs' | 'meters' | 'all'
 
 **Output:**
+
 - `total_count` (int): Total infrastructure elements detected
 - `by_class` (dict): Counts and locations per class (electrical_box, plug, etc.)
 - `gps_locations` (list): GPS coordinates for each detection
@@ -25,15 +29,15 @@ This diagram documents the **electrical infrastructure detection task** for agri
 
 ## Key Differences from Plant Detection (Diagram 05)
 
-| Aspect | Plant Detection (05) | Infrastructure Detection (06) |
-|--------|---------------------|------------------------------|
-| **Model** | yolo11m (medium) | yolo11x (extra-large) |
-| **Confidence** | 0.45 (lower) | 0.6 (higher) |
-| **Algorithm** | Band-based estimation | Direct count (no correction) |
-| **SAHI slices** | 640×640, 20% overlap | 800×800, 30% overlap |
-| **Objects/image** | 50-200 plants | 1-5 infrastructure |
-| **GPS per object** | No (field-level only) | Yes (individual GPS) |
-| **Processing time** | 15-30s | 5-10s |
+| Aspect              | Plant Detection (05)  | Infrastructure Detection (06) |
+|---------------------|-----------------------|-------------------------------|
+| **Model**           | yolo11m (medium)      | yolo11x (extra-large)         |
+| **Confidence**      | 0.45 (lower)          | 0.6 (higher)                  |
+| **Algorithm**       | Band-based estimation | Direct count (no correction)  |
+| **SAHI slices**     | 640×640, 20% overlap  | 800×800, 30% overlap          |
+| **Objects/image**   | 50-200 plants         | 1-5 infrastructure            |
+| **GPS per object**  | No (field-level only) | Yes (individual GPS)          |
+| **Processing time** | 15-30s                | 5-10s                         |
 
 ## Key Components
 
@@ -42,6 +46,7 @@ This diagram documents the **electrical infrastructure detection task** for agri
 **Model:** `yolo11x-infrastructure.pt` (extra-large variant)
 
 **Classes trained on:**
+
 - `electrical_box` (class 0)
 - `junction_box` (class 1)
 - `control_panel` (class 2)
@@ -52,11 +57,13 @@ This diagram documents the **electrical infrastructure detection task** for agri
 - `smart_meter` (class 7)
 
 **Why X-large model:**
+
 - Infrastructure objects are fewer → can afford slower, more accurate model
 - False positives are costly (maintenance crews dispatched unnecessarily)
 - Precision > speed for safety-critical infrastructure
 
 **Singleton pattern** (same as plant detection):
+
 ```python
 worker_id = os.getpid() % num_gpus
 model_key = f'yolo_v11_infrastructure_{worker_id}'
@@ -71,6 +78,7 @@ if model_key not in model_cache:
 ### 2. SAHI Configuration (lines 150-177)
 
 **Different parameters than plant detection:**
+
 ```python
 # Infrastructure SAHI config
 slice_height = 800  # Larger (infrastructure bigger than plants)
@@ -80,11 +88,13 @@ postprocess_match_threshold = 0.4  # Stricter NMS
 ```
 
 **Why larger slices:**
+
 - Electrical boxes are typically 50-200px in size (vs plants 10-50px)
 - Larger slices reduce total slice count → faster processing
 - Example: 4000×3000 image → ~20 slices (vs ~42 for plants)
 
 **Why more overlap:**
+
 - Fewer objects → can afford more overlap for edge accuracy
 - Infrastructure at tile boundary must not be missed
 
@@ -113,6 +123,7 @@ for detection in filtered_detections:
 ```
 
 **Use cases:**
+
 1. **Maintenance navigation:** Navigate crew to exact plug location
 2. **Work orders:** "Replace electrical box at GPS (-34.5678, -58.1234)"
 3. **Geospatial analysis:** Distance between infrastructure elements
@@ -144,6 +155,7 @@ for class_name, detections in grouped.items():
 ```
 
 **Example output:**
+
 ```json
 {
   "electrical_box": {
@@ -173,6 +185,7 @@ for class_name, detections in grouped.items():
 ### 5. Database Insert Pattern (lines 404-442)
 
 **Different from plant detection:**
+
 - Plant detection: Bulk insert (50-200 records)
 - Infrastructure detection: Individual INSERTs (1-5 records)
 
@@ -185,11 +198,13 @@ await session.commit()
 ```
 
 **Why no bulk insert:**
+
 - Typical infrastructure count: 1-5 per image
 - Bulk insert overhead not justified
 - Simpler code for low-volume data
 
 **When to use bulk:**
+
 ```python
 # Only if detection_type == 'all' and count > 20
 if len(infrastructure_records) > 20:
@@ -200,16 +215,17 @@ if len(infrastructure_records) > 20:
 
 Total time: **5-10 seconds per image**
 
-| Phase | Time | % of Total | Notes |
-|-------|------|------------|-------|
-| Model load (cached) | 0.1ms | ~0% | Singleton pattern |
-| S3 download | 1s | ~15% | I/O-bound |
-| SAHI slicing + inference | 2-4s | **~70%** | GPU-bound (CRITICAL) |
-| GPS calculation | 15ms | ~0.3% | Simple math |
-| Database save | 10ms | ~0.2% | Few INSERTs |
-| Other | 100ms | ~1.5% | Python overhead |
+| Phase                    | Time  | % of Total | Notes                |
+|--------------------------|-------|------------|----------------------|
+| Model load (cached)      | 0.1ms | ~0%        | Singleton pattern    |
+| S3 download              | 1s    | ~15%       | I/O-bound            |
+| SAHI slicing + inference | 2-4s  | **~70%**   | GPU-bound (CRITICAL) |
+| GPS calculation          | 15ms  | ~0.3%      | Simple math          |
+| Database save            | 10ms  | ~0.2%      | Few INSERTs          |
+| Other                    | 100ms | ~1.5%      | Python overhead      |
 
 **Why faster than plant detection:**
+
 - Fewer SAHI slices: 20 vs 42 (larger slice size)
 - Fewer objects: 1-5 vs 50-200 (less postprocessing)
 - No band-based estimation algorithm
@@ -222,17 +238,20 @@ Total time: **5-10 seconds per image**
 ### Warning States
 
 **1. No infrastructure found** (line 244)
+
 - **Cause:** YOLO found 0 infrastructure
 - **Action:** Return success with count=0, no warning flag
 - **Reason:** Many agricultural fields have no electrical infrastructure (this is NORMAL)
 
 **Contrast with plant detection:**
+
 - No plants found → warning (unusual, possible error)
 - No infrastructure found → normal (expected in many fields)
 
 ### Graceful Degradation
 
 **Low confidence detections:**
+
 ```python
 if 0.5 <= confidence < 0.6:
     # Below threshold but might be valid
@@ -241,6 +260,7 @@ if 0.5 <= confidence < 0.6:
 ```
 
 **GPS calculation failure:**
+
 ```python
 try:
     gps_lat, gps_lon = calculate_gps(detection)
@@ -255,6 +275,7 @@ except GPSCalculationError:
 ### Tables Used
 
 **`infrastructure_detections`** (INSERT):
+
 ```sql
 CREATE TABLE infrastructure_detections (
     id UUID PRIMARY KEY,
@@ -276,6 +297,7 @@ CREATE INDEX idx_infra_gps ON infrastructure_detections USING GIST (
 ```
 
 **`infrastructure_summaries`** (INSERT):
+
 ```sql
 CREATE TABLE infrastructure_summaries (
     image_id UUID PRIMARY KEY REFERENCES s3_images(id),
@@ -289,6 +311,7 @@ CREATE TABLE infrastructure_summaries (
 ```
 
 **`s3_images`** (UPDATE):
+
 ```sql
 UPDATE s3_images
 SET
@@ -301,6 +324,7 @@ WHERE id = :image_id_pk;
 ## Code Patterns
 
 ### Pattern 1: Detection Type Filtering
+
 ```python
 def get_target_classes(detection_type):
     """Map detection_type to YOLO class names"""
@@ -314,6 +338,7 @@ def get_target_classes(detection_type):
 ```
 
 ### Pattern 2: GPS Calculation
+
 ```python
 def calculate_gps(detection, field_bounds, img_size):
     """Convert pixel coordinates to GPS"""
@@ -333,6 +358,7 @@ def calculate_gps(detection, field_bounds, img_size):
 ```
 
 ### Pattern 3: Confidence Band Calculation
+
 ```python
 def calculate_confidence_band(overall_confidence):
     """Simpler than plant detection (no band-based complexity)"""
@@ -347,6 +373,7 @@ def calculate_confidence_band(overall_confidence):
 ## Use Cases
 
 ### 1. Maintenance Planning
+
 ```python
 # Query all infrastructure in field
 infrastructure = db.query("""
@@ -362,6 +389,7 @@ infrastructure = db.query("""
 ```
 
 ### 2. Safety Audits
+
 ```python
 # Find fields with industrial plugs (requires certified electrician)
 fields_with_industrial = db.query("""
@@ -374,6 +402,7 @@ fields_with_industrial = db.query("""
 ```
 
 ### 3. Geospatial Analysis (PostGIS)
+
 ```python
 # Find infrastructure within 50m of field boundary (safety risk)
 near_boundary = db.query("""
@@ -396,13 +425,14 @@ near_boundary = db.query("""
 
 ## Version History
 
-| Version | Date | Changes |
-|---------|------|---------|
-| 1.0.0 | 2025-10-08 | Initial detailed subflow for infrastructure detection |
+| Version | Date       | Changes                                               |
+|---------|------------|-------------------------------------------------------|
+| 1.0.0   | 2025-10-08 | Initial detailed subflow for infrastructure detection |
 
 ---
 
 **Notes:**
+
 - Infrastructure detection is a value-added feature for agricultural clients
 - GPS per detection enables precise maintenance navigation
 - Higher confidence threshold reduces false positives (costly for maintenance crews)

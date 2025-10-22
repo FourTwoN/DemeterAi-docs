@@ -1,6 +1,7 @@
 # [OBS005] Logging Correlation with Trace IDs
 
 ## Metadata
+
 - **Epic**: epic-010-observability
 - **Sprint**: Sprint-06
 - **Priority**: `medium`
@@ -8,15 +9,19 @@
 - **Dependencies**: Blocked by [OBS001, F004]
 
 ## Description
-Correlate logs with traces by injecting trace_id and span_id into log records. Enables jumping from logs to traces in Grafana.
+
+Correlate logs with traces by injecting trace_id and span_id into log records. Enables jumping from
+logs to traces in Grafana.
 
 ## Acceptance Criteria
+
 - [ ] Every log record includes trace_id and span_id
 - [ ] Logs formatted as JSON (structured logging)
 - [ ] Trace context propagated across Celery tasks
 - [ ] Click trace_id in Grafana Loki → jumps to Tempo trace
 
 ## Implementation
+
 ```python
 import logging
 from opentelemetry import trace
@@ -42,6 +47,7 @@ formatter = logging.Formatter(
 ```
 
 ## Testing
+
 - Verify logs include trace_id
 - Verify clicking trace_id in Loki opens Tempo
 - Test across API and Celery workers

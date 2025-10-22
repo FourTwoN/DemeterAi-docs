@@ -1,6 +1,7 @@
 # [C007] List Photo Sessions - GET /api/photos/sessions
 
 ## Metadata
+
 - **Epic**: epic-003-backend-implementation.md
 - **Sprint**: Sprint-03
 - **Status**: `backlog`
@@ -9,7 +10,7 @@
 - **Area**: `backend/controllers`
 - **Assignee**: TBD
 - **Dependencies**:
-  - Blocked by: [SVC001-photo-service]
+    - Blocked by: [SVC001-photo-service]
 
 ## Description
 
@@ -41,6 +42,7 @@ async def list_photo_sessions(
 **Coverage Target**: ≥80%
 
 ## Time Tracking
+
 - **Estimated**: 1 story point
 
 ---

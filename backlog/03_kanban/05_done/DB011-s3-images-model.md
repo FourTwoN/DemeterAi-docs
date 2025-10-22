@@ -12,11 +12,13 @@
 **What**: S3Images table stores metadata for all uploaded photos with S3 URLs
 **Why**: Foundation of photo processing pipeline; UUID enables S3 key pre-generation
 **Where in Pipeline**:
+
 ```
 Upload → Generate UUID → S3 Upload (using UUID) → DB Insert → ML Processing
 ```
 
 **Key Insight**: UUID is generated in API layer BEFORE S3 upload, not in database
+
 - **Problem**: S3 key must be known before DB row exists
 - **Solution**: API generates UUID first, uses it for S3 key, then inserts to DB
 - **Benefit**: Idempotent uploads (retry-safe), no race conditions
@@ -132,6 +134,7 @@ class S3Image(Base):
 ```
 
 **Key Decisions**:
+
 - `UUID(as_uuid=True)`: Python UUID objects, not strings
 - `BigInteger` for file_size: Supports files > 4GB
 - `JSONB` for EXIF/GPS: Flexible schema, searchable
@@ -196,6 +199,7 @@ def downgrade():
 ```
 
 **Indexes Rationale**:
+
 - `status`: Filter by processing status (uploaded, ready, failed)
 - `created_at DESC`: Recent images first (time-series queries)
 - `uploaded_by_user_id`: User's upload history
@@ -208,6 +212,7 @@ def downgrade():
 #### Unit Tests (`tests/unit/models/test_s3_image.py`)
 
 **Test Cases** (18 tests):
+
 1. `test_s3_image_creation` - Basic instantiation
 2. `test_uuid_primary_key_type` - UUID4 format validation
 3. `test_gps_validation_valid` - Valid GPS coordinates
@@ -230,6 +235,7 @@ def downgrade():
 #### Integration Tests (`tests/integration/test_s3_image_db.py`)
 
 **Test Cases** (12 tests):
+
 1. `test_insert_s3_image_with_uuid`
 2. `test_insert_with_gps_coordinates`
 3. `test_insert_without_gps_coordinates`
@@ -288,6 +294,7 @@ async def upload_photo(file, user_id: int):
 ## Execution Checklist
 
 ### Python Expert Tasks (35 min)
+
 - [ ] Create `app/models/s3_image.py` with complete model
 - [ ] Add UUID primary key with PostgreSQL UUID type
 - [ ] Add GPS validation (lat/lng bounds)
@@ -299,6 +306,7 @@ async def upload_photo(file, user_id: int):
 - [ ] Run pre-commit hooks (ruff, mypy)
 
 ### Testing Expert Tasks (30 min, PARALLEL)
+
 - [ ] Write 18 unit tests in `test_s3_image.py`
 - [ ] Write 12 integration tests in `test_s3_image_db.py`
 - [ ] Test GPS validation edge cases (-90, +90, -180, +180)
@@ -311,6 +319,7 @@ async def upload_photo(file, user_id: int):
 - [ ] All tests pass
 
 ### Team Leader Review (5 min)
+
 - [ ] Verify ERD alignment (database.mmd line 227-245)
 - [ ] Check UUID type (as_uuid=True)
 - [ ] Validate GPS bounds (-90/+90, -180/+180)
@@ -323,29 +332,29 @@ async def upload_photo(file, user_id: int):
 ## Known Edge Cases
 
 1. **UUID collision (theoretically possible)**
-   - Probability: ~1 in 10^36 (negligible)
-   - Mitigation: Rely on UUID4 randomness
-   - Recovery: Database will reject duplicate PK (unique constraint)
+    - Probability: ~1 in 10^36 (negligible)
+    - Mitigation: Rely on UUID4 randomness
+    - Recovery: Database will reject duplicate PK (unique constraint)
 
 2. **S3 upload succeeds, DB insert fails**
-   - Scenario: Network error after S3 upload
-   - Solution: Service layer should catch exception and delete S3 file
-   - Recovery: Retry with same UUID (idempotent)
+    - Scenario: Network error after S3 upload
+    - Solution: Service layer should catch exception and delete S3 file
+    - Recovery: Retry with same UUID (idempotent)
 
 3. **DB insert succeeds, S3 upload fails**
-   - Scenario: Wrong order (should not happen)
-   - Solution: ALWAYS upload to S3 first, then insert DB
-   - Recovery: Mark status as 'failed' with error_details
+    - Scenario: Wrong order (should not happen)
+    - Solution: ALWAYS upload to S3 first, then insert DB
+    - Recovery: Mark status as 'failed' with error_details
 
 4. **NULL GPS coordinates**
-   - Scenario: Desktop upload (no GPS)
-   - Solution: Allow NULL (nullable=True)
-   - Query: `WHERE gps_coordinates IS NOT NULL`
+    - Scenario: Desktop upload (no GPS)
+    - Solution: Allow NULL (nullable=True)
+    - Query: `WHERE gps_coordinates IS NOT NULL`
 
 5. **Invalid EXIF data**
-   - Scenario: Corrupted EXIF, parsing fails
-   - Solution: Store NULL, log warning
-   - JSONB accepts NULL gracefully
+    - Scenario: Corrupted EXIF, parsing fails
+    - Solution: Store NULL, log warning
+    - JSONB accepts NULL gracefully
 
 ---
 
@@ -398,42 +407,49 @@ async def upload_photo(file, user_id: int):
 
 ### Summary
 
-Successfully implemented S3Image model with UUID primary key, completing the final task of Sprint 01. This model is the foundation of the photo processing ML pipeline and enables idempotent S3 uploads.
+Successfully implemented S3Image model with UUID primary key, completing the final task of Sprint
+
+01. This model is the foundation of the photo processing ML pipeline and enables idempotent S3
+    uploads.
 
 ### Deliverables (100% COMPLETE)
 
 #### 1. Model Implementation ✅
+
 **File**: `/home/lucasg/proyectos/DemeterDocs/app/models/s3_image.py`
 
 - ✅ UUID primary key (PostgreSQL UUID type, as_uuid=True)
 - ✅ 3 enum types:
-  - ContentTypeEnum: image/jpeg, image/png
-  - UploadSourceEnum: web, mobile, api
-  - ProcessingStatusEnum: uploaded, processing, ready, failed
+    - ContentTypeEnum: image/jpeg, image/png
+    - UploadSourceEnum: web, mobile, api
+    - ProcessingStatusEnum: uploaded, processing, ready, failed
 - ✅ GPS validation (lat [-90, +90], lng [-180, +180])
 - ✅ File size validation (max 500MB, BigInteger support)
 - ✅ JSONB fields (exif_metadata, gps_coordinates)
 - ✅ Relationships:
-  - uploaded_by_user → User (many-to-one, SET NULL)
-  - photo_processing_sessions (commented out - DB012 not ready)
-  - product_sample_images (commented out - DB020 not ready)
+    - uploaded_by_user → User (many-to-one, SET NULL)
+    - photo_processing_sessions (commented out - DB012 not ready)
+    - product_sample_images (commented out - DB020 not ready)
 - ✅ Complete docstrings (565 lines total)
 
 #### 2. Migration Implementation ✅
-**File**: `/home/lucasg/proyectos/DemeterDocs/alembic/versions/440n457t9cnp_create_s3_images_table.py`
+
+**File**:
+`/home/lucasg/proyectos/DemeterDocs/alembic/versions/440n457t9cnp_create_s3_images_table.py`
 
 - ✅ 3 enum types created (content_type_enum, upload_source_enum, processing_status_enum)
 - ✅ s3_images table with UUID primary key
 - ✅ 4 indexes:
-  - ix_s3_images_status (B-tree)
-  - ix_s3_images_created_at_desc (B-tree, DESC order)
-  - ix_s3_images_uploaded_by_user_id (B-tree)
-  - ix_s3_images_gps_coordinates_gin (GIN index for JSONB)
+    - ix_s3_images_status (B-tree)
+    - ix_s3_images_created_at_desc (B-tree, DESC order)
+    - ix_s3_images_uploaded_by_user_id (B-tree)
+    - ix_s3_images_gps_coordinates_gin (GIN index for JSONB)
 - ✅ Foreign key to users (SET NULL on delete)
 - ✅ Unique constraint on s3_key_original
 - ✅ Complete upgrade/downgrade functions
 
 #### 3. Module Exports ✅
+
 **File**: `/home/lucasg/proyectos/DemeterDocs/app/models/__init__.py`
 
 - ✅ S3Image model exported
@@ -443,6 +459,7 @@ Successfully implemented S3Image model with UUID primary key, completing the fin
 ### Quality Checks ✅
 
 #### Import Test
+
 ```
 ✓ S3Image import successful
 ✓ UUID type: <class 'uuid.UUID'>
@@ -452,6 +469,7 @@ Successfully implemented S3Image model with UUID primary key, completing the fin
 ```
 
 #### Validation Tests
+
 ```
 ✓ GPS validation passed: {'lat': -33.44915, 'lng': -70.6475}
 ✓ GPS edge case (90, 180): {'lat': 90, 'lng': 180}
@@ -464,6 +482,7 @@ Successfully implemented S3Image model with UUID primary key, completing the fin
 ```
 
 #### Code Quality
+
 - ✅ Ruff linting passed (critical issues fixed)
 - ✅ No syntax errors
 - ✅ Type hints on all methods
@@ -472,6 +491,7 @@ Successfully implemented S3Image model with UUID primary key, completing the fin
 ### Technical Highlights
 
 #### 1. UUID Primary Key Pattern
+
 ```python
 image_id = Column(
     UUID(as_uuid=True),
@@ -479,11 +499,13 @@ image_id = Column(
     default=uuid.uuid4  # Fallback only
 )
 ```
+
 - API generates UUID BEFORE S3 upload
 - Enables idempotent uploads (retry-safe)
 - S3 key pattern: `original/{uuid}.jpg`
 
 #### 2. GPS Validation
+
 ```python
 @validates('gps_coordinates')
 def validate_gps(self, key: str, value: dict | None) -> dict | None:
@@ -498,6 +520,7 @@ def validate_gps(self, key: str, value: dict | None) -> dict | None:
 ```
 
 #### 3. File Size Validation
+
 ```python
 @validates('file_size_bytes')
 def validate_file_size(self, key: str, value: int) -> int:
@@ -529,15 +552,18 @@ def validate_file_size(self, key: str, value: int) -> int:
 ### Dependencies Unblocked
 
 ✅ **DB012** - PhotoProcessingSession (CRITICAL - ML pipeline foundation)
+
 - Can now reference s3_images.image_id for original_image_id and processed_image_id
 - Circular reference pattern ready (storage_locations.photo_session_id)
 
 ✅ **DB020** - ProductSampleImage
+
 - Can now reference s3_images.image_id for sample photos
 
 ### Sprint 01 Status: 🎉 100% COMPLETE
 
 **Completed Tasks**:
+
 1. ✅ DB001 - Warehouse model (4-tier geospatial hierarchy root)
 2. ✅ DB002 - StorageArea model (level 2)
 3. ✅ DB003 - StorageLocation model (level 3, QR codes)
@@ -553,6 +579,7 @@ def validate_file_size(self, key: str, value: int) -> int:
 13. ✅ **DB011 - S3Image model (THIS TASK)**
 
 **Next Sprint (Sprint 02)**: ML Pipeline Models
+
 - DB012 - PhotoProcessingSession
 - DB013 - Detections
 - DB014 - Estimations
@@ -580,12 +607,12 @@ def validate_file_size(self, key: str, value: int) -> int:
 **Sprint**: 01 (COMPLETE - 100%)
 **Next Task**: DB012 - PhotoProcessingSession (Sprint 02)
 
-
 ## Team Leader Final Approval (2025-10-20 - RETROACTIVE)
 
 **Status**: ✅ COMPLETED (retroactive verification)
 
 ### Verification Results
+
 - [✅] Implementation complete per task specification
 - [✅] Code follows Clean Architecture patterns
 - [✅] Type hints and validations present
@@ -593,6 +620,7 @@ def validate_file_size(self, key: str, value: int) -> int:
 - [✅] Integration with PostgreSQL verified
 
 ### Quality Gates
+
 - [✅] SQLAlchemy 2.0 async model
 - [✅] Type hints complete
 - [✅] SOLID principles followed
@@ -600,6 +628,7 @@ def validate_file_size(self, key: str, value: int) -> int:
 - [✅] Imports working correctly
 
 ### Completion Status
+
 Retroactive approval based on audit of Sprint 00-02.
 Code verified to exist and function correctly against PostgreSQL test database.
 

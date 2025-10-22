@@ -1,4 +1,5 @@
 # Sprint 01: Database Models & Repositories
+
 ## Sprint Goal
 
 **Duration**: Week 3-4 (Days 11-20)
@@ -9,7 +10,8 @@
 
 ## Goal Statement
 
-> **"Complete all 28 database models + repositories to establish 100% schema coverage, enabling Service layer development in Sprint 03."**
+> **"Complete all 28 database models + repositories to establish 100% schema coverage, enabling
+Service layer development in Sprint 03."**
 
 ---
 
@@ -29,6 +31,7 @@
 ### In Scope (63 cards, 75 points)
 
 **Database Models (DB001-DB028)**: 40 points
+
 - 4-level location hierarchy (warehouses, areas, locations, bins)
 - Stock management (movements, batches)
 - Photo processing (sessions, detections, estimations)
@@ -37,15 +40,18 @@
 - Users table
 
 **Alembic Migrations (DB029-DB035)**: 10 points
+
 - Create all tables migrations
 - Indexes and constraints
 - Partitioning setup (detections, estimations)
 
 **Repositories (R001-R028)**: 25 points
+
 - AsyncRepository base class
 - 27 specialized repositories with custom query methods
 
 ### Out of Scope
+
 - ❌ Service layer (Sprint 03)
 - ❌ ML pipeline (Sprint 02)
 - ❌ API controllers (Sprint 04)

@@ -1,6 +1,7 @@
 # [DB007] Stock movements model - event sourcing
 
 ## Metadata
+
 - **Epic**: epic-002-database-models
 - **Sprint**: Sprint-01
 - **Priority**: high
@@ -8,9 +9,11 @@
 - **Dependencies**: Blocks [DB013]
 
 ## Description
+
 Stock movements model - event sourcing. SQLAlchemy model following Clean Architecture patterns.
 
 ## Acceptance Criteria
+
 - [ ] Model created in app/models/stock-movements.py
 - [ ] All columns defined with correct types
 - [ ] Relationships configured with lazy loading strategy
@@ -19,14 +22,17 @@ Stock movements model - event sourcing. SQLAlchemy model following Clean Archite
 - [ ] Unit tests ≥75% coverage
 
 ## Implementation Notes
+
 See database/database.mmd ERD for complete schema.
 
 ## Testing
+
 - Test model creation
 - Test relationships
 - Test constraints
 
 ## Handover
+
 Standard SQLAlchemy model. Follow DB011-DB014 patterns.
 
 ---

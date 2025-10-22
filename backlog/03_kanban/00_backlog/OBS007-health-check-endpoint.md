@@ -1,6 +1,7 @@
 # [OBS007] Health Check Endpoint
 
 ## Metadata
+
 - **Epic**: epic-010-observability
 - **Sprint**: Sprint-06
 - **Priority**: `critical` ⚡
@@ -8,15 +9,19 @@
 - **Dependencies**: Blocked by [F001]
 
 ## Description
-Implement `/health` endpoint for liveness checks (Docker, Kubernetes). Returns 200 if service is running.
+
+Implement `/health` endpoint for liveness checks (Docker, Kubernetes). Returns 200 if service is
+running.
 
 ## Acceptance Criteria
+
 - [ ] GET /health returns 200 OK
 - [ ] Response includes service status, version
 - [ ] No authentication required (public endpoint)
 - [ ] Response time <50ms
 
 ## Implementation
+
 ```python
 from fastapi import APIRouter
 
@@ -32,6 +37,7 @@ async def health():
 ```
 
 **docker-compose.yml integration:**
+
 ```yaml
 services:
   api:
@@ -43,6 +49,7 @@ services:
 ```
 
 ## Testing
+
 - Test GET /health returns 200
 - Test Docker healthcheck passes
 - Test Kubernetes liveness probe

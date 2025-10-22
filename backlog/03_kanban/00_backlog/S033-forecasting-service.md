@@ -1,6 +1,7 @@
 # S033: ForecastingService
 
 ## Metadata
+
 - **Epic**: [epic-004-services.md](../../02_epics/epic-004-services.md)
 - **Sprint**: Sprint-07 (FUTURE)
 - **Status**: `backlog`
@@ -8,8 +9,8 @@
 - **Complexity**: L (5 story points)
 - **Area**: `services/analytics`
 - **Dependencies**:
-  - Blocks: [C029]
-  - Blocked by: [S032]
+    - Blocks: [C029]
+    - Blocked by: [S032]
 
 ## Description
 
@@ -27,6 +28,7 @@
 - [ ] **AC4**: Unit tests ≥80% coverage
 
 ## Time Tracking
+
 - **Estimated**: 5 story points (~10 hours)
 
 ---

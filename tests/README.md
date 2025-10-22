@@ -2,7 +2,8 @@
 
 ## Overview
 
-This directory contains all automated tests for DemeterAI v2.0 backend. Tests use pytest with async support, coverage reporting, and markers for selective execution.
+This directory contains all automated tests for DemeterAI v2.0 backend. Tests use pytest with async
+support, coverage reporting, and markers for selective execution.
 
 ## Quick Start
 
@@ -79,6 +80,7 @@ pytest -m "(unit or integration) and not slow"
 ### Database Fixtures
 
 #### `db_session` (async)
+
 Function-scoped database session with automatic rollback.
 
 ```python
@@ -91,6 +93,7 @@ async def test_warehouse_creation(db_session):
 ```
 
 #### `client` (async)
+
 FastAPI test client with test database.
 
 ```python
@@ -235,18 +238,21 @@ mypy app/
 ### Common Issues
 
 #### Import Errors
+
 ```bash
 # Ensure package is installed in editable mode
 pip install -e .
 ```
 
 #### Async Warnings
+
 ```bash
 # Already configured in pyproject.toml
 # asyncio_mode = "auto"
 ```
 
 #### Coverage Below 80%
+
 ```bash
 # Check which files need tests
 pytest --cov=app --cov-report=term-missing
@@ -255,6 +261,7 @@ pytest --cov=app --cov-report=term-missing
 ```
 
 #### Test Database Connection Errors
+
 ```bash
 # Currently using SQLite in-memory (no setup needed)
 # After F012: Docker will provide PostgreSQL test database
@@ -270,6 +277,7 @@ pytest --cov=app --cov-report=term-missing
 ## Questions?
 
 For test setup questions, see:
+
 - `tests/conftest.py` - Fixture implementations
 - `pyproject.toml` - Pytest configuration
 - Card F009 - Testing framework setup

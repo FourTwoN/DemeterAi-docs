@@ -1,6 +1,7 @@
 # S021: ProductService
 
 ## Metadata
+
 - **Epic**: [epic-004-services.md](../../02_epics/epic-004-services.md)
 - **Sprint**: Sprint-05
 - **Status**: `backlog`
@@ -9,8 +10,8 @@
 - **Area**: `services/catalog`
 - **Assignee**: TBD
 - **Dependencies**:
-  - Blocks: [S027, S036, C020]
-  - Blocked by: [R021, S020]
+    - Blocks: [S027, S036, C020]
+    - Blocked by: [R021, S020]
 
 ## Description
 
@@ -29,10 +30,12 @@
 - [ ] **AC5**: Unit tests ≥85% coverage
 
 ## Technical Notes
+
 - SKU format: ECHEVERIA-PLANTA-M-001
 - Auto-increment suffix within family/state/size combination
 
 ## Time Tracking
+
 - **Estimated**: 3 story points (~6 hours)
 
 ---
@@ -47,35 +50,38 @@
 ### Implementation Summary
 
 **Files Created**:
+
 1. `/home/lucasg/proyectos/DemeterDocs/app/schemas/product_schema.py` (69 lines)
-   - ProductCreateRequest (no SKU - auto-generated)
-   - ProductUpdateRequest (immutable SKU/family_id)
-   - ProductResponse
+    - ProductCreateRequest (no SKU - auto-generated)
+    - ProductUpdateRequest (immutable SKU/family_id)
+    - ProductResponse
 
 2. `/home/lucasg/proyectos/DemeterDocs/app/services/product_service.py` (252 lines)
-   - SKU auto-generation (FAMILY-NNN format)
-   - Family validation via ProductFamilyService
-   - CRUD operations (create, get, update, delete)
-   - Service→Service pattern enforced
+    - SKU auto-generation (FAMILY-NNN format)
+    - Family validation via ProductFamilyService
+    - CRUD operations (create, get, update, delete)
+    - Service→Service pattern enforced
 
 3. `/home/lucasg/proyectos/DemeterDocs/tests/unit/services/test_product_service.py` (650 lines)
-   - 23 unit tests with mocked dependencies
-   - Coverage: Tests for create, get, update, delete, SKU generation
-   - All edge cases covered
+    - 23 unit tests with mocked dependencies
+    - Coverage: Tests for create, get, update, delete, SKU generation
+    - All edge cases covered
 
 4. `/home/lucasg/proyectos/DemeterDocs/tests/integration/test_product_service.py` (383 lines)
-   - 22 integration tests with real PostgreSQL
-   - Tests SKU auto-increment, family validation, database operations
-   - No mocks - real database access
+    - 22 integration tests with real PostgreSQL
+    - Tests SKU auto-increment, family validation, database operations
+    - No mocks - real database access
 
 **Files Modified**:
+
 1. `/home/lucasg/proyectos/DemeterDocs/app/repositories/product_repository.py`
-   - Added overrides for get(), update(), delete() to use product_id
-   - Fixed compatibility with Product model's primary key naming
+    - Added overrides for get(), update(), delete() to use product_id
+    - Fixed compatibility with Product model's primary key naming
 
 ### Test Results
 
 **Unit Tests**: ✅ 23/23 passing
+
 - test_create_product_success
 - test_create_product_minimal_fields
 - test_create_product_invalid_family
@@ -101,6 +107,7 @@
 - test_generate_sku_long_family_name_truncated
 
 **Integration Tests**: ✅ 22/22 passing
+
 - All CRUD operations with real database
 - SKU auto-increment verification
 - Family validation
@@ -108,6 +115,7 @@
 - Immutable fields enforcement
 
 **Coverage**:
+
 - ProductService: **96% coverage** (67/70 lines)
 - ProductSchema: **100% coverage** (25/25 lines)
 - ProductRepository: **100% coverage** (49/49 lines)
@@ -133,13 +141,15 @@
 ### SKU Generation Logic
 
 **Format**: `{FAMILY_NAME}-{NNN}`
+
 - Family name: Uppercase, spaces removed, truncated to 15 chars
 - Counter: 3-digit zero-padded auto-increment per family
 - Examples:
-  - Echeveria → `ECHEVERIA-001`, `ECHEVERIA-002`, ...
-  - Aloe Vera → `ALOEVERA-001`, `ALOEVERA-002`, ...
+    - Echeveria → `ECHEVERIA-001`, `ECHEVERIA-002`, ...
+    - Aloe Vera → `ALOEVERA-001`, `ALOEVERA-002`, ...
 
 **Features**:
+
 - Independent counters per family
 - Handles long names (truncates to 15 chars)
 - Removes spaces and special characters
@@ -148,21 +158,22 @@
 ### Next Steps
 
 1. **Code Review** by Team Leader:
-   - Verify Service→Service pattern
-   - Check type hints completeness
-   - Review SKU generation algorithm
-   - Validate error handling
+    - Verify Service→Service pattern
+    - Check type hints completeness
+    - Review SKU generation algorithm
+    - Validate error handling
 
 2. **Testing Phase**:
-   - All tests already passing
-   - Coverage already ≥85%
-   - Ready to mark complete
+    - All tests already passing
+    - Coverage already ≥85%
+    - Ready to mark complete
 
 3. **Move to 05_done/** after Team Leader approval
 
 ### Dependencies Unblocked
 
 This task unblocks:
+
 - S027: Product endpoints (C020)
 - S036: Product catalog endpoints
 - Any service requiring Product operations

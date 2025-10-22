@@ -1,4 +1,5 @@
 # Sprint 04: API Controllers + Celery Integration
+
 ## Sprint Goal
 
 **Duration**: Week 9-10 (Days 41-50)
@@ -9,7 +10,8 @@
 
 ## Goal Statement
 
-> **"Expose complete REST API with Celery async processing, enabling end-to-end photo upload → ML processing → results retrieval workflow."**
+> **"Expose complete REST API with Celery async processing, enabling end-to-end photo upload → ML
+processing → results retrieval workflow."**
 
 ---
 
@@ -32,6 +34,7 @@
 ### In Scope (34 cards, 78 points)
 
 **Celery Infrastructure (CEL001-CEL008)**: 20 points
+
 - CEL001: Celery app configuration (broker, backend, routing)
 - CEL002: GPU worker setup (pool=solo, CUDA_VISIBLE_DEVICES)
 - CEL003: CPU worker setup (pool=prefork)
@@ -42,6 +45,7 @@
 - CEL008: Circuit breaker for S3 uploads
 
 **API Controllers (C001-C026)**: 38 points
+
 - Stock controllers (photo upload, manual init, movement tracking)
 - Location controllers (GET warehouses, areas, locations)
 - Configuration controllers (POST/GET config, products, packaging)
@@ -49,10 +53,12 @@
 - Auth controllers (login, token refresh, user management)
 
 **Pydantic Schemas (SCH001-SCH020)**: 20 points
+
 - Request/response schemas for all endpoints
 - Validation rules, nested schemas
 
 ### Out of Scope
+
 - ❌ Deployment (Sprint 05)
 - ❌ Observability (Sprint 05)
 

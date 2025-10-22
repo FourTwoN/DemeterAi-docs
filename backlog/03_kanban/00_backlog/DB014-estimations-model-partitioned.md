@@ -1,6 +1,7 @@
 # [DB014] Estimations Model - Partitioned Table
 
 ## Metadata
+
 - **Epic**: epic-002-database-models.md
 - **Sprint**: Sprint-01 (Week 3-4)
 - **Status**: `backlog`
@@ -9,32 +10,39 @@
 - **Area**: `database/models`
 - **Assignee**: TBD
 - **Dependencies**:
-  - Blocks: [ML005, ML006, R012, S014]
-  - Blocked by: [DB012-photo-processing-sessions, DB013-detections]
+    - Blocks: [ML005, ML006, R012, S014]
+    - Blocked by: [DB012-photo-processing-sessions, DB013-detections]
 
 ## Related Documentation
+
 - **Engineering Plan**: ../../engineering_plan/database/README.md
 - **Database ERD**: ../../database/database.mmd
-- **ML Pipeline**: ../../flows/procesamiento_ml_upload_s3_principal/05_sahi_detection_child_detailed.md
+- **ML Pipeline**:
+  ../../flows/procesamiento_ml_upload_s3_principal/05_sahi_detection_child_detailed.md
 - **Context**: ../../context/past_chats_summary.md (Band-based estimation innovation)
 
 ## Description
 
-Create the `estimations` SQLAlchemy model with **daily partitioning** for area-based plant estimation data. Complements detections table by estimating plants in areas where individual detection failed (dense plantings).
+Create the `estimations` SQLAlchemy model with **daily partitioning** for area-based plant
+estimation data. Complements detections table by estimating plants in areas where individual
+detection failed (dense plantings).
 
 **What**: Partitioned SQLAlchemy model for undetected plant estimations:
+
 - Area-based estimation (not individual plants)
 - Band-based processing (handles perspective distortion)
 - Density-based + band-based algorithms
 - Daily partitions (same strategy as detections)
 
 **Why**:
+
 - **Completeness**: Detections miss 5-10% of plants in dense areas
 - **Accuracy**: Band-based estimation accounts for perspective (far plants appear smaller)
 - **Innovation**: Proprietary algorithm improves count accuracy (see past_chats)
 - **Volume**: Similar scale to detections → needs partitioning
 
-**Context**: This is the **secret sauce** of DemeterAI - the band-based estimation algorithm that competitors don't have. Handles edge cases where YOLO struggles (overlapping plants, occlusion).
+**Context**: This is the **secret sauce** of DemeterAI - the band-based estimation algorithm that
+competitors don't have. Handles edge cases where YOLO struggles (overlapping plants, occlusion).
 
 ## Acceptance Criteria
 
@@ -161,6 +169,7 @@ Create the `estimations` SQLAlchemy model with **daily partitioning** for area-b
 ## Technical Implementation Notes
 
 ### Architecture
+
 - Layer: Database / Models
 - Dependencies: DB012 (PhotoProcessingSession), DB013 (Detections for calibration)
 - Design pattern: Partitioned table, aggregate data model
@@ -168,6 +177,7 @@ Create the `estimations` SQLAlchemy model with **daily partitioning** for area-b
 ### Code Hints
 
 **Band-based vs Density-based differentiation:**
+
 ```python
 # Band-based estimation (primary algorithm):
 Estimation(
@@ -199,6 +209,7 @@ Estimation(
 ```
 
 **Parameters JSON structure:**
+
 ```json
 {
   "floor_suppression": {
@@ -221,6 +232,7 @@ Estimation(
 ### Testing Requirements
 
 **Unit Tests** (`tests/models/test_estimation.py`):
+
 ```python
 def test_estimation_type_validation():
     """Only band_based or density_based allowed"""
@@ -269,6 +281,7 @@ def test_area_balance():
 ```
 
 **Integration Tests** (`tests/integration/test_estimations_lifecycle.py`):
+
 ```python
 @pytest.mark.asyncio
 async def test_band_based_estimation_4_bands(db_session):
@@ -335,6 +348,7 @@ async def test_partitioning_works(db_session):
 **Coverage Target**: ≥80%
 
 ### Performance Expectations
+
 - Insert: <5ms (partition-local)
 - Bulk insert (50 estimations): <200ms
 - Query with date filter: <30ms
@@ -344,26 +358,32 @@ async def test_partitioning_works(db_session):
 
 **For the next developer:**
 
-**Context**: This table stores the **innovative estimation algorithm** that makes DemeterAI more accurate than competitors. Band-based estimation is proprietary intellectual property.
+**Context**: This table stores the **innovative estimation algorithm** that makes DemeterAI more
+accurate than competitors. Band-based estimation is proprietary intellectual property.
 
 **Key decisions made**:
+
 1. **Two estimation types**: Band-based (primary, handles perspective) + Density-based (fallback)
 2. **4 bands**: Divides image into horizontal slices to handle perspective distortion
-3. **Floor suppression metadata**: Track how much soil/floor was removed (important for algorithm validation)
+3. **Floor suppression metadata**: Track how much soil/floor was removed (important for algorithm
+   validation)
 4. **Alpha overcount factor**: Bias toward slight overestimation (better than undercount for sales)
 5. **Parameters JSON**: Store full algorithm config for reproducibility and debugging
 
 **Known limitations**:
+
 - Band-based only works for ground-level photos (not aerial drone shots)
 - Requires good calibration from detections (if detections fail, estimation fails)
 - 4 bands is heuristic (may need tuning for different greenhouse layouts)
 
 **Next steps after this card**:
+
 - ML005: Band-based Estimation Service (implements the algorithm)
 - ML006: Density-based Estimation Service (fallback)
 - R012: EstimationRepository (includes aggregation queries)
 
 **Questions to validate**:
+
 - Is alpha_overcount consistently 0.9, or configurable per session? (Should be configurable)
 - Are parameters_json being populated for debugging? (Should be YES)
 - Is floor suppression aggressive enough? (Check residual vs processed area ratio)
@@ -385,6 +405,7 @@ async def test_partitioning_works(db_session):
 - [ ] No linting errors
 
 ## Time Tracking
+
 - **Estimated**: 2 story points
 - **Actual**: TBD
 - **Started**: TBD

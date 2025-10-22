@@ -2,177 +2,136 @@
 title: Historical Timeline - Evolution Tracking Over Time
 ---
 graph TB
-    %% Entry Point
+%% Entry Point
     UserClick["🖱️ User Clicks<br/>'View History'<br/>from Detail View"]
-
-    %% API Call
+%% API Call
     subgraph APICall["🔄 API Call (On-Demand)"]
         FetchHistory["📡 GET /storage-locations/{id}/history<br/>~500ms"]
         CheckCache{"🔍 Redis Cache?<br/>TTL: 1 day"}
         QueryMV["💾 Query Materialized View<br/>mv_storage_location_history"]
-
         UserClick --> FetchHistory
         FetchHistory --> CheckCache
-        CheckCache -->|"Hit"| ReturnCached["✅ Return Cached<br/>~50ms"]
-        CheckCache -->|"Miss"| QueryMV
+        CheckCache -->|" Hit "| ReturnCached["✅ Return Cached<br/>~50ms"]
+        CheckCache -->|" Miss "| QueryMV
         QueryMV --> StoreCache["💾 Store in Redis<br/>TTL: 1 day"]
         StoreCache --> ReturnData["📤 Return Data<br/>periods + summary"]
     end
 
-    %% Rendering
+%% Rendering
     ReturnData --> RenderTimeline
     ReturnCached --> RenderTimeline
 
     subgraph TimelineView["📊 Timeline View Layout"]
         RenderTimeline["🖼️ Render Timeline View"]
-
         SummaryStats["📊 Summary Stats<br/>- Total periods<br/>- Total plantados<br/>- Total vendidos<br/>- Growth rate %"]
-
         Charts["📈 Charts Section<br/>- Quantity evolution<br/>- Movements breakdown"]
-
         PeriodsList["📋 Periods List<br/>Detailed cards per period"]
-
         RenderTimeline --> SummaryStats
         RenderTimeline --> Charts
         RenderTimeline --> PeriodsList
     end
 
-    %% Charts Details
+%% Charts Details
     subgraph ChartsSection["📈 Charts"]
         LineChart["📉 Line Chart<br/>Quantity over time<br/>X: Date<br/>Y: Cantidad final"]
-
         BarChart["📊 Bar Chart<br/>Movements breakdown<br/>- Plantados (green)<br/>- Vendidos (blue)<br/>- Muertes (red)<br/>- Transplantes (orange)"]
-
         Charts --> LineChart
         Charts --> BarChart
     end
 
-    %% Period Card Details
+%% Period Card Details
     subgraph PeriodCard["🃏 Period Card Components"]
         Thumbnail["📸 Photo Thumbnail<br/>300x300 from S3<br/>Lazy loading"]
-
         PeriodDate["📅 Period Date<br/>Fecha (start)<br/>Formatted locale"]
-
         MovementMetrics["📊 Movement Metrics<br/>- Cantidad inicial<br/>- Plantados (+green)<br/>- Vendidos (-blue)<br/>- Muertes (-red)<br/>- Transplantes (-orange)<br/>- Cantidad final"]
-
         NetChangeBadge["🏷️ Net Change Badge<br/>Green if positive<br/>Red if negative"]
-
         PeriodsList --> Thumbnail
         PeriodsList --> PeriodDate
         PeriodsList --> MovementMetrics
         PeriodsList --> NetChangeBadge
     end
 
-    %% Data Source: Materialized View
+%% Data Source: Materialized View
     subgraph MaterializedView["📊 Materialized View Logic"]
         MVSource["mv_storage_location_history"]
-
         PeriodBoundaries["🔍 Period Boundaries<br/>From photo_processing_sessions<br/>- period_start<br/>- period_end<br/>- session_id<br/>- quantity_final"]
-
         AggregateMovements["🔢 Aggregate Movements<br/>From stock_movements<br/>- muertes (type='muerte')<br/>- transplantes (type='transplante')<br/>- plantados (type='plantar'|'sembrar')<br/>- vendidos (type='ventas')"]
-
         CalculateBalance["⚖️ Calculate Balance<br/>cantidad_inicial = LAG(cantidad_final)<br/>net_change = final - inicial"]
-
         MVSource --> PeriodBoundaries
         MVSource --> AggregateMovements
         MVSource --> CalculateBalance
     end
 
     QueryMV -.-> MVSource
-
-    %% Movement Types
+%% Movement Types
     subgraph MovementTypes["📋 Movement Type Definitions"]
         Plantar["🌱 plantar<br/>New plants added<br/>From nursery/external"]
-
         Sembrar["🌾 sembrar<br/>Seeds sown<br/>Start of cycle"]
-
         Transplante["🔄 transplante<br/>Moved to other location<br/>Internal transfer"]
-
         Muerte["💀 muerte<br/>Deaths/discards<br/>Health issues/pests"]
-
         Ventas["💰 ventas<br/>Sold to customers<br/>Removed from inventory"]
-
         Foto["📸 foto<br/>Photo capture<br/>ML detection event"]
-
         Ajuste["⚙️ ajuste<br/>Manual adjustment<br/>Inventory reconciliation"]
     end
 
     AggregateMovements -.-> MovementTypes
-
-    %% Traceability
+%% Traceability
     subgraph Traceability["🔍 Traceability Features"]
         AuditTrail["📜 Audit Trail<br/>- created_by_user_id<br/>- created_at<br/>- notes<br/>- reference_session_id"]
-
         BalanceVerification["⚖️ Balance Verification<br/>expected_final =<br/>inicial + plantados -<br/>(muertes + transplantes + vendidos)<br/>should match cantidad_final"]
-
         ChainOfCustody["🔗 Chain of Custody<br/>- Link to users<br/>- Link to photo sessions<br/>- Link between locations<br/>- Track product states"]
     end
 
-    %% Materialized View Refresh
+%% Materialized View Refresh
     subgraph MVRefresh["🔄 Materialized View Refresh"]
         DailyCron["⏰ Daily Cron Job<br/>Midnight (00:00)"]
-
         RefreshMV["🔄 REFRESH MATERIALIZED VIEW<br/>CONCURRENTLY<br/>mv_storage_location_history"]
-
         InvalidateCache["🗑️ Invalidate Redis Cache<br/>Clear all history caches"]
-
         DailyCron --> RefreshMV
         RefreshMV --> InvalidateCache
     end
 
-    RefreshMV -.->|"Updates"| MVSource
-
-    %% Database Tables
+    RefreshMV -.->|" Updates "| MVSource
+%% Database Tables
     subgraph DatabaseTables["💾 Source Tables"]
         PhotoSessions["📸 photo_processing_sessions<br/>- storage_location_id<br/>- created_at (period boundary)<br/>- total_detected (quantity)<br/>- status = 'completed'"]
-
         StockMovements["📦 stock_movements<br/>- batch_id<br/>- movement_type<br/>- quantity<br/>- from_location_id<br/>- to_location_id<br/>- created_at<br/>- created_by_user_id"]
-
         StockBatches["📋 stock_batches<br/>- current_storage_bin_id<br/>- quantity_current<br/>- product_id"]
     end
 
-    PeriodBoundaries -.->|"Source"| PhotoSessions
-    AggregateMovements -.->|"Source"| StockMovements
-
-    %% Performance
+    PeriodBoundaries -.->|" Source "| PhotoSessions
+    AggregateMovements -.->|" Source "| StockMovements
+%% Performance
     subgraph Performance["⚡ Performance Metrics"]
         ResponseTime["⏱️ Response Time<br/>Cache Hit: ~50ms<br/>Cache Miss: ~500ms"]
-
         CacheStrategy["💾 Cache Strategy<br/>Redis TTL: 1 day<br/>Matches MV refresh"]
-
         Pagination["📄 Pagination<br/>Default: 12 periods/page<br/>(3 years quarterly data)"]
-
         ChartRendering["📈 Chart Rendering<br/>Recharts library<br/>Responsive containers"]
     end
 
-    %% User Interactions
+%% User Interactions
     subgraph UserInteractions["💬 User Actions"]
         ScrollPeriods["📜 Scroll Periods<br/>Lazy load thumbnails<br/>Virtualization optional"]
-
         ViewCharts["📊 View Charts<br/>Interactive tooltips<br/>Zoom/pan controls"]
-
         BackToDetail["⬅️ Back to Detail<br/>Return to Level 3"]
     end
 
     PeriodsList --> ScrollPeriods
     Charts --> ViewCharts
     RenderTimeline --> BackToDetail
-
     BackToDetail --> DetailView["📸 Storage Location Detail<br/>(Level 3)"]
-
-    %% Styling
-    classDef userClass fill:#4CAF50,stroke:#2E7D32,color:#fff
-    classDef apiClass fill:#2196F3,stroke:#1565C0,color:#fff
-    classDef renderClass fill:#FF9800,stroke:#E65100,color:#fff
-    classDef dataClass fill:#9C27B0,stroke:#6A1B9A,color:#fff
-    classDef calcClass fill:#00BCD4,stroke:#00838F,color:#fff
-    classDef dbClass fill:#F44336,stroke:#C62828,color:#fff
-    classDef perfClass fill:#8BC34A,stroke:#558B2F,color:#fff
-
-    class UserClick,ScrollPeriods,ViewCharts,BackToDetail userClass
-    class FetchHistory,CheckCache,ReturnCached,ReturnData apiClass
-    class RenderTimeline,SummaryStats,Charts,PeriodsList renderClass
-    class MVSource,PeriodBoundaries,AggregateMovements,CalculateBalance dataClass
-    class LineChart,BarChart,MovementMetrics calcClass
-    class PhotoSessions,StockMovements,StockBatches dbClass
-    class ResponseTime,CacheStrategy,Pagination,ChartRendering perfClass
+%% Styling
+    classDef userClass fill: #4CAF50, stroke: #2E7D32, color: #fff
+    classDef apiClass fill: #2196F3, stroke: #1565C0, color: #fff
+    classDef renderClass fill: #FF9800, stroke: #E65100, color: #fff
+    classDef dataClass fill: #9C27B0, stroke: #6A1B9A, color: #fff
+    classDef calcClass fill: #00BCD4, stroke: #00838F, color: #fff
+    classDef dbClass fill: #F44336, stroke: #C62828, color: #fff
+    classDef perfClass fill: #8BC34A, stroke: #558B2F, color: #fff
+class UserClick, ScrollPeriods, ViewCharts, BackToDetail userClass
+class FetchHistory, CheckCache,ReturnCached, ReturnData apiClass
+class RenderTimeline, SummaryStats,Charts, PeriodsList renderClass
+class MVSource, PeriodBoundaries,AggregateMovements, CalculateBalance dataClass
+class LineChart, BarChart,MovementMetrics calcClass
+class PhotoSessions, StockMovements,StockBatches dbClass
+class ResponseTime,CacheStrategy,Pagination, ChartRendering perfClass

@@ -1,6 +1,7 @@
 # [C003] Stock Movements Endpoint - POST /api/stock/movements
 
 ## Metadata
+
 - **Epic**: epic-003-backend-implementation.md
 - **Sprint**: Sprint-02 (Week 5-6)
 - **Status**: `backlog`
@@ -9,24 +10,29 @@
 - **Area**: `backend/controllers`
 - **Assignee**: TBD
 - **Dependencies**:
-  - Blocks: [SCH003]
-  - Blocked by**: [SVC003-stock-movement-service, DB007-stock-movements-model, DB009-movement-types-enum]
+    - Blocks: [SCH003]
+    - Blocked
+      by**: [SVC003-stock-movement-service, DB007-stock-movements-model, DB009-movement-types-enum]
 
 ## Related Documentation
+
 - **Engineering Plan**: ../../engineering_plan/workflows/README.md
 - **Movement Types**: ../../engineering_plan/database/README.md (movement_types_enum)
 
 ## Description
 
-Create endpoint for recording stock movements during monthly reconciliation period: plantado (plantings), muerte (deaths), trasplante (transplants).
+Create endpoint for recording stock movements during monthly reconciliation period: plantado (
+plantings), muerte (deaths), trasplante (transplants).
 
 **What**: FastAPI endpoint for stock movements:
+
 - Accepts movement type (plantado/muerte/trasplante)
 - Records quantity change (positive for plantado, negative for muerte)
 - Links to storage_batch_id
 - Updates stock_batches.current_quantity
 
-**Why**: Monthly reconciliation workflow requires tracking all movements between photo snapshots to calculate sales accurately.
+**Why**: Monthly reconciliation workflow requires tracking all movements between photo snapshots to
+calculate sales accurately.
 
 ## Acceptance Criteria
 
@@ -49,15 +55,15 @@ Create endpoint for recording stock movements during monthly reconciliation peri
   ```
 
 - [ ] **AC2**: Validation:
-  - movement_type in ['plantado', 'muerte', 'trasplante']
-  - quantity > 0 for plantado, < 0 for muerte
-  - storage_batch_id exists
-  - Notes optional (max 500 chars)
+    - movement_type in ['plantado', 'muerte', 'trasplante']
+    - quantity > 0 for plantado, < 0 for muerte
+    - storage_batch_id exists
+    - Notes optional (max 500 chars)
 
 - [ ] **AC3**: Error handling:
-  - Invalid movement type → HTTP 422
-  - Batch not found → HTTP 404
-  - Insufficient quantity for muerte → HTTP 400
+    - Invalid movement type → HTTP 422
+    - Batch not found → HTTP 404
+    - Insufficient quantity for muerte → HTTP 400
 
 - [ ] **AC4**: Response includes movement_id, updated batch quantity
 
@@ -66,6 +72,7 @@ Create endpoint for recording stock movements during monthly reconciliation peri
 ## Handover Briefing
 
 **Key decisions**:
+
 - **Signed quantities**: Plantado +, muerte -, trasplante updates two batches
 - **Batch updates**: service updates stock_batches.current_quantity
 - **Audit trail**: All movements permanently recorded
@@ -78,6 +85,7 @@ Create endpoint for recording stock movements during monthly reconciliation peri
 - [ ] PR approved
 
 ## Time Tracking
+
 - **Estimated**: 2 story points
 
 ---

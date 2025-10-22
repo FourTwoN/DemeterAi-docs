@@ -204,8 +204,7 @@ class MLPipelineCoordinator:
             raise FileNotFoundError(f"Image not found: {image_path}")
 
         logger.info(
-            f"Starting ML pipeline for session {session_id}: {image_path.name} "
-            f"(worker {worker_id})"
+            f"Starting ML pipeline for session {session_id}: {image_path.name} (worker {worker_id})"
         )
 
         # ═══════════════════════════════════════════════════════════════════
@@ -255,8 +254,7 @@ class MLPipelineCoordinator:
         # STAGE 2: DETECTION (50% progress)
         # ═══════════════════════════════════════════════════════════════════
         logger.info(
-            f"[Session {session_id}] Stage 2/3: Detection starting on "
-            f"{len(segments)} segments..."
+            f"[Session {session_id}] Stage 2/3: Detection starting on {len(segments)} segments..."
         )
         stage2_start = time.time()
 
@@ -308,8 +306,7 @@ class MLPipelineCoordinator:
         # STAGE 3: ESTIMATION (80% progress)
         # ═══════════════════════════════════════════════════════════════════
         logger.info(
-            f"[Session {session_id}] Stage 3/3: Estimation starting on "
-            f"{len(segments)} segments..."
+            f"[Session {session_id}] Stage 3/3: Estimation starting on {len(segments)} segments..."
         )
         stage3_start = time.time()
 

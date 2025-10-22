@@ -1,6 +1,7 @@
 # [DB027] Price list model - wholesale + retail
 
 ## Metadata
+
 - **Epic**: epic-002-database-models
 - **Sprint**: Sprint-01
 - **Priority**: high
@@ -8,9 +9,11 @@
 - **Dependencies**: Blocks [R025]
 
 ## Description
+
 Price list model - wholesale + retail. SQLAlchemy model following Clean Architecture patterns.
 
 ## Acceptance Criteria
+
 - [ ] Model created in app/models/price-list.py
 - [ ] All columns defined with correct types
 - [ ] Relationships configured with lazy loading strategy
@@ -19,14 +22,17 @@ Price list model - wholesale + retail. SQLAlchemy model following Clean Architec
 - [ ] Unit tests ≥75% coverage
 
 ## Implementation Notes
+
 See database/database.mmd ERD for complete schema.
 
 ## Testing
+
 - Test model creation
 - Test relationships
 - Test constraints
 
 ## Handover
+
 Standard SQLAlchemy model. Follow DB011-DB014 patterns.
 
 ---

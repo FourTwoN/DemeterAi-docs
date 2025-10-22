@@ -1,6 +1,7 @@
 # [TEST002] Pytest Fixtures (Reusable Test Components)
 
 ## Metadata
+
 - **Epic**: epic-012-testing
 - **Sprint**: Sprint-02
 - **Priority**: `high`
@@ -8,9 +9,11 @@
 - **Dependencies**: Blocked by [TEST001]
 
 ## Description
+
 Create comprehensive pytest fixtures: authenticated client, test users, mock services, sample data.
 
 ## Acceptance Criteria
+
 - [ ] `client` fixture (TestClient with FastAPI app)
 - [ ] `auth_token` fixture (valid JWT for tests)
 - [ ] `test_user` fixture (admin user in DB)
@@ -19,6 +22,7 @@ Create comprehensive pytest fixtures: authenticated client, test users, mock ser
 - [ ] Fixtures composable (can depend on each other)
 
 ## Implementation
+
 ```python
 @pytest.fixture
 def client():
@@ -62,6 +66,7 @@ def mock_s3_client(monkeypatch):
 ```
 
 ## Testing
+
 - Test fixtures can be composed
 - Test fixtures clean up properly
 - Test fixtures isolated per test

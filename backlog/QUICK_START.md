@@ -1,4 +1,5 @@
 # Quick Start Guide - DemeterAI v2.0
+
 ## Get Coding in 5 Minutes
 
 **Target Audience**: New developers joining the project
@@ -257,27 +258,32 @@ ruff --version
 ## Your First Week Goals
 
 ### Day 1: Setup & Onboarding
+
 - ✅ Complete this quick start guide
 - ✅ Read foundation docs (architecture, conventions, DoR/DoD)
 - ✅ Attend team standup, introduce yourself
 
 ### Day 2: Architecture Deep Dive
+
 - ✅ Review database schema (`../../database/database.mmd`)
 - ✅ Understand ML pipeline flow
 - ✅ Watch sprint planning (or recording)
 
 ### Day 3: First Card
+
 - ✅ Pick S or M card from `03_kanban/01_ready/`
 - ✅ Write failing test first (TDD)
 - ✅ Implement feature
 - ✅ Submit PR
 
 ### Day 4-5: Code Review & Learning
+
 - ✅ Address PR feedback
 - ✅ Review 2-3 other PRs (learn from team)
 - ✅ Complete first card (move to Done)
 
 ### Week 1 Target: 8-15 story points
+
 - Complete 2-3 cards (S or M size)
 - Learn team workflow
 - Ask lots of questions!
@@ -289,6 +295,7 @@ ruff --version
 You're ready to start contributing to DemeterAI v2.0.
 
 **Remember**:
+
 - 🎯 Focus on finishing cards (WIP limits prevent overcommitment)
 - 🧪 Write tests first (TDD saves time)
 - 📚 Read card documentation (all acceptance criteria, tech notes included)

@@ -10,19 +10,22 @@
 
 ## Task Overview
 
-Integrate Auth0 for JWT token-based authentication with role-based access control (RBAC). Use Auth0 free tier for testing, implement JWT validation middleware, and create protected endpoints.
+Integrate Auth0 for JWT token-based authentication with role-based access control (RBAC). Use Auth0
+free tier for testing, implement JWT validation middleware, and create protected endpoints.
 
 ---
 
 ## Current State Analysis
 
 **Existing Auth**:
+
 - User model exists (DB028 in database/database.mmd)
 - Passlib + bcrypt already in requirements.txt
 - python-jose in requirements.txt (JWT library)
 - No authentication middleware currently
 
 **Missing**:
+
 - Auth0 account setup
 - JWT validation middleware
 - Protected route decorator
@@ -38,12 +41,14 @@ Integrate Auth0 for JWT token-based authentication with role-based access contro
 **Pattern**: Auth0 (Identity Provider) → JWT → FastAPI Middleware → Protected Routes
 
 **Dependencies**:
+
 - Existing packages: python-jose[cryptography], passlib, bcrypt
 - New packages: python-multipart (for form data)
 - Auth0 account (free tier)
 - Environment variables: AUTH0_DOMAIN, AUTH0_API_AUDIENCE, AUTH0_CLIENT_ID
 
 **Files to Create/Modify**:
+
 - [ ] `app/core/auth.py` (create - JWT validation, Auth0 integration)
 - [ ] `app/core/security.py` (create - password hashing, token utils)
 - [ ] `app/core/dependencies.py` (create - dependency injection for auth)
@@ -60,19 +65,21 @@ Integrate Auth0 for JWT token-based authentication with role-based access contro
 ### Phase 1: Auth0 Account Setup
 
 **Steps**:
+
 1. Create Auth0 account (free tier): https://auth0.com/signup
 2. Create new API in Auth0 dashboard
 3. Get credentials:
-   - AUTH0_DOMAIN (e.g., demeterai.us.auth0.com)
-   - AUTH0_API_AUDIENCE (e.g., https://api.demeterai.com)
-   - AUTH0_CLIENT_ID
+    - AUTH0_DOMAIN (e.g., demeterai.us.auth0.com)
+    - AUTH0_API_AUDIENCE (e.g., https://api.demeterai.com)
+    - AUTH0_CLIENT_ID
 4. Configure RBAC in Auth0:
-   - Roles: admin, supervisor, worker, viewer
-   - Permissions: stock:read, stock:write, analytics:read, etc.
+    - Roles: admin, supervisor, worker, viewer
+    - Permissions: stock:read, stock:write, analytics:read, etc.
 
 ### Phase 2: Update app/core/config.py
 
 **Add Auth0 configuration**:
+
 ```python
 class Settings(BaseSettings):
     # ... existing fields ...
@@ -92,12 +99,14 @@ class Settings(BaseSettings):
 ### Phase 3: Create app/core/auth.py
 
 **Responsibilities**:
+
 - Verify JWT tokens from Auth0
 - Decode and validate JWT
 - Extract user claims (sub, roles, permissions)
 - JWKS (JSON Web Key Set) fetching
 
 **Key Functions**:
+
 ```python
 from jose import jwt, jwk
 from fastapi import HTTPException, Depends
@@ -170,6 +179,7 @@ async def get_current_user(
 ### Phase 4: Create app/core/security.py
 
 **Password hashing utilities** (for local users if needed):
+
 ```python
 from passlib.context import CryptContext
 
@@ -187,6 +197,7 @@ def verify_password(plain_password: str, hashed_password: str) -> bool:
 ### Phase 5: Create app/controllers/auth_controller.py
 
 **Authentication endpoints**:
+
 ```python
 from fastapi import APIRouter, Depends, HTTPException
 from app.core.auth import get_current_user
@@ -225,6 +236,7 @@ async def logout():
 ### Phase 6: Protect Existing Endpoints
 
 **Example - protect stock endpoints**:
+
 ```python
 # In app/controllers/stock_controller.py
 from app.core.auth import get_current_user
@@ -360,11 +372,13 @@ pytest tests/integration/test_auth.py -v
 ## Auth0 Setup Guide (For Team)
 
 **Step 1: Create Auth0 Account**
+
 1. Go to https://auth0.com/signup
 2. Sign up with email
 3. Create tenant (e.g., demeterai)
 
 **Step 2: Create API**
+
 1. Go to Applications → APIs
 2. Click "Create API"
 3. Name: DemeterAI v2.0
@@ -374,22 +388,25 @@ pytest tests/integration/test_auth.py -v
 7. Add Permissions in Token: Yes
 
 **Step 3: Define Roles & Permissions**
+
 1. Go to User Management → Roles
 2. Create roles:
-   - admin: All permissions
-   - supervisor: stock:*, analytics:read
-   - worker: stock:read, stock:write
-   - viewer: stock:read, analytics:read
+    - admin: All permissions
+    - supervisor: stock:*, analytics:read
+    - worker: stock:read, stock:write
+    - viewer: stock:read, analytics:read
 
 **Step 4: Define Permissions**
+
 1. In API settings → Permissions tab
 2. Add permissions:
-   - stock:read, stock:write, stock:delete
-   - analytics:read
-   - config:read, config:write
-   - users:manage
+    - stock:read, stock:write, stock:delete
+    - analytics:read
+    - config:read, config:write
+    - users:manage
 
 **Step 5: Get Credentials**
+
 1. Copy AUTH0_DOMAIN (e.g., demeterai.us.auth0.com)
 2. Copy AUTH0_API_AUDIENCE (e.g., https://api.demeterai.com)
 3. Add to .env file

@@ -10,18 +10,21 @@
 
 ## Task Overview
 
-Expose Prometheus-compatible metrics at `/metrics` endpoint, tracking API latency, request counts, ML inference time, database query performance, and system health.
+Expose Prometheus-compatible metrics at `/metrics` endpoint, tracking API latency, request counts,
+ML inference time, database query performance, and system health.
 
 ---
 
 ## Current State Analysis
 
 **Existing Monitoring**:
+
 - Health check endpoint (/health)
 - Structured JSON logging
 - Correlation ID tracking
 
 **Missing**:
+
 - Prometheus metrics exporter
 - Custom metrics (API latency, request counts)
 - ML inference metrics
@@ -36,11 +39,13 @@ Expose Prometheus-compatible metrics at `/metrics` endpoint, tracking API latenc
 **Pattern**: Prometheus Client → /metrics Endpoint → Prometheus Scraper
 
 **Dependencies**:
+
 - New package: `prometheus-client` (official Python client)
 - Optional: `prometheus-fastapi-instrumentator` (auto-instrumentation)
 - User's existing OTLP LGTM stack likely includes Prometheus
 
 **Files to Create/Modify**:
+
 - [ ] `app/core/metrics.py` (create - Prometheus metrics setup)
 - [ ] `app/main.py` (modify - add /metrics endpoint)
 - [ ] `requirements.txt` (modify - add prometheus-client)
@@ -55,12 +60,14 @@ Expose Prometheus-compatible metrics at `/metrics` endpoint, tracking API latenc
 ### Phase 1: Add Dependencies
 
 **Add to requirements.txt**:
+
 ```
 prometheus-client==0.20.0
 prometheus-fastapi-instrumentator==7.0.0
 ```
 
 **Why prometheus-fastapi-instrumentator**:
+
 - Auto-instruments FastAPI (request duration, request count, response size)
 - Less boilerplate code
 - Includes default metrics (http_request_duration_seconds, etc.)
@@ -68,6 +75,7 @@ prometheus-fastapi-instrumentator==7.0.0
 ### Phase 2: Create app/core/metrics.py
 
 **Custom metrics for DemeterAI**:
+
 ```python
 """Prometheus metrics for DemeterAI v2.0."""
 
@@ -177,6 +185,7 @@ def setup_metrics(app) -> Instrumentator:
 ### Phase 3: Update app/main.py
 
 **Add metrics initialization**:
+
 ```python
 from app.core.metrics import setup_metrics
 
@@ -199,6 +208,7 @@ app.add_middleware(CorrelationIdMiddleware)
 ### Phase 4: Instrument Business Logic
 
 **Example - instrument stock service**:
+
 ```python
 # In app/services/stock_service.py
 from app.core.metrics import stock_operations_total
@@ -216,6 +226,7 @@ class StockService:
 ```
 
 **Example - instrument ML inference**:
+
 ```python
 # In app/services/ml_processing/detection_service.py
 import time
@@ -246,6 +257,7 @@ class DetectionService:
 ### Phase 5: Create prometheus.yml (Reference)
 
 **Sample Prometheus configuration for scraping**:
+
 ```yaml
 # prometheus.yml - Sample configuration for user's Prometheus instance
 global:
@@ -286,13 +298,13 @@ ENABLE_METRICS=true
 - [ ] `/metrics` endpoint exposed and accessible
 - [ ] Default HTTP metrics instrumented (request duration, count, status codes)
 - [ ] Custom metrics defined:
-  - [ ] stock_operations_total (Counter)
-  - [ ] ml_inference_duration_seconds (Histogram)
-  - [ ] ml_inference_total (Counter)
-  - [ ] db_query_duration_seconds (Histogram)
-  - [ ] active_photo_sessions (Gauge)
-  - [ ] s3_operations_total (Counter)
-  - [ ] app_info (Info)
+    - [ ] stock_operations_total (Counter)
+    - [ ] ml_inference_duration_seconds (Histogram)
+    - [ ] ml_inference_total (Counter)
+    - [ ] db_query_duration_seconds (Histogram)
+    - [ ] active_photo_sessions (Gauge)
+    - [ ] s3_operations_total (Counter)
+    - [ ] app_info (Info)
 - [ ] Business logic instrumented (stock service, ML service)
 - [ ] prometheus.yml reference created
 - [ ] Integration tests pass
@@ -344,6 +356,7 @@ pytest tests/integration/test_metrics.py -v
 ## Metrics Reference
 
 **Default Metrics (from prometheus-fastapi-instrumentator)**:
+
 - `http_request_duration_seconds` - Request duration histogram
 - `http_requests_total` - Total request count
 - `http_request_size_bytes` - Request size histogram
@@ -351,6 +364,7 @@ pytest tests/integration/test_metrics.py -v
 - `demeter_requests_inprogress` - Active requests gauge
 
 **Custom Business Metrics**:
+
 - `demeter_stock_operations_total` - Stock operation counter
 - `demeter_ml_inference_duration_seconds` - ML inference latency
 - `demeter_ml_inference_total` - ML inference count
@@ -361,6 +375,7 @@ pytest tests/integration/test_metrics.py -v
 - `demeter_application_info` - App version/environment
 
 **Example Queries (PromQL)**:
+
 ```promql
 # Average API request duration (last 5 minutes)
 rate(http_request_duration_seconds_sum[5m]) / rate(http_request_duration_seconds_count[5m])
@@ -413,6 +428,7 @@ sum(rate(http_requests_total[1m])) by (status)
 ## Integration with User's OTLP Stack
 
 If user's OTLP LGTM stack includes Prometheus:
+
 1. User adds scrape config to prometheus.yml
 2. Prometheus scrapes http://localhost:8000/metrics
 3. Metrics visible in Grafana dashboards

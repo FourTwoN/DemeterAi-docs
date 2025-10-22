@@ -1,6 +1,7 @@
 # [ML009] Pipeline Coordinator Service ⚡⚡
 
 ## Metadata
+
 - **Epic**: epic-007
 - **Sprint**: Sprint-02
 - **Priority**: `critical` ⚡⚡ **CRITICAL PATH**
@@ -8,9 +9,12 @@
 - **Dependencies**: Blocks [CEL005], Blocked by [ML002, ML003, ML004, ML005]
 
 ## Description
-Orchestrate complete ML pipeline: Segmentation → Detection (SAHI/Direct) → Estimation → Aggregation. This is the CRITICAL PATH coordinator.
+
+Orchestrate complete ML pipeline: Segmentation → Detection (SAHI/Direct) → Estimation → Aggregation.
+This is the CRITICAL PATH coordinator.
 
 ## Acceptance Criteria
+
 - [x] Method `process_complete_pipeline(session_id, image_path)` orchestrates all steps
 - [x] Calls ML002 (segmentation) → ML003 (SAHI detection) → ML005 (band estimation)
 - [x] Progress tracking delegated to caller (separation of concerns)
@@ -19,6 +23,7 @@ Orchestrate complete ML pipeline: Segmentation → Detection (SAHI/Direct) → E
 - [x] Returns complete PipelineResult dataclass
 
 ## Implementation
+
 ```python
 class MLPipelineCoordinator:
     def __init__(self, segmentation_svc, sahi_svc, direct_svc, band_est_svc, ...):
@@ -55,13 +60,16 @@ class MLPipelineCoordinator:
 ```
 
 ## Testing
+
 - Integration test with full pipeline
 - Verify progress updates
 - Test error recovery
 - Coverage ≥85%
 
 ## Handover
-**CRITICAL**: This orchestrates everything. Most complex service in ML pipeline. Assign to tech lead.
+
+**CRITICAL**: This orchestrates everything. Most complex service in ML pipeline. Assign to tech
+lead.
 
 ---
 **Card Created**: 2025-10-09
@@ -70,10 +78,13 @@ class MLPipelineCoordinator:
 ---
 
 ## Python Expert Progress (2025-10-14 17:15)
+
 **Status**: ✅ IMPLEMENTATION COMPLETE - READY FOR REVIEW
 
 ### Summary
-Implemented MLPipelineCoordinator service (app/services/ml_processing/pipeline_coordinator.py) - THE CRITICAL PATH orchestrator that ties together all ML services into a complete production pipeline.
+
+Implemented MLPipelineCoordinator service (app/services/ml_processing/pipeline_coordinator.py) - THE
+CRITICAL PATH orchestrator that ties together all ML services into a complete production pipeline.
 
 ### Implementation Details
 
@@ -82,28 +93,29 @@ Implemented MLPipelineCoordinator service (app/services/ml_processing/pipeline_c
 **Key Components**:
 
 1. **PipelineResult Dataclass** (Lines 67-89)
-   - Complete pipeline output structure
-   - Includes: total_detected, total_estimated, segments_processed, processing_time
-   - Ready for database insertion via repositories
+    - Complete pipeline output structure
+    - Includes: total_detected, total_estimated, segments_processed, processing_time
+    - Ready for database insertion via repositories
 
 2. **MLPipelineCoordinator Service** (Lines 92-641)
-   - Orchestrates 4 stages: Segmentation → Detection → Estimation → Aggregation
-   - Service→Service communication (Clean Architecture compliant)
-   - Warning states for partial failures (don't crash entire pipeline)
+    - Orchestrates 4 stages: Segmentation → Detection → Estimation → Aggregation
+    - Service→Service communication (Clean Architecture compliant)
+    - Warning states for partial failures (don't crash entire pipeline)
 
 3. **Complete Pipeline Orchestration** (`process_complete_pipeline` method, Lines 146-392)
-   - **Stage 1 (20%)**: Segmentation via SegmentationService (ML002)
-   - **Stage 2 (50%)**: SAHI detection per segment via SAHIDetectionService (ML003)
-   - **Stage 3 (80%)**: Band estimation per segment via BandEstimationService (ML005)
-   - **Stage 4 (100%)**: Results aggregation and formatting for DB insertion
+    - **Stage 1 (20%)**: Segmentation via SegmentationService (ML002)
+    - **Stage 2 (50%)**: SAHI detection per segment via SAHIDetectionService (ML003)
+    - **Stage 3 (80%)**: Band estimation per segment via BandEstimationService (ML005)
+    - **Stage 4 (100%)**: Results aggregation and formatting for DB insertion
 
 4. **Helper Methods**:
-   - `_crop_segment`: Crops segment from original image using bbox coordinates
-   - `_create_segment_mask`: Creates binary mask from segment polygon
+    - `_crop_segment`: Crops segment from original image using bbox coordinates
+    - `_create_segment_mask`: Creates binary mask from segment polygon
 
 ### Architecture Compliance
 
 **✅ Clean Architecture Verified**:
+
 - Service→Service communication (NO direct repository access)
 - All dependencies injected via __init__
 - Type hints on ALL methods (async/await pattern)
@@ -111,12 +123,14 @@ Implemented MLPipelineCoordinator service (app/services/ml_processing/pipeline_c
 - Returns Pydantic-style dataclass (PipelineResult)
 
 **✅ Error Handling**:
+
 - Try/except on EACH ML stage
 - Warning states for partial failures (logged but continue processing)
 - Hard failures only for critical issues (image not found, segmentation failed)
 - Detailed logging at each stage with timings
 
 **✅ Performance Tracking**:
+
 - Stage-by-stage timing (segmentation, detection, estimation)
 - Total pipeline elapsed time
 - Detailed logging with session_id tracking
@@ -145,10 +159,12 @@ Implemented MLPipelineCoordinator service (app/services/ml_processing/pipeline_c
 ### Performance Characteristics
 
 **Expected timings** (from docstrings):
+
 - CPU: 5-10 minutes per 4000×3000px photo (full pipeline)
 - GPU: 1-3 minutes per same photo (3-5x speedup)
 
 **Stage breakdown**:
+
 - Segmentation: ~1s (CPU) or ~300ms (GPU)
 - Detection: 4-6s per segment (CPU) or 1-2s (GPU)
 - Estimation: ~2s per segment (CPU)
@@ -156,6 +172,7 @@ Implemented MLPipelineCoordinator service (app/services/ml_processing/pipeline_c
 ### Testing Notes
 
 **Integration testing required**:
+
 - Full pipeline with real greenhouse photos
 - Error recovery testing (segment failures)
 - Performance benchmarking (CPU vs GPU)
@@ -166,28 +183,31 @@ Implemented MLPipelineCoordinator service (app/services/ml_processing/pipeline_c
 ### Next Steps
 
 **Immediate**:
+
 1. Team Leader code review
 2. Testing Expert integration tests
 3. Move to testing kanban status
 
 **Dependencies**:
+
 - Blocks: CEL005 (Celery task wrapper)
 - Ready for: Celery integration + controller implementation
 
 ### Files Modified
 
 1. **Created**: `app/services/ml_processing/pipeline_coordinator.py`
-   - MLPipelineCoordinator class (~500 lines)
-   - PipelineResult dataclass
-   - Helper methods for cropping and masking
+    - MLPipelineCoordinator class (~500 lines)
+    - PipelineResult dataclass
+    - Helper methods for cropping and masking
 
 2. **Modified**: `app/services/ml_processing/__init__.py`
-   - Added MLPipelineCoordinator export
-   - Added PipelineResult export
+    - Added MLPipelineCoordinator export
+    - Added PipelineResult export
 
 ### Critical Notes
 
 **IMPORTANT**: This is the CRITICAL PATH coordinator that:
+
 - Unblocks CEL005 (Celery task implementation)
 - Enables photo-based stock initialization workflow
 - Ties together ALL ML services into production pipeline

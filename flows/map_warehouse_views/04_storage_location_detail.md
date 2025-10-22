@@ -7,7 +7,9 @@
 
 ## Purpose
 
-This subflow details the **full storage_location detail view** displaying processed image, detections, quantity by category, empty containers, financial data, maceta types, quality score, and optional graphs.
+This subflow details the **full storage_location detail view** displaying processed image,
+detections, quantity by category, empty containers, financial data, maceta types, quality score, and
+optional graphs.
 
 ## Scope
 
@@ -18,17 +20,18 @@ This subflow details the **full storage_location detail view** displaying proces
 
 ## What It Represents
 
-The storage_location detail view provides **comprehensive information** when user clicks a preview card:
+The storage_location detail view provides **comprehensive information** when user clicks a preview
+card:
 
 1. **User clicks preview card** → Triggers API call
 2. **Fetch detail data** → `/api/v1/storage-locations/{id}/detail` (~300ms)
 3. **Display full information**:
-   - Processed image with ML detections
-   - Detection results by category
-   - Empty containers count
-   - Financial metrics (price, cost, potential value)
-   - Maceta type distribution
-   - Quality score with optional graphs
+    - Processed image with ML detections
+    - Detection results by category
+    - Empty containers count
+    - Financial metrics (price, cost, potential value)
+    - Maceta type distribution
+    - Quality score with optional graphs
 4. **Navigation options**: Configure, View Analytics, View History
 
 ## Data Structure
@@ -112,6 +115,7 @@ interface StorageLocationDetail {
 ### GET /api/v1/storage-locations/{id}/detail
 
 **Request:**
+
 ```http
 GET /api/v1/storage-locations/1/detail HTTP/1.1
 Authorization: Bearer <token>
@@ -120,6 +124,7 @@ Authorization: Bearer <token>
 **Response:** (See data structure above)
 
 **Performance:**
+
 - **Response time target**: < 300ms
 - **Cache**: Redis TTL 1 hour
 - **Invalidation**: On new photo processing completion
@@ -376,6 +381,6 @@ export const StorageLocationDetail: React.FC = () => {
 
 ## Version History
 
-| Version | Date | Changes |
-|---------|------|---------|
-| 1.0.0 | 2025-10-08 | Initial storage location detail subflow |
+| Version | Date       | Changes                                 |
+|---------|------------|-----------------------------------------|
+| 1.0.0   | 2025-10-08 | Initial storage location detail subflow |

@@ -1,6 +1,7 @@
 # [TEST001] Test Database Setup
 
 ## Metadata
+
 - **Epic**: epic-012-testing
 - **Sprint**: Sprint-02
 - **Priority**: `critical` ⚡
@@ -8,9 +9,12 @@
 - **Dependencies**: Blocks [TEST002-TEST015], Blocked by [F006, F009]
 
 ## Description
-Configure pytest with test database: isolated PostgreSQL instance, automatic schema creation/teardown, transaction rollback per test.
+
+Configure pytest with test database: isolated PostgreSQL instance, automatic schema
+creation/teardown, transaction rollback per test.
 
 ## Acceptance Criteria
+
 - [ ] Test database URL in .env.test
 - [ ] Pytest fixture creates fresh database for each test session
 - [ ] Each test runs in transaction (auto-rollback)
@@ -18,7 +22,9 @@ Configure pytest with test database: isolated PostgreSQL instance, automatic sch
 - [ ] Parallel test execution supported (pytest-xdist)
 
 ## Implementation
+
 **conftest.py:**
+
 ```python
 import pytest
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
@@ -57,6 +63,7 @@ async def db_session(test_db_engine):
 ```
 
 ## Testing
+
 - Run: `pytest tests/`
 - Verify test DB created and destroyed
 - Verify tests isolated (no data leakage)

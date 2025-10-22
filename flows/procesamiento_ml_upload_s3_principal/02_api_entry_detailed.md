@@ -2,7 +2,9 @@
 
 ## Purpose
 
-This diagram provides a **line-by-line code flow** for the FastAPI POST /api/stock/photo controller, showing every validation step, database operation, and Celery task dispatch with actual Python code snippets.
+This diagram provides a **line-by-line code flow** for the FastAPI POST /api/stock/photo controller,
+showing every validation step, database operation, and Celery task dispatch with actual Python code
+snippets.
 
 ## Scope
 
@@ -32,12 +34,14 @@ The complete API entry point including:
 **Decision**: Generate UUID in application code, NOT database SERIAL
 
 **Rationale**:
+
 - **Idempotency**: Same UUID for retries
 - **Distributed Systems**: No central ID generator needed
 - **S3 Key Predictability**: Know S3 path before upload
 - **No DB Round-Trip**: Generate ID without querying database
 
 **Code**:
+
 ```python
 import uuid
 image_id = uuid.uuid4()  # Generated in API, used everywhere
@@ -50,6 +54,7 @@ image_id = uuid.uuid4()  # Generated in API, used everywhere
 **Benefit**: 10x faster than per-row commits
 
 **Code**:
+
 ```python
 for photo in photos:
     session.add(s3_image)  # Add to session
@@ -65,6 +70,7 @@ await session.commit()  # Single batch commit
 ### Error Handling - 207 Multi-Status
 
 Returns partial success if some files fail validation:
+
 ```json
 {
   "success": ["uuid1", "uuid2"],
@@ -76,17 +82,17 @@ Returns partial success if some files fail validation:
 
 ## Performance
 
-| Step | Duration | Notes |
-|------|----------|-------|
-| Extract files | ~10ms | FastAPI multipart parsing |
-| Validate each file | ~5ms | Content-type, size, extension |
-| Generate UUID | ~0.1ms | uuid.uuid4() very fast |
-| Save temp file | ~10-20ms | Disk I/O (async) |
-| DB INSERT (each) | ~20-30ms | PostgreSQL connection pool |
-| Batch commit | ~50ms | Single transaction |
-| Dispatch tasks | ~10ms | Celery group() |
-| Build response | ~2ms | JSON serialization |
-| **Total (10 photos)** | **~250-350ms** | Scales linearly |
+| Step                  | Duration       | Notes                         |
+|-----------------------|----------------|-------------------------------|
+| Extract files         | ~10ms          | FastAPI multipart parsing     |
+| Validate each file    | ~5ms           | Content-type, size, extension |
+| Generate UUID         | ~0.1ms         | uuid.uuid4() very fast        |
+| Save temp file        | ~10-20ms       | Disk I/O (async)              |
+| DB INSERT (each)      | ~20-30ms       | PostgreSQL connection pool    |
+| Batch commit          | ~50ms          | Single transaction            |
+| Dispatch tasks        | ~10ms          | Celery group()                |
+| Build response        | ~2ms           | JSON serialization            |
+| **Total (10 photos)** | **~250-350ms** | Scales linearly               |
 
 ## Error Paths
 
@@ -106,6 +112,7 @@ Returns partial success if some files fail validation:
 ## How It Fits in the System
 
 This is the **entry point** for the entire ML pipeline:
+
 - User uploads photos via web/mobile
 - API validates, saves temp files, creates DB records
 - Dispatches async tasks (S3 upload + ML processing)
@@ -115,6 +122,7 @@ This is the **entry point** for the entire ML pipeline:
 ## Code Patterns Used
 
 ### Async File I/O
+
 ```python
 import aiofiles
 async with aiofiles.open(path, 'wb') as f:
@@ -122,6 +130,7 @@ async with aiofiles.open(path, 'wb') as f:
 ```
 
 ### SQLAlchemy Async Session
+
 ```python
 async with get_async_session() as session:
     session.add(s3_image)
@@ -129,6 +138,7 @@ async with get_async_session() as session:
 ```
 
 ### Celery Group Pattern
+
 ```python
 from celery import group
 task_group = group(

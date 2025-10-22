@@ -1,6 +1,7 @@
 # S008: StockBatchService
 
 ## Metadata
+
 - **Epic**: [epic-004-services.md](../../02_epics/epic-004-services.md)
 - **Sprint**: Sprint-03
 - **Status**: `backlog`
@@ -9,20 +10,25 @@
 - **Area**: `services/stock`
 - **Assignee**: TBD
 - **Dependencies**:
-  - Blocks: [S007, S010, S012, C008]
-  - Blocked by: [R008]
+    - Blocks: [S007, S010, S012, C008]
+    - Blocked by: [R008]
 
 ## Related Documentation
-- **Engineering Plan**: [../../engineering_plan/workflows/README.md](../../engineering_plan/workflows/README.md)
+
+- **Engineering Plan
+  **: [../../engineering_plan/workflows/README.md](../../engineering_plan/workflows/README.md)
 - **Database ERD**: [../../database/database.mmd](../../database/database.mmd)
 
 ## Description
 
-**What**: Implement `StockBatchService` for stock batch creation, aggregation, and lifecycle management (grouping movements by product/packaging/size/location).
+**What**: Implement `StockBatchService` for stock batch creation, aggregation, and lifecycle
+management (grouping movements by product/packaging/size/location).
 
-**Why**: Stock batches aggregate individual movements for inventory queries. Essential for current stock calculations and batch tracking (planting date → transplant → sales).
+**Why**: Stock batches aggregate individual movements for inventory queries. Essential for current
+stock calculations and batch tracking (planting date → transplant → sales).
 
-**Context**: Clean Architecture Application Layer. Called by S007 (StockMovementService) to create batches from movements. Aggregates stock by product/packaging/size combinations.
+**Context**: Clean Architecture Application Layer. Called by S007 (StockMovementService) to create
+batches from movements. Aggregates stock by product/packaging/size combinations.
 
 ## Acceptance Criteria
 
@@ -105,14 +111,17 @@
 ## Technical Implementation Notes
 
 ### Architecture
+
 - **Layer**: Application (Service)
 - **Dependencies**: R008 (StockBatchRepository)
 - **Design Pattern**: Aggregation service
 
 ### Testing Requirements
+
 **Coverage Target**: ≥85%
 
 ### Performance Expectations
+
 - `create_from_movement`: <50ms
 - `get_total_stock_for_location`: <100ms
 
@@ -121,6 +130,7 @@
 **Context**: Aggregates movements into batches. Called by StockMovementService.
 
 **Key decisions**:
+
 - Batches grouped by product/packaging/size/location
 - Active batches updated, inactive ones archived
 
@@ -134,6 +144,7 @@
 - [ ] PR reviewed (2+ approvals)
 
 ## Time Tracking
+
 - **Estimated**: 5 story points (~10 hours)
 - **Actual**: TBD
 

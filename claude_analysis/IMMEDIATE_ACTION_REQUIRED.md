@@ -1,4 +1,5 @@
 # ⚠️ ACCIÓN INMEDIATA REQUERIDA
+
 **Fecha**: 2025-10-20
 **Urgencia**: 🔴 CRÍTICO - BLOQUEA TODO
 
@@ -8,17 +9,18 @@
 
 Your project has **3 CRITICAL BLOCKERS** preventing Sprint 04 from starting:
 
-| # | Blocker | Impact | Fix Time | Status |
-|---|---------|--------|----------|--------|
-| 1️⃣ | **Database Broken** (Migration fails) | Cannot test anything | 30 min | ❌ DEBE HACERSE HOY |
-| 2️⃣ | **Tests Exit Code False** (230 failing, shows 0) | No CI/CD reliability | 2-3 days | ❌ SEMANA 1 |
-| 3️⃣ | **12 Services Missing** (S3, Classification, etc.) | ML pipeline incomplete | 40-60h | ⚠️ SEMANA 2-3 |
+| #   | Blocker                                            | Impact                 | Fix Time | Status             |
+|-----|----------------------------------------------------|------------------------|----------|--------------------|
+| 1️⃣ | **Database Broken** (Migration fails)              | Cannot test anything   | 30 min   | ❌ DEBE HACERSE HOY |
+| 2️⃣ | **Tests Exit Code False** (230 failing, shows 0)   | No CI/CD reliability   | 2-3 days | ❌ SEMANA 1         |
+| 3️⃣ | **12 Services Missing** (S3, Classification, etc.) | ML pipeline incomplete | 40-60h   | ⚠️ SEMANA 2-3      |
 
 ---
 
 ## 🎯 PRIORITY 1: FIX DATABASE (TODAY - 30 minutes)
 
 ### What's Wrong?
+
 ```
 Migration 2f68e3f132f5_create_warehouses_table.py FAILS with:
   Error: sqlalchemy.exc.ProgrammingError:
@@ -26,6 +28,7 @@ Migration 2f68e3f132f5_create_warehouses_table.py FAILS with:
 ```
 
 **Why?** The migration tries to create the ENUM twice:
+
 - Line 55-62: Manual `CREATE TYPE warehouse_type_enum`
 - Line 70: SQLAlchemy automatically tries to create same type
 
@@ -36,6 +39,7 @@ Migration 2f68e3f132f5_create_warehouses_table.py FAILS with:
 File: `/home/lucasg/proyectos/DemeterDocs/alembic/versions/2f68e3f132f5_create_warehouses_table.py`
 
 Line 70, change from:
+
 ```python
 warehouse_type = sa.Column(
     'warehouse_type',
@@ -46,6 +50,7 @@ warehouse_type = sa.Column(
 ```
 
 To:
+
 ```python
 warehouse_type = sa.Column(
     'warehouse_type',
@@ -141,6 +146,7 @@ EOF
 ## ✅ After Completing Priority 1:
 
 You can now:
+
 - ✅ Run tests without database errors
 - ✅ Proceed with Priority 2 (Test fixes)
 - ✅ Continue development
@@ -152,6 +158,7 @@ You can now:
 ## 🚦 PRIORITY 2: FIX TEST EXIT CODE (WEEK 1)
 
 ### What's Wrong?
+
 ```
 $ pytest tests/ -v
 ========= 230 FAILED, 775 PASSED in 45.23s =========
@@ -161,6 +168,7 @@ EXIT CODE: 0 ❌ WRONG (should be 1 or 2 for failures)
 Tests fail but pytest reports success! This breaks CI/CD.
 
 ### Why?
+
 - 100 tests use wrong AsyncSession API (SQLAlchemy 1.4 instead of 2.0)
 - 50 tests missing `await` keywords
 - 30 tests missing seed data
@@ -169,7 +177,7 @@ Tests fail but pytest reports success! This breaks CI/CD.
 ### Fix Priority
 
 1. **Update pytest config** (1h)
-   - Add to `pyproject.toml`:
+    - Add to `pyproject.toml`:
    ```toml
    [tool.pytest.ini_options]
    strict_markers = true
@@ -177,20 +185,21 @@ Tests fail but pytest reports success! This breaks CI/CD.
    ```
 
 2. **Fix AsyncSession API** (1-2 days)
-   - Replace 100 instances of:
-     - `session.query(Model)` → `(await session.execute(select(Model))).scalars()`
-     - `session.commit()` → `await session.commit()`
+    - Replace 100 instances of:
+        - `session.query(Model)` → `(await session.execute(select(Model))).scalars()`
+        - `session.commit()` → `await session.commit()`
 
 3. **Add missing awaits** (4-8 hours)
-   - Add `await` to 50 async calls
+    - Add `await` to 50 async calls
 
 4. **Create seed data migration** (4-8 hours)
-   - ProductSize, ProductState, StorageBinType initial data
+    - ProductSize, ProductState, StorageBinType initial data
 
 5. **Create PostGIS triggers** (4-8 hours)
-   - Auto-calculate area_sqm and centroid
+    - Auto-calculate area_sqm and centroid
 
 ### After Priority 2:
+
 - ✅ `pytest tests/ -v` exit code = 0 ONLY if all pass
 - ✅ `pytest tests/ -v` exit code ≠ 0 if any fails
 - ✅ Coverage 80%+ is REAL, not fake
@@ -207,6 +216,7 @@ Tests fail but pytest reports success! This breaks CI/CD.
 4. **GeolocationService** (4 hours)
 
 Then:
+
 5. **TransferService** (8 hours)
 6. **DeathService** (4 hours)
 
@@ -217,15 +227,15 @@ And optional:
 
 ## 📊 CURRENT STATE BY LAYER
 
-| Layer | Status | Action |
-|-------|--------|--------|
-| **Architecture** | ✅ Excellent | None needed |
-| **Models** (28) | ✅ All exist | None needed |
-| **Repositories** (27) | ⚠️ 6 need fixes | Fix Week 1 |
-| **Services** (21/40) | ⚠️ 12 missing | Implement Week 2-3 |
-| **Database** | 🔴 BROKEN | **FIX TODAY** |
-| **Tests** | 🔴 UNRELIABLE | Fix Week 1 |
-| **Code Quality** | ⚠️ 78/100 | Refactor Week 3-4 |
+| Layer                 | Status          | Action             |
+|-----------------------|-----------------|--------------------|
+| **Architecture**      | ✅ Excellent     | None needed        |
+| **Models** (28)       | ✅ All exist     | None needed        |
+| **Repositories** (27) | ⚠️ 6 need fixes | Fix Week 1         |
+| **Services** (21/40)  | ⚠️ 12 missing   | Implement Week 2-3 |
+| **Database**          | 🔴 BROKEN       | **FIX TODAY**      |
+| **Tests**             | 🔴 UNRELIABLE   | Fix Week 1         |
+| **Code Quality**      | ⚠️ 78/100       | Refactor Week 3-4  |
 
 ---
 
@@ -288,9 +298,10 @@ SPRINT 04+
 3. **Fix migration** (choose one approach):
 
    **Option A: Using Edit Tool (Recommended)**
-   - Use Read tool to get full line context
-   - Use Edit tool to change line 70
-   - File: `/home/lucasg/proyectos/DemeterDocs/alembic/versions/2f68e3f132f5_create_warehouses_table.py`
+    - Use Read tool to get full line context
+    - Use Edit tool to change line 70
+    - File:
+      `/home/lucasg/proyectos/DemeterDocs/alembic/versions/2f68e3f132f5_create_warehouses_table.py`
 
    **Option B: Manual edit**
    ```bash
@@ -331,20 +342,24 @@ You CANNOT start Sprint 04 (Controllers) until:
 ## 📞 IF YOU GET STUCK
 
 **Error: "type warehouse_type_enum already exists"**
+
 - Solution: Add `create_type=False` to line 70
 - Verify: Alembic config is in `alembic.ini` (check it exists)
 - Check: You're using `alembic upgrade head`, not manual SQL
 
 **Error: "Cannot connect to database"**
+
 - Solution: Verify Docker containers: `docker compose ps`
 - Check: All 3 containers healthy (db, db_test, redis)
 - Restart if needed: `docker compose restart`
 
 **Error: "Table already exists after migration"**
+
 - Solution: This is safe - means migration ran twice
 - Fix: Just continue, next migration will apply fine
 
 **Error: "asyncio.InvalidStateError in tests"**
+
 - Solution: Missing `await` keywords (Priority 2 issue)
 - Verify: That migration worked first (Priority 1)
 
@@ -353,6 +368,7 @@ You CANNOT start Sprint 04 (Controllers) until:
 ## ✅ SUCCESS CRITERIA
 
 ### After Priority 1 (TODAY):
+
 ```bash
 $ alembic current
 8807863f7d8c
@@ -362,6 +378,7 @@ $ docker exec demeterai-db psql -U demeter -d demeterai -c "SELECT COUNT(*) FROM
 ```
 
 ### After Priority 2 (WEEK 1):
+
 ```bash
 $ pytest tests/ -v 2>&1 | tail -1
 ========= all tests passed =========  # OR  X failed, Y passed
@@ -371,6 +388,7 @@ $ echo $?
 ```
 
 ### After Priority 3A (WEEK 2-3):
+
 ```bash
 $ pytest tests/integration/ml_processing/ -v
 ========= all tests passed =========
@@ -380,6 +398,7 @@ $ python -c "from app.services.ml_processing import *; print('✅')"
 ```
 
 ### Sprint 04 Ready (END OF WEEK 4):
+
 ```bash
 $ pytest tests/ --cov=app --cov-report=term-missing | grep TOTAL
 TOTAL  ... 85%  # Coverage ≥80%

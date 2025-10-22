@@ -18,14 +18,15 @@
 **File**: `/home/lucasg/proyectos/DemeterDocs/app/models/product_category.py`
 
 **Tasks**:
+
 1. Create ProductCategory SQLAlchemy model
 2. Define columns:
-   - product_category_id (Integer, PK, autoincrement)
-   - code (String(50), UK, index)
-   - name (String(200), nullable=False)
-   - description (Text, nullable=True)
-   - created_at (DateTime with timezone, server_default=func.now())
-   - updated_at (DateTime with timezone, onupdate=func.now())
+    - product_category_id (Integer, PK, autoincrement)
+    - code (String(50), UK, index)
+    - name (String(200), nullable=False)
+    - description (Text, nullable=True)
+    - created_at (DateTime with timezone, server_default=func.now())
+    - updated_at (DateTime with timezone, onupdate=func.now())
 
 3. Add code validation:
    ```python
@@ -61,21 +62,25 @@
 
 6. Add comprehensive docstrings with examples
 
-**Template**: Follow `/home/lucasg/proyectos/DemeterDocs/app/models/storage_bin_type.py` or `product_state.py`
+**Template**: Follow `/home/lucasg/proyectos/DemeterDocs/app/models/storage_bin_type.py` or
+`product_state.py`
 
 ---
 
 ### Phase 2: Migration Creation (10 minutes)
 
-**File**: `/home/lucasg/proyectos/DemeterDocs/alembic/versions/XXXX_create_product_categories_table.py`
+**File**:
+`/home/lucasg/proyectos/DemeterDocs/alembic/versions/XXXX_create_product_categories_table.py`
 
 **Command**:
+
 ```bash
 cd /home/lucasg/proyectos/DemeterDocs
 alembic revision -m "create product_categories table"
 ```
 
 **Migration Tasks**:
+
 1. Create table with columns
 2. Add UK constraint on code
 3. Add B-tree index on code
@@ -108,6 +113,7 @@ op.execute("""
 **File**: `/home/lucasg/proyectos/DemeterDocs/app/models/__init__.py`
 
 **Tasks**:
+
 1. Add ProductCategory import
 2. Add ProductCategory to `__all__` list
 3. Update docstring
@@ -130,29 +136,29 @@ __all__ = [
 **Test Categories** (15-20 tests):
 
 1. **Code Validation Tests** (8 tests):
-   - Valid codes (CACTUS, SUCCULENT, ORCHID_12)
-   - Auto-uppercase (cactus → CACTUS)
-   - Invalid: empty string
-   - Invalid: too short (AB)
-   - Invalid: too long (51+ chars)
-   - Invalid: special characters (@, #, -)
-   - Invalid: lowercase (after setting)
+    - Valid codes (CACTUS, SUCCULENT, ORCHID_12)
+    - Auto-uppercase (cactus → CACTUS)
+    - Invalid: empty string
+    - Invalid: too short (AB)
+    - Invalid: too long (51+ chars)
+    - Invalid: special characters (@, #, -)
+    - Invalid: lowercase (after setting)
 
 2. **Basic CRUD Tests** (3 tests):
-   - Create category
-   - Update category
-   - Delete category
+    - Create category
+    - Update category
+    - Delete category
 
 3. **Field Constraint Tests** (3 tests):
-   - name required (cannot be None)
-   - description nullable (can be None)
-   - timestamps auto-set (created_at, updated_at)
+    - name required (cannot be None)
+    - description nullable (can be None)
+    - timestamps auto-set (created_at, updated_at)
 
 4. **__repr__ Test** (1 test):
-   - Verify format: `<ProductCategory(id=1, code=CACTUS, name=Cactus)>`
+    - Verify format: `<ProductCategory(id=1, code=CACTUS, name=Cactus)>`
 
 5. **Uniqueness Test** (1 test):
-   - Cannot create two categories with same code
+    - Cannot create two categories with same code
 
 **Template**: Follow `tests/unit/models/test_product_state.py`
 
@@ -165,18 +171,18 @@ __all__ = [
 **Test Categories** (8-10 tests):
 
 1. **Seed Data Tests** (2 tests):
-   - Verify 8 categories loaded
-   - Verify codes: CACTUS, SUCCULENT, BROMELIAD, CARNIVOROUS, ORCHID, FERN, TROPICAL, HERB
+    - Verify 8 categories loaded
+    - Verify codes: CACTUS, SUCCULENT, BROMELIAD, CARNIVOROUS, ORCHID, FERN, TROPICAL, HERB
 
 2. **DB Constraint Tests** (2 tests):
-   - Code uniqueness at DB level (IntegrityError)
-   - CHECK constraint (code length, uppercase)
+    - Code uniqueness at DB level (IntegrityError)
+    - CHECK constraint (code length, uppercase)
 
 3. **Query Tests** (4 tests):
-   - ORDER BY name
-   - Filter by code
-   - Count all categories
-   - Query by partial name (LIKE '%Plant%')
+    - ORDER BY name
+    - Filter by code
+    - Count all categories
+    - Query by partial name (LIKE '%Plant%')
 
 **Template**: Follow `tests/integration/models/test_product_state.py`
 
@@ -185,6 +191,7 @@ __all__ = [
 ### Phase 6: Quality Gates (5 minutes)
 
 **Commands**:
+
 ```bash
 cd /home/lucasg/proyectos/DemeterDocs
 
@@ -216,6 +223,7 @@ pre-commit run --all-files
 ## Success Criteria
 
 **All 7 Acceptance Criteria Met**:
+
 - [x] AC1: Model created in `app/models/product_category.py`
 - [x] AC2: Code validation (uppercase, alphanumeric + underscores, 3-50 chars)
 - [x] AC3: Seed data migration (8 categories)
@@ -225,6 +233,7 @@ pre-commit run --all-files
 - [x] AC7: Unit tests ≥75% coverage
 
 **Quality Gates**:
+
 - Mypy: 0 errors (strict mode)
 - Ruff: 0 violations
 - Unit tests: 15-20 passing (≥75% coverage)
@@ -238,7 +247,8 @@ pre-commit run --all-files
 1. **Model**: `app/models/product_category.py` (~180 lines)
 2. **Migration**: `alembic/versions/XXXX_create_product_categories.py` (~130 lines)
 3. **Unit Tests**: `tests/unit/models/test_product_category.py` (~400 lines, 15-20 tests)
-4. **Integration Tests**: `tests/integration/models/test_product_category.py` (~300 lines, 8-10 tests)
+4. **Integration Tests**: `tests/integration/models/test_product_category.py` (~300 lines, 8-10
+   tests)
 5. **Updated Exports**: `app/models/__init__.py` (1 line added)
 
 **Total Lines**: ~1,010 lines of production code + test code
@@ -248,6 +258,7 @@ pre-commit run --all-files
 ## Git Commit
 
 **Commit Message**:
+
 ```bash
 git add app/models/product_category.py \
         alembic/versions/XXXX_create_product_categories.py \
@@ -287,12 +298,16 @@ Co-Authored-By: Claude <noreply@anthropic.com>"
 ## Resources
 
 **Templates**:
+
 - Model: `/home/lucasg/proyectos/DemeterDocs/app/models/product_state.py`
-- Migration: `/home/lucasg/proyectos/DemeterDocs/alembic/versions/3xy8k1m9n4pq_create_product_states_table.py`
+- Migration:
+  `/home/lucasg/proyectos/DemeterDocs/alembic/versions/3xy8k1m9n4pq_create_product_states_table.py`
 - Unit Tests: `/home/lucasg/proyectos/DemeterDocs/tests/unit/models/test_product_state.py`
-- Integration Tests: `/home/lucasg/proyectos/DemeterDocs/tests/integration/models/test_product_state.py`
+- Integration Tests:
+  `/home/lucasg/proyectos/DemeterDocs/tests/integration/models/test_product_state.py`
 
 **Documentation**:
+
 - ERD: `/home/lucasg/proyectos/DemeterDocs/database/database.mmd` (lines 75-80)
 - Engineering Plan: `/home/lucasg/proyectos/DemeterDocs/engineering_plan/database/README.md`
 
@@ -303,12 +318,12 @@ Co-Authored-By: Claude <noreply@anthropic.com>"
 **Pattern**: Reference catalog with seed data (proven with DB005, DB018, DB019)
 **Confidence**: HIGH (3 similar models completed in 30 minutes combined)
 
-
 ## Team Leader Final Approval (2025-10-20 - RETROACTIVE)
 
 **Status**: ✅ COMPLETED (retroactive verification)
 
 ### Verification Results
+
 - [✅] Implementation complete per task specification
 - [✅] Code follows Clean Architecture patterns
 - [✅] Type hints and validations present
@@ -316,6 +331,7 @@ Co-Authored-By: Claude <noreply@anthropic.com>"
 - [✅] Integration with PostgreSQL verified
 
 ### Quality Gates
+
 - [✅] SQLAlchemy 2.0 async model
 - [✅] Type hints complete
 - [✅] SOLID principles followed
@@ -323,6 +339,7 @@ Co-Authored-By: Claude <noreply@anthropic.com>"
 - [✅] Imports working correctly
 
 ### Completion Status
+
 Retroactive approval based on audit of Sprint 00-02.
 Code verified to exist and function correctly against PostgreSQL test database.
 

@@ -241,9 +241,9 @@ class TestBandEstimationService:
         # Assert: All pixels accounted for
         total_pixels = sum(np.sum(band > 0) for band in bands)
         original_pixels = np.sum(mask > 0)
-        assert (
-            total_pixels == original_pixels
-        ), "All pixels should be in bands (including remainder)"
+        assert total_pixels == original_pixels, (
+            "All pixels should be in bands (including remainder)"
+        )
 
     @pytest.mark.asyncio
     async def test_divide_into_bands_preserves_mask_values(self, service):
@@ -393,16 +393,21 @@ class TestBandEstimationService:
         # Arrange: Detections across multiple bands
         detections = [
             # Band 1 (y: 0-250) - small plants
-            {"center_x_px": 100, "center_y_px": 50, "width_px": 30, "height_px": 30},  # area=900
-            {"center_x_px": 200, "center_y_px": 100, "width_px": 32, "height_px": 32},  # area=1024
-            {"center_x_px": 300, "center_y_px": 150, "width_px": 28, "height_px": 28},  # area=784
+            {"center_x_px": 100, "center_y_px": 50, "width_px": 30, "height_px": 30},
+            # area=900
+            {"center_x_px": 200, "center_y_px": 100, "width_px": 32, "height_px": 32},
+            # area=1024
+            {"center_x_px": 300, "center_y_px": 150, "width_px": 28, "height_px": 28},
+            # area=784
             *[
                 {"center_x_px": i * 10, "center_y_px": 200, "width_px": 30, "height_px": 30}
                 for i in range(7)
             ],  # 7 more (total 10)
             # Band 4 (y: 750-1000) - large plants (should be IGNORED for band 1)
-            {"center_x_px": 100, "center_y_px": 800, "width_px": 60, "height_px": 60},  # area=3600
-            {"center_x_px": 200, "center_y_px": 900, "width_px": 65, "height_px": 65},  # area=4225
+            {"center_x_px": 100, "center_y_px": 800, "width_px": 60, "height_px": 60},
+            # area=3600
+            {"center_x_px": 200, "center_y_px": 900, "width_px": 65, "height_px": 65},
+            # area=4225
         ]
         image_height = 1000
 
@@ -451,9 +456,11 @@ class TestBandEstimationService:
         """
         # Arrange: All very different sizes (all would be outliers)
         detections = [
-            {"center_x_px": 100, "center_y_px": 50, "width_px": 10, "height_px": 10},  # 100
+            {"center_x_px": 100, "center_y_px": 50, "width_px": 10, "height_px": 10},
+            # 100
             {"center_x_px": 200, "center_y_px": 100, "width_px": 100, "height_px": 100},  # 10000
-            {"center_x_px": 300, "center_y_px": 150, "width_px": 5, "height_px": 5},  # 25
+            {"center_x_px": 300, "center_y_px": 150, "width_px": 5, "height_px": 5},
+            # 25
         ]
         image_height = 1000
 
@@ -679,14 +686,14 @@ class TestBandEstimationService:
         # Assert: All are BandEstimation instances
         from app.services.ml_processing.band_estimation_service import BandEstimation
 
-        assert all(
-            isinstance(e, BandEstimation) for e in estimations
-        ), "All should be BandEstimation"
+        assert all(isinstance(e, BandEstimation) for e in estimations), (
+            "All should be BandEstimation"
+        )
 
         # Assert: Estimation type is band_based
-        assert all(
-            e.estimation_type == "band_based" for e in estimations
-        ), "Type should be band_based"
+        assert all(e.estimation_type == "band_based" for e in estimations), (
+            "Type should be band_based"
+        )
 
         # Assert: Band numbers are 1-4
         band_numbers = [e.band_number for e in estimations]
@@ -696,8 +703,8 @@ class TestBandEstimationService:
         for i, e in enumerate(estimations):
             expected_y_start = i * 250  # 1000 / 4 = 250
             expected_y_end = (i + 1) * 250
-            assert e.band_y_start == expected_y_start, f"Band {i+1} y_start mismatch"
-            assert e.band_y_end == expected_y_end, f"Band {i+1} y_end mismatch"
+            assert e.band_y_start == expected_y_start, f"Band {i + 1} y_start mismatch"
+            assert e.band_y_end == expected_y_end, f"Band {i + 1} y_end mismatch"
 
         # Assert: All have alpha_overcount set
         assert all(e.alpha_overcount == 0.9 for e in estimations), "Alpha should be 0.9"
@@ -761,9 +768,9 @@ class TestBandEstimationService:
         assert len(estimations) == 4
 
         # Assert: Each uses default avg_plant_area (2500.0)
-        assert all(
-            e.average_plant_area_px == 2500.0 for e in estimations
-        ), "Should use default area"
+        assert all(e.average_plant_area_px == 2500.0 for e in estimations), (
+            "Should use default area"
+        )
 
         # Assert: Total estimated count > 0
         total_estimated = sum(e.estimated_count for e in estimations)

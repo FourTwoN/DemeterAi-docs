@@ -2,89 +2,79 @@
 title: Warehouse Internal Structure - Storage Areas and Preview Cards
 ---
 graph TB
-    %% Entry Point
+%% Entry Point
     UserClickWH["🖱️ User Clicks Warehouse<br/>on Map (Level 1)"]
-
-    %% Navigation (No API Call)
+%% Navigation (No API Call)
     subgraph Navigation["🚀 Navigation (Instant - No API Call)"]
         GetCachedData["📦 Get Data from Cache<br/>Already loaded from bulk-load"]
         FilterByWarehouse["🔍 Filter Data<br/>by warehouse_id"]
         RenderView["🖼️ Render Internal View<br/>~0ms (instant)"]
-
         UserClickWH --> GetCachedData
         GetCachedData --> FilterByWarehouse
         FilterByWarehouse --> RenderView
     end
 
-    %% Storage Areas Display
+%% Storage Areas Display
     subgraph StorageAreas["🏗️ Storage Areas (Canteros)"]
         DisplayCanteros["📍 Display Canteros<br/>N | S | E | W | C"]
         ShowCounts["🔢 Show Counts<br/>per Cantero"]
         FilterButtons["🔘 Filter Buttons<br/>Click to filter locations"]
-
         RenderView --> DisplayCanteros
         DisplayCanteros --> ShowCounts
         DisplayCanteros --> FilterButtons
     end
 
-    %% Storage Locations Grid
+%% Storage Locations Grid
     subgraph LocationsGrid["📋 Storage Locations Grid"]
         GetLocations["📦 Get storage_locations<br/>from cached data"]
         ApplyFilters["🔍 Apply Filters<br/>- Cantero position<br/>- Search term<br/>- Sort by"]
         RenderCards["🃏 Render Preview Cards<br/>Grid layout (responsive)"]
-
-        FilterButtons -->|"Client-side filter"| ApplyFilters
+        FilterButtons -->|" Client-side filter "| ApplyFilters
         RenderView --> GetLocations
         GetLocations --> ApplyFilters
         ApplyFilters --> RenderCards
     end
 
-    %% Preview Card Details
+%% Preview Card Details
     subgraph PreviewCard["🃏 Preview Card Components"]
         Thumbnail["🖼️ Thumbnail<br/>- Last photo (300x300)<br/>- S3 presigned URL<br/>- Lazy loading"]
         Metrics["📊 Metrics<br/>- Quantity (↑↓)<br/>- Maceta type<br/>- Current value<br/>- Potential value"]
         Categories["🏷️ Categories<br/>- Cactus count<br/>- Suculenta count<br/>- Injerto count"]
         StatusBadge["✅ Status Badge<br/>- Green: OK<br/>- Yellow: Warning<br/>- Red: Error"]
-
         RenderCards --> Thumbnail
         RenderCards --> Metrics
         RenderCards --> Categories
         RenderCards --> StatusBadge
     end
 
-    %% User Interactions
+%% User Interactions
     subgraph Interactions["💬 User Interactions"]
         FilterCantero["🖱️ Filter by Cantero<br/>Instant (client-side)"]
         SearchBox["🔍 Search Box<br/>Filter by code/name"]
         SortDropdown["📊 Sort Dropdown<br/>- Name<br/>- Quantity<br/>- Value<br/>- Last Updated"]
         ClickCard["🖱️ Click Preview Card<br/>Navigate to Detail"]
-
         FilterButtons --> FilterCantero
         RenderView --> SearchBox
         RenderView --> SortDropdown
-
         FilterCantero --> ApplyFilters
         SearchBox --> ApplyFilters
         SortDropdown --> ApplyFilters
-
         RenderCards --> ClickCard
     end
 
-    %% Navigation to Detail View
-    ClickCard -->|"Navigate to Level 3"| DetailView["📸 Level 3:<br/>Storage Location Detail<br/>(Fetches data via API)"]
-
-    %% Data Source (Already Loaded)
+%% Navigation to Detail View
+    ClickCard -->|" Navigate to Level 3 "| DetailView["📸 Level 3:<br/>Storage Location Detail<br/>(Fetches data via API)"]
+%% Data Source (Already Loaded)
     subgraph DataSource["💾 Data Source (Cached)"]
         BulkLoadData["📦 Bulk Load Data<br/>From Level 1 Map Overview<br/>- warehouses<br/>- storage_areas<br/>- storage_locations"]
         GlobalState["🗄️ Global State<br/>React Context / Zustand<br/>Stores all data"]
         MVPreview["📊 Source: mv_storage_location_preview<br/>Materialized View<br/>Refresh: 10 min"]
-
         BulkLoadData --> GlobalState
-        GetCachedData -.->|"Read from"| GlobalState
-        MVPreview -.->|"Data source"| BulkLoadData
+        GetCachedData -.->|" Read from "| GlobalState
+        MVPreview -.->|" Data source "| BulkLoadData
     end
 
-    %% Performance Optimization
+%% Performance Optimization
     subgraph Performance["⚡ Performance Features"]
         NoAPI["🚀 No API Call<br/>Data pre-loaded"]
         InstantFilter["⚡ Instant Filtering<br/>Client-side (0ms)"]
@@ -92,17 +82,16 @@ graph TB
         Virtualization["📜 Virtualization<br/>For 500+ locations<br/>(react-window)"]
     end
 
-    %% Styling
-    classDef userClass fill:#4CAF50,stroke:#2E7D32,color:#fff
-    classDef cacheClass fill:#2196F3,stroke:#1565C0,color:#fff
-    classDef renderClass fill:#FF9800,stroke:#E65100,color:#fff
-    classDef interactionClass fill:#F44336,stroke:#C62828,color:#fff
-    classDef dataClass fill:#9C27B0,stroke:#6A1B9A,color:#fff
-    classDef perfClass fill:#00BCD4,stroke:#00838F,color:#fff
-
-    class UserClickWH,FilterCantero,SearchBox,SortDropdown,ClickCard userClass
-    class GetCachedData,GlobalState,BulkLoadData cacheClass
-    class RenderView,DisplayCanteros,RenderCards,Thumbnail,Metrics renderClass
-    class FilterButtons,ApplyFilters,StatusBadge interactionClass
-    class MVPreview dataClass
-    class NoAPI,InstantFilter,LazyImages,Virtualization perfClass
+%% Styling
+    classDef userClass fill: #4CAF50, stroke: #2E7D32, color: #fff
+    classDef cacheClass fill: #2196F3, stroke: #1565C0, color: #fff
+    classDef renderClass fill: #FF9800, stroke: #E65100, color: #fff
+    classDef interactionClass fill: #F44336, stroke: #C62828, color: #fff
+    classDef dataClass fill: #9C27B0, stroke: #6A1B9A, color: #fff
+    classDef perfClass fill: #00BCD4, stroke: #00838F, color: #fff
+class UserClickWH, FilterCantero, SearchBox, SortDropdown, ClickCard userClass
+class GetCachedData, GlobalState, BulkLoadData cacheClass
+class RenderView, DisplayCanteros,RenderCards, Thumbnail, Metrics renderClass
+class FilterButtons, ApplyFilters,StatusBadge interactionClass
+class MVPreview dataClass
+class NoAPI, InstantFilter,LazyImages, Virtualization perfClass

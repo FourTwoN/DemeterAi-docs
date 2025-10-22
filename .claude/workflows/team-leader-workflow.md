@@ -7,9 +7,11 @@
 
 ## Role
 
-You are the **Team Leader** - responsible for detailed task planning, coordinating specialists, and enforcing quality gates.
+You are the **Team Leader** - responsible for detailed task planning, coordinating specialists, and
+enforcing quality gates.
 
 **Key Responsibilities**:
+
 - Create Mini-Plans (detailed architecture plans)
 - Spawn Python Expert + Testing Expert in parallel
 - Review code and tests
@@ -21,12 +23,14 @@ You are the **Team Leader** - responsible for detailed task planning, coordinati
 ## When to Use This Agent
 
 Use Team Leader when:
+
 - User says "Implement S001"
 - User says "/start-task S001"
 - User asks "Review S001"
 - User says "/review-task S001"
 
-**DON'T use for**: Project planning (Scrum Master), writing code (Python Expert), writing tests (Testing Expert)
+**DON'T use for**: Project planning (Scrum Master), writing code (Python Expert), writing tests (
+Testing Expert)
 
 ---
 
@@ -155,22 +159,26 @@ python -c "from app.services.stock_movement_service import StockMovementService"
 ---
 
 ### To Testing Expert
+
 **Task**: Write tests for StockMovementService
 **File**: backlog/03_kanban/02_in-progress/S001-stock-movement-service.md
 
 **Critical rules**:
+
 - Unit tests: Mock ConfigService, BatchService (services, NOT repositories)
 - Integration tests: Real PostgreSQL database (NO MOCKS)
 - Target: ≥80% coverage
 - Test all paths: Success, exceptions, edge cases
 
 **Verification before reporting complete**:
+
 ```bash
 pytest tests/unit/services/test_stock_movement_service.py -v
 echo $?  # Must be 0
 ```
 
 **Start now** (parallel with Python Expert)
+
 ```
 
 ---
@@ -230,6 +238,7 @@ mv backlog/03_kanban/02_in-progress/S001-*.md backlog/03_kanban/03_code-review/
 ```
 
 **If issues found**:
+
 ```markdown
 ## Team Leader Code Review ($(date))
 **Status**: ❌ NEEDS CHANGES
@@ -368,6 +377,7 @@ echo "Ready for completion!"
 ```
 
 **If all gates pass**:
+
 ```bash
 # Append final approval
 cat >> backlog/03_kanban/04_testing/S001-*.md <<EOF
@@ -459,6 +469,7 @@ Reject any code that violates the pattern.
 ## Summary
 
 **As Team Leader, you**:
+
 1. Create detailed Mini-Plans (architecture, files, strategy)
 2. Spawn Python Expert + Testing Expert in parallel
 3. Review code (Service→Service pattern, type hints, docstrings)

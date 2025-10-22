@@ -1,9 +1,11 @@
 # Technology Stack - DemeterAI v2.0
+
 ## Single Source of Truth for All Versions
 
 **Document Version:** 1.0
 **Last Updated:** 2025-10-09
-**⚠️ CRITICAL**: This is the ONLY place for technology versions. All cards, docs, and configs reference this file.
+**⚠️ CRITICAL**: This is the ONLY place for technology versions. All cards, docs, and configs
+reference this file.
 
 ---
 
@@ -25,6 +27,7 @@
 **Why**: Latest stable with async improvements, 25% faster than 3.11, native ML library support
 
 **Installation**:
+
 ```bash
 # Ubuntu/Debian
 sudo apt install python3.12 python3.12-venv python3.12-dev
@@ -44,11 +47,13 @@ python3.12 --version  # Should show 3.12.x
 **Why**: Async-first, auto OpenAPI docs, Pydantic integration, high performance
 
 **Key Dependencies**:
+
 - `uvicorn[standard]==0.34.0` (ASGI server)
 - `pydantic==2.10.0` (validation)
 - `pydantic-settings==2.6.0` (config management)
 
 **Usage**:
+
 ```python
 from fastapi import FastAPI, Depends
 app = FastAPI(title="DemeterAI v2.0", version="2.0.0")
@@ -65,12 +70,14 @@ app = FastAPI(title="DemeterAI v2.0", version="2.0.0")
 **Why**: Latest stable, improved partitioning, better query planner
 
 **Extensions**:
+
 - **PostGIS 3.3+**: Geospatial queries (4-level hierarchy)
 - **pg_partman**: Auto-partition management (daily for detections/estimations)
 - **pg_cron**: Schedule partition maintenance
 - **pg_stat_statements**: Query performance monitoring
 
 **Installation (Docker)**:
+
 ```yaml
 # docker-compose.yml
 db:
@@ -85,6 +92,7 @@ db:
 **Why**: Async no longer beta, 20-30% faster than 1.4, type-safe queries
 
 **Key Features**:
+
 - Async support (`AsyncSession`, `create_async_engine`)
 - Type-safe with `select()` construct
 - Eager loading (`selectinload`, `joinedload`)
@@ -95,6 +103,7 @@ db:
 **Why**: 350× faster bulk inserts than ORM (714k rows/sec vs 2k rows/sec)
 
 **Usage**:
+
 ```python
 # ORM for CRUD
 from sqlalchemy.ext.asyncio import create_async_engine
@@ -115,6 +124,7 @@ pool = await asyncpg.create_pool(DATABASE_URL)
 **Why**: Chord patterns, DLQ support, retry mechanisms, Flower monitoring
 
 **⚠️ CRITICAL GPU Configuration**:
+
 ```bash
 # MANDATORY for GPU workers
 CUDA_VISIBLE_DEVICES=0 celery -A app worker \
@@ -125,6 +135,7 @@ CUDA_VISIBLE_DEVICES=0 celery -A app worker \
 ```
 
 **Worker Types**:
+
 - **GPU workers**: `pool=solo` (ML inference)
 - **CPU workers**: `pool=prefork` (aggregation, batch creation)
 - **I/O workers**: `pool=gevent` (S3 uploads, DB writes)
@@ -135,6 +146,7 @@ CUDA_VISIBLE_DEVICES=0 celery -A app worker \
 **Why**: Low latency (<1ms), persistence (RDB + AOF), pub/sub
 
 **Usage**:
+
 - Celery broker (task queue)
 - Celery result backend (task state)
 - Application cache (cache-aside pattern)
@@ -148,6 +160,7 @@ CUDA_VISIBLE_DEVICES=0 celery -A app worker \
 **DemeterAI runs on CPU by default. GPU is OPTIONAL for 3-5× speedup.**
 
 **Performance**:
+
 - **CPU**: 5-10 minutes per photo (acceptable for batch processing)
 - **GPU**: 1-3 minutes per photo (optional speedup)
 
@@ -158,10 +171,12 @@ CUDA_VISIBLE_DEVICES=0 celery -A app worker \
 **Why**: 22% fewer params than YOLOv8, 25% faster, CPU-optimized
 
 **Models Used**:
+
 - `yolov11m-seg.pt`: Segmentation (find containers: plugs, boxes, segments)
 - `yolov11m.pt`: Detection (count individual plants)
 
 **CPU Optimization**:
+
 ```python
 from ultralytics import YOLO
 model = YOLO('yolov11m-seg.pt')
@@ -174,6 +189,7 @@ model.export(format='onnx', opset=12, simplify=True)  # ONNX for CPU
 **Why**: +6.8% AP improvement for high-res images, handles 4000×3000 photos
 
 **Usage**:
+
 ```python
 from sahi.predict import get_sliced_prediction
 result = get_sliced_prediction(
@@ -190,6 +206,7 @@ result = get_sliced_prediction(
 
 **Version**: `torch==2.4.0` (CPU version by default)
 **Installation**:
+
 ```bash
 # CPU version (default)
 pip install torch==2.4.0 --index-url https://download.pytorch.org/whl/cpu
@@ -208,6 +225,7 @@ pip install torch==2.4.0 --index-url https://download.pytorch.org/whl/cu121
 **Why**: Headless = no GUI dependencies (smaller Docker images), optimized C++ core
 
 **Usage**:
+
 - Mask smoothing (morphological operations)
 - HSV vegetation filtering
 - Image resizing, cropping, format conversion
@@ -229,12 +247,14 @@ pip install torch==2.4.0 --index-url https://download.pytorch.org/whl/cu121
 **Why**: Unlimited storage, 11 nines durability, lifecycle policies
 
 **Storage Strategy**:
+
 - Original photos: `original/{YYYY}/{MM}/{DD}/{uuid}.jpg` (90-day retention)
 - Processed photos: `processed/{YYYY}/{MM}/{DD}/{uuid}_viz.avif` (365-day retention)
 - Compression: AVIF format (50% smaller than JPEG)
 
 **Circuit Breaker**:
 **Version**: `pybreaker==1.4.1`
+
 ```python
 import pybreaker
 s3_breaker = pybreaker.CircuitBreaker(
@@ -254,6 +274,7 @@ s3_breaker = pybreaker.CircuitBreaker(
 **Why**: Stateless authentication, cryptographic signing
 
 **Configuration**:
+
 - Access token expiration: 15 minutes
 - Refresh token expiration: 7 days
 - Algorithm: HS256 (symmetric) or RS256 (asymmetric)
@@ -273,6 +294,7 @@ s3_breaker = pybreaker.CircuitBreaker(
 **Why**: Simple API, fixtures, async support
 
 **Key Plugins**:
+
 - `pytest-asyncio==0.24.0` (async test support)
 - `pytest-cov==6.0.0` (coverage reporting)
 - `pytest-mock==3.14.0` (mocking)
@@ -286,6 +308,7 @@ s3_breaker = pybreaker.CircuitBreaker(
 **Why**: 10-100× faster than Flake8 + Black, all-in-one linter + formatter
 
 **Configuration** (`.ruff.toml`):
+
 ```toml
 [tool.ruff]
 line-length = 100
@@ -304,6 +327,7 @@ ignore = ["E501"]  # Line too long (formatter handles)
 **Why**: Consistency (dev → staging → prod), isolation, scalability
 
 **Multi-stage build**:
+
 ```dockerfile
 FROM python:3.12-slim AS builder
 RUN pip install --no-cache-dir -r requirements.txt
@@ -324,6 +348,7 @@ CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0"]
 **Why**: Vendor-neutral distributed tracing, auto-instrumentation
 
 **Key Components**:
+
 - `opentelemetry-instrumentation-fastapi` (FastAPI auto-instrumentation)
 - `opentelemetry-instrumentation-celery` (Celery tracing)
 - `opentelemetry-exporter-otlp-proto-grpc` (OTLP export)
@@ -336,6 +361,7 @@ CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0"]
 **Why**: Time-series metrics, pull model, PromQL query language
 
 **Metrics Tracked**:
+
 - API latency (p50, p95, p99)
 - ML inference time
 - GPU utilization
@@ -349,6 +375,7 @@ CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0"]
 **See**: `04_templates/config-templates/requirements.txt.template` for full list
 
 **Key Versions Summary**:
+
 ```txt
 # Web Framework
 fastapi==0.118.2
@@ -392,18 +419,19 @@ ruff==0.7.0
 
 ## Version Update History
 
-| Date | Dependency | Old Version | New Version | Reason |
-|------|-----------|-------------|-------------|--------|
-| 2025-10-09 | **PostgreSQL** | 15 | **18** | Latest stable, improved partitioning |
-| 2025-10-09 | FastAPI | 0.109.0 | **0.118.2** | Latest async improvements |
-| 2025-10-09 | SQLAlchemy | 2.0.25 | **0.43** | Async no longer beta |
-| 2025-10-09 | Celery | 5.3.6 | **5.4.0** | Stability fixes |
+| Date       | Dependency     | Old Version | New Version | Reason                               |
+|------------|----------------|-------------|-------------|--------------------------------------|
+| 2025-10-09 | **PostgreSQL** | 15          | **18**      | Latest stable, improved partitioning |
+| 2025-10-09 | FastAPI        | 0.109.0     | **0.118.2** | Latest async improvements            |
+| 2025-10-09 | SQLAlchemy     | 2.0.25      | **0.43**    | Async no longer beta                 |
+| 2025-10-09 | Celery         | 5.3.6       | **5.4.0**   | Stability fixes                      |
 
 ---
 
 ## Verification Commands
 
 **Check installed versions**:
+
 ```bash
 # Python
 python3.12 --version

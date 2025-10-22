@@ -1,6 +1,7 @@
 # [F001] Project Setup - Directory Structure + pyproject.toml
 
 ## Metadata
+
 - **Epic**: epic-001-foundation.md
 - **Sprint**: Sprint-00 (Week 1-2)
 - **Status**: `ready`
@@ -9,32 +10,41 @@
 - **Area**: `foundation`
 - **Assignee**: Team Leader
 - **Dependencies**:
-  - Blocks: [F002, F003, F004, F005]
-  - Blocked by: None (first card)
+    - Blocks: [F002, F003, F004, F005]
+    - Blocked by: None (first card)
 
 ---
 
 ## Scrum Master Delegation (2025-10-13 11:50)
+
 **Assigned to**: Team Leader
 **Priority**: HIGH (critical path - blocks 4 other cards)
 **Dependencies**: None (first card in Sprint 00)
 **Epic**: epic-001-foundation.md
 **Sprint**: Sprint-00 (Week 1-2)
 
-**Context**: This is the FIRST card in the entire DemeterAI v2.0 backend project. It establishes the foundational directory structure and packaging configuration that all subsequent work depends on. The /home/lucasg/proyectos/DemeterDocs/app/ directory currently exists but is empty and ready for setup.
+**Context**: This is the FIRST card in the entire DemeterAI v2.0 backend project. It establishes the
+foundational directory structure and packaging configuration that all subsequent work depends on.
+The /home/lucasg/proyectos/DemeterDocs/app/ directory currently exists but is empty and ready for
+setup.
 
 **Critical Information**:
+
 - Working directory: /home/lucasg/proyectos/DemeterDocs
 - Target directory: /home/lucasg/proyectos/DemeterDocs/app/ (currently empty)
 - Tech stack: Python 3.12, FastAPI 0.118.2, SQLAlchemy 2.0.43 (see tech-stack.md)
 - Architecture: Clean Architecture (Controllers → Services → Repositories → Database)
 
 **Resources**:
+
 - Tech Stack: /home/lucasg/proyectos/DemeterDocs/backlog/00_foundation/tech-stack.md
-- Architecture Principles: /home/lucasg/proyectos/DemeterDocs/backlog/00_foundation/architecture-principles.md
-- Template (if exists): /home/lucasg/proyectos/DemeterDocs/backlog/04_templates/config-templates/pyproject.toml.template
+- Architecture Principles:
+  /home/lucasg/proyectos/DemeterDocs/backlog/00_foundation/architecture-principles.md
+- Template (if exists):
+  /home/lucasg/proyectos/DemeterDocs/backlog/04_templates/config-templates/pyproject.toml.template
 
 **Acceptance Criteria Summary**:
+
 1. Create Clean Architecture directory structure (app/core/, app/models/, app/repositories/, etc.)
 2. Create pyproject.toml with all dependencies from tech-stack.md
 3. Create minimal FastAPI app in app/main.py with /health endpoint
@@ -43,6 +53,7 @@
 **Blockers**: None
 
 **Next Cards After This**:
+
 - F002: Dependencies installation (blocked by F001)
 - F003: Git setup (blocked by F001)
 - F004: Logging configuration (blocked by F001)
@@ -50,17 +61,22 @@
 ---
 
 ## Related Documentation
+
 - **Engineering Plan**: ../../engineering_plan/development/README.md
 - **Tech Stack**: ../../backlog/00_foundation/tech-stack.md
 - **Template**: ../../backlog/04_templates/config-templates/pyproject.toml.template
 
 ## Description
 
-Create the initial project structure and packaging configuration for DemeterAI v2.0 backend. This establishes the foundation for all future development work.
+Create the initial project structure and packaging configuration for DemeterAI v2.0 backend. This
+establishes the foundation for all future development work.
 
-**What**: Set up Python project with modern packaging (pyproject.toml), create directory structure following Clean Architecture, and configure basic project metadata.
+**What**: Set up Python project with modern packaging (pyproject.toml), create directory structure
+following Clean Architecture, and configure basic project metadata.
 
-**Why**: A well-organized project structure from day 1 prevents technical debt and ensures team follows consistent patterns. Modern Python packaging (pyproject.toml) replaces legacy setup.py and enables better dependency management.
+**Why**: A well-organized project structure from day 1 prevents technical debt and ensures team
+follows consistent patterns. Modern Python packaging (pyproject.toml) replaces legacy setup.py and
+enables better dependency management.
 
 **Context**: This is the FIRST card in the project. Everything else depends on this foundation.
 
@@ -80,11 +96,11 @@ Create the initial project structure and packaging configuration for DemeterAI v
   ```
 
 - [X] **AC2**: `pyproject.toml` created with:
-  - Project metadata (name, version, description)
-  - Python 3.12 requirement
-  - All production dependencies with locked versions (see tech-stack.md)
-  - Dev dependencies in separate section
-  - Ruff, pytest, mypy configuration
+    - Project metadata (name, version, description)
+    - Python 3.12 requirement
+    - All production dependencies with locked versions (see tech-stack.md)
+    - Dev dependencies in separate section
+    - Ruff, pytest, mypy configuration
 
 - [X] **AC3**: `requirements.txt` generated from pyproject.toml:
   ```bash
@@ -115,6 +131,7 @@ Create the initial project structure and packaging configuration for DemeterAI v
 ## Technical Implementation Notes
 
 ### Architecture
+
 - Layer: Foundation
 - Dependencies: None
 - Design pattern: Clean Architecture directory structure
@@ -122,6 +139,7 @@ Create the initial project structure and packaging configuration for DemeterAI v
 ### Code Hints
 
 **pyproject.toml structure:**
+
 ```toml
 [project]
 name = "demeterai-backend"
@@ -141,6 +159,7 @@ dev = [
 ```
 
 **Directory creation:**
+
 ```bash
 mkdir -p app/{core,models,repositories,services,controllers,schemas,db}
 touch app/__init__.py app/main.py
@@ -153,11 +172,13 @@ touch app/core/{__init__.py,exceptions.py,logging.py,config.py}
 **Unit Tests**: N/A (structural card, no business logic)
 
 **Integration Tests**:
+
 - [ ] Test that FastAPI app starts: `uvicorn app.main:app`
 - [ ] Test `/health` endpoint returns 200 OK
 - [ ] Test all dependencies install without conflicts
 
 **Test Command**:
+
 ```bash
 # Verify installation
 pip install -e ".[dev]"
@@ -171,6 +192,7 @@ killall uvicorn
 ```
 
 ### Performance Expectations
+
 - Installation time: <2 minutes
 - App startup time: <1 second
 - `/health` response time: <10ms
@@ -178,16 +200,17 @@ killall uvicorn
 ## Handover Briefing
 
 **For the next developer:**
+
 - **Context**: This is the foundational card - sets up the entire project structure
 - **Key decisions**:
-  - Using pyproject.toml (modern Python packaging, not setup.py)
-  - Clean Architecture directory structure (controllers → services → repositories → models)
-  - Python 3.12 required (latest stable, async improvements)
+    - Using pyproject.toml (modern Python packaging, not setup.py)
+    - Clean Architecture directory structure (controllers → services → repositories → models)
+    - Python 3.12 required (latest stable, async improvements)
 - **Known limitations**: None
 - **Next steps after this card**:
-  - F002: Install dependencies and create requirements.txt
-  - F003: Git setup (pre-commit hooks, .gitignore)
-  - F004: Logging configuration
+    - F002: Install dependencies and create requirements.txt
+    - F003: Git setup (pre-commit hooks, .gitignore)
+    - F004: Logging configuration
 - **Questions to ask**: None - straightforward setup
 
 ## Definition of Done Checklist
@@ -202,6 +225,7 @@ killall uvicorn
 - [ ] No console.log or print() statements
 
 ## Time Tracking
+
 - **Estimated**: 5 story points
 - **Actual**: TBD (fill after completion)
 - **Started**: TBD
@@ -218,17 +242,20 @@ killall uvicorn
 ## Team Leader Mini-Plan (2025-10-13 11:55)
 
 ### Task Overview
+
 - **Card**: F001 - Project Setup (Directory Structure + pyproject.toml)
 - **Epic**: epic-001-foundation.md
 - **Priority**: HIGH (blocks F002, F003, F004, F005)
 - **Complexity**: 5 story points (Small)
 
 ### Architecture
+
 **Layer**: Foundation (no business logic, pure structure)
 **Pattern**: Clean Architecture directory layout
 **Dependencies**: None (first card)
 
 ### Files to Create
+
 - [ ] /home/lucasg/proyectos/DemeterDocs/pyproject.toml (~50 lines)
 - [ ] /home/lucasg/proyectos/DemeterDocs/app/__init__.py (empty)
 - [ ] /home/lucasg/proyectos/DemeterDocs/app/main.py (~15 lines - minimal FastAPI)
@@ -244,9 +271,11 @@ killall uvicorn
 - [ ] /home/lucasg/proyectos/DemeterDocs/app/db/__init__.py (empty)
 
 ### Database Access
+
 **N/A**: This is a structural card with no database interaction.
 
 ### Implementation Strategy
+
 This is a foundation card - no specialists needed. Team Leader will implement directly:
 
 1. **Create directory structure** (Clean Architecture layers)
@@ -256,38 +285,44 @@ This is a foundation card - no specialists needed. Team Leader will implement di
 5. **Verify structure** matches specification
 
 ### Acceptance Criteria (from task card)
-- [X] AC1: Directory structure created (app/core/, app/models/, app/repositories/, app/services/, app/controllers/, app/schemas/, app/db/)
+
+- [X] AC1: Directory structure created (app/core/, app/models/, app/repositories/, app/services/,
+  app/controllers/, app/schemas/, app/db/)
 - [X] AC2: pyproject.toml created with all dependencies from tech-stack.md
 - [X] AC3: requirements.txt generation command documented (will be executed in F002)
 - [X] AC4: Virtual environment setup documented (will be executed in F002)
 - [X] AC5: Basic app/main.py created with /health endpoint
 
 ### Performance Expectations
+
 - Directory creation: <1 second
 - File creation: <1 second
 - No runtime performance (structural only)
 
 ### Next Steps
+
 1. Move to 02_in-progress/
 2. Implement structure directly (no agents needed)
 3. Validate all files created
 4. Move to 04_testing/ (skip 03_code-review for structural cards)
 5. Mark complete
 
-
 ---
 
 ## Team Leader Implementation Report (2025-10-13 12:00)
 
 ### Implementation Status
+
 **Status**: COMPLETED
 **Duration**: ~5 minutes
 **Approach**: Direct implementation (no specialist agents needed for structural cards)
 
 ### Files Created
+
 All acceptance criteria have been fulfilled:
 
 #### AC1: Directory Structure
+
 ```
 app/
 ├── controllers/        ✅ Created
@@ -312,7 +347,9 @@ app/
 ```
 
 #### AC2: pyproject.toml
+
 ✅ Created at root: `/home/lucasg/proyectos/DemeterDocs/pyproject.toml`
+
 - Project metadata: name="demeterai-backend", version="2.0.0"
 - Python 3.12 requirement
 - All production dependencies from tech-stack.md
@@ -320,7 +357,9 @@ app/
 - Tool configurations (ruff, pytest)
 
 #### AC3 & AC4: Virtual Environment & Dependencies
+
 Documented commands (will be executed in F002):
+
 ```bash
 # Create venv
 python3.12 -m venv venv
@@ -334,12 +373,15 @@ pip freeze > requirements.txt
 ```
 
 #### AC5: FastAPI Application
+
 ✅ Created `/home/lucasg/proyectos/DemeterDocs/app/main.py`:
+
 - FastAPI app with title="DemeterAI v2.0", version="2.0.0"
 - /health endpoint returning {"status": "healthy"}
 - Async endpoint following best practices
 
 ### Validation Results
+
 - [✅] All directories created
 - [✅] All __init__.py files created
 - [✅] Placeholder files for F004, F005, F006 created
@@ -347,24 +389,27 @@ pip freeze > requirements.txt
 - [✅] app/main.py with FastAPI + /health endpoint
 
 ### Next Actions
+
 1. Move to 04_testing/ (skip code-review for structural cards)
 2. F002 will install dependencies and verify FastAPI starts
 3. F003 will setup git (pre-commit hooks)
 4. F004-F007 will populate placeholder files
 
 ### Dependencies Unblocked
+
 - ✅ F002: Dependencies (can now install from pyproject.toml)
 - ✅ F003: Git setup (structure ready for .gitignore)
 - ✅ F004: Logging (can now populate app/core/logging.py)
 - ✅ F005: Exceptions (can now populate app/core/exceptions.py)
 
-
 ---
 
 ## Team Leader Final Approval (2025-10-13 12:01)
+
 **Status**: ✅ READY FOR COMPLETION
 
 ### Quality Gates Summary
+
 - [✅] All acceptance criteria checked (AC1-AC5)
 - [✅] Directory structure matches Clean Architecture specification
 - [✅] pyproject.toml created with all dependencies
@@ -374,12 +419,15 @@ pip freeze > requirements.txt
 - [N/A] Code review (structural card, no code to review)
 
 ### Performance Metrics
+
 - Directory creation: <1 second ✅
 - File creation: <1 second ✅
 - Total implementation time: ~5 minutes ✅
 
 ### Files Created (12 files + 1 config)
+
 **Application Structure**:
+
 - /home/lucasg/proyectos/DemeterDocs/app/__init__.py
 - /home/lucasg/proyectos/DemeterDocs/app/main.py (FastAPI + /health)
 - /home/lucasg/proyectos/DemeterDocs/app/core/__init__.py
@@ -394,9 +442,11 @@ pip freeze > requirements.txt
 - /home/lucasg/proyectos/DemeterDocs/app/schemas/__init__.py
 
 **Configuration**:
+
 - /home/lucasg/proyectos/DemeterDocs/pyproject.toml
 
 ### Dependencies Unblocked
+
 - ✅ F002: Dependencies installation (can now run pip install)
 - ✅ F003: Git setup (structure ready)
 - ✅ F004: Logging configuration (can populate app/core/logging.py)

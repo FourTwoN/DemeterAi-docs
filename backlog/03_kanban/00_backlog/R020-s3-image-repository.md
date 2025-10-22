@@ -1,6 +1,7 @@
 # R020: S3 Image Repository
 
 ## Metadata
+
 - **Epic**: [epic-003-repositories.md](../../02_epics/epic-003-repositories.md)
 - **Sprint**: Sprint-02
 - **Status**: `backlog`
@@ -9,20 +10,25 @@
 - **Area**: `repositories`
 - **Assignee**: TBD
 - **Dependencies**:
-  - Blocks: [R019, R021, S017]
-  - Blocked by: [F006, F007, DB011, R018]
+    - Blocks: [R019, R021, S017]
+    - Blocked by: [F006, F007, DB011, R018]
 
 ## Related Documentation
-- **Engineering Plan**: [../../engineering_plan/backend/repository_layer.md](../../engineering_plan/backend/repository_layer.md)
+
+- **Engineering Plan
+  **: [../../engineering_plan/backend/repository_layer.md](../../engineering_plan/backend/repository_layer.md)
 - **Database ERD**: [../../database/database.mmd](../../database/database.mmd#L227-L245)
 
 ## Description
 
-**What**: Implement repository class for `s3_images` table with CRUD operations, image_id UUID lookup, and **asyncpg COPY bulk insert** for high-volume uploads.
+**What**: Implement repository class for `s3_images` table with CRUD operations, image_id UUID
+lookup, and **asyncpg COPY bulk insert** for high-volume uploads.
 
-**Why**: S3 images store photo metadata (S3 keys, dimensions, EXIF, GPS). Repository provides image lookup, upload tracking, and bulk insert for batch uploads (critical for performance).
+**Why**: S3 images store photo metadata (S3 keys, dimensions, EXIF, GPS). Repository provides image
+lookup, upload tracking, and bulk insert for batch uploads (critical for performance).
 
-**Context**: image_id is UUID (PK). S3 keys are unique. Bulk insert via asyncpg COPY enables fast batch uploads (1000s of images). Used by photo gallery and ML pipeline.
+**Context**: image_id is UUID (PK). S3 keys are unique. Bulk insert via asyncpg COPY enables fast
+batch uploads (1000s of images). Used by photo gallery and ML pipeline.
 
 ## Acceptance Criteria
 
@@ -30,7 +36,8 @@
 - [ ] **AC2**: Implements `get_by_image_id(image_id: UUID)` method (PK lookup)
 - [ ] **AC3**: Implements `get_by_s3_key(s3_key: str)` method (unique constraint)
 - [ ] **AC4**: Implements `get_by_user_id(user_id: int, limit: int)` for user galleries
-- [ ] **AC5**: **CRITICAL**: Implements `bulk_insert_with_copy(images: List[dict])` using asyncpg COPY for performance
+- [ ] **AC5**: **CRITICAL**: Implements `bulk_insert_with_copy(images: List[dict])` using asyncpg
+  COPY for performance
 - [ ] **AC6**: Implements `get_failed_uploads()` for error recovery
 - [ ] **AC7**: Query performance: UUID lookup <5ms, bulk insert <100ms for 100 images
 
@@ -103,6 +110,7 @@ async def bulk_insert_with_copy(
 - [ ] PR reviewed (2+ approvals)
 
 ## Time Tracking
+
 - **Estimated**: 5 story points (~10 hours)
 - **Actual**: TBD
 

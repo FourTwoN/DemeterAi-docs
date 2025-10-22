@@ -8,23 +8,28 @@
 
 ## Executive Summary
 
-Both the **main database** (demeterai) and **test database** (demeterai_test) have been completely dropped, recreated, and migrated to the latest schema version. All migrations applied successfully without errors.
+Both the **main database** (demeterai) and **test database** (demeterai_test) have been completely
+dropped, recreated, and migrated to the latest schema version. All migrations applied successfully
+without errors.
 
 ---
 
 ## Execution Steps Completed
 
 ### Step 1: Verify Initial State
+
 - **Main DB Migration**: `8807863f7d8c` (head)
 - **Alembic History**: 14 migrations from initial PostGIS setup to location_relationships
 
 ### Step 2: Database Recreation
+
 - **Action**: Dropped both databases with volumes (`docker compose down db db_test -v`)
 - **Result**: All data and volumes successfully removed
 - **Recreation**: Both containers recreated with fresh volumes
 - **Wait Time**: 10 seconds for PostgreSQL initialization
 
 ### Step 3: Database Verification
+
 - **Main DB**: PostgreSQL 18.0, Port 5432 ✅
 - **Test DB**: PostgreSQL 18.0, Port 5434 ✅
 - **Connectivity**: Both databases accepting connections
@@ -32,6 +37,7 @@ Both the **main database** (demeterai) and **test database** (demeterai_test) ha
 ### Step 4: Migration Application
 
 #### Main Database (demeterai)
+
 ```bash
 Connection: postgresql+psycopg2://demeter:demeter_dev_password@localhost:5432/demeterai
 Status: ✅ SUCCESS
@@ -41,6 +47,7 @@ Errors: None
 ```
 
 **Migration Sequence:**
+
 1. `6f1b94ebef45` - initial_setup_enable_postgis
 2. `2f68e3f132f5` - create warehouses table
 3. `742a3bebd3a8` - create storage_areas table
@@ -57,6 +64,7 @@ Errors: None
 14. `8807863f7d8c` - add location_relationships table
 
 #### Test Database (demeterai_test)
+
 ```bash
 Connection: postgresql+psycopg2://demeter_test:demeter_test_password@localhost:5434/demeterai_test
 Status: ✅ SUCCESS
@@ -74,37 +82,37 @@ Environment Variable: DATABASE_URL_SYNC overridden for test DB
 
 ### Tables Created: 15 (14 application + 1 metadata)
 
-| # | Table Name | Purpose | Foreign Keys |
-|---|------------|---------|--------------|
-| 1 | `warehouses` | 4-level geospatial hierarchy (Level 1) | - |
-| 2 | `storage_areas` | Storage areas within warehouses (Level 2) | warehouse_id, parent_area_id |
-| 3 | `storage_locations` | Storage locations within areas (Level 3) | storage_area_id |
-| 4 | `storage_bin_types` | Bin type definitions | - |
-| 5 | `storage_bins` | Individual storage bins (Level 4) | storage_location_id, storage_bin_type_id |
-| 6 | `location_relationships` | Custom location relationships | parent_location_id, child_location_id |
-| 7 | `product_categories` | Product taxonomy (Level 1) | - |
-| 8 | `product_families` | Product taxonomy (Level 2) | category_id |
-| 9 | `products` | Product master data (Level 3) | family_id |
-| 10 | `product_sizes` | Product size attributes | - |
-| 11 | `product_states` | Product state definitions | - |
-| 12 | `users` | User management | - |
-| 13 | `s3_images` | Image storage metadata | uploaded_by_user_id |
-| 14 | `alembic_version` | Migration tracking (metadata) | - |
-| 15 | `spatial_ref_sys` | PostGIS spatial references (system) | - |
+| #  | Table Name               | Purpose                                   | Foreign Keys                             |
+|----|--------------------------|-------------------------------------------|------------------------------------------|
+| 1  | `warehouses`             | 4-level geospatial hierarchy (Level 1)    | -                                        |
+| 2  | `storage_areas`          | Storage areas within warehouses (Level 2) | warehouse_id, parent_area_id             |
+| 3  | `storage_locations`      | Storage locations within areas (Level 3)  | storage_area_id                          |
+| 4  | `storage_bin_types`      | Bin type definitions                      | -                                        |
+| 5  | `storage_bins`           | Individual storage bins (Level 4)         | storage_location_id, storage_bin_type_id |
+| 6  | `location_relationships` | Custom location relationships             | parent_location_id, child_location_id    |
+| 7  | `product_categories`     | Product taxonomy (Level 1)                | -                                        |
+| 8  | `product_families`       | Product taxonomy (Level 2)                | category_id                              |
+| 9  | `products`               | Product master data (Level 3)             | family_id                                |
+| 10 | `product_sizes`          | Product size attributes                   | -                                        |
+| 11 | `product_states`         | Product state definitions                 | -                                        |
+| 12 | `users`                  | User management                           | -                                        |
+| 13 | `s3_images`              | Image storage metadata                    | uploaded_by_user_id                      |
+| 14 | `alembic_version`        | Migration tracking (metadata)             | -                                        |
+| 15 | `spatial_ref_sys`        | PostGIS spatial references (system)       | -                                        |
 
 ### Enum Types: 9
 
-| Enum Type | Values | Used In |
-|-----------|--------|---------|
-| `warehouse_type_enum` | greenhouse, shadehouse, open_field, tunnel | warehouses.warehouse_type |
-| `bin_category_enum` | harvest, packing, storage, quarantine | storage_bin_types.category |
-| `position_enum` | floor, shelf, overhead | storage_bin_types.position |
-| `storage_bin_status_enum` | available, occupied, reserved, maintenance | storage_bins.status |
-| `relationshiptypeenum` | adjacent, opposite, shares_wall | location_relationships.relationship_type |
-| `user_role_enum` | admin, supervisor, operator, viewer | users.role |
-| `content_type_enum` | image/jpeg, image/png, image/heic | s3_images.content_type |
-| `upload_source_enum` | web, mobile, api | s3_images.upload_source |
-| `processing_status_enum` | uploaded, processing, completed, failed | s3_images.status |
+| Enum Type                 | Values                                     | Used In                                  |
+|---------------------------|--------------------------------------------|------------------------------------------|
+| `warehouse_type_enum`     | greenhouse, shadehouse, open_field, tunnel | warehouses.warehouse_type                |
+| `bin_category_enum`       | harvest, packing, storage, quarantine      | storage_bin_types.category               |
+| `position_enum`           | floor, shelf, overhead                     | storage_bin_types.position               |
+| `storage_bin_status_enum` | available, occupied, reserved, maintenance | storage_bins.status                      |
+| `relationshiptypeenum`    | adjacent, opposite, shares_wall            | location_relationships.relationship_type |
+| `user_role_enum`          | admin, supervisor, operator, viewer        | users.role                               |
+| `content_type_enum`       | image/jpeg, image/png, image/heic          | s3_images.content_type                   |
+| `upload_source_enum`      | web, mobile, api                           | s3_images.upload_source                  |
+| `processing_status_enum`  | uploaded, processing, completed, failed    | s3_images.status                         |
 
 ### Foreign Key Constraints: 10
 
@@ -122,6 +130,7 @@ Environment Variable: DATABASE_URL_SYNC overridden for test DB
 ### Indexes: 73 total
 
 **Distribution by table:**
+
 - `warehouses`: 7 indexes (PK, unique code, geom, centroid, type, active)
 - `storage_areas`: 9 indexes (PK, unique code, FK indexes, geom, active)
 - `storage_locations`: 10 indexes (PK, unique code, FK indexes, geom, active)
@@ -140,10 +149,10 @@ Environment Variable: DATABASE_URL_SYNC overridden for test DB
 
 ### PostGIS Extensions: 2
 
-| Extension | Version | Purpose |
-|-----------|---------|---------|
-| `postgis` | 3.6.0 | Geospatial geometry support |
-| `postgis_topology` | 3.6.0 | Topology support for spatial relationships |
+| Extension          | Version | Purpose                                    |
+|--------------------|---------|--------------------------------------------|
+| `postgis`          | 3.6.0   | Geospatial geometry support                |
+| `postgis_topology` | 3.6.0   | Topology support for spatial relationships |
 
 ---
 
@@ -177,15 +186,15 @@ Status: READY FOR USE
 
 ### Schema Parity Verification
 
-| Metric | Main DB | Test DB | Match |
-|--------|---------|---------|-------|
-| Migration Version | 8807863f7d8c | 8807863f7d8c | ✅ |
-| Total Tables | 15 | 15 | ✅ |
-| Total Indexes | 73 | 73 | ✅ |
-| Foreign Keys | 10 | 10 | ✅ |
-| Enum Types | 9 | 9 | ✅ |
-| PostGIS Version | 3.6.0 | 3.6.0 | ✅ |
-| Database Size | 20 MB | 20 MB | ✅ |
+| Metric            | Main DB      | Test DB      | Match |
+|-------------------|--------------|--------------|-------|
+| Migration Version | 8807863f7d8c | 8807863f7d8c | ✅     |
+| Total Tables      | 15           | 15           | ✅     |
+| Total Indexes     | 73           | 73           | ✅     |
+| Foreign Keys      | 10           | 10           | ✅     |
+| Enum Types        | 9            | 9            | ✅     |
+| PostGIS Version   | 3.6.0        | 3.6.0        | ✅     |
+| Database Size     | 20 MB        | 20 MB        | ✅     |
 
 **Result**: Both databases are **IDENTICAL** in structure ✅
 
@@ -278,17 +287,22 @@ Indexes:
 ## Issues Encountered & Resolved
 
 ### Issue 1: Enum Type Already Exists Error
+
 **Error Message:**
+
 ```
 psycopg2.errors.DuplicateObject: type "warehouse_type_enum" already exists
 ```
 
 **Root Cause:**
-- Initial downgrade command (`alembic downgrade base`) was executed against the **main database** (port 5432)
+
+- Initial downgrade command (`alembic downgrade base`) was executed against the **main database** (
+  port 5432)
 - The test database upgrade was attempted while enum types still existed from a previous session
 - Alembic was connecting to the wrong database due to `DATABASE_URL_SYNC` environment variable
 
 **Resolution:**
+
 1. Dropped **both** databases completely with volumes
 2. Recreated both databases from scratch
 3. Applied migrations to main DB first (using default config)
@@ -296,12 +310,15 @@ psycopg2.errors.DuplicateObject: type "warehouse_type_enum" already exists
 5. Result: Clean migration with no pre-existing enum types
 
 ### Issue 2: Environment Variable Override
+
 **Challenge:**
+
 - Alembic reads `DATABASE_URL_SYNC` from `app.core.config.settings`
 - Default configuration points to main database (port 5432)
 - Need to override for test database (port 5434)
 
 **Solution:**
+
 ```bash
 # Correct approach for test database migrations
 export DATABASE_URL_SYNC="postgresql+psycopg2://demeter_test:demeter_test_password@localhost:5434/demeterai_test"
@@ -315,6 +332,7 @@ alembic upgrade head
 ## Database Connection Details
 
 ### Main Database
+
 ```
 Host: localhost
 Port: 5432
@@ -328,6 +346,7 @@ Volume: demeterdocs_postgres_data
 ```
 
 ### Test Database
+
 ```
 Host: localhost
 Port: 5434
@@ -345,6 +364,7 @@ Volume: demeterdocs_postgres_test_data
 ## Post-Recreation Tasks
 
 ### ✅ Completed
+
 - [x] Both databases dropped and recreated
 - [x] All 14 migrations applied successfully
 - [x] Schema verification completed
@@ -361,9 +381,9 @@ Volume: demeterdocs_postgres_test_data
    ```bash
    pytest tests/ -v --cov=app --cov-report=term-missing
    ```
-   - Verify all model tests pass
-   - Verify all repository tests pass
-   - Verify integration tests pass
+    - Verify all model tests pass
+    - Verify all repository tests pass
+    - Verify integration tests pass
 
 2. **Verify Model Imports**
    ```bash
@@ -382,15 +402,16 @@ Volume: demeterdocs_postgres_test_data
    ```
 
 5. **Update Development Documentation**
-   - Document new tables (`location_relationships`, `s3_images`)
-   - Update ERD if needed
-   - Update API documentation with new endpoints
+    - Document new tables (`location_relationships`, `s3_images`)
+    - Update ERD if needed
+    - Update API documentation with new endpoints
 
 ---
 
 ## Technical Notes
 
 ### Migration System
+
 - **Total Migrations**: 14
 - **First Migration**: `6f1b94ebef45` (PostGIS setup)
 - **Latest Migration**: `8807863f7d8c` (location_relationships)
@@ -398,14 +419,16 @@ Volume: demeterdocs_postgres_test_data
 - **SQLAlchemy Version**: 2.0+
 
 ### PostGIS Configuration
+
 - **Version**: 3.6.0
 - **SRID**: 4326 (WGS 84)
 - **Geometry Types Used**:
-  - `POLYGON` (warehouses)
-  - `POINT` (warehouse centroids, storage areas)
+    - `POLYGON` (warehouses)
+    - `POINT` (warehouse centroids, storage areas)
 - **Spatial Indexes**: GIST indexes on all geometry columns
 
 ### Performance Optimizations
+
 - **Index Coverage**: 73 indexes across 15 tables
 - **GIST Indexes**: All geospatial columns indexed
 - **JSONB GIN Index**: GPS coordinates in s3_images
@@ -446,12 +469,14 @@ diff <(psql -d demeterai -U demeter -c "\d+ warehouses") \
 ✅ **Database recreation completed successfully**
 
 Both the main and test databases have been:
+
 - Completely wiped and recreated
 - Migrated to the latest schema version (`8807863f7d8c`)
 - Verified for structural integrity
 - Confirmed to be identical in schema
 
-The databases are now **ready for development and testing** with a clean slate and all latest migrations applied.
+The databases are now **ready for development and testing** with a clean slate and all latest
+migrations applied.
 
 ---
 

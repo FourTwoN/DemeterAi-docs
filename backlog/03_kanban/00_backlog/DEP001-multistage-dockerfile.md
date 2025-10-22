@@ -1,6 +1,7 @@
 # [DEP001] Multi-stage Dockerfile
 
 ## Metadata
+
 - **Epic**: epic-011-deployment
 - **Sprint**: Sprint-02
 - **Priority**: `critical` ⚡
@@ -8,9 +9,12 @@
 - **Dependencies**: Blocks [DEP002, DEP003], Blocked by [F002]
 
 ## Description
-Create optimized multi-stage Dockerfile for production: builder stage (compile dependencies) + runtime stage (slim image).
+
+Create optimized multi-stage Dockerfile for production: builder stage (compile dependencies) +
+runtime stage (slim image).
 
 ## Acceptance Criteria
+
 - [ ] Multi-stage build (builder + runtime)
 - [ ] Base image: python:3.12-slim
 - [ ] Final image size <500MB (without ML models)
@@ -19,6 +23,7 @@ Create optimized multi-stage Dockerfile for production: builder stage (compile d
 - [ ] Optimized layer caching (COPY requirements first)
 
 ## Implementation
+
 ```dockerfile
 # Stage 1: Builder
 FROM python:3.12-slim AS builder
@@ -60,6 +65,7 @@ CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
 ```
 
 ## Testing
+
 - Build image: `docker build -t demeterai:latest .`
 - Verify image size <500MB
 - Test health check works

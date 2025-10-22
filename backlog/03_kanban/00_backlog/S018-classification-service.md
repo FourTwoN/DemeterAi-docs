@@ -1,6 +1,7 @@
 # S018: ClassificationService
 
 ## Metadata
+
 - **Epic**: [epic-004-services.md](../../02_epics/epic-004-services.md)
 - **Sprint**: Sprint-04
 - **Status**: `backlog`
@@ -9,16 +10,19 @@
 - **Area**: `services/photo`
 - **Assignee**: TBD
 - **Dependencies**:
-  - Blocks: [C017, ML004]
-  - Blocked by: [S017, S036]
+    - Blocks: [C017, ML004]
+    - Blocked by: [S017, S036]
 
 ## Description
 
-**What**: Service for assigning product/packaging classifications to ML estimations (links estimations to product catalog).
+**What**: Service for assigning product/packaging classifications to ML estimations (links
+estimations to product catalog).
 
-**Why**: Connects ML results to product catalog. Essential for stock movement creation from photo processing.
+**Why**: Connects ML results to product catalog. Essential for stock movement creation from photo
+processing.
 
-**Context**: Application Layer. Reads storage_location_config to determine expected product/packaging, assigns to estimations.
+**Context**: Application Layer. Reads storage_location_config to determine expected
+product/packaging, assigns to estimations.
 
 ## Acceptance Criteria
 
@@ -29,11 +33,13 @@
 - [ ] **AC5**: Unit tests ≥85% coverage
 
 ## Technical Notes
+
 - Reads storage_location_configs for expected product/packaging
 - Manual override for misclassifications
 - Creates stock_movements (type: "foto") after classification
 
 ## Time Tracking
+
 - **Estimated**: 3 story points (~6 hours)
 
 ---

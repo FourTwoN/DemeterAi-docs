@@ -1,6 +1,7 @@
 # S028: AnalyticsQueryService
 
 ## Metadata
+
 - **Epic**: [epic-004-services.md](../../02_epics/epic-004-services.md)
 - **Sprint**: Sprint-06
 - **Status**: `backlog`
@@ -8,16 +9,18 @@
 - **Complexity**: L (5 story points)
 - **Area**: `services/analytics`
 - **Dependencies**:
-  - Blocks: [S029, C025]
-  - Blocked by: [S012]
+    - Blocks: [S029, C025]
+    - Blocked by: [S012]
 
 ## Description
 
-**What**: Analytics query service with flexible filters (date range, location, product, movement type).
+**What**: Analytics query service with flexible filters (date range, location, product, movement
+type).
 
 **Why**: Powers analytics dashboard with customizable reports.
 
-**Context**: Application Layer. Aggregates data from stock_movements, stock_batches, and photo_processing_sessions.
+**Context**: Application Layer. Aggregates data from stock_movements, stock_batches, and
+photo_processing_sessions.
 
 ## Acceptance Criteria
 
@@ -29,6 +32,7 @@
 - [ ] **AC6**: Unit tests ≥85% coverage
 
 ## Time Tracking
+
 - **Estimated**: 5 story points (~10 hours)
 
 ---

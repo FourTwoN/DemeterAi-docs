@@ -1,6 +1,7 @@
 # [F010] mypy Configuration - Type Checking
 
 ## Metadata
+
 - **Epic**: epic-001-foundation.md
 - **Sprint**: Sprint-00 (Week 1-2)
 - **Status**: `backlog`
@@ -9,22 +10,29 @@
 - **Area**: `foundation`
 - **Assignee**: TBD
 - **Dependencies**:
-  - Blocks: [Type safety quality gates]
-  - Blocked by: [F001, F002, F003]
+    - Blocks: [Type safety quality gates]
+    - Blocked by: [F001, F002, F003]
 
 ## Related Documentation
+
 - **Conventions**: ../../backlog/00_foundation/conventions.md#type-hints
 - **Tech Stack**: ../../backlog/00_foundation/tech-stack.md#testing--quality
 
 ## Description
 
-Configure mypy for static type checking with strict mode, SQLAlchemy plugin, and incremental checking to catch type errors before runtime.
+Configure mypy for static type checking with strict mode, SQLAlchemy plugin, and incremental
+checking to catch type errors before runtime.
 
-**What**: Create `pyproject.toml` mypy configuration with strict type checking enabled, SQLAlchemy plugin for ORM models, and exclusions for auto-generated code. Integrate with pre-commit hooks.
+**What**: Create `pyproject.toml` mypy configuration with strict type checking enabled, SQLAlchemy
+plugin for ORM models, and exclusions for auto-generated code. Integrate with pre-commit hooks.
 
-**Why**: Type hints catch bugs at development time (not production). mypy verifies FastAPI route signatures, SQLAlchemy model types, and Pydantic schema compatibility. Strict mode enforces type hints on all functions.
+**Why**: Type hints catch bugs at development time (not production). mypy verifies FastAPI route
+signatures, SQLAlchemy model types, and Pydantic schema compatibility. Strict mode enforces type
+hints on all functions.
 
-**Context**: Python is dynamically typed. Without mypy, type errors appear at runtime (e.g., passing int where str expected). DemeterAI has 240+ functions - manual type verification is impossible. mypy automates type safety.
+**Context**: Python is dynamically typed. Without mypy, type errors appear at runtime (e.g., passing
+int where str expected). DemeterAI has 240+ functions - manual type verification is impossible. mypy
+automates type safety.
 
 ## Acceptance Criteria
 
@@ -71,8 +79,8 @@ Configure mypy for static type checking with strict mode, SQLAlchemy plugin, and
   ```
 
 - [ ] **AC5**: Pre-commit integration:
-  - mypy runs on every commit
-  - Commits blocked if type errors found
+    - mypy runs on every commit
+    - Commits blocked if type errors found
 
 - [ ] **AC6**: Type hints enforced:
   ```python
@@ -88,6 +96,7 @@ Configure mypy for static type checking with strict mode, SQLAlchemy plugin, and
 ## Technical Implementation Notes
 
 ### Architecture
+
 - Layer: Foundation (Code Quality)
 - Dependencies: mypy 1.8.0, sqlalchemy stubs, pre-commit (F003)
 - Design pattern: Static type checking
@@ -95,6 +104,7 @@ Configure mypy for static type checking with strict mode, SQLAlchemy plugin, and
 ### Code Hints
 
 **pyproject.toml complete configuration:**
+
 ```toml
 [tool.mypy]
 python_version = "3.12"
@@ -141,6 +151,7 @@ disallow_incomplete_defs = false
 ```
 
 **Example typed code:**
+
 ```python
 from typing import Optional, List
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -168,6 +179,7 @@ class WarehouseService:
 **Unit Tests**: N/A (static analysis tool)
 
 **Integration Tests**:
+
 - [ ] Test mypy catches type errors:
   ```python
   # Create file with type error
@@ -194,12 +206,14 @@ class WarehouseService:
   ```
 
 **Test Command**:
+
 ```bash
 # Test on all existing code
 mypy app/
 ```
 
 ### Performance Expectations
+
 - Type checking: <5 seconds for entire codebase
 - Incremental checking: <1 second for single file change
 - Cache warmup: <10 seconds first run
@@ -207,25 +221,26 @@ mypy app/
 ## Handover Briefing
 
 **For the next developer:**
+
 - **Context**: This is the type safety gate - all code must have type hints and pass mypy
 - **Key decisions**:
-  - Strict mode enabled (enforces type hints on all functions)
-  - SQLAlchemy plugin (understands ORM models)
-  - Tests excluded from strict mode (allow untyped test helpers)
-  - Alembic excluded (auto-generated migration code)
-  - Incremental caching (faster re-checks)
+    - Strict mode enabled (enforces type hints on all functions)
+    - SQLAlchemy plugin (understands ORM models)
+    - Tests excluded from strict mode (allow untyped test helpers)
+    - Alembic excluded (auto-generated migration code)
+    - Incremental caching (faster re-checks)
 - **Known limitations**:
-  - mypy doesn't catch all type errors (some runtime checks still needed)
-  - Third-party libraries without type stubs need `type: ignore` comments
-  - Generic types can be verbose (e.g., `List[Optional[Dict[str, Any]]]`)
+    - mypy doesn't catch all type errors (some runtime checks still needed)
+    - Third-party libraries without type stubs need `type: ignore` comments
+    - Generic types can be verbose (e.g., `List[Optional[Dict[str, Any]]]`)
 - **Next steps after this card**:
-  - All new code must include type hints
-  - Pre-commit runs mypy automatically
-  - CI/CD runs `mypy app/ --strict` (Sprint 05)
+    - All new code must include type hints
+    - Pre-commit runs mypy automatically
+    - CI/CD runs `mypy app/ --strict` (Sprint 05)
 - **Questions to ask**:
-  - Should we use pyright instead of mypy? (alternative type checker)
-  - Should we enforce 100% type coverage? (strict but time-consuming)
-  - Should we add runtime type checking with pydantic? (already used)
+    - Should we use pyright instead of mypy? (alternative type checker)
+    - Should we enforce 100% type coverage? (strict but time-consuming)
+    - Should we add runtime type checking with pydantic? (already used)
 
 ## Definition of Done Checklist
 
@@ -240,6 +255,7 @@ mypy app/
 - [ ] Sample typed code verified with mypy
 
 ## Time Tracking
+
 - **Estimated**: 2 story points
 - **Actual**: TBD (fill after completion)
 - **Started**: TBD

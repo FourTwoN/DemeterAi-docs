@@ -87,7 +87,10 @@ Content-Type: application/json
   "email": "newuser@example.com",
   "name": "New User",
   "role": "operator",
-  "permissions": ["read:inventory", "write:stock"]
+  "permissions": [
+    "read:inventory",
+    "write:stock"
+  ]
 }
 
 ###
@@ -99,7 +102,11 @@ Content-Type: application/json
 
 {
   "role": "supervisor",
-  "permissions": ["read:inventory", "write:stock", "read:analytics"]
+  "permissions": [
+    "read:inventory",
+    "write:stock",
+    "read:analytics"
+  ]
 }
 
 ###

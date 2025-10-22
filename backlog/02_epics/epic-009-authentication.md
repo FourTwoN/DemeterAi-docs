@@ -10,7 +10,8 @@
 
 ## Goal
 
-Implement JWT-based authentication with role-based access control (RBAC), secure password hashing, and token refresh mechanism for API security.
+Implement JWT-based authentication with role-based access control (RBAC), secure password hashing,
+and token refresh mechanism for API security.
 
 ---
 
@@ -28,16 +29,19 @@ Implement JWT-based authentication with role-based access control (RBAC), secure
 ## Cards List (6 cards, 30 points)
 
 ### Core Auth (15 points)
+
 - **AUTH001**: JWT token generation & validation (5pts)
 - **AUTH002**: Password hashing (bcrypt) (3pts)
 - **AUTH003**: Login endpoint (5pts)
 - **AUTH004**: Token refresh endpoint (2pts)
 
 ### User Management (10 points)
+
 - **AUTH005**: User CRUD (admin only) (5pts)
 - **AUTH006**: Password reset flow (5pts)
 
 ### Authorization (5 points)
+
 - **AUTH007**: Role-based permissions (RBAC) (3pts)
 - **AUTH008**: Dependency guards (@require_role) (2pts)
 
@@ -53,6 +57,7 @@ Implement JWT-based authentication with role-based access control (RBAC), secure
 ## Technical Approach
 
 **JWT Pattern**:
+
 ```python
 from jose import JWTError, jwt
 from passlib.context import CryptContext
@@ -86,6 +91,7 @@ def require_role(*roles: str):
 ```
 
 **Usage**:
+
 ```python
 @router.post("/stock/manual")
 async def manual_init(

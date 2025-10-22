@@ -1,6 +1,7 @@
 # [AUTH004] Authorization Middleware
 
 ## Metadata
+
 - **Epic**: epic-009-auth-security
 - **Sprint**: Sprint-05
 - **Status**: `backlog`
@@ -9,20 +10,24 @@
 - **Area**: `authentication`
 - **Assignee**: TBD
 - **Dependencies**:
-  - Blocks: [AUTH006, all protected API endpoints]
-  - Blocked by: [AUTH001]
+    - Blocks: [AUTH006, all protected API endpoints]
+    - Blocked by: [AUTH001]
 
 ## Related Documentation
+
 - **Engineering Plan**: ../../engineering_plan/03_architecture_overview.md
 - **FastAPI Docs**: https://fastapi.tiangolo.com/tutorial/dependencies/
 
 ## Description
 
-Create FastAPI dependency for protecting routes with JWT authentication and role-based authorization. Validates tokens and enforces role requirements.
+Create FastAPI dependency for protecting routes with JWT authentication and role-based
+authorization. Validates tokens and enforces role requirements.
 
-**What**: Middleware (FastAPI Depends) that extracts JWT from Authorization header, validates it, and checks user roles.
+**What**: Middleware (FastAPI Depends) that extracts JWT from Authorization header, validates it,
+and checks user roles.
 
-**Why**: Protect API endpoints from unauthorized access. Enforce role-based permissions (admin, operator, viewer).
+**Why**: Protect API endpoints from unauthorized access. Enforce role-based permissions (admin,
+operator, viewer).
 
 **Context**: Used across all protected API routes. Integrates with AUTH001 (JWT service).
 
@@ -41,26 +46,27 @@ Create FastAPI dependency for protecting routes with JWT authentication and role
   ```
 
 - [ ] **AC3**: Token validation flow:
-  1. Extract token from header
-  2. Decode and verify JWT
-  3. Look up user by ID from token payload
-  4. Check user is_active
-  5. Return User object
+    1. Extract token from header
+    2. Decode and verify JWT
+    3. Look up user by ID from token payload
+    4. Check user is_active
+    5. Return User object
 
 - [ ] **AC4**: Role hierarchy:
-  - **admin**: Full access (all operations)
-  - **operator**: Read + Write (no user management)
-  - **viewer**: Read-only
+    - **admin**: Full access (all operations)
+    - **operator**: Read + Write (no user management)
+    - **viewer**: Read-only
 
 - [ ] **AC5**: Error responses:
-  - Missing token → 401 Unauthorized
-  - Invalid token → 401 Unauthorized
-  - Expired token → 401 Unauthorized with "Token expired" message
-  - Insufficient permissions → 403 Forbidden
+    - Missing token → 401 Unauthorized
+    - Invalid token → 401 Unauthorized
+    - Expired token → 401 Unauthorized with "Token expired" message
+    - Insufficient permissions → 403 Forbidden
 
 ## Technical Implementation Notes
 
 ### Architecture
+
 - Layer: Presentation (Middleware)
 - Pattern: Dependency injection
 - Integration: FastAPI OAuth2PasswordBearer
@@ -68,6 +74,7 @@ Create FastAPI dependency for protecting routes with JWT authentication and role
 ### Code Hints
 
 **app/core/auth_middleware.py:**
+
 ```python
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
@@ -176,6 +183,7 @@ async def require_viewer(
 ```
 
 **Usage in controllers:**
+
 ```python
 from fastapi import APIRouter, Depends
 from app.core.auth_middleware import get_current_user, require_admin
@@ -199,6 +207,7 @@ async def delete_user(
 ### Testing Requirements
 
 **Unit Tests** (`tests/core/test_auth_middleware.py`):
+
 - [ ] Test valid token returns user
 - [ ] Test missing token raises 401
 - [ ] Test invalid token raises 401
@@ -208,11 +217,13 @@ async def delete_user(
 - [ ] Test require_operator allows operator and admin, blocks viewer
 
 **Integration Tests** (`tests/api/test_protected_routes.py`):
+
 - [ ] Test protected route without token returns 401
 - [ ] Test protected route with valid token returns 200
 - [ ] Test admin-only route with non-admin returns 403
 
 **Test Example**:
+
 ```python
 import pytest
 from fastapi.testclient import TestClient
@@ -237,6 +248,7 @@ def test_admin_route_with_non_admin(operator_token):
 ```
 
 ### Performance Expectations
+
 - Token validation: <10ms
 - User lookup: <20ms (cached in future)
 - Total middleware overhead: <30ms per request
@@ -244,21 +256,22 @@ def test_admin_route_with_non_admin(operator_token):
 ## Handover Briefing
 
 **For the next developer:**
+
 - **Context**: FastAPI dependency system makes this elegant (just add Depends())
 - **Key decisions**:
-  - OAuth2PasswordBearer extracts token from Authorization header
-  - Role hierarchy: admin > operator > viewer
-  - 401 for auth issues, 403 for permission issues
+    - OAuth2PasswordBearer extracts token from Authorization header
+    - Role hierarchy: admin > operator > viewer
+    - 401 for auth issues, 403 for permission issues
 - **Security considerations**:
-  - Always check user.is_active (prevent deleted users)
-  - Don't reveal if user exists in error messages
-  - Log unauthorized access attempts (future: rate limiting)
+    - Always check user.is_active (prevent deleted users)
+    - Don't reveal if user exists in error messages
+    - Log unauthorized access attempts (future: rate limiting)
 - **Performance optimization (future)**:
-  - Cache user lookups in Redis (30 sec TTL)
-  - Avoids DB query on every request
+    - Cache user lookups in Redis (30 sec TTL)
+    - Avoids DB query on every request
 - **Next steps after this card**:
-  - AUTH006: Login/logout endpoints
-  - Apply to all API routes that need protection
+    - AUTH006: Login/logout endpoints
+    - Apply to all API routes that need protection
 
 ## Definition of Done Checklist
 
@@ -272,6 +285,7 @@ def test_admin_route_with_non_admin(operator_token):
 - [ ] Documentation updated with usage examples
 
 ## Time Tracking
+
 - **Estimated**: 5 story points
 - **Actual**: TBD
 - **Started**: TBD

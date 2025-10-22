@@ -1,6 +1,7 @@
 # R007: Product Family Repository
 
 ## Metadata
+
 - **Epic**: [epic-003-repositories.md](../../02_epics/epic-003-repositories.md)
 - **Sprint**: Sprint-01
 - **Status**: `backlog`
@@ -9,27 +10,35 @@
 - **Area**: `repositories`
 - **Assignee**: TBD
 - **Dependencies**:
-  - Blocks: [R008, S006]
-  - Blocked by: [F006, F007, DB016, R006]
+    - Blocks: [R008, S006]
+    - Blocked by: [F006, F007, DB016, R006]
 
 ## Related Documentation
-- **Engineering Plan**: [../../engineering_plan/backend/repository_layer.md](../../engineering_plan/backend/repository_layer.md)
+
+- **Engineering Plan
+  **: [../../engineering_plan/backend/repository_layer.md](../../engineering_plan/backend/repository_layer.md)
 - **Database ERD**: [../../database/database.mmd](../../database/database.mmd#L81-L87)
-- **Architecture**: [../../engineering_plan/03_architecture_overview.md](../../engineering_plan/03_architecture_overview.md)
+- **Architecture
+  **: [../../engineering_plan/03_architecture_overview.md](../../engineering_plan/03_architecture_overview.md)
 
 ## Description
 
-**What**: Implement repository class for `product_families` table with CRUD operations, category filtering, and scientific name search.
+**What**: Implement repository class for `product_families` table with CRUD operations, category
+filtering, and scientific name search.
 
-**Why**: Product families group related species (e.g., Echeveria, Sedum within Crassulaceae). Repository provides lookup by scientific name, category filtering for catalog, and hierarchy navigation.
+**Why**: Product families group related species (e.g., Echeveria, Sedum within Crassulaceae).
+Repository provides lookup by scientific name, category filtering for catalog, and hierarchy
+navigation.
 
-**Context**: Middle level of 3-tier product hierarchy (category → family → product). Botanical taxonomy level for species grouping.
+**Context**: Middle level of 3-tier product hierarchy (category → family → product). Botanical
+taxonomy level for species grouping.
 
 ## Acceptance Criteria
 
 - [ ] **AC1**: `ProductFamilyRepository` class inherits from `AsyncRepository[ProductFamily]`
 - [ ] **AC2**: Implements `get_by_scientific_name(scientific_name: str)` for taxonomy lookup
-- [ ] **AC3**: Implements `get_by_category_id(category_id: int)` with eager loading of category and products
+- [ ] **AC3**: Implements `get_by_category_id(category_id: int)` with eager loading of category and
+  products
 - [ ] **AC4**: Implements `search_by_name(search_term: str)` for fuzzy search (ILIKE)
 - [ ] **AC5**: Includes eager loading for category (joinedload) and products (selectinload)
 - [ ] **AC6**: Query performance: <15ms for category filtering, <30ms for search
@@ -37,11 +46,14 @@
 ## Technical Implementation Notes
 
 ### Architecture
+
 - **Layer**: Infrastructure (Repository)
-- **Dependencies**: F006 (Database connection), DB016 (ProductFamily model), R006 (ProductCategoryRepository)
+- **Dependencies**: F006 (Database connection), DB016 (ProductFamily model), R006 (
+  ProductCategoryRepository)
 - **Design Pattern**: Repository pattern, inherits AsyncRepository
 
 ### Code Hints
+
 ```python
 from typing import Optional, List
 from sqlalchemy import select, or_
@@ -160,6 +172,7 @@ class ProductFamilyRepository(AsyncRepository[ProductFamily]):
 ### Testing Requirements
 
 **Unit Tests**:
+
 ```python
 @pytest.mark.asyncio
 async def test_product_family_repo_by_scientific_name(db_session, sample_family):
@@ -219,6 +232,7 @@ async def test_product_family_repo_popular(db_session, families_with_products):
 **Coverage Target**: ≥85%
 
 ### Performance Expectations
+
 - get_by_scientific_name: <10ms (indexed column)
 - get_by_category_id: <15ms for 30 families per category
 - search_by_name: <30ms (ILIKE with LIMIT 50)
@@ -227,19 +241,20 @@ async def test_product_family_repo_popular(db_session, families_with_products):
 ## Handover Briefing
 
 **For the next developer:**
+
 - **Context**: Middle level of product hierarchy. Botanical taxonomy for species grouping
 - **Key decisions**:
-  - Scientific name is unique (botanical standard)
-  - Search supports both name and scientific_name (fuzzy ILIKE)
-  - Limit search results to 50 to prevent performance issues
-  - Popular families query useful for catalog homepage/analytics
+    - Scientific name is unique (botanical standard)
+    - Search supports both name and scientific_name (fuzzy ILIKE)
+    - Limit search results to 50 to prevent performance issues
+    - Popular families query useful for catalog homepage/analytics
 - **Known limitations**:
-  - Search is case-insensitive but not fuzzy matching (no Levenshtein)
-  - No full-text search (consider adding if search becomes critical)
+    - Search is case-insensitive but not fuzzy matching (no Levenshtein)
+    - No full-text search (consider adding if search becomes critical)
 - **Next steps**: R008 (ProductRepository) completes product hierarchy
 - **Questions to validate**:
-  - Should scientific_name be indexed for search performance?
-  - Do we need synonym support for common names?
+    - Should scientific_name be indexed for search performance?
+    - Do we need synonym support for common names?
 
 ## Definition of Done Checklist
 
@@ -255,6 +270,7 @@ async def test_product_family_repo_popular(db_session, families_with_products):
 - [ ] Performance benchmarks documented
 
 ## Time Tracking
+
 - **Estimated**: 2 story points (~4 hours)
 - **Actual**: TBD
 - **Started**: TBD

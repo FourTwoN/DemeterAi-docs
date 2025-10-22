@@ -2,7 +2,8 @@
 
 ## Purpose
 
-This diagram provides a high-level overview of the manual stock initialization workflow, showing all major steps from user input to database persistence.
+This diagram provides a high-level overview of the manual stock initialization workflow, showing all
+major steps from user input to database persistence.
 
 ## Scope
 
@@ -27,20 +28,24 @@ The complete journey of a manual stock count through the system:
 ### 1. Configuration Exists?
 
 **If YES:**
+
 - Validate product_id matches config
 - Validate packaging_id matches config
 - **Hard error** if mismatch (HTTP 400)
 
 **If NO:**
+
 - Allow manual initialization
 - Optionally create config with user values
 
 ### 2. Product/Packaging Match?
 
 **If YES:**
+
 - Continue to stock creation
 
 **If NO:**
+
 - Raise ProductMismatchException or PackagingMismatchException
 - Return HTTP 400 with user-friendly message
 
@@ -53,6 +58,7 @@ Form Submit → API Validation → Config Check (PASS) → Create Stock → Retu
 ```
 
 Error paths shown in red:
+
 - Product mismatch → HTTP 400
 - Packaging mismatch → HTTP 400
 - Validation error → HTTP 422
@@ -67,16 +73,17 @@ Error paths shown in red:
 
 ## Comparison with Photo Initialization
 
-| Step | Photo Init | Manual Init |
-|------|-----------|-------------|
-| **Upload** | S3 (5-10 seconds) | ❌ None |
-| **ML Processing** | Celery (5-10 minutes) | ❌ None |
-| **Validation** | ⚠️ Warning if mismatch | ❌ Hard error if mismatch |
-| **Response** | Async (202 + polling) | Synchronous (201 immediate) |
+| Step              | Photo Init             | Manual Init                 |
+|-------------------|------------------------|-----------------------------|
+| **Upload**        | S3 (5-10 seconds)      | ❌ None                      |
+| **ML Processing** | Celery (5-10 minutes)  | ❌ None                      |
+| **Validation**    | ⚠️ Warning if mismatch | ❌ Hard error if mismatch    |
+| **Response**      | Async (202 + polling)  | Synchronous (201 immediate) |
 
 ## How It Fits in the System
 
-This workflow serves as an **alternative initialization method** alongside photo-based initialization:
+This workflow serves as an **alternative initialization method** alongside photo-based
+initialization:
 
 - **Use when:** Legacy data, small locations, photo unavailable
 - **Avoid when:** Large locations, audit requirements, need size breakdown

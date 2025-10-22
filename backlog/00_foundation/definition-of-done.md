@@ -1,4 +1,5 @@
 # Definition of Done (DoD) - DemeterAI v2.0
+
 ## Checklist Before Card Moves to Done
 
 **Document Version:** 1.0
@@ -10,11 +11,13 @@
 ## What is Definition of Done?
 
 **DoD** defines criteria a card MUST meet before it can be:
+
 1. Moved from `03_kanban/04_testing/` to `03_kanban/05_done/`
 2. Considered "complete" and deployable
 3. Archived at sprint end
 
 **Why DoD Matters**:
+
 - Ensures consistent quality across all code
 - Prevents technical debt accumulation
 - Creates production-ready increments every sprint
@@ -27,6 +30,7 @@
 ### ✅ 1. Code Quality
 
 **Requirements**:
+
 - [ ] All acceptance criteria met and verified
 - [ ] Code follows conventions (see `00_foundation/conventions.md`)
 - [ ] No commented-out code or debug statements
@@ -35,6 +39,7 @@
 - [ ] No secrets committed (API keys, passwords, tokens)
 
 **Verification**:
+
 ```bash
 # Manual code review
 git diff main...feature-branch
@@ -51,12 +56,14 @@ grep -r "print(" app/
 ### ✅ 2. Type Hints & Docstrings
 
 **Requirements**:
+
 - [ ] All public functions have type hints
 - [ ] Return types specified (use `None` for void)
 - [ ] All public functions have docstrings (Google style)
 - [ ] Complex logic has inline comments
 
 **Example**:
+
 ```python
 # ✅ GOOD
 async def get_stock_movements(
@@ -87,6 +94,7 @@ async def get_stock_movements(location_id, start_date, end_date):
 ```
 
 **Verification**:
+
 ```bash
 # Type checking
 mypy app/
@@ -97,6 +105,7 @@ mypy app/
 ### ✅ 3. Tests Written & Passing
 
 **Requirements**:
+
 - [ ] Unit tests written for all new functions/methods
 - [ ] Integration tests written (if applicable - DB/API interactions)
 - [ ] All tests pass locally (`pytest`)
@@ -107,6 +116,7 @@ mypy app/
 **Coverage Target**: **≥80%** for all new code
 
 **Verification**:
+
 ```bash
 # Run all tests
 pytest
@@ -119,6 +129,7 @@ pytest --cov=app --cov-fail-under=80
 ```
 
 **Example Test**:
+
 ```python
 # ✅ GOOD
 import pytest
@@ -146,12 +157,14 @@ async def test_create_manual_init_success(mock_repo, mock_config_service):
 ### ✅ 4. Linting & Formatting
 
 **Requirements**:
+
 - [ ] Code passes Ruff linter (`ruff check .`)
 - [ ] Code formatted with Ruff (`ruff format .`)
 - [ ] No linting warnings or errors
 - [ ] Pre-commit hooks pass
 
 **Verification**:
+
 ```bash
 # Linting
 ruff check .
@@ -168,6 +181,7 @@ pre-commit run --all-files
 ### ✅ 5. Database Migrations (if applicable)
 
 **Requirements**:
+
 - [ ] Alembic migration created (if schema changes)
 - [ ] Migration tested locally (upgrade + downgrade)
 - [ ] Migration reviewed by DBA or tech lead
@@ -176,6 +190,7 @@ pre-commit run --all-files
 - [ ] Indexes created for new columns (if frequent queries)
 
 **Verification**:
+
 ```bash
 # Create migration
 alembic revision --autogenerate -m "add stock_movements table"
@@ -191,6 +206,7 @@ alembic upgrade head
 ```
 
 **Checklist for Migrations**:
+
 - [ ] Up migration works (no errors)
 - [ ] Down migration works (rollback successful)
 - [ ] Data integrity preserved (no orphan records)
@@ -202,6 +218,7 @@ alembic upgrade head
 ### ✅ 6. Code Review Approved
 
 **Requirements**:
+
 - [ ] Pull request created with descriptive title
 - [ ] PR uses template (`04_templates/pr-template.md`)
 - [ ] At least **2 reviewers** approved PR
@@ -210,6 +227,7 @@ alembic upgrade head
 - [ ] CI/CD pipeline passes (green checkmark)
 
 **Review Checklist** (for reviewers):
+
 - [ ] Code follows architecture principles (Service → Service rule)
 - [ ] No business logic in controllers
 - [ ] No direct repository calls from services (only via other services)
@@ -218,6 +236,7 @@ alembic upgrade head
 - [ ] Async/await used correctly (no blocking calls in async functions)
 
 **Verification**:
+
 ```bash
 # Check CI/CD status
 gh pr checks  # GitHub CLI
@@ -231,12 +250,14 @@ gh pr view  # GitHub CLI
 ### ✅ 7. Integration Tests Pass
 
 **Requirements**:
+
 - [ ] Integration tests pass with real test database
 - [ ] Database fixtures used (test data seeded)
 - [ ] Test database cleaned up after tests
 - [ ] No flaky tests (run 3 times to verify)
 
 **Verification**:
+
 ```bash
 # Run integration tests
 pytest tests/integration/
@@ -250,6 +271,7 @@ for i in {1..3}; do pytest tests/integration/ || break; done
 ### ✅ 8. Documentation Updated
 
 **Requirements**:
+
 - [ ] API documentation updated (if new endpoints)
 - [ ] README updated (if setup/deployment changes)
 - [ ] Configuration documented (if new env vars)
@@ -257,12 +279,14 @@ for i in {1..3}; do pytest tests/integration/ || break; done
 - [ ] Card handover briefing completed
 
 **Documentation Checklist**:
+
 - [ ] OpenAPI/Swagger docs accurate (FastAPI generates automatically)
 - [ ] Environment variables documented in `.env.example`
 - [ ] Complex algorithms explained in code comments or separate doc
 - [ ] Known limitations documented
 
 **Verification**:
+
 ```bash
 # Check OpenAPI docs
 # Visit http://localhost:8000/docs after starting server
@@ -276,12 +300,14 @@ cat .env.example
 ### ✅ 9. No Breaking Changes (or Migration Path)
 
 **Requirements**:
+
 - [ ] Backward compatibility maintained (if API/schema changes)
 - [ ] Migration path documented (if breaking change unavoidable)
 - [ ] Dependent systems notified (if breaking change)
 - [ ] Deprecation warnings added (if phasing out feature)
 
 **Verification**:
+
 ```bash
 # API version consistency check
 # Ensure v1 endpoints remain unchanged
@@ -295,6 +321,7 @@ cat .env.example
 ### ✅ 10. Performance Acceptable
 
 **Requirements**:
+
 - [ ] No significant performance regression
 - [ ] Query performance verified (if database changes)
 - [ ] Memory usage reasonable (no leaks)
@@ -309,6 +336,7 @@ cat .env.example
 | Bulk insert (1000 rows) | <1s | Timer in test |
 
 **Verification**:
+
 ```bash
 # Profile code
 python -m cProfile -o output.prof app/main.py
@@ -325,6 +353,7 @@ ab -n 1000 -c 10 http://localhost:8000/api/stock/movements
 ### ✅ 11. CI/CD Pipeline Passes
 
 **Requirements**:
+
 - [ ] All CI/CD checks pass (GitHub Actions or equivalent)
 - [ ] Linting passes
 - [ ] Tests pass (unit + integration)
@@ -332,6 +361,7 @@ ab -n 1000 -c 10 http://localhost:8000/api/stock/movements
 - [ ] Build succeeds (Docker image builds)
 
 **CI/CD Checks**:
+
 1. Ruff linting (`ruff check .`)
 2. Unit tests (`pytest tests/unit/`)
 3. Integration tests (`pytest tests/integration/`)
@@ -339,6 +369,7 @@ ab -n 1000 -c 10 http://localhost:8000/api/stock/movements
 5. Docker build (`docker build -t demeterai-backend .`)
 
 **Verification**:
+
 ```bash
 # Check CI/CD status
 gh pr checks
@@ -352,12 +383,14 @@ gh pr checks
 ### ✅ 12. Manual Testing (if UI/API changes)
 
 **Requirements**:
+
 - [ ] Feature tested manually in local environment
 - [ ] Happy path verified (normal user flow)
 - [ ] Error cases tested (invalid inputs, edge cases)
 - [ ] Screenshots/recordings captured (if visual changes)
 
 **Manual Test Checklist**:
+
 - [ ] Start local environment (`docker-compose up`)
 - [ ] Test happy path (expected behavior works)
 - [ ] Test error cases (system handles gracefully)
@@ -373,6 +406,7 @@ gh pr checks
 **Who**: Developer (self-check) + 2 reviewers
 
 **Steps**:
+
 1. Developer runs full DoD checklist (12 items)
 2. Developer marks card as "ready for review"
 3. Reviewer 1 checks code quality, tests, architecture
@@ -389,6 +423,7 @@ gh pr checks
 **Who**: Product Owner + Tech Lead
 
 **Steps**:
+
 1. Review all cards in `05_done/`
 2. Spot-check DoD compliance (sample 20% of cards)
 3. Demo working features
@@ -402,12 +437,14 @@ gh pr checks
 ### ❌ Violation 1: Low Test Coverage
 
 **Problem**:
+
 ```bash
 $ pytest --cov=app --cov-report=term
 Coverage: 65%  # Below 80% threshold
 ```
 
 **Fix**:
+
 1. Identify uncovered lines: `pytest --cov=app --cov-report=html`
 2. Open `htmlcov/index.html` in browser
 3. Write tests for uncovered code paths
@@ -417,6 +454,7 @@ Coverage: 65%  # Below 80% threshold
 ### ❌ Violation 2: Linting Errors
 
 **Problem**:
+
 ```bash
 $ ruff check .
 app/services/stock_service.py:45:1: E501 Line too long (105 > 100)
@@ -424,6 +462,7 @@ app/services/stock_service.py:67:5: F841 Local variable 'result' assigned but ne
 ```
 
 **Fix**:
+
 ```bash
 # Auto-format
 ruff format .
@@ -438,12 +477,14 @@ ruff check .
 ### ❌ Violation 3: Missing Type Hints
 
 **Problem**:
+
 ```python
 async def get_stock(stock_id):  # No type hints
     pass
 ```
 
 **Fix**:
+
 ```python
 from typing import Optional
 from app.models.stock_movement import StockMovement
@@ -455,10 +496,12 @@ async def get_stock(stock_id: int) -> Optional[StockMovement]:
 ### ❌ Violation 4: No Documentation
 
 **Problem**:
+
 - API endpoint added but `/docs` not updated
 - New environment variable but `.env.example` missing entry
 
 **Fix**:
+
 ```python
 # FastAPI auto-generates docs from docstrings
 @router.post("/stock/manual", summary="Initialize stock manually")
@@ -509,11 +552,13 @@ Reviewer: [________]  Date: [________]
 ## DoD Exemptions (Rare Cases)
 
 **When DoD can be partially waived** (Tech Lead approval required):
+
 - **Spike cards**: Research/investigation cards may skip tests
 - **Emergency hotfixes**: Critical production bugs may skip full review (but require follow-up card)
 - **Documentation-only**: Pure doc changes may skip integration tests
 
 **Process**:
+
 1. Dev requests exemption in PR description
 2. Tech Lead reviews and approves/rejects
 3. If approved, add follow-up card to address skipped items

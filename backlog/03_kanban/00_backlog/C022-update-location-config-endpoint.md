@@ -1,6 +1,7 @@
 # [C022] Update Location Config - PUT /api/config/location/{id}
 
 ## Metadata
+
 - **Epic**: epic-003-backend-implementation.md
 - **Sprint**: Sprint-06
 - **Status**: `backlog`
@@ -36,6 +37,7 @@ async def update_location_config(
 **Coverage Target**: ≥80%
 
 ## Time Tracking
+
 - **Estimated**: 1 story point
 
 ---

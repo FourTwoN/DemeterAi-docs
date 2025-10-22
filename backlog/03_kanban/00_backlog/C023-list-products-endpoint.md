@@ -1,6 +1,7 @@
 # [C023] List Products - GET /api/products
 
 ## Metadata
+
 - **Epic**: epic-003-backend-implementation.md
 - **Sprint**: Sprint-06
 - **Status**: `backlog`
@@ -9,8 +10,8 @@
 - **Area**: `backend/controllers`
 - **Assignee**: TBD
 - **Dependencies**:
-  - Blocks: [SCH016]
-  - Blocked by: [SVC010-product-service, DB017-products-model]
+    - Blocks: [SCH016]
+    - Blocked by: [SVC010-product-service, DB017-products-model]
 
 ## Description
 
@@ -41,6 +42,7 @@ async def list_products(
 **Coverage Target**: ≥80%
 
 ## Time Tracking
+
 - **Estimated**: 1 story point
 
 ---

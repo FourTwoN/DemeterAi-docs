@@ -20,7 +20,10 @@ import pytest
 # For now, tests will be skipped if model doesn't exist
 pytest.importorskip("app.models.storage_bin", reason="StorageBin model not yet implemented")
 
-from app.models.storage_bin import StorageBin, StorageBinStatusEnum  # noqa: E402
+from app.models.storage_bin import (
+    StorageBin,
+    StorageBinStatusEnum,  # noqa: E402
+)
 
 
 class TestStorageBinCodeValidation:
@@ -112,7 +115,8 @@ class TestStorageBinCodeValidation:
         with pytest.raises(ValueError, match="2-100 characters"):
             # Create a code that DOES match 4-part pattern but is > 100 chars
             StorageBin(
-                code="A" * 30 + "-" + "B" * 30 + "-" + "C" * 30 + "-" + "D" * 30,  # > 100 chars
+                code="A" * 30 + "-" + "B" * 30 + "-" + "C" * 30 + "-" + "D" * 30,
+                # > 100 chars
                 label="Test Bin",
                 storage_location_id=1,
             )

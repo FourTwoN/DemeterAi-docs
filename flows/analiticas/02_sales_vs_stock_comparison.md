@@ -2,7 +2,8 @@
 
 ## Purpose
 
-This diagram shows the **detailed implementation flow** for comparing sales data (uploaded via CSV) with calculated stock from the database to generate estimated current stock levels.
+This diagram shows the **detailed implementation flow** for comparing sales data (uploaded via CSV)
+with calculated stock from the database to generate estimated current stock levels.
 
 ## Scope
 
@@ -26,11 +27,14 @@ The complete sales comparison flow including:
 
 ### The Problem
 
-Clients take photos every 2-3 months to calculate stock. Between photo sessions, they record sales but don't know exact current stock. They need to estimate current stock by subtracting sales from the last calculated stock.
+Clients take photos every 2-3 months to calculate stock. Between photo sessions, they record sales
+but don't know exact current stock. They need to estimate current stock by subtracting sales from
+the last calculated stock.
 
 ### The Solution
 
-Upload CSV files with sales data (by product and packaging), query the latest active stock, and calculate:
+Upload CSV files with sales data (by product and packaging), query the latest active stock, and
+calculate:
 
 ```
 Estimated Current Stock = Last Calculated Stock - Sales
@@ -38,9 +42,11 @@ Estimated Current Stock = Last Calculated Stock - Sales
 
 ### Important: Historical Data Integrity
 
-**Rule**: Only the **latest active stock** is used for calculations. Historical stock periods remain immutable.
+**Rule**: Only the **latest active stock** is used for calculations. Historical stock periods remain
+immutable.
 
 Example timeline:
+
 - **Sept 1**: Photo taken → Stock A calculated
 - **Sept - Nov**: Sales occur → Stock A - Sales = Estimated Stock
 - **Dec 1**: New photo taken → **New stock period begins** (Stock B)
@@ -60,11 +66,13 @@ INJE-005,R7,75,2025-09-25,Regular client
 ```
 
 ### Required Columns
+
 - `product_sku` (or `product_code`): Product SKU from `products` table
 - `packaging_sku` (or `packaging_code`): Packaging SKU from `packaging_catalog`
 - `quantity_sold`: Number of units sold (must be positive integer)
 
 ### Optional Columns
+
 - `sale_date`: Date of sale (defaults to upload date)
 - `notes`: Free text notes
 - `customer_name`: Customer reference
@@ -80,6 +88,7 @@ INJE-005,R7,75,2025-09-25,Regular client
 ### Multiple File Upload
 
 Users can upload multiple CSV files for different months:
+
 - `sales_september_2025.csv`
 - `sales_october_2025.csv`
 - `sales_november_2025.csv`
@@ -89,6 +98,7 @@ System will aggregate all sales for comparison.
 ## Database Tables Involved
 
 ### Sales Data (Temporary)
+
 ```sql
 -- Temporary table for uploaded sales data
 CREATE TEMP TABLE temp_sales_upload (
@@ -104,6 +114,7 @@ CREATE TEMP TABLE temp_sales_upload (
 ```
 
 ### Stock Query
+
 ```sql
 -- Query latest active stock
 SELECT
@@ -166,6 +177,7 @@ stock_status = (
 ## Report Structure
 
 ### Summary Section
+
 ```json
 {
   "total_products_analyzed": 150,
@@ -180,6 +192,7 @@ stock_status = (
 ```
 
 ### Detailed Breakdown
+
 ```json
 {
   "product_sku": "CACT-001",
@@ -203,6 +216,7 @@ stock_status = (
 ### Discrepancies Section
 
 Products where sales > stock (potential issues):
+
 ```json
 {
   "discrepancies": [
@@ -228,32 +242,33 @@ Products where sales > stock (potential issues):
 ### Chart Types
 
 1. **Stock vs Sales Comparison Bar Chart**
-   - X-axis: Products
-   - Y-axis: Quantity
-   - Two bars: Current Stock (blue), Sales (red)
-   - Third bar: Estimated Stock (green)
+    - X-axis: Products
+    - Y-axis: Quantity
+    - Two bars: Current Stock (blue), Sales (red)
+    - Third bar: Estimated Stock (green)
 
 2. **Depletion Rate Pie Chart**
-   - Categories: OK, MEDIUM, LOW, CRITICAL
-   - Shows distribution of stock status
+    - Categories: OK, MEDIUM, LOW, CRITICAL
+    - Shows distribution of stock status
 
 3. **Top 10 Best Sellers**
-   - Horizontal bar chart
-   - Sorted by sales volume
+    - Horizontal bar chart
+    - Sorted by sales volume
 
 4. **Value Analysis**
-   - Stacked area chart
-   - Original value, Sales value, Estimated value over time
+    - Stacked area chart
+    - Original value, Sales value, Estimated value over time
 
 5. **Detailed Data Table**
-   - All product-packaging combinations
-   - Sortable, filterable, exportable
+    - All product-packaging combinations
+    - Sortable, filterable, exportable
 
 ## Performance Considerations
 
 ### Large CSV Files
 
 For files > 10,000 rows:
+
 - Use chunked processing (1,000 rows per chunk)
 - Show progress bar to user
 - Process asynchronously with Celery task

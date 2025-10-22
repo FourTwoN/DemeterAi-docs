@@ -1,6 +1,7 @@
 # [CEL008] DLQ + Retry Logic
 
 ## Metadata
+
 - **Epic**: epic-008
 - **Sprint**: Sprint-04
 - **Priority**: medium
@@ -8,9 +9,11 @@
 - **Dependencies**: Blocked by [CEL005-CEL007]
 
 ## Description
+
 Dead Letter Queue for permanently failed tasks + exponential backoff retry logic.
 
 ## Acceptance Criteria
+
 - [ ] DLQ queue for failed tasks after max retries
 - [ ] Exponential backoff: 2s, 4s, 8s
 - [ ] Max retries: 3
@@ -18,6 +21,7 @@ Dead Letter Queue for permanently failed tasks + exponential backoff retry logic
 - [ ] Admin notification on DLQ entry
 
 ## Implementation
+
 ```python
 app.conf.task_reject_on_worker_lost = True
 app.conf.task_acks_late = True

@@ -1,6 +1,7 @@
 # S023: ProductSizeService
 
 ## Metadata
+
 - **Epic**: [epic-004-services.md](../../02_epics/epic-004-services.md)
 - **Sprint**: Sprint-05
 - **Status**: `backlog`
@@ -9,8 +10,8 @@
 - **Area**: `services/catalog`
 - **Assignee**: TBD
 - **Dependencies**:
-  - Blocks: [S021]
-  - Blocked by: None (enum-based)
+    - Blocks: [S021]
+    - Blocked by: None (enum-based)
 
 ## Description
 
@@ -27,6 +28,7 @@
 - [ ] **AC3**: Unit tests ≥80% coverage
 
 ## Time Tracking
+
 - **Estimated**: 1 story point (~2 hours)
 
 ---

@@ -175,7 +175,7 @@ class Auth0Config(BaseModel):
 
         if not domain:
             raise ValueError(
-                "AUTH0_DOMAIN environment variable is required. " "Example: demeter.us.auth0.com"
+                "AUTH0_DOMAIN environment variable is required. Example: demeter.us.auth0.com"
             )
         if not api_audience:
             raise ValueError(

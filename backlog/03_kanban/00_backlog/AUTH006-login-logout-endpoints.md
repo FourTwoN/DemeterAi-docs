@@ -1,6 +1,7 @@
 # [AUTH006] Login/Logout Endpoints
 
 ## Metadata
+
 - **Epic**: epic-009-auth-security
 - **Sprint**: Sprint-05
 - **Status**: `backlog`
@@ -9,20 +10,24 @@
 - **Area**: `authentication`
 - **Assignee**: TBD
 - **Dependencies**:
-  - Blocks: All protected API endpoints
-  - Blocked by: [AUTH001, AUTH002, AUTH003, AUTH004, AUTH005]
+    - Blocks: All protected API endpoints
+    - Blocked by: [AUTH001, AUTH002, AUTH003, AUTH004, AUTH005]
 
 ## Related Documentation
+
 - **Engineering Plan**: ../../engineering_plan/api/README.md
 - **Architecture**: ../../engineering_plan/03_architecture_overview.md (Controllers layer)
 
 ## Description
 
-Create FastAPI controller endpoints for login and logout. Thin controller layer that delegates to UserAuthenticationService.
+Create FastAPI controller endpoints for login and logout. Thin controller layer that delegates to
+UserAuthenticationService.
 
-**What**: REST API endpoints `/api/auth/login` (POST) and `/api/auth/logout` (POST) with proper HTTP status codes and OpenAPI documentation.
+**What**: REST API endpoints `/api/auth/login` (POST) and `/api/auth/logout` (POST) with proper HTTP
+status codes and OpenAPI documentation.
 
-**Why**: Provides HTTP interface for authentication. Controller handles HTTP concerns only (validation, status codes), business logic in service layer.
+**Why**: Provides HTTP interface for authentication. Controller handles HTTP concerns only (
+validation, status codes), business logic in service layer.
 
 **Context**: Final piece of authentication system. Combines AUTH001-AUTH005.
 
@@ -56,9 +61,9 @@ Create FastAPI controller endpoints for login and logout. Thin controller layer 
   ```
 
 - [ ] **AC3**: Login error responses:
-  - Invalid credentials → 401 Unauthorized
-  - Account disabled → 403 Forbidden
-  - Validation error (invalid email) → 422 Unprocessable Entity
+    - Invalid credentials → 401 Unauthorized
+    - Account disabled → 403 Forbidden
+    - Validation error (invalid email) → 422 Unprocessable Entity
 
 - [ ] **AC4**: Logout endpoint (protected):
   ```http
@@ -67,13 +72,14 @@ Create FastAPI controller endpoints for login and logout. Thin controller layer 
   ```
 
 - [ ] **AC5**: OpenAPI documentation:
-  - Endpoints appear in `/docs`
-  - Request/response schemas documented
-  - Security scheme defined (Bearer token)
+    - Endpoints appear in `/docs`
+    - Request/response schemas documented
+    - Security scheme defined (Bearer token)
 
 ## Technical Implementation Notes
 
 ### Architecture
+
 - Layer: Presentation (Controller)
 - Pattern: Thin controller (delegates to service)
 - Dependencies: UserAuthenticationService
@@ -81,6 +87,7 @@ Create FastAPI controller endpoints for login and logout. Thin controller layer 
 ### Code Hints
 
 **app/controllers/auth_controller.py:**
+
 ```python
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordRequestForm
@@ -155,6 +162,7 @@ async def get_current_user_info(
 ```
 
 **app/main.py integration:**
+
 ```python
 from fastapi import FastAPI
 from app.controllers import auth_controller
@@ -196,6 +204,7 @@ app.openapi = custom_openapi
 ### Testing Requirements
 
 **Integration Tests** (`tests/api/test_auth_endpoints.py`):
+
 - [ ] Test POST /api/auth/login with valid credentials returns 200
 - [ ] Test login response includes access_token and refresh_token
 - [ ] Test login with invalid email returns 401
@@ -206,6 +215,7 @@ app.openapi = custom_openapi
 - [ ] Test GET /api/auth/me returns current user
 
 **Test Example**:
+
 ```python
 from fastapi.testclient import TestClient
 from app.main import app
@@ -259,6 +269,7 @@ def test_get_current_user(valid_token):
 ```
 
 ### Performance Expectations
+
 - Login endpoint: <500ms (includes password verification)
 - Logout endpoint: <50ms
 - GET /me endpoint: <50ms
@@ -266,19 +277,20 @@ def test_get_current_user(valid_token):
 ## Handover Briefing
 
 **For the next developer:**
+
 - **Context**: Final auth card, combines all previous auth work
 - **Key decisions**:
-  - Controllers are thin (no business logic)
-  - All logic delegated to UserAuthenticationService
-  - Logout returns 204 No Content (success, no body)
+    - Controllers are thin (no business logic)
+    - All logic delegated to UserAuthenticationService
+    - Logout returns 204 No Content (success, no body)
 - **OpenAPI integration**:
-  - Endpoints automatically documented at /docs
-  - Bearer token security scheme defined
-  - Test with Swagger UI at http://localhost:8000/docs
+    - Endpoints automatically documented at /docs
+    - Bearer token security scheme defined
+    - Test with Swagger UI at http://localhost:8000/docs
 - **Next steps after this card**:
-  - Apply get_current_user to protected routes
-  - Add rate limiting to login endpoint (future)
-  - Implement token blacklist for logout (future)
+    - Apply get_current_user to protected routes
+    - Add rate limiting to login endpoint (future)
+    - Implement token blacklist for logout (future)
 
 ## Definition of Done Checklist
 
@@ -292,6 +304,7 @@ def test_get_current_user(valid_token):
 - [ ] Can test endpoints via Swagger UI at /docs
 
 ## Time Tracking
+
 - **Estimated**: 3 story points
 - **Actual**: TBD
 - **Started**: TBD

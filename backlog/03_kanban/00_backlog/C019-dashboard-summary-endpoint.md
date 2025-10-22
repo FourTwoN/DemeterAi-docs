@@ -1,6 +1,7 @@
 # [C019] Dashboard Summary - GET /api/analytics/dashboard
 
 ## Metadata
+
 - **Epic**: epic-003-backend-implementation.md
 - **Sprint**: Sprint-05
 - **Status**: `backlog`
@@ -16,10 +17,10 @@ High-level summary metrics for dashboard view (total plants, active batches, rec
 ## Acceptance Criteria
 
 - [ ] **AC1**: Return summary metrics:
-  - total_plants (all active batches)
-  - total_batches (count)
-  - total_warehouses, total_locations
-  - recent_movements (last 7 days)
+    - total_plants (all active batches)
+    - total_batches (count)
+    - total_warehouses, total_locations
+    - recent_movements (last 7 days)
 
 - [ ] **AC2**: Optional filter by warehouse_id
 
@@ -36,6 +37,7 @@ async def get_dashboard_summary(
 **Coverage Target**: ≥85%
 
 ## Time Tracking
+
 - **Estimated**: 2 story points
 
 ---

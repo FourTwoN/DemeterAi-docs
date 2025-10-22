@@ -358,9 +358,5 @@ class Warehouse(Base):
             <Warehouse(warehouse_id=1, code='GH-001', name='Main Greenhouse')>
         """
         return (
-            f"<Warehouse("
-            f"warehouse_id={self.warehouse_id}, "
-            f"code='{self.code}', "
-            f"name='{self.name}'"
-            f")>"
+            f"<Warehouse(warehouse_id={self.warehouse_id}, code='{self.code}', name='{self.name}')>"
         )

@@ -1,4 +1,5 @@
 # Definition of Ready (DoR) - DemeterAI v2.0
+
 ## Checklist Before Card Enters Sprint
 
 **Document Version:** 1.0
@@ -10,11 +11,13 @@
 ## What is Definition of Ready?
 
 **DoR** defines criteria a card MUST meet before it can be:
+
 1. Selected for a sprint during sprint planning
 2. Moved from `03_kanban/00_backlog/` to `03_kanban/01_ready/`
 3. Assigned to a developer
 
 **Why DoR Matters**:
+
 - Prevents starting work with unclear requirements
 - Reduces mid-sprint blockers and delays
 - Ensures team understands acceptance criteria
@@ -27,12 +30,14 @@
 ### ✅ 1. Clear Title & Description
 
 **Requirements**:
+
 - [ ] Card title is descriptive and action-oriented
 - [ ] Description explains **what** needs to be done
 - [ ] Description explains **why** (business/technical justification)
 - [ ] Context provided (related features, decisions)
 
 **Example**:
+
 ```markdown
 # ✅ GOOD
 ## [ML003] Implement SAHI Tiled Detection for Segments
@@ -56,6 +61,7 @@ Why: (empty)
 ### ✅ 2. Acceptance Criteria (AC)
 
 **Requirements**:
+
 - [ ] At least 3-5 specific, testable acceptance criteria
 - [ ] Each AC is measurable (not subjective)
 - [ ] Each AC can be verified (manual test or automated test)
@@ -63,6 +69,7 @@ Why: (empty)
 - [ ] Non-functional requirements included (performance, security)
 
 **Example**:
+
 ```markdown
 # ✅ GOOD
 Acceptance Criteria:
@@ -84,14 +91,16 @@ Acceptance Criteria:
 ### ✅ 3. Dependencies Resolved
 
 **Requirements**:
+
 - [ ] All blocking cards listed in `Blocked by:` section
 - [ ] All blocking cards are either:
-  - Already completed (`05_done/`)
-  - OR in same sprint with clear sequencing
+    - Already completed (`05_done/`)
+    - OR in same sprint with clear sequencing
 - [ ] No circular dependencies
 - [ ] External dependencies documented (e.g., GPU hardware, test data)
 
 **Example**:
+
 ```markdown
 # ✅ GOOD
 Dependencies:
@@ -110,14 +119,16 @@ Dependencies:
 ### ✅ 4. Linked to Related Documentation
 
 **Requirements**:
+
 - [ ] At least 2-3 links to relevant docs
 - [ ] Links include:
-  - Engineering plan section (if applicable)
-  - Flow diagram (if workflow-related)
-  - Database schema (if data model changes)
-  - Past decisions (if relevant)
+    - Engineering plan section (if applicable)
+    - Flow diagram (if workflow-related)
+    - Database schema (if data model changes)
+    - Past decisions (if relevant)
 
 **Example**:
+
 ```markdown
 # ✅ GOOD
 Related Documentation:
@@ -136,6 +147,7 @@ Related Documentation:
 ### ✅ 5. Sized (Story Points Assigned)
 
 **Requirements**:
+
 - [ ] Complexity estimated using Fibonacci scale (S=1-2, M=3-5, L=8, XL=13)
 - [ ] Size reflects **effort**, not time (accounts for unknowns)
 - [ ] Team consensus during planning poker (if complex)
@@ -143,14 +155,15 @@ Related Documentation:
 
 **Sizing Guide**:
 
-| Size | Points | Description | Example |
-|------|--------|-------------|---------|
-| **S** | 1-2 | Simple, well-understood | Add logging to existing service |
-| **M** | 3-5 | Moderate complexity, some unknowns | Implement new service with 3-4 methods |
-| **L** | 8 | Complex, multiple components | ML pipeline coordinator (orchestrates 5 services) |
-| **XL** | 13 | Very complex, break down if possible | Full YOLO integration (consider splitting) |
+| Size   | Points | Description                          | Example                                           |
+|--------|--------|--------------------------------------|---------------------------------------------------|
+| **S**  | 1-2    | Simple, well-understood              | Add logging to existing service                   |
+| **M**  | 3-5    | Moderate complexity, some unknowns   | Implement new service with 3-4 methods            |
+| **L**  | 8      | Complex, multiple components         | ML pipeline coordinator (orchestrates 5 services) |
+| **XL** | 13     | Very complex, break down if possible | Full YOLO integration (consider splitting)        |
 
 **Example**:
+
 ```markdown
 # ✅ GOOD
 Complexity: M (3-5 points)
@@ -166,12 +179,14 @@ Complexity: (not sized)
 ### ✅ 6. Technical Approach Outlined
 
 **Requirements**:
+
 - [ ] Key classes/functions to create listed
 - [ ] Design pattern noted (if applicable)
 - [ ] Architecture layer identified (Repository | Service | Controller | Task)
 - [ ] Code hints provided (NOT full code, just signatures or patterns)
 
 **Example**:
+
 ```markdown
 # ✅ GOOD
 Technical Implementation Notes:
@@ -189,12 +204,14 @@ Technical Implementation Notes: (empty)
 ### ✅ 7. Testing Requirements Defined
 
 **Requirements**:
+
 - [ ] Unit test expectations listed (what to test)
 - [ ] Integration test requirements (if applicable)
 - [ ] Coverage target specified (≥80% for new code)
 - [ ] Test template referenced (if standard pattern)
 
 **Example**:
+
 ```markdown
 # ✅ GOOD
 Testing Requirements:
@@ -217,12 +234,14 @@ Testing Requirements:
 ### ✅ 8. Handover Briefing Included
 
 **Requirements**:
+
 - [ ] Context for next developer (why this exists)
 - [ ] Key decisions documented
 - [ ] Known limitations stated
 - [ ] Next steps after completion identified
 
 **Example**:
+
 ```markdown
 # ✅ GOOD
 Handover Briefing:
@@ -246,6 +265,7 @@ Handover Briefing: (empty)
 **Who**: Product Owner + Tech Lead + 1-2 developers
 
 **Steps**:
+
 1. Review all cards in `03_kanban/00_backlog/`
 2. For each card, check DoR checklist (8 items above)
 3. If card passes DoR → move to `03_kanban/01_ready/`
@@ -260,6 +280,7 @@ Handover Briefing: (empty)
 **Who**: Entire team
 
 **Steps**:
+
 1. Review sprint goal
 2. Select cards from `03_kanban/01_ready/` (all cards should already meet DoR)
 3. Quick DoR verification (spot check)
@@ -275,6 +296,7 @@ Handover Briefing: (empty)
 ### ❌ Violation 1: Vague Acceptance Criteria
 
 **Problem**:
+
 ```markdown
 Acceptance Criteria:
 - [ ] Code works
@@ -282,6 +304,7 @@ Acceptance Criteria:
 ```
 
 **Fix**:
+
 ```markdown
 Acceptance Criteria:
 - [ ] `detect_with_sahi()` returns list of detection dicts with bbox, confidence
@@ -294,11 +317,13 @@ Acceptance Criteria:
 ### ❌ Violation 2: Missing Dependencies
 
 **Problem**:
+
 ```markdown
 Dependencies: (empty)
 ```
 
 **Fix**:
+
 ```markdown
 Dependencies:
 - Blocks: [ML005-estimation, ML009-coordinator]
@@ -309,11 +334,13 @@ Dependencies:
 ### ❌ Violation 3: No Size Estimate
 
 **Problem**:
+
 ```markdown
 Complexity: (not sized)
 ```
 
 **Fix**:
+
 ```markdown
 Complexity: M (3-5 points)
 Justification: SAHI integration is moderate - well-documented library,
@@ -323,11 +350,13 @@ but need to handle tile merging (some complexity). Team consensus: 5 points.
 ### ❌ Violation 4: No Links to Docs
 
 **Problem**:
+
 ```markdown
 Related Documentation: (none)
 ```
 
 **Fix**:
+
 ```markdown
 Related Documentation:
 - Engineering Plan: ../../engineering_plan/backend/ml_pipeline.md (lines 150-200)

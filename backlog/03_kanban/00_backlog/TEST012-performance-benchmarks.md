@@ -1,6 +1,7 @@
 # [TEST012] Performance Benchmarks (pytest-benchmark)
 
 ## Metadata
+
 - **Epic**: epic-012-testing
 - **Sprint**: Sprint-07
 - **Priority**: `low`
@@ -8,9 +9,12 @@
 - **Dependencies**: Blocked by [TEST005]
 
 ## Description
-Benchmark critical code paths: API endpoints, ML inference, database queries. Track performance regressions.
+
+Benchmark critical code paths: API endpoints, ML inference, database queries. Track performance
+regressions.
 
 ## Acceptance Criteria
+
 - [ ] pytest-benchmark installed
 - [ ] Benchmark API endpoints (<100ms target)
 - [ ] Benchmark ML inference (CPU vs GPU)
@@ -19,6 +23,7 @@ Benchmark critical code paths: API endpoints, ML inference, database queries. Tr
 - [ ] CI fails if performance regresses >20%
 
 ## Implementation
+
 ```python
 def test_api_benchmark_stock_summary(benchmark, client, auth_headers):
     """Benchmark stock summary endpoint."""
@@ -49,6 +54,7 @@ def test_db_benchmark_complex_query(benchmark, db_session):
 ```
 
 **Run benchmarks:**
+
 ```bash
 pytest tests/benchmarks/ --benchmark-only
 
@@ -57,6 +63,7 @@ pytest tests/benchmarks/ --benchmark-compare=0001
 ```
 
 **Benchmark report:**
+
 ```
 Name                           Min      Max      Mean    StdDev
 test_api_benchmark_summary     45ms     60ms     52ms     3ms
@@ -65,6 +72,7 @@ test_db_benchmark_query        25ms     35ms     30ms     2ms
 ```
 
 ## Testing
+
 - Run benchmarks on representative hardware
 - Store baseline results
 - Detect performance regressions

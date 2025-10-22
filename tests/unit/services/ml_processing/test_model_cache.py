@@ -164,9 +164,9 @@ class TestModelCacheDeviceAssignment:
             model.to.assert_called_with("cpu")
 
             # Assert: Warning logged
-            assert any(
-                "GPU not available" in record.message for record in caplog.records
-            ), "Should log warning about GPU unavailability"
+            assert any("GPU not available" in record.message for record in caplog.records), (
+                "Should log warning about GPU unavailability"
+            )
 
     def test_gpu_fallback_when_worker_id_exceeds_gpu_count(self, mock_yolo):
         """Test GPU fallback when worker_id exceeds available GPUs.
@@ -210,9 +210,9 @@ class TestModelCacheDeviceAssignment:
                 model = ModelCache.get_model("segment", worker_id=0)
 
             # Assert: Device logged (look for "Assigning" message)
-            assert any(
-                "assign" in record.message.lower() for record in caplog.records
-            ), "Should log device assignment"
+            assert any("assign" in record.message.lower() for record in caplog.records), (
+                "Should log device assignment"
+            )
 
 
 class TestModelCacheThreadSafety:

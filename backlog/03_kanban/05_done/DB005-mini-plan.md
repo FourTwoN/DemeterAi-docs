@@ -23,11 +23,13 @@
 **Layer**: Database / Models (Infrastructure Layer)
 **Pattern**: SQLAlchemy 2.0 model - Reference/Catalog table with seed data
 **Dependencies**:
+
 - Referenced by: DB004 (storage_bin_type_id FK) - ALREADY COMPLETE
 - Blocks: DB025 (DensityParameters - uses bin_type_id FK)
 - PostgreSQL 18 enums + standard types
 
 **Key Features**:
+
 1. **Category enum**: 5 types (plug, seedling_tray, box, segment, pot)
 2. **Nullable dimensions**: Not all types have fixed size (ML-detected segments)
 3. **Grid flag**: True for plug trays (rows × columns grid capacity)
@@ -39,9 +41,11 @@
 ## Files to Create/Modify
 
 - [ ] `/home/lucasg/proyectos/DemeterDocs/app/models/storage_bin_type.py` (~150 lines)
-- [ ] `/home/lucasg/proyectos/DemeterDocs/alembic/versions/XXXX_create_storage_bin_types.py` (~120 lines + seed data)
+- [ ] `/home/lucasg/proyectos/DemeterDocs/alembic/versions/XXXX_create_storage_bin_types.py` (~120
+  lines + seed data)
 - [ ] `/home/lucasg/proyectos/DemeterDocs/tests/unit/models/test_storage_bin_type.py` (~400 lines)
-- [ ] `/home/lucasg/proyectos/DemeterDocs/tests/integration/models/test_storage_bin_type.py` (~300 lines)
+- [ ] `/home/lucasg/proyectos/DemeterDocs/tests/integration/models/test_storage_bin_type.py` (~300
+  lines)
 
 ---
 
@@ -70,9 +74,11 @@ storage_bin_types {
 }
 ```
 
-**Category Enum**: `CREATE TYPE bin_category_enum AS ENUM ('plug', 'seedling_tray', 'box', 'segment', 'pot')`
+**Category Enum**:
+`CREATE TYPE bin_category_enum AS ENUM ('plug', 'seedling_tray', 'box', 'segment', 'pot')`
 
 **CHECK Constraint**:
+
 ```sql
 ALTER TABLE storage_bin_types
 ADD CONSTRAINT check_grid_has_rows_columns
@@ -91,21 +97,24 @@ CHECK (
 **File 1**: `app/models/storage_bin_type.py` (~150 lines)
 
 **Key Features**:
+
 1. **Primary Key**: `bin_type_id` (Integer, autoincrement) OR just `id` (follow DB001-DB004 pattern)
 2. **Code validation**:
-   - Uppercase
-   - Alphanumeric (+ underscores allowed)
-   - 3-50 characters
-   - Unique constraint
+    - Uppercase
+    - Alphanumeric (+ underscores allowed)
+    - 3-50 characters
+    - Unique constraint
 3. **Category Enum**: BinCategoryEnum (plug, seedling_tray, box, segment, pot)
-4. **Nullable dimensions**: All dimension fields (rows, columns, capacity, length_cm, width_cm, height_cm) are NULLABLE
+4. **Nullable dimensions**: All dimension fields (rows, columns, capacity, length_cm, width_cm,
+   height_cm) are NULLABLE
 5. **Grid flag**: Boolean `is_grid` (default FALSE)
 6. **CHECK constraint**: Applied in model via `__table_args__`
 7. **Relationships**:
-   - `storage_bins` (one-to-many, back_populates='storage_bin_type')
-   - `density_parameters` (one-to-many, COMMENT OUT - DB025 not ready yet)
+    - `storage_bins` (one-to-many, back_populates='storage_bin_type')
+    - `density_parameters` (one-to-many, COMMENT OUT - DB025 not ready yet)
 
 **Code Validation Pattern** (from DB001-DB004):
+
 ```python
 @validates('code')
 def validate_code(self, key: str, value: str) -> str:
@@ -136,18 +145,19 @@ def validate_code(self, key: str, value: str) -> str:
 **File 2**: `alembic/versions/XXXX_create_storage_bin_types.py` (~120 lines + seed data)
 
 **Key Features**:
+
 1. Create `bin_category_enum` type FIRST
 2. CREATE TABLE storage_bin_types with:
-   - Primary key: bin_type_id (SERIAL) OR id (follow convention)
-   - Unique constraint on code
-   - Category enum column (NOT NULL)
-   - All dimension fields NULLABLE
-   - is_grid boolean (default FALSE)
-   - Timestamps (created_at with server_default, updated_at with onupdate)
+    - Primary key: bin_type_id (SERIAL) OR id (follow convention)
+    - Unique constraint on code
+    - Category enum column (NOT NULL)
+    - All dimension fields NULLABLE
+    - is_grid boolean (default FALSE)
+    - Timestamps (created_at with server_default, updated_at with onupdate)
 3. **CHECK constraint**: Grid types must have rows AND columns NOT NULL
 4. **Indexes**:
-   - B-tree index on code (UK, fast lookups)
-   - B-tree index on category (filtering)
+    - B-tree index on code (UK, fast lookups)
+    - B-tree index on category (filtering)
 5. **SEED DATA** (6-10 common types):
 
 ```sql
@@ -171,6 +181,7 @@ INSERT INTO storage_bin_types (code, name, category, rows, columns, capacity, is
 ```
 
 **Reusable Patterns** (from DB001-DB004):
+
 - Code validation: Similar to Warehouse/StorageArea (uppercase, alphanumeric)
 - Enum creation: Same pattern as StorageArea.PositionEnum
 - Seed data in migration: INSERT INTO ... VALUES (...), (...) pattern
@@ -184,62 +195,64 @@ INSERT INTO storage_bin_types (code, name, category, rows, columns, capacity, is
 **File 1**: `tests/unit/models/test_storage_bin_type.py` (~400 lines, 15-20 tests)
 
 **Expected Test Cases**:
+
 1. **Category Enum Tests** (3 tests):
-   - Valid categories: plug, seedling_tray, box, segment, pot
-   - Invalid category: raises error
-   - Category assignment and retrieval
+    - Valid categories: plug, seedling_tray, box, segment, pot
+    - Invalid category: raises error
+    - Category assignment and retrieval
 
 2. **Code Validation Tests** (6 tests):
-   - Valid code: "PLUG_TRAY_288" (uppercase, alphanumeric + underscore)
-   - Invalid: Lowercase code (should auto-uppercase)
-   - Invalid: Special characters (e.g., "PLUG-TRAY-288" with hyphens)
-   - Invalid: Empty code
-   - Invalid: Too short (<3 chars)
-   - Invalid: Too long (>50 chars)
+    - Valid code: "PLUG_TRAY_288" (uppercase, alphanumeric + underscore)
+    - Invalid: Lowercase code (should auto-uppercase)
+    - Invalid: Special characters (e.g., "PLUG-TRAY-288" with hyphens)
+    - Invalid: Empty code
+    - Invalid: Too short (<3 chars)
+    - Invalid: Too long (>50 chars)
 
 3. **Grid CHECK Constraint Tests** (4 tests):
-   - Valid: is_grid=TRUE with rows AND columns NOT NULL
-   - Valid: is_grid=FALSE with rows/columns NULL
-   - Invalid: is_grid=TRUE with rows NULL (should fail CHECK)
-   - Invalid: is_grid=TRUE with columns NULL (should fail CHECK)
+    - Valid: is_grid=TRUE with rows AND columns NOT NULL
+    - Valid: is_grid=FALSE with rows/columns NULL
+    - Invalid: is_grid=TRUE with rows NULL (should fail CHECK)
+    - Invalid: is_grid=TRUE with columns NULL (should fail CHECK)
 
 4. **Nullable Dimensions Tests** (2 tests):
-   - Valid: Create type with all dimensions NULL (segment)
-   - Valid: Create type with partial dimensions (only capacity)
+    - Valid: Create type with all dimensions NULL (segment)
+    - Valid: Create type with partial dimensions (only capacity)
 
 5. **Relationship Tests** (2 tests):
-   - storage_bins relationship exists
-   - density_parameters relationship commented out (not ready)
+    - storage_bins relationship exists
+    - density_parameters relationship commented out (not ready)
 
 6. **Basic CRUD Tests** (3 tests):
-   - Create type with all fields
-   - Create type with minimal fields
-   - Check timestamps (created_at, updated_at)
+    - Create type with all fields
+    - Create type with minimal fields
+    - Check timestamps (created_at, updated_at)
 
 **Coverage Target**: ≥75%
 
 **File 2**: `tests/integration/models/test_storage_bin_type.py` (~300 lines, 5-10 tests)
 
 **Expected Test Cases**:
+
 1. **Seed Data Tests** (2 tests):
-   - Verify all 6-10 seed types exist after migration
-   - Verify seed data integrity (correct categories, dimensions, grid flags)
+    - Verify all 6-10 seed types exist after migration
+    - Verify seed data integrity (correct categories, dimensions, grid flags)
 
 2. **RESTRICT Delete Tests** (2 tests):
-   - Delete bin_type with storage_bins → FAILS (RESTRICT)
-   - Delete bin_type without storage_bins → SUCCESS
+    - Delete bin_type with storage_bins → FAILS (RESTRICT)
+    - Delete bin_type without storage_bins → SUCCESS
 
 3. **Relationship Tests** (2 tests):
-   - Query storage_bins from bin_type
-   - Verify FK integrity (storage_bins.storage_bin_type_id → storage_bin_types.id)
+    - Query storage_bins from bin_type
+    - Verify FK integrity (storage_bins.storage_bin_type_id → storage_bin_types.id)
 
 4. **Code Uniqueness Tests** (2 tests):
-   - Create two types with same code → FAILS (UK constraint)
-   - Create types with different codes → SUCCESS
+    - Create two types with same code → FAILS (UK constraint)
+    - Create types with different codes → SUCCESS
 
 5. **CHECK Constraint Integration Tests** (2 tests):
-   - Insert is_grid=TRUE with NULL rows → FAILS at DB level
-   - Insert is_grid=FALSE with NULL rows → SUCCESS
+    - Insert is_grid=TRUE with NULL rows → FAILS at DB level
+    - Insert is_grid=FALSE with NULL rows → SUCCESS
 
 **Coverage Target**: ≥70%
 
@@ -256,11 +269,14 @@ INSERT INTO storage_bin_types (code, name, category, rows, columns, capacity, is
 
 ## Acceptance Criteria (From Task Card)
 
-- [ ] **AC1**: Model created in `app/models/storage_bin_type.py` with category enum, dimensions (nullable), capacity fields, grid flag
-- [ ] **AC2**: Category enum created (`CREATE TYPE bin_category_enum AS ENUM ('plug', 'seedling_tray', 'box', 'segment', 'pot')`)
+- [ ] **AC1**: Model created in `app/models/storage_bin_type.py` with category enum, dimensions (
+  nullable), capacity fields, grid flag
+- [ ] **AC2**: Category enum created (
+  `CREATE TYPE bin_category_enum AS ENUM ('plug', 'seedling_tray', 'box', 'segment', 'pot')`)
 - [ ] **AC3**: Code validation (uppercase, alphanumeric, 3-50 chars, unique)
 - [ ] **AC4**: CHECK constraint: if is_grid=true, then rows/columns must be NOT NULL
-- [ ] **AC5**: Seed data migration with common bin types (PLUG_TRAY_288, PLUG_TRAY_128, SEEDLING_BOX_STANDARD, etc.)
+- [ ] **AC5**: Seed data migration with common bin types (PLUG_TRAY_288, PLUG_TRAY_128,
+  SEEDLING_BOX_STANDARD, etc.)
 - [ ] **AC6**: Indexes on code, category
 - [ ] **AC7**: Alembic migration with seed data
 
@@ -270,7 +286,8 @@ INSERT INTO storage_bin_types (code, name, category, rows, columns, capacity, is
 
 **Re-enable relationship** in parent model:
 
-1. **MANDATORY**: Uncomment in `/home/lucasg/proyectos/DemeterDocs/app/models/storage_bin.py` (lines 256-263):
+1. **MANDATORY**: Uncomment in `/home/lucasg/proyectos/DemeterDocs/app/models/storage_bin.py` (lines
+   256-263):
    ```python
    storage_bin_type: Mapped["StorageBinType | None"] = relationship(
        "StorageBinType",
@@ -318,6 +335,7 @@ INSERT INTO storage_bin_types (code, name, category, rows, columns, capacity, is
 ## Notes
 
 **Why This is SIMPLE**:
+
 - NO PostGIS (just reference table)
 - NO complex triggers
 - NO spatial queries
@@ -325,12 +343,14 @@ INSERT INTO storage_bin_types (code, name, category, rows, columns, capacity, is
 - Seed data is straightforward INSERT statements
 
 **Pattern from DB004**:
+
 - Follow StorageBin model structure (simpler, no PostGIS)
 - Reuse code validation pattern (uppercase, alphanumeric)
 - Reuse enum creation pattern
 - Reuse timestamp pattern
 
 **Key Difference from DB001-DB004**:
+
 - This is a CATALOG/REFERENCE table (rarely changes)
 - Seed data is CRITICAL (preload 6-10 common types)
 - CHECK constraint logic (grid types must have rows/columns)
@@ -340,12 +360,12 @@ INSERT INTO storage_bin_types (code, name, category, rows, columns, capacity, is
 
 **READY TO DELEGATE**
 
-
 ## Team Leader Final Approval (2025-10-20 - RETROACTIVE)
 
 **Status**: ✅ COMPLETED (retroactive verification)
 
 ### Verification Results
+
 - [✅] Implementation complete per task specification
 - [✅] Code follows Clean Architecture patterns
 - [✅] Type hints and validations present
@@ -353,6 +373,7 @@ INSERT INTO storage_bin_types (code, name, category, rows, columns, capacity, is
 - [✅] Integration with PostgreSQL verified
 
 ### Quality Gates
+
 - [✅] SQLAlchemy 2.0 async model
 - [✅] Type hints complete
 - [✅] SOLID principles followed
@@ -360,6 +381,7 @@ INSERT INTO storage_bin_types (code, name, category, rows, columns, capacity, is
 - [✅] Imports working correctly
 
 ### Completion Status
+
 Retroactive approval based on audit of Sprint 00-02.
 Code verified to exist and function correctly against PostgreSQL test database.
 

@@ -1,6 +1,7 @@
 # [CEL004] Chord Pattern Implementation
 
 ## Metadata
+
 - **Epic**: epic-008
 - **Sprint**: Sprint-04
 - **Priority**: critical ⚡
@@ -8,9 +9,11 @@
 - **Dependencies**: Blocks [CEL005], Blocked by [CEL003]
 
 ## Description
+
 Implement Celery chord pattern: parent task → multiple child tasks → callback aggregation.
 
 ## Acceptance Criteria
+
 - [ ] Chord pattern: `chord([child1.s(), child2.s(), ...], callback.s())`
 - [ ] Parent spawns N child tasks
 - [ ] Children run in parallel
@@ -18,6 +21,7 @@ Implement Celery chord pattern: parent task → multiple child tasks → callbac
 - [ ] Error handling (if one child fails, callback still runs with partial results)
 
 ## Implementation
+
 ```python
 from celery import chord
 

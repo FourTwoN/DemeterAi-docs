@@ -1,6 +1,7 @@
 # [DB017] Products model with cactus/succulent taxonomy
 
 ## Metadata
+
 - **Epic**: epic-002-database-models
 - **Sprint**: Sprint-01
 - **Priority**: high
@@ -8,9 +9,12 @@
 - **Dependencies**: Blocks [R019]
 
 ## Description
-Products model with cactus/succulent taxonomy. SQLAlchemy model following Clean Architecture patterns.
+
+Products model with cactus/succulent taxonomy. SQLAlchemy model following Clean Architecture
+patterns.
 
 ## Acceptance Criteria
+
 - [ ] Model created in app/models/products.py
 - [ ] All columns defined with correct types
 - [ ] Relationships configured with lazy loading strategy
@@ -19,19 +23,23 @@ Products model with cactus/succulent taxonomy. SQLAlchemy model following Clean 
 - [ ] Unit tests ≥75% coverage
 
 ## Implementation Notes
+
 See database/database.mmd ERD for complete schema.
 
 ## Testing
+
 - Test model creation
 - Test relationships
 - Test constraints
 
 ## Handover
+
 Standard SQLAlchemy model. Follow DB011-DB014 patterns.
 
 ---
 **Card Created**: 2025-10-09
 **Points**: 2
+
 # Team Leader Mini-Plan - DB017 Products Model
 
 **Created**: 2025-10-14 (Scrum Master delegation received)
@@ -52,11 +60,13 @@ Standard SQLAlchemy model. Follow DB011-DB014 patterns.
 **Layer**: Database / Models (Infrastructure Layer)
 **Pattern**: Reference/Catalog table (BUT user-created, NO seed data)
 **Hierarchy**: Product Catalog LEVEL 3 (LEAF)
-  - Level 1: ProductCategory (ROOT) ✅ DB015 DONE
-  - Level 2: ProductFamily (LEVEL 2) ✅ DB016 DONE
-  - Level 3: **Products (LEAF)** ← THIS TASK
+
+- Level 1: ProductCategory (ROOT) ✅ DB015 DONE
+- Level 2: ProductFamily (LEVEL 2) ✅ DB016 DONE
+- Level 3: **Products (LEAF)** ← THIS TASK
 
 **Critical Design Decisions**:
+
 1. **NO SEED DATA** - Products created by users/ML (unlike DB015/DB016/DB018/DB019)
 2. **3 Foreign Keys**: family_id (RESTRICT), product_state_id (RESTRICT), product_size_id (NULLABLE)
 3. **SKU field**: Unique, alphanumeric+hyphen, 6-20 chars, barcode-compatible
@@ -67,12 +77,14 @@ Standard SQLAlchemy model. Follow DB011-DB014 patterns.
 ## Dependencies Status
 
 **All dependencies SATISFIED** ✅:
+
 - DB015: ProductCategory (COMPLETE) ✅
 - DB016: ProductFamily (COMPLETE) ✅
 - DB018: ProductState (COMPLETE) ✅
 - DB019: ProductSize (COMPLETE) ✅
 
 **Blocks (CRITICAL PATH)**:
+
 - DB007-DB010: Stock management (stock_batches, stock_movements)
 - DB026: Classifications (ML classification results)
 - DB028: PriceLists (pricing system)
@@ -80,6 +92,7 @@ Standard SQLAlchemy model. Follow DB011-DB014 patterns.
 ## Database Schema (Source of Truth)
 
 **From database/database.mmd (lines 88-96)**:
+
 ```mermaid
 products {
     int id PK ""
@@ -93,192 +106,208 @@ products {
 ```
 
 **CRITICAL OBSERVATIONS**:
+
 1. Field is `common_name` (NOT `name`) - database schema is authoritative
 2. NO timestamps shown in ERD (created_at/updated_at)
 3. NO product_state_id FK shown in ERD - BUT required by Scrum Master
 4. NO product_size_id FK shown in ERD - BUT required by Scrum Master
 
-**RESOLUTION**: Follow ERD EXACTLY + add FKs mentioned by Scrum Master (these may be missing from ERD diagram but present in relationships section)
+**RESOLUTION**: Follow ERD EXACTLY + add FKs mentioned by Scrum Master (these may be missing from
+ERD diagram but present in relationships section)
 
 ## Files to Create/Modify
 
 ### 1. Model File (Python Expert)
+
 **Path**: `/home/lucasg/proyectos/DemeterDocs/app/models/product.py`
 **Estimated Lines**: ~250 lines
 **Template**: `/home/lucasg/proyectos/DemeterDocs/app/models/product_family.py` (DB016)
 
 **Key Components**:
+
 - Table name: `products`
 - Primary key: `product_id` (INT, auto-increment)
 - Foreign keys:
-  - `family_id` → `product_families.family_id` (CASCADE delete, NOT NULL)
-  - `product_state_id` → `product_states.product_state_id` (RESTRICT, NOT NULL)
-  - `product_size_id` → `product_sizes.product_size_id` (RESTRICT, NULLABLE)
+    - `family_id` → `product_families.family_id` (CASCADE delete, NOT NULL)
+    - `product_state_id` → `product_states.product_state_id` (RESTRICT, NOT NULL)
+    - `product_size_id` → `product_sizes.product_size_id` (RESTRICT, NULLABLE)
 - Unique fields:
-  - `sku` (UK, 6-20 chars, alphanumeric+hyphen, uppercase)
+    - `sku` (UK, 6-20 chars, alphanumeric+hyphen, uppercase)
 - Data fields:
-  - `common_name` (VARCHAR 200, NOT NULL) ← NOT "name"!
-  - `scientific_name` (VARCHAR 200, NULLABLE)
-  - `description` (TEXT, NULLABLE)
-  - `custom_attributes` (JSONB, NULLABLE, default='{}')
+    - `common_name` (VARCHAR 200, NOT NULL) ← NOT "name"!
+    - `scientific_name` (VARCHAR 200, NULLABLE)
+    - `description` (TEXT, NULLABLE)
+    - `custom_attributes` (JSONB, NULLABLE, default='{}')
 - Timestamps: **CHECK ERD** - may not be required
 - Validators:
-  - `validate_sku()`: alphanumeric+hyphen, 6-20 chars, uppercase
+    - `validate_sku()`: alphanumeric+hyphen, 6-20 chars, uppercase
 - Relationships:
-  - `family: Mapped["ProductFamily"]` (many-to-one)
-  - `product_state: Mapped["ProductState"]` (many-to-one)
-  - `product_size: Mapped["ProductSize | None"]` (many-to-one, nullable)
-  - `stock_batches: Mapped[list["StockBatch"]]` (one-to-many, COMMENTED OUT)
-  - `classifications: Mapped[list["Classification"]]` (one-to-many, COMMENTED OUT)
-  - `product_sample_images: Mapped[list["ProductSampleImage"]]` (one-to-many, COMMENTED OUT)
-  - `storage_location_configs: Mapped[list["StorageLocationConfig"]]` (one-to-many, COMMENTED OUT)
+    - `family: Mapped["ProductFamily"]` (many-to-one)
+    - `product_state: Mapped["ProductState"]` (many-to-one)
+    - `product_size: Mapped["ProductSize | None"]` (many-to-one, nullable)
+    - `stock_batches: Mapped[list["StockBatch"]]` (one-to-many, COMMENTED OUT)
+    - `classifications: Mapped[list["Classification"]]` (one-to-many, COMMENTED OUT)
+    - `product_sample_images: Mapped[list["ProductSampleImage"]]` (one-to-many, COMMENTED OUT)
+    - `storage_location_configs: Mapped[list["StorageLocationConfig"]]` (one-to-many, COMMENTED OUT)
 
 ### 2. Migration File (Python Expert)
+
 **Path**: `/home/lucasg/proyectos/DemeterDocs/alembic/versions/TIMESTAMP_create_products_table.py`
 **Estimated Lines**: ~80 lines
 
 **Key Components**:
+
 - Create `products` table with all columns
 - Foreign key constraints (CASCADE for family_id, RESTRICT for state/size)
 - Unique constraint on `sku`
 - Indexes:
-  - B-tree on `family_id` (FK)
-  - B-tree on `product_state_id` (FK)
-  - B-tree on `product_size_id` (FK, nullable)
-  - B-tree on `sku` (UK)
-  - GIN index on `custom_attributes` (JSONB queries)
+    - B-tree on `family_id` (FK)
+    - B-tree on `product_state_id` (FK)
+    - B-tree on `product_size_id` (FK, nullable)
+    - B-tree on `sku` (UK)
+    - GIN index on `custom_attributes` (JSONB queries)
 - CHECK constraint on `sku` length (6-20 chars)
 - **NO seed data** (products created by users/ML)
 
 ### 3. __init__.py Update (Python Expert)
+
 **Path**: `/home/lucasg/proyectos/DemeterDocs/app/models/__init__.py`
 **Changes**:
+
 - Add import: `from app.models.product import Product`
 - Add to `__all__`: `"Product"`
 - Update docstring: Mark Products as COMPLETE
 
 ### 4. Unit Tests (Testing Expert - PARALLEL)
+
 **Path**: `/home/lucasg/proyectos/DemeterDocs/tests/unit/models/test_product.py`
 **Estimated Lines**: ~350 lines
 **Target Coverage**: ≥80%
 
 **Test Scenarios** (30-35 tests):
+
 1. **Model Creation** (5 tests):
-   - Valid product creation (all fields)
-   - Valid product creation (minimal required fields)
-   - Missing required fields (family_id, product_state_id, sku, common_name)
-   - Nullable fields (product_size_id, scientific_name, description)
-   - JSONB custom_attributes default value
+    - Valid product creation (all fields)
+    - Valid product creation (minimal required fields)
+    - Missing required fields (family_id, product_state_id, sku, common_name)
+    - Nullable fields (product_size_id, scientific_name, description)
+    - JSONB custom_attributes default value
 
 2. **SKU Validation** (8 tests):
-   - Valid SKU formats ("ECHEV-001", "CACT-MAMM-123", "ALOE-VERA-XL")
-   - Uppercase auto-conversion ("echev-001" → "ECHEV-001")
-   - Invalid characters (special chars, spaces)
-   - Length validation (too short <6, too long >20)
-   - Empty/null SKU
-   - Only alphanumeric (no hyphen) - valid
-   - Multiple hyphens - valid
+    - Valid SKU formats ("ECHEV-001", "CACT-MAMM-123", "ALOE-VERA-XL")
+    - Uppercase auto-conversion ("echev-001" → "ECHEV-001")
+    - Invalid characters (special chars, spaces)
+    - Length validation (too short <6, too long >20)
+    - Empty/null SKU
+    - Only alphanumeric (no hyphen) - valid
+    - Multiple hyphens - valid
 
 3. **Foreign Key Relationships** (6 tests):
-   - family relationship (many-to-one)
-   - product_state relationship (many-to-one)
-   - product_size relationship (many-to-one, nullable)
-   - CASCADE delete on family deletion
-   - RESTRICT on product_state deletion (should fail if products exist)
-   - RESTRICT on product_size deletion (should fail if products exist)
+    - family relationship (many-to-one)
+    - product_state relationship (many-to-one)
+    - product_size relationship (many-to-one, nullable)
+    - CASCADE delete on family deletion
+    - RESTRICT on product_state deletion (should fail if products exist)
+    - RESTRICT on product_size deletion (should fail if products exist)
 
 4. **JSONB custom_attributes** (5 tests):
-   - Store flexible JSON data (color, variegation, growth_rate)
-   - Query by JSONB fields (filter by color)
-   - Default empty dict
-   - Complex nested JSON
-   - NULL value handling
+    - Store flexible JSON data (color, variegation, growth_rate)
+    - Query by JSONB fields (filter by color)
+    - Default empty dict
+    - Complex nested JSON
+    - NULL value handling
 
 5. **Field Validation** (4 tests):
-   - common_name length (1-200 chars)
-   - scientific_name length (1-200 chars)
-   - description text field (long text)
-   - Unicode characters (plant names in Spanish/Latin)
+    - common_name length (1-200 chars)
+    - scientific_name length (1-200 chars)
+    - description text field (long text)
+    - Unicode characters (plant names in Spanish/Latin)
 
 6. **Computed Properties** (2 tests):
-   - `is_available` computed from product_state.is_sellable (IF implemented)
-   - __repr__ string representation
+    - `is_available` computed from product_state.is_sellable (IF implemented)
+    - __repr__ string representation
 
 7. **Edge Cases** (4 tests):
-   - Duplicate SKU (unique constraint violation)
-   - NULL product_size_id (valid)
-   - Very long description (text field)
-   - Empty custom_attributes vs NULL
+    - Duplicate SKU (unique constraint violation)
+    - NULL product_size_id (valid)
+    - Very long description (text field)
+    - Empty custom_attributes vs NULL
 
 ### 5. Integration Tests (Testing Expert - PARALLEL)
+
 **Path**: `/home/lucasg/proyectos/DemeterDocs/tests/integration/test_product_integration.py`
 **Estimated Lines**: ~250 lines
 **Target Coverage**: Real database scenarios
 
 **Test Scenarios** (15-20 tests):
+
 1. **Database Persistence** (3 tests):
-   - Create product and persist to database
-   - Update product fields
-   - Soft delete pattern (if active field exists)
+    - Create product and persist to database
+    - Update product fields
+    - Soft delete pattern (if active field exists)
 
 2. **Complex Queries** (4 tests):
-   - Join with ProductFamily (query all Echeveria products)
-   - Join with ProductState (query only sellable products)
-   - Join with ProductSize (query products by size range)
-   - Multi-table join (family + state + size)
+    - Join with ProductFamily (query all Echeveria products)
+    - Join with ProductState (query only sellable products)
+    - Join with ProductSize (query products by size range)
+    - Multi-table join (family + state + size)
 
 3. **CASCADE/RESTRICT Behavior** (3 tests):
-   - Delete family → CASCADE deletes products
-   - Delete product_state with existing products → RESTRICT fails
-   - Delete product_size with existing products → RESTRICT fails
+    - Delete family → CASCADE deletes products
+    - Delete product_state with existing products → RESTRICT fails
+    - Delete product_size with existing products → RESTRICT fails
 
 4. **JSONB Queries** (3 tests):
-   - Filter by custom_attributes (color = "green")
-   - Filter by nested JSONB (growth_rate = "fast")
-   - Update JSONB field (add new attribute)
+    - Filter by custom_attributes (color = "green")
+    - Filter by nested JSONB (growth_rate = "fast")
+    - Update JSONB field (add new attribute)
 
 5. **Performance** (2 tests):
-   - Bulk insert 100 products
-   - Query with JSONB index usage
+    - Bulk insert 100 products
+    - Query with JSONB index usage
 
 6. **Real-world Scenarios** (3 tests):
-   - Create Echeveria product in CACTUS category (full workflow)
-   - Update product state from SEEDLING → ADULT
-   - Query all sellable products with packaging
+    - Create Echeveria product in CACTUS category (full workflow)
+    - Update product state from SEEDLING → ADULT
+    - Query all sellable products with packaging
 
 ## Implementation Strategy
 
 ### Phase 1: PARALLEL WORK (NOW - 60-90 min)
 
 **Python Expert** (PRIMARY TASK):
+
 1. Read patterns from DB016 (ProductFamily), DB018 (ProductState), DB019 (ProductSize)
 2. Read JSONB pattern from StorageLocation (position_metadata)
-3. **CRITICAL**: Verify ERD schema (database/database.mmd lines 88-96) - use `common_name` NOT `name`
+3. **CRITICAL**: Verify ERD schema (database/database.mmd lines 88-96) - use `common_name` NOT
+   `name`
 4. Create `app/models/product.py`:
-   - 3 FKs (family_id CASCADE, product_state_id RESTRICT, product_size_id RESTRICT NULLABLE)
-   - SKU validation (alphanumeric+hyphen, 6-20 chars, uppercase)
-   - JSONB custom_attributes with default '{}'
-   - **NO timestamps** if not in ERD (CHECK FIRST)
-   - 7 relationships (3 active, 4 commented)
+    - 3 FKs (family_id CASCADE, product_state_id RESTRICT, product_size_id RESTRICT NULLABLE)
+    - SKU validation (alphanumeric+hyphen, 6-20 chars, uppercase)
+    - JSONB custom_attributes with default '{}'
+    - **NO timestamps** if not in ERD (CHECK FIRST)
+    - 7 relationships (3 active, 4 commented)
 5. Create Alembic migration:
-   - All columns, FKs, indexes
-   - GIN index on custom_attributes (JSONB)
-   - CHECK constraint on SKU length
-   - **NO seed data**
+    - All columns, FKs, indexes
+    - GIN index on custom_attributes (JSONB)
+    - CHECK constraint on SKU length
+    - **NO seed data**
 6. Update `app/models/__init__.py`
 7. Report completion
 
 **Testing Expert** (PARALLEL TASK):
+
 1. Read product model structure (coordinate with Python Expert for method signatures)
 2. Create unit tests (~350 lines, 30-35 tests):
-   - Model creation, SKU validation, FKs, JSONB, fields
-   - Target: ≥80% coverage
+    - Model creation, SKU validation, FKs, JSONB, fields
+    - Target: ≥80% coverage
 3. Create integration tests (~250 lines, 15-20 tests):
-   - Real database, complex queries, CASCADE/RESTRICT, JSONB queries
+    - Real database, complex queries, CASCADE/RESTRICT, JSONB queries
 4. Run tests, measure coverage
 5. Report coverage metrics
 
 **Coordination**:
+
 - Python Expert provides model signature to Testing Expert ASAP
 - Testing Expert can start writing tests before full implementation
 - Both work independently, minimal blocking
@@ -286,20 +315,21 @@ products {
 ### Phase 2: CODE REVIEW (20 min)
 
 **Team Leader (ME)**:
+
 1. Verify ERD alignment:
-   - Field name is `common_name` (NOT `name`) ✅
-   - Timestamps present/absent matches ERD ✅
-   - 3 FKs correct (family_id, product_state_id, product_size_id) ✅
+    - Field name is `common_name` (NOT `name`) ✅
+    - Timestamps present/absent matches ERD ✅
+    - 3 FKs correct (family_id, product_state_id, product_size_id) ✅
 2. Verify SKU validation:
-   - Pattern: alphanumeric + hyphen ✅
-   - Length: 6-20 chars ✅
-   - Uppercase conversion ✅
+    - Pattern: alphanumeric + hyphen ✅
+    - Length: 6-20 chars ✅
+    - Uppercase conversion ✅
 3. Verify JSONB custom_attributes:
-   - Default value '{}' ✅
-   - GIN index in migration ✅
+    - Default value '{}' ✅
+    - GIN index in migration ✅
 4. Verify relationships:
-   - 3 active (family, product_state, product_size) ✅
-   - 4 commented (stock_batches, classifications, sample_images, location_configs) ✅
+    - 3 active (family, product_state, product_size) ✅
+    - 4 commented (stock_batches, classifications, sample_images, location_configs) ✅
 5. Run tests:
    ```bash
    pytest tests/unit/models/test_product.py -v
@@ -311,6 +341,7 @@ products {
 ### Phase 3: QUALITY GATES (10 min)
 
 **Mandatory Checks**:
+
 - [ ] All acceptance criteria checked
 - [ ] Unit tests pass (30-35 tests)
 - [ ] Integration tests pass (15-20 tests)
@@ -378,6 +409,7 @@ products {
 ## Critical Validation Rules
 
 ### SKU Validation
+
 ```python
 # Valid examples:
 "ECHEV-001"        # ✅ 10 chars, alphanumeric + hyphen
@@ -394,6 +426,7 @@ products {
 ```
 
 ### JSONB custom_attributes
+
 ```python
 # Examples:
 {
@@ -454,6 +487,7 @@ products {
 ### Parallel Work Strategy
 
 Both experts will work **simultaneously** to maximize efficiency:
+
 - Python Expert: Implements Product model + migration (~60-90 min)
 - Testing Expert: Writes tests in parallel (~60-90 min)
 
@@ -461,11 +495,12 @@ Both experts will work **simultaneously** to maximize efficiency:
 
 ---
 
-
 ## Team Leader Final Approval (2025-10-14 15:45)
+
 **Status**: ✅ COMPLETED
 
 ### Quality Gates Summary
+
 - [✅] All acceptance criteria satisfied
 - [✅] Unit tests pass (43/43)
 - [✅] Coverage: 97% (target: ≥80%)
@@ -474,11 +509,13 @@ Both experts will work **simultaneously** to maximize efficiency:
 - [✅] Migration created with indexes
 
 ### Performance Metrics
+
 - Model instantiation: <5ms (in-memory) ✅
 - SKU validation: <1ms ✅
 - JSONB operations: <5ms ✅
 
 ### Files Modified
+
 - app/models/product.py (created, 360 lines)
 - app/models/product_family.py (uncommented products relationship)
 - app/models/__init__.py (added Product import)
@@ -486,11 +523,14 @@ Both experts will work **simultaneously** to maximize efficiency:
 - tests/unit/models/test_product.py (created, 513 lines, 43 tests)
 
 ### Git Commit
+
 - Commit: 353a44b
 - Message: feat(models): implement Products model - complete Product Catalog (DB017)
 
 ### Product Catalog Status
+
 ✅ COMPLETE (100%):
+
 - DB015: ProductCategory (ROOT) ✅
 - DB016: ProductFamily (LEVEL 2) ✅
 - DB017: Products (LEAF) ✅
@@ -498,6 +538,7 @@ Both experts will work **simultaneously** to maximize efficiency:
 - DB019: ProductSize (size categories) ✅
 
 ### Dependencies Unblocked
+
 - DB007: StockBatch (was blocked by DB017)
 - DB008: StockMovement (was blocked by DB017)
 - DB026: Classifications (was blocked by DB017)

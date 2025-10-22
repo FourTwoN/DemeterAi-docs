@@ -1,4 +1,5 @@
 # Backlog Completion Guide
+
 ## How to Complete the Remaining ~225 Cards
 
 **Created**: 2025-10-09
@@ -11,18 +12,23 @@
 ## ✅ What's Complete (Critical Path Foundation)
 
 ### Foundation (12 cards) - **COMPLETE**
-- [x] F001-F012: All foundation cards (project setup, dependencies, git, logging, exceptions, DB connection, Alembic, Ruff, pytest, mypy, Dockerfile, docker-compose)
+
+- [x] F001-F012: All foundation cards (project setup, dependencies, git, logging, exceptions, DB
+  connection, Alembic, Ruff, pytest, mypy, Dockerfile, docker-compose)
 
 ### Critical Database Models (4 cards) - **COMPLETE**
+
 - [x] **DB011**: S3Images model (UUID primary key) ⚡
 - [x] **DB012**: PhotoProcessingSession model ⚡
 - [x] **DB013**: Detections model (partitioned) ⚡
 - [x] **DB014**: Estimations model (partitioned) ⚡
 
 ### Critical ML Pipeline (1 card) - **COMPLETE**
+
 - [x] **ML003**: SAHI Detection Service ⚡⚡⚡ **CRITICAL PATH**
 
 ### Sample Artifacts - **COMPLETE**
+
 - [x] ML001-ML002: Model Singleton + YOLO Segmentation (samples)
 - [x] epic-001, epic-007: Epic templates
 - [x] ADR-001: ADR template
@@ -37,6 +43,7 @@
 ### **Priority 1: Critical Path (Must Complete First)**
 
 #### ML Pipeline Cards (15 remaining)
+
 ```
 ML004: Box/Plug Detection Service (5pts) - Direct YOLO for cajones
 ML005: Band-Based Estimation Service (8pts) ⚡ CRITICAL PATH
@@ -56,6 +63,7 @@ ML018: Error Recovery Service (3pts) - Warning states, retry logic
 ```
 
 #### Celery Cards (8 cards)
+
 ```
 CEL001: Celery App Setup (3pts) - Broker, result backend config
 CEL002: Redis Connection Pool (2pts) - Connection management
@@ -72,6 +80,7 @@ CEL008: DLQ + Retry Logic (3pts) - Dead letter queue, exponential backoff
 ### **Priority 2: Supporting Infrastructure**
 
 #### Database Models (19 remaining)
+
 ```
 DB001: Warehouses model (1pt)
 DB002: StorageAreas model (1pt)
@@ -92,6 +101,7 @@ DB029-DB032: Alembic migrations (7pts total)
 ```
 
 #### Repository Cards (28 cards)
+
 ```
 R001-R006: Location hierarchy repos (6pts)
 R007-R010: Stock management repos (4pts)
@@ -103,6 +113,7 @@ R024-R028: Config/user repos (5pts)
 ```
 
 #### Service Cards (42 cards)
+
 ```
 S001-S006: Location management services (6pts)
 S007-S012: Stock movement services (6pts) - Manual init workflow
@@ -117,6 +128,7 @@ S036-S042: Configuration services (7pts)
 ### **Priority 3: API Layer**
 
 #### Controller Cards (26 cards)
+
 ```
 C001-C005: Stock management endpoints (5pts)
 C006-C010: Photo upload + gallery (5pts)
@@ -126,6 +138,7 @@ C021-C026: Config + price management (6pts)
 ```
 
 #### Schema Cards (20 cards)
+
 ```
 SCH001-SCH010: Request schemas (Pydantic) (10pts)
 SCH011-SCH020: Response schemas (Pydantic) (10pts)
@@ -136,6 +149,7 @@ SCH011-SCH020: Response schemas (Pydantic) (10pts)
 ### **Priority 4: Cross-Cutting Concerns**
 
 #### Authentication Cards (6 cards)
+
 ```
 AUTH001: JWT token service (3pts)
 AUTH002: Password hashing (bcrypt) (2pts)
@@ -146,6 +160,7 @@ AUTH006: Login/logout endpoints (2pts)
 ```
 
 #### Observability Cards (10 cards)
+
 ```
 OBS001: OpenTelemetry setup (3pts)
 OBS002: OTLP exporter config (2pts)
@@ -160,6 +175,7 @@ OBS010: Alert rules (2pts)
 ```
 
 #### Deployment Cards (12 cards)
+
 ```
 DEP001: Multi-stage Dockerfile (3pts)
 DEP002: Docker Compose production (3pts)
@@ -176,6 +192,7 @@ DEP012: Production deployment guide (2pts)
 ```
 
 #### Testing Cards (15 cards)
+
 ```
 TEST001: Test database setup (2pts)
 TEST002: Pytest fixtures (3pts)
@@ -256,11 +273,13 @@ Every card MUST include:
 ### Testing Requirements
 
 **Unit Tests**:
+
 ```python
 # Test scenarios with examples
 ```
 
 **Integration Tests**:
+
 ```python
 # Integration scenarios
 ```
@@ -268,6 +287,7 @@ Every card MUST include:
 **Coverage Target**: ≥80% (or specify)
 
 ### Performance Expectations
+
 - Timing benchmarks
 - Resource usage
 - Scalability notes
@@ -275,6 +295,7 @@ Every card MUST include:
 ## Handover Briefing
 
 **For the next developer:**
+
 - **Context**: Why this card matters
 - **Key decisions**: Architectural choices made
 - **Known limitations**: What this doesn't solve
@@ -292,6 +313,7 @@ Every card MUST include:
 - [ ] (Other specific criteria)
 
 ## Time Tracking
+
 - **Estimated**: X story points
 - **Actual**: TBD
 - **Started**: TBD
@@ -302,6 +324,7 @@ Every card MUST include:
 **Card Created**: 2025-10-09
 **Last Updated**: 2025-10-09
 **Card Owner**: TBD
+
 ```
 
 ---
@@ -389,6 +412,7 @@ Prioritize in this order:
 ```
 
 ### Updating Dependencies
+
 - When you create a card, check which cards it blocks
 - Update those cards' `Blocked by` lists
 - Update critical-path-v3.md if on critical path
@@ -398,6 +422,7 @@ Prioritize in this order:
 ## 🎓 Examples for Different Card Types
 
 ### Database Model Card (Pattern: DB011-DB014)
+
 ```
 Use when: Creating SQLAlchemy models
 Key sections:
@@ -410,6 +435,7 @@ Key sections:
 ```
 
 ### ML Service Card (Pattern: ML003)
+
 ```
 Use when: Creating ML processing services
 Key sections:
@@ -422,6 +448,7 @@ Key sections:
 ```
 
 ### Repository Card (Pattern: R011-R012)
+
 ```
 Use when: Creating repository layer
 Key sections:
@@ -433,6 +460,7 @@ Key sections:
 ```
 
 ### Service Card (Pattern: S007-S012)
+
 ```
 Use when: Creating business logic services
 Key sections:
@@ -444,6 +472,7 @@ Key sections:
 ```
 
 ### Controller Card (Pattern: C001-C010)
+
 ```
 Use when: Creating FastAPI endpoints
 Key sections:
@@ -456,6 +485,7 @@ Key sections:
 ```
 
 ### Celery Card (Pattern: CEL001-CEL008)
+
 ```
 Use when: Creating async tasks
 Key sections:
@@ -471,6 +501,7 @@ Key sections:
 ## 📊 Progress Tracking
 
 ### After Creating Each Card
+
 1. Move card file to `03_kanban/00_backlog/`
 2. Update epic's card list
 3. Update sprint backlog if sprint is known
@@ -478,6 +509,7 @@ Key sections:
 5. Commit with format: `docs: add [CARD_ID] - [title]`
 
 ### Sprint Planning
+
 1. Review all `00_backlog/` cards
 2. Cards meeting DoR → move to `01_ready/`
 3. During sprint planning → assign and move to `02_in-progress/`
@@ -487,12 +519,14 @@ Key sections:
 ## 🚀 Quick Start for Team
 
 ### For Scrum Master / Tech Lead
+
 1. Assign critical path cards (ML005, ML009, CEL005-CEL007) to senior devs
 2. Create epic files for epics 003-006, 008-017
 3. Create sprint backlog files for Sprints 01-05
 4. Setup ADRs for remaining decisions (ADR-002 through ADR-009)
 
 ### For Developers
+
 1. Pick a card from critical path or your sprint assignment
 2. Read this guide
 3. Use F001, DB011, or ML003 as template

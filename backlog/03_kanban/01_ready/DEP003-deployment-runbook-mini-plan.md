@@ -10,19 +10,22 @@
 
 ## Task Overview
 
-Create comprehensive deployment guide documenting all environment variables, setup procedures, testing steps, and operational procedures for DemeterAI v2.0.
+Create comprehensive deployment guide documenting all environment variables, setup procedures,
+testing steps, and operational procedures for DemeterAI v2.0.
 
 ---
 
 ## Current State Analysis
 
 **Existing Documentation**:
+
 - `.env.example` with basic configuration
 - README files in various directories
 - Engineering plan documentation
 - Sprint summaries
 
 **Missing**:
+
 - Complete deployment runbook
 - Environment variable reference
 - Step-by-step setup guide
@@ -34,9 +37,11 @@ Create comprehensive deployment guide documenting all environment variables, set
 ## Architecture
 
 **Layer**: Documentation
-**Pattern**: Comprehensive runbook covering: Environment Setup → Installation → Configuration → Testing → Operations
+**Pattern**: Comprehensive runbook covering: Environment Setup → Installation → Configuration →
+Testing → Operations
 
 **Files to Create/Modify**:
+
 - [ ] `DEPLOYMENT_GUIDE.md` (create - comprehensive deployment guide)
 - [ ] `OPERATIONS_RUNBOOK.md` (create - day-to-day operations)
 - [ ] `TROUBLESHOOTING.md` (create - common issues and solutions)
@@ -50,6 +55,7 @@ Create comprehensive deployment guide documenting all environment variables, set
 ### Phase 1: Create DEPLOYMENT_GUIDE.md
 
 **Structure**:
+
 ```markdown
 # DemeterAI v2.0 - Deployment Guide
 
@@ -143,6 +149,7 @@ Step-by-step guide...
 ### Phase 2: Create OPERATIONS_RUNBOOK.md
 
 **Structure**:
+
 ```markdown
 # DemeterAI v2.0 - Operations Runbook
 
@@ -205,6 +212,7 @@ Step-by-step guide...
 ### Phase 3: Create TROUBLESHOOTING.md
 
 **Common Issues and Solutions**:
+
 ```markdown
 # DemeterAI v2.0 - Troubleshooting Guide
 
@@ -244,6 +252,7 @@ Step-by-step guide...
 ### Phase 4: Update README.md
 
 **Add deployment section**:
+
 ```markdown
 ## Deployment
 
@@ -268,6 +277,7 @@ docker exec demeterai-api alembic upgrade head
 # 5. Verify health
 curl http://localhost:8000/health
 ```
+
 ```
 
 ---
@@ -460,7 +470,10 @@ curl http://localhost:8000/health
 
 **Error Message**:
 ```
-sqlalchemy.exc.ProgrammingError: (psycopg2.errors.UndefinedTable) relation "warehouses" does not exist
+
+sqlalchemy.exc.ProgrammingError: (psycopg2.errors.UndefinedTable) relation "warehouses" does not
+exist
+
 ```
 
 **Cause**: Alembic migrations have not been run or failed partially.
@@ -489,4 +502,5 @@ sqlalchemy.exc.ProgrammingError: (psycopg2.errors.UndefinedTable) relation "ware
    ```
 
 **Prevention**: Always run migrations in staging environment first.
+
 ```

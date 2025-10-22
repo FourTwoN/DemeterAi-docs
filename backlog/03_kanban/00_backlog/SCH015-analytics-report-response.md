@@ -1,6 +1,7 @@
 # [SCH015] AnalyticsReportResponse Schema
 
 ## Metadata
+
 - **Epic**: epic-003-backend-implementation.md
 - **Sprint**: Sprint-05
 - **Status**: `backlog`

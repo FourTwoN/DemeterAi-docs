@@ -1,6 +1,7 @@
 # [DB024] Storage location config - expected product/packaging
 
 ## Metadata
+
 - **Epic**: epic-002-database-models
 - **Sprint**: Sprint-01
 - **Priority**: high
@@ -8,9 +9,12 @@
 - **Dependencies**: Blocks [ML013]
 
 ## Description
-Storage location config - expected product/packaging. SQLAlchemy model following Clean Architecture patterns.
+
+Storage location config - expected product/packaging. SQLAlchemy model following Clean Architecture
+patterns.
 
 ## Acceptance Criteria
+
 - [ ] Model created in app/models/storage-location-config.py
 - [ ] All columns defined with correct types
 - [ ] Relationships configured with lazy loading strategy
@@ -19,14 +23,17 @@ Storage location config - expected product/packaging. SQLAlchemy model following
 - [ ] Unit tests ≥75% coverage
 
 ## Implementation Notes
+
 See database/database.mmd ERD for complete schema.
 
 ## Testing
+
 - Test model creation
 - Test relationships
 - Test constraints
 
 ## Handover
+
 Standard SQLAlchemy model. Follow DB011-DB014 patterns.
 
 ---

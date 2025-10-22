@@ -1,6 +1,7 @@
 # [OBS008] Readiness Check Endpoint
 
 ## Metadata
+
 - **Epic**: epic-010-observability
 - **Sprint**: Sprint-06
 - **Priority**: `high`
@@ -8,9 +9,12 @@
 - **Dependencies**: Blocked by [F006, CEL002]
 
 ## Description
-Implement `/ready` endpoint for readiness checks. Verifies database and Redis connectivity before accepting traffic.
+
+Implement `/ready` endpoint for readiness checks. Verifies database and Redis connectivity before
+accepting traffic.
 
 ## Acceptance Criteria
+
 - [ ] GET /ready returns 200 if all dependencies healthy
 - [ ] Returns 503 if database unreachable
 - [ ] Returns 503 if Redis unreachable
@@ -18,6 +22,7 @@ Implement `/ready` endpoint for readiness checks. Verifies database and Redis co
 - [ ] Response includes status of each dependency
 
 ## Implementation
+
 ```python
 @router.get("/ready")
 async def readiness():
@@ -45,6 +50,7 @@ async def check_database():
 ```
 
 **Kubernetes deployment:**
+
 ```yaml
 readinessProbe:
   httpGet:
@@ -55,6 +61,7 @@ readinessProbe:
 ```
 
 ## Testing
+
 - Test /ready returns 200 when healthy
 - Test /ready returns 503 when DB down
 - Test parallel checks complete in <100ms

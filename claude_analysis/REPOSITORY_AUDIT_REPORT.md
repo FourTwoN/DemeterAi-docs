@@ -11,9 +11,12 @@
 
 ### Overall Status: ✅ EXCELLENT (95/100)
 
-The repository layer is **exceptionally well-implemented** with strong adherence to Clean Architecture principles and SQLAlchemy 2.0 async patterns. All repositories follow the base template, use proper type hints, and maintain consistent structure.
+The repository layer is **exceptionally well-implemented** with strong adherence to Clean
+Architecture principles and SQLAlchemy 2.0 async patterns. All repositories follow the base
+template, use proper type hints, and maintain consistent structure.
 
 **Key Findings**:
+
 - ✅ 26/26 repositories inherit from `AsyncRepository[T]` correctly
 - ✅ 26/26 have correct `__init__(session: AsyncSession)` signatures
 - ✅ 100% type hint coverage on all methods
@@ -83,6 +86,7 @@ app/repositories/
 **Quality Score**: ✅ 100/100
 
 **Strengths**:
+
 - ✅ Generic type parameter `T` with proper bounds
 - ✅ All 8 CRUD methods implemented (get, get_multi, create, update, delete, count, exists)
 - ✅ Proper async/await throughout
@@ -94,6 +98,7 @@ app/repositories/
 - ✅ Filter support (**kwargs)
 
 **Architecture Compliance**: 100%
+
 ```python
 # ✅ CORRECT: Generic repository pattern
 class AsyncRepository(Generic[T]):
@@ -113,13 +118,14 @@ class AsyncRepository(Generic[T]):
 
 Repositories with custom domain-specific methods beyond base CRUD:
 
-| Repository | Lines | Custom Methods | Quality |
-|------------|-------|----------------|---------|
-| `WarehouseRepository` | 198 | 6 async methods | ✅ Excellent |
-| `ProductCategoryRepository` | 46 | 3 async methods | ⚠️ Inconsistent |
-| `ProductFamilyRepository` | 46 | 3 async methods | ⚠️ Inconsistent |
+| Repository                  | Lines | Custom Methods  | Quality         |
+|-----------------------------|-------|-----------------|-----------------|
+| `WarehouseRepository`       | 198   | 6 async methods | ✅ Excellent     |
+| `ProductCategoryRepository` | 46    | 3 async methods | ⚠️ Inconsistent |
+| `ProductFamilyRepository`   | 46    | 3 async methods | ⚠️ Inconsistent |
 
 **WarehouseRepository Example** (✅ Excellent):
+
 ```python
 class WarehouseRepository(AsyncRepository[Warehouse]):
     def __init__(self, session: AsyncSession) -> None:
@@ -154,6 +160,7 @@ class WarehouseRepository(AsyncRepository[Warehouse]):
 ```
 
 **Why WarehouseRepository is Excellent**:
+
 - ✅ Custom PK column handled consistently (get/update/delete all use `warehouse_id`)
 - ✅ Return types match base pattern (update returns `Warehouse | None`, delete returns `bool`)
 - ✅ Domain-specific methods (GPS lookup, code lookup)
@@ -166,6 +173,7 @@ class WarehouseRepository(AsyncRepository[Warehouse]):
 Repositories that only inherit base CRUD (no custom methods):
 
 **All 23 have identical structure**:
+
 ```python
 class ProductRepository(AsyncRepository[Product]):
     """Repository for product database operations."""
@@ -186,9 +194,11 @@ class ProductRepository(AsyncRepository[Product]):
 **Severity**: ⚠️ MEDIUM
 **Affected**: `ProductCategoryRepository`, `ProductFamilyRepository`
 
-**Problem**: These repositories raise `ValueError` instead of returning `None` for not-found cases, breaking the base repository pattern.
+**Problem**: These repositories raise `ValueError` instead of returning `None` for not-found cases,
+breaking the base repository pattern.
 
 **ProductCategoryRepository Example**:
+
 ```python
 # ❌ WRONG PATTERN
 async def update(self, id: Any, obj_in: dict[str, Any]) -> ProductCategory:
@@ -212,6 +222,7 @@ async def delete(self, id: Any) -> None:  # ❌ Should return bool
 ```
 
 **Contrast with WarehouseRepository** (✅ Correct):
+
 ```python
 # ✅ CORRECT PATTERN
 async def update(self, warehouse_id: int, data: dict[str, Any]) -> Warehouse | None:
@@ -237,12 +248,14 @@ async def delete(self, warehouse_id: int) -> bool:  # ✅ Returns bool
 ```
 
 **Impact**:
+
 - ❌ Service layer must catch `ValueError` instead of checking `if result is None`
 - ❌ Inconsistent with base repository pattern
 - ❌ Return type annotations are incorrect (should be `ProductCategory | None`)
 - ❌ Delete method doesn't return success status
 
-**Recommendation**: Align with base repository pattern (return `None` for not found, `bool` for delete)
+**Recommendation**: Align with base repository pattern (return `None` for not found, `bool` for
+delete)
 
 ---
 
@@ -251,7 +264,8 @@ async def delete(self, warehouse_id: int) -> bool:  # ✅ Returns bool
 **Severity**: ⚠️ MEDIUM
 **Affected**: 6 repositories with custom PK columns
 
-**Problem**: These models have custom PK column names (not `id`) but their repositories don't override `get()`, `update()`, and `delete()` methods.
+**Problem**: These models have custom PK column names (not `id`) but their repositories don't
+override `get()`, `update()`, and `delete()` methods.
 
 **Affected Repositories**:
 | Repository | Model | PK Column | Status |
@@ -266,18 +280,21 @@ async def delete(self, warehouse_id: int) -> bool:  # ✅ Returns bool
 **Why This Matters**:
 
 Base repository assumes PK column is named `id`:
+
 ```python
 # In AsyncRepository.get()
 stmt = select(self.model).where(self.model.id == id)  # ❌ Fails if PK is storage_area_id
 ```
 
 **Current Behavior**:
+
 ```python
 # This will FAIL at runtime:
 storage_area_repo.get(1)  # AttributeError: 'StorageArea' has no attribute 'id'
 ```
 
 **Should Be**:
+
 ```python
 class StorageAreaRepository(AsyncRepository[StorageArea]):
     def __init__(self, session: AsyncSession) -> None:
@@ -312,6 +329,7 @@ class StorageAreaRepository(AsyncRepository[StorageArea]):
 ```
 
 **Impact**:
+
 - ❌ Runtime errors when calling `get(id)`, `update(id, data)`, `delete(id)`
 - ❌ Service layer cannot use these repositories correctly
 - ⚠️ **May cause test failures** when services are implemented
@@ -380,6 +398,7 @@ async def get_multi(self, skip: int = 0, limit: int = 100) -> list[T]:
 All repositories follow Clean Architecture repository pattern:
 
 **✅ What Repositories DO (Correct)**:
+
 - Data access ONLY (CRUD operations)
 - SQL query construction
 - Eager loading configuration (selectinload/joinedload)
@@ -387,6 +406,7 @@ All repositories follow Clean Architecture repository pattern:
 - Transaction management (flush/refresh)
 
 **✅ What Repositories DON'T DO (Correct)**:
+
 - ❌ No business logic validation
 - ❌ No service-to-service calls
 - ❌ No exception handling (beyond SQLAlchemy errors)
@@ -394,6 +414,7 @@ All repositories follow Clean Architecture repository pattern:
 - ❌ No auto-commit (caller controls transactions)
 
 **Example of Perfect Repository**:
+
 ```python
 class WarehouseRepository(AsyncRepository[Warehouse]):
     # ✅ ONLY data access, no business logic
@@ -455,6 +476,7 @@ $ python -c "from app.repositories import *; print('✅ All repository imports s
 **Quality**: ✅ Perfect organization
 
 All 26 repositories exported in `__all__`:
+
 ```python
 __all__ = [
     "AsyncRepository",
@@ -465,6 +487,7 @@ __all__ = [
 ```
 
 **Categories**:
+
 - Base repository (1)
 - Geospatial hierarchy (5)
 - Stock management (3)
@@ -482,13 +505,14 @@ __all__ = [
 
 **WarehouseRepository**: 4 specialized methods
 
-| Method | Purpose | Performance | Quality |
-|--------|---------|-------------|---------|
-| `get_by_code(code)` | Unique code lookup | <10ms (indexed) | ✅ Excellent |
-| `get_by_gps_point(lon, lat)` | PostGIS spatial query | 30-50ms (GIST index) | ✅ Excellent |
-| `get_active_warehouses(with_areas)` | Soft delete filter + eager load | 10-50ms | ✅ Excellent |
+| Method                              | Purpose                         | Performance          | Quality     |
+|-------------------------------------|---------------------------------|----------------------|-------------|
+| `get_by_code(code)`                 | Unique code lookup              | <10ms (indexed)      | ✅ Excellent |
+| `get_by_gps_point(lon, lat)`        | PostGIS spatial query           | 30-50ms (GIST index) | ✅ Excellent |
+| `get_active_warehouses(with_areas)` | Soft delete filter + eager load | 10-50ms              | ✅ Excellent |
 
 **PostGIS Spatial Query Example**:
+
 ```python
 async def get_by_gps_point(self, longitude: float, latitude: float) -> Warehouse | None:
     """Find warehouse containing GPS coordinates (point-in-polygon query).
@@ -505,6 +529,7 @@ async def get_by_gps_point(self, longitude: float, latitude: float) -> Warehouse
 ```
 
 **Quality**: ✅ Production-ready
+
 - Proper SRID (4326 = WGS84)
 - Indexed lookup (GIST index)
 - Clear performance expectations
@@ -547,6 +572,7 @@ async def create(self, obj_in: dict[str, Any]) -> T:
 ```
 
 **Why This is Correct**:
+
 - ✅ Service layer controls transaction boundaries (atomic operations)
 - ✅ Multiple repository calls can be in one transaction
 - ✅ Can rollback if business validation fails
@@ -555,6 +581,7 @@ async def create(self, obj_in: dict[str, Any]) -> T:
 ### 8.2 Query Optimization: ✅ GOOD
 
 **WarehouseRepository** demonstrates best practices:
+
 - ✅ Eager loading support (selectinload)
 - ✅ Indexed lookups (code, GPS coordinates)
 - ✅ Pagination support (inherited from base)
@@ -581,6 +608,7 @@ async def count(self, **filters: Any) -> int:
 **Test Readiness Score**: ✅ 95/100
 
 **Why Repositories are Testable**:
+
 - ✅ Dependency injection (easy to inject test session)
 - ✅ No hard-coded dependencies
 - ✅ Async functions (can use pytest-asyncio)
@@ -588,6 +616,7 @@ async def count(self, **filters: Any) -> int:
 - ⚠️ 6 repositories would fail on `get(id)` due to custom PK columns
 
 **Example Test Structure**:
+
 ```python
 @pytest.mark.asyncio
 async def test_warehouse_repository_get_by_code(db_session):
@@ -623,6 +652,7 @@ async def test_warehouse_repository_get_by_code(db_session):
 **Impact**: Runtime errors when services use these repositories
 
 **Affected Files**:
+
 - `app/repositories/storage_area_repository.py`
 - `app/repositories/storage_location_repository.py`
 - `app/repositories/storage_bin_repository.py`
@@ -633,6 +663,7 @@ async def test_warehouse_repository_get_by_code(db_session):
 **Action**: Add `get()`, `update()`, `delete()` overrides to each
 
 **Example Template**:
+
 ```python
 class StorageAreaRepository(AsyncRepository[StorageArea]):
     def __init__(self, session: AsyncSession) -> None:
@@ -674,13 +705,16 @@ class StorageAreaRepository(AsyncRepository[StorageArea]):
 
 #### 1.2 Fix Inconsistent Error Handling
 
-**Issue**: ProductCategoryRepository and ProductFamilyRepository raise ValueError instead of returning None
+**Issue**: ProductCategoryRepository and ProductFamilyRepository raise ValueError instead of
+returning None
 
 **Affected Files**:
+
 - `app/repositories/product_category_repository.py`
 - `app/repositories/product_family_repository.py`
 
 **Current Code** (❌ WRONG):
+
 ```python
 async def update(self, id: Any, obj_in: dict[str, Any]) -> ProductCategory:
     category = await self.get(id)
@@ -698,6 +732,7 @@ async def delete(self, id: Any) -> None:  # ❌ WRONG return type
 ```
 
 **Should Be** (✅ CORRECT):
+
 ```python
 async def update(self, id: Any, obj_in: dict[str, Any]) -> ProductCategory | None:
     category = await self.get(id)
@@ -732,6 +767,7 @@ async def delete(self, id: Any) -> bool:  # ✅ CORRECT return type
 **Candidates for Enhancement**:
 
 **ProductRepository**:
+
 ```python
 async def get_by_category_and_family(
     self, category_id: int, family_id: int
@@ -752,6 +788,7 @@ async def get_active_products(self) -> list[Product]:
 ```
 
 **StockMovementRepository**:
+
 ```python
 async def get_by_location(
     self, location_id: int, limit: int = 50
@@ -779,6 +816,7 @@ async def get_by_date_range(
 ```
 
 **PhotoProcessingSessionRepository**:
+
 ```python
 async def get_pending_sessions(self) -> list[PhotoProcessingSession]:
     """Get sessions awaiting ML processing."""
@@ -815,6 +853,7 @@ async def get_by_location_and_date(
 **Repositories that would benefit from eager loading**:
 
 **StockMovementRepository**:
+
 ```python
 async def get_with_batch(self, movement_id: UUID) -> StockMovement | None:
     """Get movement with related batch (avoid N+1)."""
@@ -828,6 +867,7 @@ async def get_with_batch(self, movement_id: UUID) -> StockMovement | None:
 ```
 
 **ProductRepository**:
+
 ```python
 async def get_with_taxonomy(self, product_id: int) -> Product | None:
     """Get product with category and family (avoid N+1)."""
@@ -854,6 +894,7 @@ async def get_with_taxonomy(self, product_id: int) -> Product | None:
 **Create**: `docs/repository_usage_guide.md`
 
 **Contents**:
+
 - Basic CRUD operations
 - Custom query examples
 - Eager loading best practices
@@ -868,22 +909,23 @@ async def get_with_taxonomy(self, product_id: int) -> Product | None:
 
 ### Overall Repository Layer Score: 95/100
 
-| Category | Score | Weight | Total |
-|----------|-------|--------|-------|
-| **Structure & Inheritance** | 100/100 | 20% | 20.0 |
-| **Type Hints & Async** | 100/100 | 15% | 15.0 |
-| **Clean Architecture** | 100/100 | 20% | 20.0 |
-| **CRUD Consistency** | 85/100 | 15% | 12.75 |
-| **Custom PK Support** | 75/100 | 10% | 7.5 |
-| **Domain Queries** | 90/100 | 10% | 9.0 |
-| **Documentation** | 95/100 | 5% | 4.75 |
-| **Imports & Dependencies** | 100/100 | 5% | 5.0 |
+| Category                    | Score   | Weight | Total |
+|-----------------------------|---------|--------|-------|
+| **Structure & Inheritance** | 100/100 | 20%    | 20.0  |
+| **Type Hints & Async**      | 100/100 | 15%    | 15.0  |
+| **Clean Architecture**      | 100/100 | 20%    | 20.0  |
+| **CRUD Consistency**        | 85/100  | 15%    | 12.75 |
+| **Custom PK Support**       | 75/100  | 10%    | 7.5   |
+| **Domain Queries**          | 90/100  | 10%    | 9.0   |
+| **Documentation**           | 95/100  | 5%     | 4.75  |
+| **Imports & Dependencies**  | 100/100 | 5%     | 5.0   |
 
 **Total**: 94/100
 
 ### Category Breakdown
 
 #### ✅ Excellent (100/100)
+
 - Base repository design (AsyncRepository[T])
 - Type hint coverage
 - Async/await patterns
@@ -893,11 +935,13 @@ async def get_with_taxonomy(self, product_id: int) -> Product | None:
 - No circular dependencies
 
 #### ⚠️ Good (85-95/100)
+
 - CRUD consistency (2 repos have incorrect error handling)
 - Domain-specific queries (only 1/26 has specialized methods)
 - Documentation (good docstrings, missing usage guide)
 
 #### ⚠️ Needs Improvement (75/100)
+
 - Custom PK column support (6/9 missing overrides)
 
 ---
@@ -907,10 +951,12 @@ async def get_with_taxonomy(self, product_id: int) -> Product | None:
 ### Service Layer Implementation Readiness: ⚠️ 85/100
 
 **Blockers** (MUST fix before services):
+
 - ⚠️ 6 repositories with custom PK columns will cause runtime errors
 - ⚠️ 2 repositories with inconsistent error handling
 
 **Action Items Before Service Layer**:
+
 1. ✅ Fix 6 repositories with custom PK columns (2 hours)
 2. ✅ Fix 2 repositories with incorrect error handling (30 min)
 3. ✅ Test all repository imports (already passing)
@@ -927,6 +973,7 @@ async def get_with_taxonomy(self, product_id: int) -> Product | None:
 **Compliance**: ✅ 100%
 
 All repositories follow the base template exactly:
+
 - ✅ Inherit from `AsyncRepository[T]`
 - ✅ Type hints on all methods
 - ✅ Async/await everywhere
@@ -934,6 +981,7 @@ All repositories follow the base template exactly:
 - ✅ Domain-specific methods added as needed
 
 **Notable Improvements Over Template**:
+
 - ✅ WarehouseRepository has PostGIS spatial queries
 - ✅ Base repository has `count()` and `exists()` helpers
 - ✅ Comprehensive docstrings with performance notes
@@ -949,6 +997,7 @@ All repositories follow the base template exactly:
 ### Recommended Modifications: 8 files
 
 **Priority 1 (Critical)**:
+
 1. `app/repositories/storage_area_repository.py`
 2. `app/repositories/storage_location_repository.py`
 3. `app/repositories/storage_bin_repository.py`
@@ -962,9 +1011,12 @@ All repositories follow the base template exactly:
 
 ## 15. Conclusion
 
-The repository layer is **exceptionally well-implemented** with strong adherence to Clean Architecture principles, proper async patterns, and comprehensive type hints. All 26 repositories follow the base template correctly, and the base repository itself is production-ready.
+The repository layer is **exceptionally well-implemented** with strong adherence to Clean
+Architecture principles, proper async patterns, and comprehensive type hints. All 26 repositories
+follow the base template correctly, and the base repository itself is production-ready.
 
 **Key Strengths**:
+
 - ✅ Perfect inheritance structure
 - ✅ 100% type hint coverage
 - ✅ Proper async/await throughout
@@ -973,12 +1025,14 @@ The repository layer is **exceptionally well-implemented** with strong adherence
 - ✅ Excellent base repository design
 
 **Required Fixes** (before service layer):
+
 - ⚠️ Fix 6 repositories with custom PK columns
 - ⚠️ Fix 2 repositories with inconsistent error handling
 
 **Estimated Time to 100% Compliance**: 2.5 hours
 
-Once these 8 repositories are fixed, the repository layer will be **100% production-ready** and fully prepared for Sprint 03 service layer implementation.
+Once these 8 repositories are fixed, the repository layer will be **100% production-ready** and
+fully prepared for Sprint 03 service layer implementation.
 
 ---
 

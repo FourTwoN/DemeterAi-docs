@@ -1,6 +1,7 @@
 # [OBS003] Custom Trace Instrumentation
 
 ## Metadata
+
 - **Epic**: epic-010-observability
 - **Sprint**: Sprint-06
 - **Priority**: `medium`
@@ -8,15 +9,18 @@
 - **Dependencies**: Blocked by [OBS001, OBS002]
 
 ## Description
+
 Add custom trace spans for ML pipeline, service layer, and critical business logic paths.
 
 ## Acceptance Criteria
+
 - [ ] ML pipeline instrumented (segmentation, detection, estimation)
 - [ ] Service layer methods traced
 - [ ] Span attributes include business context (photo_id, location_id)
 - [ ] Parent-child relationships correct (API → Celery → Services)
 
 ## Implementation
+
 ```python
 from opentelemetry import trace
 
@@ -35,6 +39,7 @@ async def segment_image(photo_id: int, image_path: str):
 ```
 
 ## Testing
+
 - Verify nested spans in Grafana Tempo
 - Verify span attributes visible
 - Test distributed tracing (API → Celery)

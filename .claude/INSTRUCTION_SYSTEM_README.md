@@ -8,6 +8,7 @@
 ## What Changed
 
 ### Before (v2.2)
+
 - **Focus**: Documentation and Mermaid diagrams
 - **Workflow**: Plan → Execute (for documentation)
 - **Agent System**: Basic, not well-defined
@@ -15,6 +16,7 @@
 - **Problem**: Sprint 02 had 70/386 tests failing (marked as passing)
 
 ### After (v3.0)
+
 - **Focus**: Full-stack development (Services, Controllers, Repositories)
 - **Workflow**: Scrum Master → Team Leader → Parallel Specialists → Quality Gates
 - **Agent System**: 6 specialized agents with clear workflows
@@ -50,17 +52,20 @@ DemeterDocs/
 ### For New Users
 
 **Step 1**: Read CLAUDE.md
+
 - Main instructions
 - Critical rules
 - Quality gates checklist
 - Technology stack
 
 **Step 2**: Read orchestration.md
+
 - How the 6 agents work together
 - Complete workflow (start to finish)
 - Communication patterns
 
 **Step 3**: Read your role's workflow
+
 - Scrum Master: Sprint planning, backlog management
 - Team Leader: Task planning, quality gates
 - Python Expert: Code implementation
@@ -69,39 +74,44 @@ DemeterDocs/
 ### For Existing Users
 
 **If you're familiar with the old system**:
+
 1. OLD: CLAUDE.md was for Mermaid documentation
-   - NEW: CLAUDE.md is for full development workflow
+    - NEW: CLAUDE.md is for full development workflow
 
 2. OLD: Agents were vaguely defined
-   - NEW: 5 detailed workflow files (one per role)
+    - NEW: 5 detailed workflow files (one per role)
 
 3. OLD: Tests were mocked, marked as passing
-   - NEW: Tests must actually pass (pytest verification required)
+    - NEW: Tests must actually pass (pytest verification required)
 
 4. OLD: Quality gates were optional
-   - NEW: Quality gates are mandatory (all must pass)
+    - NEW: Quality gates are mandatory (all must pass)
 
 ---
 
 ## The 6 Agents
 
 ### 1. Scrum Master
+
 **File**: `.claude/workflows/scrum-master-workflow.md`
 **Role**: Project orchestration, backlog management
 **Use when**: Planning sprints, tracking progress, unblocking tasks
 
 **Key Actions**:
+
 - Read current sprint and goals
 - Identify ready tasks (no blockers)
 - Move tasks through kanban states
 - Report project status
 
 ### 2. Team Leader
+
 **File**: `.claude/workflows/team-leader-workflow.md`
 **Role**: Task planning, quality enforcement
 **Use when**: Implementing a task, reviewing code
 
 **Key Actions**:
+
 - Create Mini-Plans (detailed architecture plans)
 - Spawn Python Expert + Testing Expert in parallel
 - Review code (enforce Service→Service pattern)
@@ -109,33 +119,39 @@ DemeterDocs/
 - Approve or reject completion
 
 ### 3. Python Expert
+
 **File**: `.claude/workflows/python-expert-workflow.md`
 **Role**: Backend code implementation
 **Use when**: Writing services, controllers, repositories
 
 **Key Actions**:
+
 - Read existing code (never assume)
 - Implement following Clean Architecture (Service→Service)
 - Use async/await, type hints, Pydantic schemas
 - Verify imports work before completion
 
 ### 4. Testing Expert
+
 **File**: `.claude/workflows/testing-expert-workflow.md`
 **Role**: Test writing (unit + integration)
 **Use when**: Writing tests for services/controllers
 
 **Key Actions**:
+
 - Write unit tests (mock dependencies)
 - Write integration tests (real PostgreSQL)
 - Achieve ≥80% coverage
 - Verify tests ACTUALLY pass (run pytest)
 
 ### 5. Database Expert
+
 **File**: `.claude/agents/database-expert.md` (existing)
 **Role**: Schema guidance, on-call support
 **Use when**: Questions about database schema, PostGIS
 
 ### 6. Git Commit Agent
+
 **File**: `.claude/agents/git-commit-writer.md` (existing)
 **Role**: Create commits after Team Leader approval
 **Use when**: Task complete, all quality gates passed
@@ -145,21 +161,25 @@ DemeterDocs/
 ## Critical Rules (NEVER VIOLATE)
 
 ### Rule 1: Database as Source of Truth
+
 - `database/database.mmd` is authoritative
 - All models must match schema EXACTLY
 - Verify table names, column names, data types
 
 **Prevention**:
+
 ```bash
 cat database/database.mmd | grep -A 30 "table_name"
 # Compare with model implementation
 ```
 
 ### Rule 2: Tests Must ACTUALLY Pass
+
 - Sprint 02 issue: 70/386 tests were failing (marked as passing)
 - Always run pytest and verify exit code
 
 **Prevention**:
+
 ```bash
 pytest tests/ -v
 EXIT_CODE=$?
@@ -170,17 +190,21 @@ fi
 ```
 
 ### Rule 3: Clean Architecture Patterns
+
 - Service → Service communication ONLY
 - NEVER Service → OtherRepository
 
 **Prevention**:
+
 ```bash
 grep -n "Repository" app/services/example.py | grep -v "self.repo"
 # Output should be EMPTY (no violations)
 ```
 
 ### Rule 4: Quality Gates Are Mandatory
+
 **Before ANY task moves to `05_done/`**:
+
 - ✅ All tests pass (verified)
 - ✅ Coverage ≥80% (verified)
 - ✅ Code review passed
@@ -188,11 +212,13 @@ grep -n "Repository" app/services/example.py | grep -v "self.repo"
 - ✅ Schema matches ERD
 
 ### Rule 5: No Hallucinations
+
 - Read existing code before implementing
 - Don't assume methods exist
 - Don't assume relationships exist
 
 **Prevention**:
+
 ```bash
 # Before implementing
 cat app/services/other_service.py
@@ -205,26 +231,31 @@ grep "relationship" app/models/*.py
 ## Sprint 02 Critical Issues (Documented in CRITICAL_ISSUES.md)
 
 ### Issue 1: Tests Marked Passing When Failing
+
 - **What**: 70/386 tests were failing
 - **Why**: Tests were mocked incorrectly
 - **Fix**: Always run pytest, verify exit code
 
 ### Issue 2: Hallucinated Code
+
 - **What**: Code referenced non-existent relationships
 - **Why**: Assumed instead of reading
 - **Fix**: Always read existing code first
 
 ### Issue 3: Schema Drift
+
 - **What**: Models didn't match database
 - **Why**: Implemented from memory
 - **Fix**: Always consult database/database.mmd
 
 ### Issue 4: Incomplete Coverage
+
 - **What**: Only happy path tested
 - **Why**: Didn't test exceptions
 - **Fix**: Test all code paths (success, exceptions, edge cases)
 
 ### Issue 5: Service→Repository Anti-Pattern
+
 - **What**: Services calling other repositories directly
 - **Why**: Didn't understand Clean Architecture
 - **Fix**: Enforce Service→Service pattern in code review
@@ -236,6 +267,7 @@ grep "relationship" app/models/*.py
 **Scenario**: Implement S001 - StockMovementService
 
 ### Phase 1: Scrum Master (State)
+
 ```bash
 # Check current state
 cat backlog/03_kanban/DATABASE_CARDS_STATUS.md
@@ -247,6 +279,7 @@ mv backlog/03_kanban/00_backlog/S001-*.md backlog/03_kanban/01_ready/
 ```
 
 ### Phase 2: Team Leader (Planning)
+
 ```bash
 # Create Mini-Plan
 cat >> backlog/03_kanban/01_ready/S001-*.md <<EOF
@@ -268,6 +301,7 @@ mv backlog/03_kanban/01_ready/S001-*.md backlog/03_kanban/02_in-progress/
 ### Phase 3: Parallel Implementation (2-3 hours)
 
 **Python Expert**:
+
 ```python
 # Read existing code first
 cat app/services/config_service.py
@@ -282,6 +316,7 @@ class StockMovementService:
 ```
 
 **Testing Expert** (at same time):
+
 ```python
 # Write unit tests
 @pytest.mark.asyncio
@@ -300,6 +335,7 @@ async def test_workflow(db_session):
 ```
 
 ### Phase 4: Team Leader (Review)
+
 ```bash
 # Review code
 grep -n "Repository" app/services/stock_movement_service.py | grep -v "self.repo"
@@ -319,6 +355,7 @@ mv backlog/03_kanban/02_in-progress/S001-*.md backlog/03_kanban/04_testing/
 ```
 
 ### Phase 5: Quality Gates
+
 ```bash
 # Run quality gate script
 ./quality_gate_check.sh
@@ -333,6 +370,7 @@ mv backlog/03_kanban/02_in-progress/S001-*.md backlog/03_kanban/04_testing/
 ```
 
 ### Phase 6: Git Commit
+
 ```bash
 git commit -m "feat(services): implement StockMovementService (S001)
 
@@ -346,6 +384,7 @@ Co-Authored-By: Claude <noreply@anthropic.com>"
 ```
 
 ### Phase 7: Completion
+
 ```bash
 # Move to done
 mv backlog/03_kanban/04_testing/S001-*.md backlog/03_kanban/05_done/
@@ -362,12 +401,14 @@ mv backlog/03_kanban/00_backlog/S002-*.md backlog/03_kanban/01_ready/
 ## Key Improvements
 
 ### Before v3.0
+
 - Tests marked passing (were actually failing)
 - Code hallucinated relationships
 - Models didn't match schema
 - Service→Repository violations
 
 ### After v3.0
+
 - Tests verified (pytest exit code checked)
 - Code reads existing files first
 - Models compared with ERD
@@ -413,4 +454,5 @@ A: See Python Expert workflow Rule 1 (Read Before Writing)
 
 ---
 
-**Remember**: Quality over speed. The new instruction system prevents Sprint 02 issues from recurring.
+**Remember**: Quality over speed. The new instruction system prevents Sprint 02 issues from
+recurring.

@@ -1,6 +1,7 @@
 # [DEP003] GPU Worker Docker Image
 
 ## Metadata
+
 - **Epic**: epic-011-deployment
 - **Sprint**: Sprint-02
 - **Priority**: `high`
@@ -8,9 +9,11 @@
 - **Dependencies**: Blocked by [DEP001]
 
 ## Description
+
 Create specialized Dockerfile for GPU workers with CUDA support. Based on nvidia/cuda base image.
 
 ## Acceptance Criteria
+
 - [ ] Base image: nvidia/cuda:12.1.0-runtime-ubuntu22.04
 - [ ] CUDA 12.1+ support
 - [ ] PyTorch with CUDA support
@@ -19,6 +22,7 @@ Create specialized Dockerfile for GPU workers with CUDA support. Based on nvidia
 - [ ] Test with nvidia-smi
 
 ## Implementation
+
 ```dockerfile
 FROM nvidia/cuda:12.1.0-runtime-ubuntu22.04
 
@@ -40,6 +44,7 @@ CMD ["celery", "-A", "app", "worker", "--pool=solo", "--concurrency=1"]
 ```
 
 **requirements-gpu.txt:**
+
 ```
 torch==2.4.0+cu121
 torchvision==0.19.0+cu121
@@ -48,6 +53,7 @@ ultralytics==8.3.0
 ```
 
 ## Testing
+
 - Build: `docker build -f Dockerfile.gpu -t demeterai-gpu .`
 - Test CUDA: `docker run --gpus all demeterai-gpu nvidia-smi`
 - Verify PyTorch sees GPU: `python -c "import torch; print(torch.cuda.is_available())"`

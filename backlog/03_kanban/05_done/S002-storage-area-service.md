@@ -1,6 +1,7 @@
 # S002: StorageAreaService
 
 ## Metadata
+
 - **Epic**: [epic-004-services.md](../../02_epics/epic-004-services.md)
 - **Sprint**: Sprint-02
 - **Status**: `backlog`
@@ -9,21 +10,29 @@
 - **Area**: `services/location`
 - **Assignee**: TBD
 - **Dependencies**:
-  - Blocks: [S003, S006, C002]
-  - Blocked by**: [R002, S001]
+    - Blocks: [S003, S006, C002]
+    - Blocked by**: [R002, S001]
 
 ## Related Documentation
-- **Engineering Plan**: [../../engineering_plan/backend/service_layer.md](../../engineering_plan/backend/service_layer.md)
-- **Architecture**: [../../engineering_plan/03_architecture_overview.md](../../engineering_plan/03_architecture_overview.md)
+
+- **Engineering Plan
+  **: [../../engineering_plan/backend/service_layer.md](../../engineering_plan/backend/service_layer.md)
+- **Architecture
+  **: [../../engineering_plan/03_architecture_overview.md](../../engineering_plan/03_architecture_overview.md)
 - **Database ERD**: [../../database/database.mmd](../../database/database.mmd)
 
 ## Description
 
-**What**: Implement `StorageAreaService` for storage area business logic, hierarchy validation, and GPS-based area lookup.
+**What**: Implement `StorageAreaService` for storage area business logic, hierarchy validation, and
+GPS-based area lookup.
 
-**Why**: Storage areas are level 2 of the 4-tier hierarchy (warehouse → storage_area → storage_location → storage_bin). Service validates parent-child relationships and provides geospatial queries for area localization.
+**Why**: Storage areas are level 2 of the 4-tier hierarchy (warehouse → storage_area →
+storage_location → storage_bin). Service validates parent-child relationships and provides
+geospatial queries for area localization.
 
-**Context**: Clean Architecture Application Layer. StorageAreaService calls WarehouseService to validate parent warehouse existence (service-to-service communication). NO direct repository calls to WarehouseRepository.
+**Context**: Clean Architecture Application Layer. StorageAreaService calls WarehouseService to
+validate parent warehouse existence (service-to-service communication). NO direct repository calls
+to WarehouseRepository.
 
 ## Acceptance Criteria
 
@@ -187,14 +196,17 @@
 ## Technical Implementation Notes
 
 ### Architecture
+
 - **Layer**: Application (Service)
 - **Dependencies**: R002 (StorageAreaRepository), S001 (WarehouseService)
-- **Design Pattern**: Service-to-service communication (calls WarehouseService, NOT WarehouseRepository)
+- **Design Pattern**: Service-to-service communication (calls WarehouseService, NOT
+  WarehouseRepository)
 - **Critical Rule**: NO direct repository access to other domains
 
 ### Code Hints
 
 **Dependency injection:**
+
 ```python
 # In app/dependencies.py
 async def get_storage_area_service(
@@ -207,6 +219,7 @@ async def get_storage_area_service(
 ```
 
 **Shapely containment check:**
+
 ```python
 from shapely.geometry import shape
 
@@ -220,6 +233,7 @@ def is_within(child_geojson: dict, parent_geojson: dict) -> bool:
 ### Testing Requirements
 
 **Unit Tests**:
+
 ```python
 @pytest.mark.asyncio
 async def test_create_area_with_parent_validation():
@@ -277,6 +291,7 @@ async def test_create_area_geometry_out_of_bounds():
 **Coverage Target**: ≥85%
 
 ### Performance Expectations
+
 - `create_storage_area`: <40ms (includes parent validation + geometry check)
 - `get_storage_area_by_gps`: <50ms (PostGIS query)
 - `calculate_utilization`: <100ms for 50 storage_locations
@@ -285,24 +300,30 @@ async def test_create_area_geometry_out_of_bounds():
 
 **For the next developer:**
 
-**Context**: StorageAreaService demonstrates **service-to-service communication**. It calls WarehouseService (NOT WarehouseRepository directly) to validate parent relationships.
+**Context**: StorageAreaService demonstrates **service-to-service communication**. It calls
+WarehouseService (NOT WarehouseRepository directly) to validate parent relationships.
 
 **Key decisions made**:
-1. **Parent validation via service**: Calls `warehouse_service.get_warehouse_by_id()` (encapsulation)
+
+1. **Parent validation via service**: Calls `warehouse_service.get_warehouse_by_id()` (
+   encapsulation)
 2. **Geometric containment**: Shapely validates areas fit within warehouse boundaries
 3. **Utilization calculation**: Aggregates child storage_locations area
 4. **Optional nested data**: Schemas can include parent warehouse (avoid N+1 queries)
 
 **Known limitations**:
+
 - Geometry containment check is sync (Shapely) - adds 10-20ms overhead
 - Utilization calculation requires separate query to sum locations
 - No auto-adjustment if warehouse geometry changes
 
 **Next steps**:
+
 - S003: StorageLocationService (similar pattern, calls StorageAreaService)
 - S006: LocationHierarchyService (aggregates S001-S004)
 
 **Questions to validate**:
+
 - Should containment validation allow areas to touch warehouse edges?
 - How to handle warehouse geometry updates affecting existing areas?
 
@@ -317,6 +338,7 @@ async def test_create_area_geometry_out_of_bounds():
 - [ ] PR reviewed (2+ approvals)
 
 ## Time Tracking
+
 - **Estimated**: 3 story points (~6 hours)
 - **Actual**: TBD
 - **Started**: TBD

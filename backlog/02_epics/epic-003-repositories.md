@@ -10,7 +10,8 @@
 
 ## Goal
 
-Implement complete data access layer using AsyncRepository pattern with specialized query methods for all 28 database models.
+Implement complete data access layer using AsyncRepository pattern with specialized query methods
+for all 28 database models.
 
 ---
 
@@ -27,25 +28,30 @@ Implement complete data access layer using AsyncRepository pattern with speciali
 ## Cards List (28 cards, 25 points)
 
 ### Base Repository (3 points)
+
 - **R001**: AsyncRepository base class (get, get_multi, create, update, delete) (3pts)
 
 ### Location Repositories (4 points)
+
 - **R002**: WarehouseRepository (1pt)
 - **R003**: StorageAreaRepository (1pt)
 - **R004**: StorageLocationRepository (geospatial queries) (1pt)
 - **R005**: StorageBinRepository (1pt)
 
 ### Stock Repositories (3 points)
+
 - **R006**: StockMovementRepository (date range, location filters) (2pts)
 - **R007**: StockBatchRepository (aggregation queries) (1pt)
 
 ### Photo Processing Repositories (4 points)
+
 - **R008**: S3ImageRepository (1pt)
 - **R009**: PhotoSessionRepository (2pts)
 - **R010**: DetectionRepository (partitioned table queries) (1pt)
 - **R011**: EstimationRepository (partitioned table queries) (1pt)
 
 ### Product Repositories (5 points)
+
 - **R012**: ProductCategoryRepository (1pt)
 - **R013**: ProductFamilyRepository (1pt)
 - **R014**: ProductRepository (1pt)
@@ -53,10 +59,12 @@ Implement complete data access layer using AsyncRepository pattern with speciali
 - **R016**: ClassificationRepository (1pt)
 
 ### Configuration Repositories (2 points)
+
 - **R017**: StorageLocationConfigRepository (1pt)
 - **R018**: DensityParameterRepository (auto-calibration queries) (1pt)
 
 ### Additional Repositories (4 points)
+
 - **R019-R028**: Remaining model repositories (0.5pt each = 4pts total)
 
 ---
@@ -71,6 +79,7 @@ Implement complete data access layer using AsyncRepository pattern with speciali
 ## Key Patterns
 
 **N+1 Prevention**:
+
 ```python
 stmt = (
     select(StockMovement)

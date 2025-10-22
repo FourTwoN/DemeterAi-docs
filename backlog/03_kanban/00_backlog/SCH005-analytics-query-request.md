@@ -1,6 +1,7 @@
 # [SCH005] AnalyticsQueryRequest Schema
 
 ## Metadata
+
 - **Epic**: epic-003-backend-implementation.md
 - **Sprint**: Sprint-05
 - **Status**: `backlog`
@@ -55,6 +56,7 @@ Request schema for analytics query endpoint with multi-dimensional filters.
 **Coverage Target**: ≥85%
 
 ## Time Tracking
+
 - **Estimated**: 2 story points
 
 ---

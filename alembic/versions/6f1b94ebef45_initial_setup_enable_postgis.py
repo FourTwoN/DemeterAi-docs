@@ -22,8 +22,6 @@ This migration must be applied BEFORE creating any models with geometry columns.
 from typing import Sequence, Union
 
 from alembic import op
-import sqlalchemy as sa
-
 
 # revision identifiers, used by Alembic.
 revision: str = '6f1b94ebef45'
@@ -33,37 +31,37 @@ depends_on: Union[str, Sequence[str], None] = None
 
 
 def upgrade() -> None:
-    """Enable PostGIS extension.
+  """Enable PostGIS extension.
 
-    Creates the PostGIS extension which adds spatial database capabilities
-    to PostgreSQL. This is required for storing and querying geospatial data.
+  Creates the PostGIS extension which adds spatial database capabilities
+  to PostgreSQL. This is required for storing and querying geospatial data.
 
-    The IF NOT EXISTS clause makes this migration idempotent - safe to run
-    multiple times without errors.
-    """
-    # Enable PostGIS extension for spatial database features
-    op.execute('CREATE EXTENSION IF NOT EXISTS postgis')
+  The IF NOT EXISTS clause makes this migration idempotent - safe to run
+  multiple times without errors.
+  """
+  # Enable PostGIS extension for spatial database features
+  op.execute('CREATE EXTENSION IF NOT EXISTS postgis')
 
-    # Optionally enable PostGIS topology (if needed for future features)
-    # op.execute('CREATE EXTENSION IF NOT EXISTS postgis_topology')
+  # Optionally enable PostGIS topology (if needed for future features)
+  # op.execute('CREATE EXTENSION IF NOT EXISTS postgis_topology')
 
-    # Verify PostGIS is installed (this query will fail if extension not loaded)
-    # The version check ensures PostGIS functions are available
-    op.execute('SELECT PostGIS_Version()')
+  # Verify PostGIS is installed (this query will fail if extension not loaded)
+  # The version check ensures PostGIS functions are available
+  op.execute('SELECT PostGIS_Version()')
 
 
 def downgrade() -> None:
-    """Disable PostGIS extension.
+  """Disable PostGIS extension.
 
-    Removes the PostGIS extension from the database. This will CASCADE and
-    drop all geometry columns and spatial indexes that depend on PostGIS.
+  Removes the PostGIS extension from the database. This will CASCADE and
+  drop all geometry columns and spatial indexes that depend on PostGIS.
 
-    WARNING: This operation is destructive. All geospatial data will be lost.
-    Only run this if you're certain you want to remove PostGIS.
-    """
-    # Drop PostGIS extension (CASCADE will drop dependent objects)
-    op.execute('DROP EXTENSION IF EXISTS postgis CASCADE')
+  WARNING: This operation is destructive. All geospatial data will be lost.
+  Only run this if you're certain you want to remove PostGIS.
+  """
+  # Drop PostGIS extension (CASCADE will drop dependent objects)
+  op.execute('DROP EXTENSION IF EXISTS postgis CASCADE')
 
-    # Note: In production, you may want to disable downgrade for this migration
-    # to prevent accidental data loss. Uncomment the following to block downgrades:
-    # raise Exception("Cannot downgrade initial PostGIS migration - would lose all geospatial data")
+  # Note: In production, you may want to disable downgrade for this migration
+  # to prevent accidental data loss. Uncomment the following to block downgrades:
+  # raise Exception("Cannot downgrade initial PostGIS migration - would lose all geospatial data")

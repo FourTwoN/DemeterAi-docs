@@ -1,6 +1,7 @@
 # R004: Storage Bin Repository
 
 ## Metadata
+
 - **Epic**: [epic-003-repositories.md](../../02_epics/epic-003-repositories.md)
 - **Sprint**: Sprint-01
 - **Status**: `backlog`
@@ -9,21 +10,28 @@
 - **Area**: `repositories`
 - **Assignee**: TBD
 - **Dependencies**:
-  - Blocks: [R016, S004]
-  - Blocked by: [F006, F007, DB004, R003]
+    - Blocks: [R016, S004]
+    - Blocked by: [F006, F007, DB004, R003]
 
 ## Related Documentation
-- **Engineering Plan**: [../../engineering_plan/backend/repository_layer.md](../../engineering_plan/backend/repository_layer.md)
+
+- **Engineering Plan
+  **: [../../engineering_plan/backend/repository_layer.md](../../engineering_plan/backend/repository_layer.md)
 - **Database ERD**: [../../database/database.mmd](../../database/database.mmd#L48-L58)
-- **Architecture**: [../../engineering_plan/03_architecture_overview.md](../../engineering_plan/03_architecture_overview.md)
+- **Architecture
+  **: [../../engineering_plan/03_architecture_overview.md](../../engineering_plan/03_architecture_overview.md)
 
 ## Description
 
-**What**: Implement repository class for `storage_bins` table (Level 4 of hierarchy) with CRUD operations and ML metadata queries.
+**What**: Implement repository class for `storage_bins` table (Level 4 of hierarchy) with CRUD
+operations and ML metadata queries.
 
-**Why**: Storage bins are the leaf nodes of the location hierarchy - actual physical containers detected by ML (boxes, trays, pots). Repository provides database access for bin management and ML-generated metadata.
+**Why**: Storage bins are the leaf nodes of the location hierarchy - actual physical containers
+detected by ML (boxes, trays, pots). Repository provides database access for bin management and
+ML-generated metadata.
 
-**Context**: Level 4 (leaf) of 4-level hierarchy. Created by ML segmentation pipeline with position_metadata from YOLO masks. Each bin stores stock batches.
+**Context**: Level 4 (leaf) of 4-level hierarchy. Created by ML segmentation pipeline with
+position_metadata from YOLO masks. Each bin stores stock batches.
 
 ## Acceptance Criteria
 
@@ -38,11 +46,14 @@
 ## Technical Implementation Notes
 
 ### Architecture
+
 - **Layer**: Infrastructure (Repository)
-- **Dependencies**: F006 (Database connection), DB004 (StorageBin model), R003 (StorageLocationRepository)
+- **Dependencies**: F006 (Database connection), DB004 (StorageBin model), R003 (
+  StorageLocationRepository)
 - **Design Pattern**: Repository pattern, inherits AsyncRepository
 
 ### Code Hints
+
 ```python
 from typing import Optional, List
 from sqlalchemy import select
@@ -176,6 +187,7 @@ class StorageBinRepository(AsyncRepository[StorageBin]):
 ### Testing Requirements
 
 **Unit Tests**:
+
 ```python
 @pytest.mark.asyncio
 async def test_storage_bin_repo_get_by_code(db_session, sample_bin):
@@ -234,6 +246,7 @@ async def test_storage_bin_repo_by_type(db_session, bins_by_type):
 **Coverage Target**: ≥85%
 
 ### Performance Expectations
+
 - Code lookup: <10ms (unique index on code)
 - get_by_storage_location_id: <20ms for 50 bins per location
 - get_with_current_stock: <30ms (with stock batch eager loading)
@@ -242,19 +255,21 @@ async def test_storage_bin_repo_by_type(db_session, bins_by_type):
 ## Handover Briefing
 
 **For the next developer:**
-- **Context**: Leaf node of 4-level hierarchy. Created by ML segmentation with position_metadata (bbox, mask, confidence)
+
+- **Context**: Leaf node of 4-level hierarchy. Created by ML segmentation with position_metadata (
+  bbox, mask, confidence)
 - **Key decisions**:
-  - Bins have status enum (active/maintenance/retired) for lifecycle management
-  - position_metadata is JSONB storing ML detection results (bbox, segmentation_mask, confidence)
-  - Empty bins query uses LEFT JOIN to find bins without stock (available for planting)
-  - Eager load storage_bin_type for capacity calculations
+    - Bins have status enum (active/maintenance/retired) for lifecycle management
+    - position_metadata is JSONB storing ML detection results (bbox, segmentation_mask, confidence)
+    - Empty bins query uses LEFT JOIN to find bins without stock (available for planting)
+    - Eager load storage_bin_type for capacity calculations
 - **Known limitations**:
-  - Bin code must be unique globally (not per location)
-  - position_metadata structure not enforced by DB (validated in Pydantic schemas)
+    - Bin code must be unique globally (not per location)
+    - position_metadata structure not enforced by DB (validated in Pydantic schemas)
 - **Next steps**: R016 (StockBatchRepository) links batches to bins
 - **Questions to validate**:
-  - Should maintenance bins be excluded from stock queries?
-  - Is position_metadata indexed for spatial queries?
+    - Should maintenance bins be excluded from stock queries?
+    - Is position_metadata indexed for spatial queries?
 
 ## Definition of Done Checklist
 
@@ -269,6 +284,7 @@ async def test_storage_bin_repo_by_type(db_session, bins_by_type):
 - [ ] Performance benchmarks documented
 
 ## Time Tracking
+
 - **Estimated**: 2 story points (~4 hours)
 - **Actual**: TBD
 - **Started**: TBD

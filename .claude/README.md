@@ -12,23 +12,26 @@
 
 **QUICK REFERENCE**: Pick your role, then find your starting file:
 
-| Role | Go Here | Then | Purpose |
-|------|---------|------|---------|
-| **🎯 I'm planning** | `.claude/workflows/orchestration.md` | Read top to bottom | Understand system flow |
-| **📋 I'm managing** | `.claude/workflows/scrum-master-workflow.md` | Step 1: Check backlog | Manage tasks & sprints |
-| **🛠️ I'm implementing** | `.claude/workflows/python-expert-workflow.md` | Read mini-plan first | Write clean architecture code |
-| **✅ I'm testing** | `.claude/workflows/testing-expert-workflow.md` | Read quality gates | Write real DB tests (NO MOCKS) |
-| **📊 I'm reviewing** | `.claude/workflows/team-leader-workflow.md` | Check quality gates | Review code before merge |
-| **🗄️ I have DB questions** | `../CLAUDE.md` > Search "Rule 1" | Consult `database/database.mmd` | Get schema authority |
-| **🔴 Something broke** | `../CRITICAL_ISSUES.md` | Read prevention section | Learn from Sprint 02 mistakes |
+| Role                        | Go Here                                        | Then                            | Purpose                        |
+|-----------------------------|------------------------------------------------|---------------------------------|--------------------------------|
+| **🎯 I'm planning**         | `.claude/workflows/orchestration.md`           | Read top to bottom              | Understand system flow         |
+| **📋 I'm managing**         | `.claude/workflows/scrum-master-workflow.md`   | Step 1: Check backlog           | Manage tasks & sprints         |
+| **🛠️ I'm implementing**    | `.claude/workflows/python-expert-workflow.md`  | Read mini-plan first            | Write clean architecture code  |
+| **✅ I'm testing**           | `.claude/workflows/testing-expert-workflow.md` | Read quality gates              | Write real DB tests (NO MOCKS) |
+| **📊 I'm reviewing**        | `.claude/workflows/team-leader-workflow.md`    | Check quality gates             | Review code before merge       |
+| **🗄️ I have DB questions** | `../CLAUDE.md` > Search "Rule 1"               | Consult `database/database.mmd` | Get schema authority           |
+| **🔴 Something broke**      | `../CRITICAL_ISSUES.md`                        | Read prevention section         | Learn from Sprint 02 mistakes  |
 
-**MAIN ENTRY POINT**: Start by reading `../CLAUDE.md` (15 minute read) - it has everything you need to know.
+**MAIN ENTRY POINT**: Start by reading `../CLAUDE.md` (15 minute read) - it has everything you need
+to know.
 
 ---
 
 ## Overview
 
-This folder (`/.claude/`) contains all **system instructions and multi-agent coordination** files for DemeterAI v2.0 development. It's a **stateless, file-based system** that coordinates 6 specialized agents working through a local Kanban board.
+This folder (`/.claude/`) contains all **system instructions and multi-agent coordination** files
+for DemeterAI v2.0 development. It's a **stateless, file-based system** that coordinates 6
+specialized agents working through a local Kanban board.
 
 ### ✨ Key Features
 
@@ -57,24 +60,28 @@ This folder (`/.claude/`) contains all **system instructions and multi-agent coo
 ## 🚀 Quick Start
 
 ### 1. Plan an Epic
+
 ```bash
 # Break epic into tasks and move unblocked ones to ready queue
 /plan-epic epic-004
 ```
 
 ### 2. Start a Task
+
 ```bash
 # Create Mini-Plan and spawn specialists
 /start-task S001
 ```
 
 ### 3. Review Progress
+
 ```bash
 # Run quality gates and move through stages
 /review-task S001
 ```
 
 ### 4. Complete Task
+
 ```bash
 # Create git commit and unblock dependencies
 /complete-task S001
@@ -134,14 +141,14 @@ This folder (`/.claude/`) contains all **system instructions and multi-agent coo
 
 ### Agent Roles
 
-| Agent | Responsibility | When to Use |
-|-------|---------------|-------------|
-| **Scrum Master** | Project orchestration, backlog management | Planning, status tracking, epic decomposition |
-| **Team Leader** | Task planning, quality gates, coordination | Starting tasks, reviewing code, enforcing standards |
-| **Python Expert** | Code implementation (controllers/services/repositories) | Writing backend Python code |
-| **Database Expert** | Schema guidance, migration proposals | DB questions, PostGIS queries, indexing advice |
-| **Testing Expert** | Unit & integration tests, coverage verification | Writing tests (parallel with implementation) |
-| **Git Commit Agent** | Commit creation, conventional commits | After Team Leader approves completion |
+| Agent                | Responsibility                                          | When to Use                                         |
+|----------------------|---------------------------------------------------------|-----------------------------------------------------|
+| **Scrum Master**     | Project orchestration, backlog management               | Planning, status tracking, epic decomposition       |
+| **Team Leader**      | Task planning, quality gates, coordination              | Starting tasks, reviewing code, enforcing standards |
+| **Python Expert**    | Code implementation (controllers/services/repositories) | Writing backend Python code                         |
+| **Database Expert**  | Schema guidance, migration proposals                    | DB questions, PostGIS queries, indexing advice      |
+| **Testing Expert**   | Unit & integration tests, coverage verification         | Writing tests (parallel with implementation)        |
+| **Git Commit Agent** | Commit creation, conventional commits                   | After Team Leader approves completion               |
 
 ---
 
@@ -170,6 +177,7 @@ backlog/03_kanban/
 ```
 
 **State changes** are implemented via `mv` command:
+
 ```bash
 # Scrum Master: Move to ready
 mv backlog/03_kanban/00_backlog/S001-*.md backlog/03_kanban/01_ready/
@@ -192,11 +200,13 @@ mv backlog/03_kanban/04_testing/S001-*.md backlog/03_kanban/05_done/
 **Purpose**: Break epic into atomic tasks and prioritize
 
 **Example**:
+
 ```bash
 /plan-epic epic-004
 ```
 
 **What it does**:
+
 1. Reads `backlog/02_epics/epic-004-services.md`
 2. Identifies 42 cards (S001-S042)
 3. Analyzes dependencies
@@ -204,6 +214,7 @@ mv backlog/03_kanban/04_testing/S001-*.md backlog/03_kanban/05_done/
 5. Updates `DATABASE_CARDS_STATUS.md`
 
 **Output**:
+
 - 5 tasks moved to ready queue
 - 37 tasks remain blocked
 - Critical path items identified
@@ -215,11 +226,13 @@ mv backlog/03_kanban/04_testing/S001-*.md backlog/03_kanban/05_done/
 **Purpose**: Begin implementation with Mini-Plan
 
 **Example**:
+
 ```bash
 /start-task S001
 ```
 
 **What it does**:
+
 1. Locates task in `01_ready/`
 2. Creates detailed Mini-Plan (architecture, files, DB access)
 3. Moves to `02_in-progress/`
@@ -227,6 +240,7 @@ mv backlog/03_kanban/04_testing/S001-*.md backlog/03_kanban/05_done/
 5. Updates status
 
 **Output**:
+
 - Mini-Plan appended to task file
 - Two specialists working in parallel
 - ETA provided
@@ -238,11 +252,13 @@ mv backlog/03_kanban/04_testing/S001-*.md backlog/03_kanban/05_done/
 **Purpose**: Review code, run tests, enforce quality gates
 
 **Example**:
+
 ```bash
 /review-task S001
 ```
 
 **What it does**:
+
 1. Code review (Service→Service pattern, type hints, docstrings)
 2. Run tests (unit + integration)
 3. Check coverage (≥80%)
@@ -250,6 +266,7 @@ mv backlog/03_kanban/04_testing/S001-*.md backlog/03_kanban/05_done/
 5. Verify all quality gates
 
 **Output**:
+
 - Code review results (✅ APPROVED / ❌ NEEDS CHANGES)
 - Test results (X/X passed)
 - Coverage percentage
@@ -262,11 +279,13 @@ mv backlog/03_kanban/04_testing/S001-*.md backlog/03_kanban/05_done/
 **Purpose**: Finalize task after quality gates pass
 
 **Example**:
+
 ```bash
 /complete-task S001
 ```
 
 **What it does**:
+
 1. Verify task in `04_testing/` (all gates passed)
 2. Invoke Git Commit Agent (create commit)
 3. Move to `05_done/`
@@ -274,6 +293,7 @@ mv backlog/03_kanban/04_testing/S001-*.md backlog/03_kanban/05_done/
 5. Unblock dependent tasks
 
 **Output**:
+
 - Git commit SHA
 - Task moved to done
 - Dependent tasks moved to ready
@@ -336,6 +356,7 @@ Each task is a markdown file with standard structure:
 **Use**: Append to task files every 30-60 minutes
 
 **Example**:
+
 ```markdown
 ## Python Expert Progress Update (2025-10-11 15:30)
 **Status**: in-progress
@@ -357,6 +378,7 @@ Each task is a markdown file with standard structure:
 **Use**: Team Leader creates before starting task
 
 **Example**:
+
 ```markdown
 ## Team Leader Mini-Plan (2025-10-11 14:30)
 
@@ -382,6 +404,7 @@ Each task is a markdown file with standard structure:
 **Use**: Agent-to-agent communication
 
 **Example**:
+
 ```markdown
 ## Team Leader → Python Expert (2025-10-11 14:45)
 
@@ -402,6 +425,7 @@ Each task is a markdown file with standard structure:
 **Before task can move to `05_done/`**, all gates must pass:
 
 ### Gate 1: Code Review ✅
+
 - [ ] Service→Service pattern enforced
 - [ ] No direct repository access (except `self.repo`)
 - [ ] Type hints on all methods
@@ -410,18 +434,22 @@ Each task is a markdown file with standard structure:
 - [ ] Docstrings present
 
 ### Gate 2: Unit Tests ✅
+
 - [ ] All unit tests pass
 - [ ] Dependencies mocked correctly
 
 ### Gate 3: Integration Tests ✅
+
 - [ ] All integration tests pass
 - [ ] Real database used
 
 ### Gate 4: Coverage ✅
+
 - [ ] Coverage ≥80% for changed code
 - [ ] Critical paths covered
 
 ### Gate 5: Acceptance Criteria ✅
+
 - [ ] All task criteria checked
 - [ ] No TODO/FIXME in production code
 
@@ -430,12 +458,14 @@ Each task is a markdown file with standard structure:
 ## Best Practices
 
 ### For Scrum Master
+
 - Update `DATABASE_CARDS_STATUS.md` after every task movement
 - Check dependencies before moving tasks to ready
 - Prioritize critical path items (⚡⚡)
 - Verify Team Leader provides "OK" acknowledgment
 
 ### For Team Leader
+
 - Create detailed Mini-Plans (don't skip!)
 - Spawn Python + Testing Experts in parallel
 - Run quality gates BEFORE moving to done
@@ -443,6 +473,7 @@ Each task is a markdown file with standard structure:
 - Enforce Service→Service pattern strictly
 
 ### For Python Expert
+
 - Always use Service→Service communication
 - NEVER call other services' repositories directly
 - Use type hints on ALL methods
@@ -450,6 +481,7 @@ Each task is a markdown file with standard structure:
 - Update task file every 30 minutes
 
 ### For Testing Expert
+
 - Target ≥80% coverage
 - Use real testing DB when possible
 - Write tests in parallel with implementation
@@ -457,6 +489,7 @@ Each task is a markdown file with standard structure:
 - Never modify pipeline code (only tests)
 
 ### For Database Expert
+
 - Always consult `database/database.mmd` first
 - Never guess schema details
 - Propose migrations via new tasks (never direct changes)
@@ -469,21 +502,25 @@ Each task is a markdown file with standard structure:
 ### Scenario: Implement StockMovementService (S001)
 
 #### Step 1: Plan Epic
+
 ```bash
 /plan-epic epic-004
 ```
 
 **Scrum Master**:
+
 - Reads epic-004-services.md (42 cards)
 - Identifies S001 has no blockers
 - Moves S001 to `01_ready/`
 
 #### Step 2: Start Task
+
 ```bash
 /start-task S001
 ```
 
 **Team Leader**:
+
 - Creates Mini-Plan (architecture, files, DB tables)
 - Moves S001 to `02_in-progress/`
 - Spawns Python Expert + Testing Expert
@@ -491,11 +528,13 @@ Each task is a markdown file with standard structure:
 #### Step 3: Parallel Work
 
 **Python Expert**:
+
 - Implements `app/services/stock_movement_service.py`
 - Follows Service→Service pattern
 - Updates task file every 30 min
 
 **Testing Expert**:
+
 - Writes `tests/unit/services/test_stock_movement_service.py`
 - Writes `tests/integration/test_stock_movement_api.py`
 - Achieves 84% coverage
@@ -503,22 +542,26 @@ Each task is a markdown file with standard structure:
 Both work simultaneously for 2-3 hours.
 
 #### Step 4: Review
+
 ```bash
 /review-task S001
 ```
 
 **Team Leader**:
+
 - Code review: ✅ APPROVED (Service→Service enforced)
 - Tests run: ✅ 17/17 passed
 - Coverage: ✅ 84% (≥80%)
 - Moves: 02 → 03 → 04
 
 #### Step 5: Complete
+
 ```bash
 /complete-task S001
 ```
 
 **Team Leader**:
+
 - All gates passed
 - Invokes Git Commit Agent
 - **Git Commit Agent** creates commit: `feat(services): implement StockMovementService (S001)`
@@ -526,6 +569,7 @@ Both work simultaneously for 2-3 hours.
 - Unblocks S002
 
 **Scrum Master**:
+
 - Updates `DATABASE_CARDS_STATUS.md`
 - Moves S002 to `01_ready/` (now unblocked)
 
@@ -536,6 +580,7 @@ Both work simultaneously for 2-3 hours.
 ### DATABASE_CARDS_STATUS.md
 
 Track overall progress:
+
 ```markdown
 ## Epic-004 Progress (2025-10-11)
 
@@ -558,6 +603,7 @@ Track overall progress:
 ### Task-Level Progress
 
 Each task file contains complete history:
+
 - Mini-Plan (Team Leader)
 - Implementation updates (Python Expert)
 - Coverage reports (Testing Expert)
@@ -569,27 +615,35 @@ Each task file contains complete history:
 ## Troubleshooting
 
 ### Problem: Task stuck in code review
+
 **Solution**: Run `/review-task <id>` to see what's failing. Common issues:
+
 - Direct repository access (violates Service→Service pattern)
 - Missing type hints
 - Coverage <80%
 
 ### Problem: Tests failing
+
 **Solution**:
+
 1. Check test output in `/review-task`
 2. Testing Expert: Fix tests
 3. Python Expert: Fix implementation (if bug found)
 4. Re-run `/review-task`
 
 ### Problem: Task blocked
+
 **Solution**:
+
 1. Scrum Master: Move to `06_blocked/`
 2. Add blocker note to task file
 3. Create documentation task if needed
 4. Unblock when dependency complete
 
 ### Problem: Can't find task file
+
 **Solution**:
+
 ```bash
 find backlog/03_kanban -name "S001-*.md"
 ```
@@ -607,18 +661,19 @@ find backlog/03_kanban -name "S001-*.md"
 
 ### Epic Breakdown
 
-| Epic | Name | Cards | Points | Status |
-|------|------|-------|--------|--------|
-| epic-001 | Foundation | 12 | 45 | Planning |
-| epic-002 | Database Models | 32 | 150 | In Progress |
-| epic-003 | Repositories | 28 | 120 | Planning |
-| epic-004 | Services | 42 | 210 | Planning |
-| epic-005 | Controllers | 26 | 110 | Planning |
-| ... | ... | ... | ... | ... |
+| Epic     | Name            | Cards | Points | Status      |
+|----------|-----------------|-------|--------|-------------|
+| epic-001 | Foundation      | 12    | 45     | Planning    |
+| epic-002 | Database Models | 32    | 150    | In Progress |
+| epic-003 | Repositories    | 28    | 120    | Planning    |
+| epic-004 | Services        | 42    | 210    | Planning    |
+| epic-005 | Controllers     | 26    | 110    | Planning    |
+| ...      | ...             | ...   | ...    | ...         |
 
 ### Agent Statistics (Example)
 
 After implementing S001:
+
 - **Python Expert**: 165 lines written
 - **Testing Expert**: 365 lines written (210 unit + 155 integration)
 - **Code Review**: 1 pass
@@ -644,6 +699,7 @@ workflows/
 ```
 
 **When to Read Each**:
+
 - **orchestration.md**: First time? Read this. Always. (774 lines)
 - **scrum-master-workflow.md**: Managing tasks? Read this. (343 lines)
 - **team-leader-workflow.md**: Planning implementation? Read this. (475 lines)
@@ -840,16 +896,19 @@ SPRINT_02_COMPLETE_SUMMARY.md  # Executive summary
 ## 📖 Reading Order (Recommended)
 
 ### First Time?
+
 1. Read: `../CLAUDE.md` (15 min) - Gets you oriented
 2. Read: `./workflows/orchestration.md` (20 min) - Understand system
 3. Reference: `./README.md` (this file) - Find what you need
 
 ### Starting Work on a Task?
+
 1. Read: `.claude/workflows/team-leader-workflow.md` - Understand planning
 2. Read: Task file in `backlog/03_kanban/01_ready/` - Understand requirements
 3. Read: Appropriate specialist workflow (Python/Testing) - Follow pattern
 
 ### Implementing a Feature?
+
 1. Check: `app/models/` for relevant models
 2. Check: `app/repositories/` for available repository methods
 3. Read: `.claude/workflows/python-expert-workflow.md` - Follow Clean Architecture
@@ -857,6 +916,7 @@ SPRINT_02_COMPLETE_SUMMARY.md  # Executive summary
 5. Test: Read `.claude/workflows/testing-expert-workflow.md` - Real DB, ≥80% coverage
 
 ### Writing Tests?
+
 1. Read: `.claude/workflows/testing-expert-workflow.md`
 2. Rule 1: NO MOCKS of business logic
 3. Rule 2: Use PostgreSQL real database
@@ -900,11 +960,13 @@ git diff CLAUDE.md                                       # See changes
 ## 🚨 Critical Rules (Never Break These)
 
 ### Rule 1: Database Schema is Source of Truth
+
 - File: `database/database.mmd`
 - Consult BEFORE implementing
 - All models must match EXACTLY
 
 ### Rule 2: Service → Service Pattern (NO EXCEPTIONS)
+
 ```python
 # ❌ WRONG: Service calling other Service's repository
 class ProductService:
@@ -918,17 +980,20 @@ class ProductService:
 ```
 
 ### Rule 3: Tests MUST Use Real Database
+
 - NO MOCKS of business logic
 - Use PostgreSQL real test database
 - Target ≥80% coverage
 
 ### Rule 4: Quality Gates Are Mandatory
+
 - Tests must PASS (verified by running pytest)
 - Coverage must be ≥80% (verified by running pytest --cov)
 - Code review must PASS (Service→Service pattern enforced)
 - NO hallucinated code (all imports verified)
 
 ### Rule 5: Read Before Writing
+
 - Always read existing code first
 - Consult database schema (database.mmd)
 - Check for existing relationships
@@ -960,11 +1025,12 @@ When creating new agents, commands, or templates:
 ## Version History
 
 - **v1.0** (2025-10-11): Initial multi-agent system
-  - 6 agents (Scrum Master, Team Leader, Python Expert, Database Expert, Testing Expert, Git Commit Agent)
-  - 4 slash commands (plan-epic, start-task, review-task, complete-task)
-  - 3 templates (progress update, mini-plan, handoff note)
-  - File-based Kanban workflow
-  - Quality gates (≥80% coverage)
+    - 6 agents (Scrum Master, Team Leader, Python Expert, Database Expert, Testing Expert, Git
+      Commit Agent)
+    - 4 slash commands (plan-epic, start-task, review-task, complete-task)
+    - 3 templates (progress update, mini-plan, handoff note)
+    - File-based Kanban workflow
+    - Quality gates (≥80% coverage)
 
 ---
 

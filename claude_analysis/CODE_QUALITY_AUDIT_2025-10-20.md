@@ -11,9 +11,13 @@
 
 **Overall Score: 78/100** ⚠️ (Needs Improvement)
 
-The codebase demonstrates strong architectural foundations with Clean Architecture patterns, proper dependency injection, and comprehensive exception handling framework. However, there are critical gaps in type hint coverage and inconsistent use of custom exceptions that must be addressed before production deployment.
+The codebase demonstrates strong architectural foundations with Clean Architecture patterns, proper
+dependency injection, and comprehensive exception handling framework. However, there are critical
+gaps in type hint coverage and inconsistent use of custom exceptions that must be addressed before
+production deployment.
 
 ### Key Strengths ✅
+
 - ✅ Clean Architecture strictly enforced (Service→Service pattern)
 - ✅ Zero circular import issues
 - ✅ Comprehensive custom exception taxonomy (12 specialized exceptions)
@@ -22,6 +26,7 @@ The codebase demonstrates strong architectural foundations with Clean Architectu
 - ✅ Consistent dependency injection pattern
 
 ### Critical Issues ❌
+
 - ❌ **41 functions missing return type hints** (88% coverage, target: 100%)
 - ❌ **65 uses of generic `ValueError`** instead of custom exceptions
 - ❌ **13% of services lack docstrings** on public methods
@@ -36,6 +41,7 @@ The codebase demonstrates strong architectural foundations with Clean Architectu
 **Score: 75/100** ❌
 
 #### Metrics
+
 - **Total Functions (excluding magic methods)**: 228 functions
 - **With Return Type Hints**: 187 functions (82%)
 - **Without Return Type Hints**: 41 functions (18%)
@@ -43,6 +49,7 @@ The codebase demonstrates strong architectural foundations with Clean Architectu
 - **Async Without Return Types**: 29 functions (22.5%)
 
 #### Breakdown by Type
+
 ```
 Regular Functions:
   - Total: 99
@@ -56,6 +63,7 @@ Async Functions:
 #### Critical Violations
 
 **Services Layer** (12 violations):
+
 ```python
 # ❌ app/services/storage_area_service.py:102
 def get_storage_area_service(  # Missing -> StorageAreaService
@@ -68,6 +76,7 @@ def get_warehouse_service(session: AsyncSession = Depends(get_db_session)):
 ```
 
 **ML Processing Layer** (7 violations):
+
 ```python
 # ❌ app/services/ml_processing/pipeline_coordinator.py:521
 def _create_segment_mask(  # Missing -> np.ndarray
@@ -83,6 +92,7 @@ def _create_detection_mask(  # Missing -> np.ndarray
 ```
 
 **Schemas Layer** (3 violations):
+
 ```python
 # ❌ app/schemas/storage_bin_schema.py:32
 def from_model(cls, bin_model):  # Missing -> StorageBinResponse
@@ -92,14 +102,17 @@ def from_model(cls, location):  # Missing -> StorageLocationResponse
 ```
 
 #### Impact
+
 - **Reduced IDE support** (autocomplete, refactoring safety)
 - **Harder code reviews** (unclear return expectations)
 - **Type checking tools (mypy) cannot verify correctness**
 
 #### Remediation Required
+
 **Priority: HIGH** 🔴
 
 All 41 functions must add return type hints:
+
 ```python
 # BEFORE (❌)
 async def get_by_id(self, id: int):
@@ -122,11 +135,13 @@ async def get_by_id(self, id: int) -> Optional[ProductResponse]:
 **Score: 87/100** ✅
 
 #### Metrics
+
 - **Total Public Methods**: 310
 - **With Docstrings**: 268 (86.5%)
 - **Without Docstrings**: 42 (13.5%)
 
 #### Breakdown by Layer
+
 ```
 Services:        102/127 (80.3%) ⚠️
 Repositories:     46/49  (93.9%) ✅
@@ -134,6 +149,7 @@ All:             268/310 (86.5%) ✅
 ```
 
 #### Analysis
+
 - **Repositories** (93.9%): Excellent documentation
 - **Services** (80.3%): Below target (target: 90%+)
 - Private methods (`_method`) excluded from count (acceptable)
@@ -141,6 +157,7 @@ All:             268/310 (86.5%) ✅
 #### Missing Docstrings (Sample)
 
 **Services without docstrings** (25 methods):
+
 ```python
 # app/services/product_size_service.py
 async def create_size(self, request):  # ❌ No docstring
@@ -153,9 +170,11 @@ async def get_type_by_id(self, type_id: int):  # ❌ No docstring
 ```
 
 #### Remediation
+
 **Priority: MEDIUM** 🟡
 
 Add docstrings following Google style:
+
 ```python
 async def create_size(
     self,
@@ -185,18 +204,22 @@ async def create_size(
 **Score: 95/100** ✅
 
 #### Metrics
+
 - **Total Async Functions**: 129
 - **Total Await Statements**: 248
 - **Await-without-async Issues**: 0 (verified as false positives)
 - **Sync Functions in Services**: 19 (all are helpers/validators)
 
 #### Analysis
+
 ✅ **Excellent async hygiene**:
+
 - All database operations use `async def` + `await`
 - No blocking I/O in async context
 - Proper use of sync helpers for validation logic
 
 #### Sync Functions in Services (Expected)
+
 ```python
 # ✅ CORRECT: Validation helpers don't need async
 def _validate_geometry(self, geojson: dict) -> None:
@@ -212,6 +235,7 @@ def get_model(cls, model_type: ModelType) -> "YOLO":
 ```
 
 #### No Issues Found
+
 - Zero instances of `await` in non-async functions
 - All I/O operations properly async
 - Consistent pattern across all services
@@ -223,6 +247,7 @@ def get_model(cls, model_type: ModelType) -> "YOLO":
 **Score: 95/100** ✅
 
 #### Metrics
+
 - **Repository Imports in Services**: 26 (all valid, own repositories)
 - **Service Imports in Repositories**: 0 ✅ (Clean Architecture respected)
 - **Circular Import Errors**: 0 ✅
@@ -231,6 +256,7 @@ def get_model(cls, model_type: ModelType) -> "YOLO":
 #### Clean Architecture Verification
 
 **✅ Service→Service Pattern Enforced**:
+
 ```python
 # app/services/storage_location_service.py
 class StorageLocationService:
@@ -243,6 +269,7 @@ class StorageLocationService:
 ```
 
 **✅ No Repository Cross-Access**:
+
 ```bash
 # Verified: Repositories NEVER import services
 grep -rn "from app.services import" app/repositories/
@@ -250,6 +277,7 @@ grep -rn "from app.services import" app/repositories/
 ```
 
 **✅ Import Test Results**:
+
 ```python
 ✅ app.models - OK
 ✅ app.repositories - OK
@@ -258,7 +286,9 @@ grep -rn "from app.services import" app/repositories/
 ```
 
 #### Sample Violations Checked
+
 Investigated 14 potential violations - **all were false positives**:
+
 - Services accessing their OWN repository (correct pattern)
 - No cross-repository access detected
 
@@ -269,6 +299,7 @@ Investigated 14 potential violations - **all were false positives**:
 **Score: 65/100** ⚠️
 
 #### Metrics
+
 - **Custom Exception Framework**: Comprehensive (12 specialized exceptions)
 - **Generic `ValueError` Usage**: 65 occurrences ❌
 - **Custom Exception Imports**: Only 4 services import from `app.core.exceptions` ❌
@@ -277,6 +308,7 @@ Investigated 14 potential violations - **all were false positives**:
 #### Custom Exception Taxonomy (Excellent Design)
 
 **Available Exceptions** (12 types):
+
 ```python
 # Base
 - AppBaseException (base class with logging + HTTP codes)
@@ -336,6 +368,7 @@ async def get_category_by_id(
 ```
 
 #### Services Using Custom Exceptions (Only 4/26)
+
 ```python
 ✅ app/services/storage_area_service.py
 ✅ app/services/storage_bin_service.py
@@ -346,12 +379,14 @@ async def get_category_by_id(
 **22 services still using generic exceptions** ❌
 
 #### Impact
+
 - **Poor user experience**: Generic errors expose implementation details
 - **No HTTP status codes**: Controllers can't determine 404 vs 400 vs 500
 - **No structured logging**: Missing metadata for debugging
 - **Inconsistent error responses**: Frontend can't handle errors uniformly
 
 #### Remediation Required
+
 **Priority: HIGH** 🔴
 
 1. Replace all `ValueError` with appropriate custom exceptions
@@ -371,6 +406,7 @@ async def get_category_by_id(
 **Score: 90/100** ✅
 
 Most services have single responsibility:
+
 ```
 ✅ ProductCategoryService: 6 methods, 57 lines
 ✅ StockMovementService: 3 methods, 38 lines
@@ -379,6 +415,7 @@ Most services have single responsibility:
 ```
 
 **Potential SRP Violations** (3 services):
+
 ```
 ⚠️ StorageAreaService: 10 methods, 513 lines
 ⚠️ WarehouseService: 9 methods, 430 lines
@@ -386,11 +423,12 @@ Most services have single responsibility:
 ```
 
 **Analysis**:
+
 - `StorageAreaService`: Handles CRUD + GPS queries + validation
-  - Consider extracting `StorageAreaGeometryService`
+    - Consider extracting `StorageAreaGeometryService`
 
 - `WarehouseService`: Handles CRUD + GPS queries + validation
-  - Consider extracting `WarehouseGeometryService`
+    - Consider extracting `WarehouseGeometryService`
 
 - `BandEstimationService`: Complex ML logic (acceptable size for ML domain)
 
@@ -399,6 +437,7 @@ Most services have single responsibility:
 **Score: 85/100** ✅
 
 - Base repository pattern allows extension: ✅
+
 ```python
 class BaseRepository(Generic[T]):
     # All repos inherit and extend without modifying base
@@ -411,6 +450,7 @@ class BaseRepository(Generic[T]):
 **Score: 90/100** ✅
 
 - Exception hierarchy properly structured: ✅
+
 ```python
 WarehouseNotFoundException(NotFoundException)  # ✅ Substitutable
 ```
@@ -425,6 +465,7 @@ WarehouseNotFoundException(NotFoundException)  # ✅ Substitutable
 - No "fat interfaces" detected: ✅
 
 **Minor issue**: Some services expose both CRUD + domain logic
+
 ```python
 # Could split into:
 # - ProductCategoryCRUDService
@@ -436,6 +477,7 @@ WarehouseNotFoundException(NotFoundException)  # ✅ Substitutable
 **Score: 95/100** ✅ **EXCELLENT**
 
 Perfect dependency injection pattern:
+
 ```python
 class StorageLocationService:
     def __init__(
@@ -454,15 +496,15 @@ class StorageLocationService:
 
 ## Code Quality Metrics Summary
 
-| Dimension | Score | Status | Priority |
-|-----------|-------|--------|----------|
-| **Type Hints** | 75/100 | ⚠️ Needs Improvement | 🔴 HIGH |
-| **Docstrings** | 87/100 | ✅ Good | 🟡 MEDIUM |
-| **Async/Await** | 95/100 | ✅ Excellent | 🟢 LOW |
-| **Imports** | 95/100 | ✅ Excellent | 🟢 LOW |
-| **Exceptions** | 65/100 | ❌ Poor | 🔴 HIGH |
-| **SOLID** | 85/100 | ✅ Good | 🟡 MEDIUM |
-| **Overall** | **78/100** | ⚠️ Needs Improvement | - |
+| Dimension       | Score      | Status               | Priority  |
+|-----------------|------------|----------------------|-----------|
+| **Type Hints**  | 75/100     | ⚠️ Needs Improvement | 🔴 HIGH   |
+| **Docstrings**  | 87/100     | ✅ Good               | 🟡 MEDIUM |
+| **Async/Await** | 95/100     | ✅ Excellent          | 🟢 LOW    |
+| **Imports**     | 95/100     | ✅ Excellent          | 🟢 LOW    |
+| **Exceptions**  | 65/100     | ❌ Poor               | 🔴 HIGH   |
+| **SOLID**       | 85/100     | ✅ Good               | 🟡 MEDIUM |
+| **Overall**     | **78/100** | ⚠️ Needs Improvement | -         |
 
 ---
 
@@ -475,6 +517,7 @@ class StorageLocationService:
 **Impact**: Type safety, IDE support, code maintainability
 
 **Files to fix**:
+
 ```
 app/services/storage_area_service.py (1 function)
 app/services/warehouse_service.py (1 function)
@@ -484,6 +527,7 @@ app/celery/base_tasks.py (1 function)
 ```
 
 **Template**:
+
 ```python
 # BEFORE
 async def get_by_id(self, id: int):
@@ -507,6 +551,7 @@ async def get_by_id(self, id: int) -> Optional[EntityResponse]:
 **Impact**: User experience, error handling, API consistency
 
 **Pattern to fix**:
+
 ```python
 # BEFORE (❌)
 if not entity:
@@ -520,6 +565,7 @@ if not entity:
 ```
 
 **Files to fix** (22 services):
+
 ```
 app/services/product_category_service.py (6 violations)
 app/services/product_state_service.py (6 violations)
@@ -541,6 +587,7 @@ app/services/storage_location_config_service.py (6 violations)
 **Impact**: Code documentation, onboarding, maintainability
 
 **Template**:
+
 ```python
 async def create_entity(
     self,
@@ -573,16 +620,16 @@ async def create_entity(
 **Services to refactor**:
 
 1. **StorageAreaService** (513 lines, 10 methods)
-   - Extract: `StorageAreaGeometryService` (GPS queries)
-   - Keep: CRUD operations
+    - Extract: `StorageAreaGeometryService` (GPS queries)
+    - Keep: CRUD operations
 
 2. **WarehouseService** (430 lines, 9 methods)
-   - Extract: `WarehouseGeometryService` (GPS queries)
-   - Keep: CRUD operations
+    - Extract: `WarehouseGeometryService` (GPS queries)
+    - Keep: CRUD operations
 
 3. **BandEstimationService** (678 lines, 8 methods)
-   - Keep as-is (ML complexity justifies size)
-   - Add more internal documentation
+    - Keep as-is (ML complexity justifies size)
+    - Add more internal documentation
 
 **Estimated Time**: 4-6 hours
 **Assigned To**: Team Leader + Python Expert
@@ -628,18 +675,18 @@ async def create_entity(
 
 ### Top 10 Files Needing Attention
 
-| File | Issues | Priority |
-|------|--------|----------|
-| `app/services/product_category_service.py` | 6 ValueError, 1 missing type hint | 🔴 HIGH |
-| `app/services/storage_location_config_service.py` | 6 ValueError | 🔴 HIGH |
-| `app/services/product_state_service.py` | 6 ValueError | 🔴 HIGH |
-| `app/services/price_list_service.py` | 6 ValueError | 🔴 HIGH |
-| `app/services/product_size_service.py` | 6 ValueError | 🔴 HIGH |
-| `app/services/ml_processing/band_estimation_service.py` | 4 missing type hints | 🔴 HIGH |
-| `app/services/ml_processing/pipeline_coordinator.py` | 1 missing type hint | 🟡 MEDIUM |
-| `app/services/storage_area_service.py` | 513 lines (refactor needed) | 🟡 MEDIUM |
-| `app/services/warehouse_service.py` | 430 lines (refactor needed) | 🟡 MEDIUM |
-| `app/schemas/storage_bin_schema.py` | 1 missing type hint | 🟡 MEDIUM |
+| File                                                    | Issues                            | Priority  |
+|---------------------------------------------------------|-----------------------------------|-----------|
+| `app/services/product_category_service.py`              | 6 ValueError, 1 missing type hint | 🔴 HIGH   |
+| `app/services/storage_location_config_service.py`       | 6 ValueError                      | 🔴 HIGH   |
+| `app/services/product_state_service.py`                 | 6 ValueError                      | 🔴 HIGH   |
+| `app/services/price_list_service.py`                    | 6 ValueError                      | 🔴 HIGH   |
+| `app/services/product_size_service.py`                  | 6 ValueError                      | 🔴 HIGH   |
+| `app/services/ml_processing/band_estimation_service.py` | 4 missing type hints              | 🔴 HIGH   |
+| `app/services/ml_processing/pipeline_coordinator.py`    | 1 missing type hint               | 🟡 MEDIUM |
+| `app/services/storage_area_service.py`                  | 513 lines (refactor needed)       | 🟡 MEDIUM |
+| `app/services/warehouse_service.py`                     | 430 lines (refactor needed)       | 🟡 MEDIUM |
+| `app/schemas/storage_bin_schema.py`                     | 1 missing type hint               | 🟡 MEDIUM |
 
 ---
 
@@ -648,6 +695,7 @@ async def create_entity(
 ### 1. Clean Architecture
 
 Perfect implementation of Service→Service pattern:
+
 ```python
 ✅ 26/26 services use dependency injection
 ✅ 0/26 services access other repositories directly
@@ -657,6 +705,7 @@ Perfect implementation of Service→Service pattern:
 ### 2. Repository Pattern
 
 Excellent use of base repository:
+
 ```python
 ✅ All 26 repositories inherit from BaseRepository
 ✅ Generic typing used correctly
@@ -666,6 +715,7 @@ Excellent use of base repository:
 ### 3. Exception Hierarchy
 
 Well-designed exception taxonomy:
+
 ```python
 ✅ Centralized in app/core/exceptions.py
 ✅ 4xx/5xx separation
@@ -676,6 +726,7 @@ Well-designed exception taxonomy:
 ### 4. Dependency Injection
 
 Consistent DI pattern:
+
 ```python
 ✅ Constructor injection only
 ✅ No global state
@@ -689,6 +740,7 @@ Consistent DI pattern:
 Based on code quality findings, testing should focus on:
 
 ### 1. Exception Handling Tests
+
 ```python
 async def test_not_found_returns_custom_exception():
     """Verify custom exceptions are raised (not ValueError)."""
@@ -702,6 +754,7 @@ async def test_not_found_returns_custom_exception():
 ```
 
 ### 2. Type Safety Tests
+
 ```python
 def test_return_types_annotated():
     """Verify all public methods have return type hints."""
@@ -717,6 +770,7 @@ def test_return_types_annotated():
 ## Code Quality Improvement Roadmap
 
 ### Week 1: Critical Fixes
+
 - [ ] Add 41 missing return type hints
 - [ ] Replace 65 generic exceptions with custom exceptions
 - [ ] Update exception imports in all services
@@ -726,6 +780,7 @@ def test_return_types_annotated():
 ---
 
 ### Week 2: Documentation
+
 - [ ] Add 42 missing docstrings
 - [ ] Update existing docstrings with `Raises:` sections
 - [ ] Add type hints to `from_model()` classmethods
@@ -735,6 +790,7 @@ def test_return_types_annotated():
 ---
 
 ### Week 3: Refactoring
+
 - [ ] Extract `StorageAreaGeometryService`
 - [ ] Extract `WarehouseGeometryService`
 - [ ] Add inline documentation to ML services
@@ -744,6 +800,7 @@ def test_return_types_annotated():
 ---
 
 ### Week 4: Automation
+
 - [ ] Add `mypy` to CI/CD
 - [ ] Add `interrogate` (docstring coverage) to CI/CD
 - [ ] Add pre-commit hooks for type checking
@@ -754,12 +811,15 @@ def test_return_types_annotated():
 
 ## Conclusion
 
-The codebase demonstrates **solid architectural foundations** with Clean Architecture, proper dependency injection, and comprehensive exception handling framework. However, **two critical issues must be addressed before production**:
+The codebase demonstrates **solid architectural foundations** with Clean Architecture, proper
+dependency injection, and comprehensive exception handling framework. However, **two critical issues
+must be addressed before production**:
 
 1. **Type hint coverage must reach 100%** (currently 82%)
 2. **Generic exceptions must be replaced with custom exceptions** (65 violations)
 
-After addressing these issues, the codebase will be **production-ready** with minimal technical debt.
+After addressing these issues, the codebase will be **production-ready** with minimal technical
+debt.
 
 **Current Grade**: C+ (78/100)
 **Potential Grade**: A (95/100) after remediation
@@ -769,6 +829,7 @@ After addressing these issues, the codebase will be **production-ready** with mi
 ## Appendix A: Quick Wins (< 30 minutes each)
 
 ### 1. Add Type Hints to Factory Methods
+
 ```python
 # app/services/storage_area_service.py:102
 def get_storage_area_service(
@@ -778,6 +839,7 @@ def get_storage_area_service(
 ```
 
 ### 2. Fix Schema Classmethods
+
 ```python
 # app/schemas/storage_bin_schema.py:32
 @classmethod
@@ -786,6 +848,7 @@ def from_model(cls, bin_model: StorageBin) -> "StorageBinResponse":  # ✅
 ```
 
 ### 3. Replace ValueError in Simple Services
+
 ```python
 # app/services/product_state_service.py
 from app.core.exceptions import NotFoundException  # ✅
@@ -802,6 +865,7 @@ async def get_by_id(self, id: int) -> ProductStateResponse:
 ## Appendix B: Code Quality Tools Configuration
 
 ### mypy Configuration
+
 ```ini
 # mypy.ini
 [mypy]
@@ -823,6 +887,7 @@ ignore_missing_imports = True
 ```
 
 ### interrogate Configuration
+
 ```ini
 # pyproject.toml
 [tool.interrogate]

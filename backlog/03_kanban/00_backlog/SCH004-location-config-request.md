@@ -1,6 +1,7 @@
 # [SCH004] LocationConfigRequest Schema
 
 ## Metadata
+
 - **Epic**: epic-003-backend-implementation.md
 - **Sprint**: Sprint-06
 - **Status**: `backlog`
@@ -29,6 +30,7 @@ Request schema for creating/updating storage location configuration.
 **Coverage Target**: ≥80%
 
 ## Time Tracking
+
 - **Estimated**: 1 story point
 
 ---

@@ -1,6 +1,7 @@
 # [SCH002] PhotoUploadRequest/Response Schemas
 
 ## Metadata
+
 - **Epic**: epic-003-backend-implementation.md
 - **Sprint**: Sprint-02
 - **Status**: `backlog`
@@ -70,6 +71,7 @@ Pydantic schemas for photo upload endpoint (request and response).
 **Coverage Target**: ≥80%
 
 ## Time Tracking
+
 - **Estimated**: 1 story point
 
 ---

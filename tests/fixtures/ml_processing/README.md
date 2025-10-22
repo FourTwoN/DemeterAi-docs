@@ -19,26 +19,29 @@ ml_processing/
 ### Images
 
 #### segment_with_gaps.jpg
+
 - **Purpose**: Test band-based estimation accuracy
 - **Dimensions**: 1200×1600 pixels (realistic greenhouse photo size)
 - **Content**:
-  - Dense vegetation regions (300+ detectable plants)
-  - Sparse gaps (75+ undetected plants - estimation target)
-  - Soil/floor areas (should be suppressed)
+    - Dense vegetation regions (300+ detectable plants)
+    - Sparse gaps (75+ undetected plants - estimation target)
+    - Soil/floor areas (should be suppressed)
 - **Ground Truth**: 575 total plants (manually counted)
 - **Expected YOLO Detection Rate**: ~90% (520 detected, 55 missed)
 
 #### segment_perspective.jpg
+
 - **Purpose**: Test perspective compensation across bands
 - **Dimensions**: 1200×1600 pixels
 - **Content**:
-  - Band 1 (y: 0-300): Small plants (far perspective) - 20×20 px
-  - Band 4 (y: 900-1200): Large plants (close) - 40×40 px
+    - Band 1 (y: 0-300): Small plants (far perspective) - 20×20 px
+    - Band 4 (y: 900-1200): Large plants (close) - 40×40 px
 - **Expected**: Band 1 avg_area < Band 4 avg_area
 
 ### Detection JSON Files
 
 #### detections_band1.json
+
 ```json
 [
   {
@@ -53,6 +56,7 @@ ml_processing/
 ```
 
 #### detections_band4.json
+
 ```json
 [
   {
@@ -67,6 +71,7 @@ ml_processing/
 ```
 
 #### ground_truth.json
+
 ```json
 {
   "segment_with_gaps.jpg": {
@@ -86,22 +91,27 @@ ml_processing/
 ## Creating Test Fixtures
 
 ### Option 1: Generate Synthetic Images (Current Approach)
+
 Integration tests currently generate synthetic images using `tmp_path` fixtures.
 This is sufficient for unit testing but not ideal for accuracy validation.
 
 **Pros**:
+
 - Fast test execution
 - No external dependencies
 - Deterministic results
 
 **Cons**:
+
 - Not realistic (simple circles, uniform colors)
 - Cannot validate true accuracy
 
 ### Option 2: Use Real Greenhouse Photos (Future Enhancement)
+
 For production validation, use actual greenhouse photos with manual counts.
 
 **Steps**:
+
 1. Capture high-res greenhouse photos (3000×1500 px)
 2. Manually count plants in photo (ground truth)
 3. Run YOLO detection (get ~90% detection rate)
@@ -109,6 +119,7 @@ For production validation, use actual greenhouse photos with manual counts.
 5. Use in integration tests for accuracy validation
 
 **Required**:
+
 - Photography equipment
 - Manual counting (1-2 hours per image)
 - YOLO detection pipeline setup

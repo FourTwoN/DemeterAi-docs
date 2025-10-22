@@ -23,7 +23,8 @@
 
 ## Overview
 
-**Manual Stock Initialization** is an alternative method to start the inventory tracking for a storage location **without using photos or ML processing**.
+**Manual Stock Initialization** is an alternative method to start the inventory tracking for a
+storage location **without using photos or ML processing**.
 
 ### What It Does
 
@@ -35,7 +36,8 @@
 
 ### Key Principle
 
-**Trust user input** - System assumes the manual count is accurate and complete. Configuration validation ensures data integrity.
+**Trust user input** - System assumes the manual count is accurate and complete. Configuration
+validation ensures data integrity.
 
 ---
 
@@ -52,12 +54,12 @@
 
 Manual initialization is **secondary** to photo-based initialization:
 
-| Aspect | Photo Init | Manual Init |
-|--------|-----------|-------------|
-| **Accuracy** | 95%+ (ML verified) | Depends on user |
-| **Speed** | 5-10 min (automatic) | Varies (manual counting) |
+| Aspect           | Photo Init                      | Manual Init                  |
+|------------------|---------------------------------|------------------------------|
+| **Accuracy**     | 95%+ (ML verified)              | Depends on user              |
+| **Speed**        | 5-10 min (automatic)            | Varies (manual counting)     |
 | **Traceability** | Full (detections + estimations) | Basic (movement record only) |
-| **Preferred** | ✅ YES | ❌ Fallback |
+| **Preferred**    | ✅ YES                           | ❌ Fallback                   |
 
 ---
 
@@ -157,11 +159,13 @@ Manual initialization is **secondary** to photo-based initialization:
 
 ### Rule 1: Product Match Validation
 
-**CRITICAL:** If `storage_location_config` exists, the manually entered product MUST match the configured expected product.
+**CRITICAL:** If `storage_location_config` exists, the manually entered product MUST match the
+configured expected product.
 
 **Why:** Prevents user errors (entering wrong plant species in wrong location).
 
 **Example:**
+
 ```
 Configuration:
   storage_location_id: 123
@@ -179,11 +183,13 @@ Message: "The product you entered (Sedum Blue) does not match the configured pro
 
 ### Rule 2: Packaging Match Validation
 
-**CRITICAL:** If `storage_location_config` exists, the manually entered packaging MUST match the configured expected packaging.
+**CRITICAL:** If `storage_location_config` exists, the manually entered packaging MUST match the
+configured expected packaging.
 
 **Why:** Ensures inventory accuracy (can't mix different pot sizes in same location).
 
 **Example:**
+
 ```
 Configuration:
   packaging_id: 12 (R7 pot)
@@ -197,11 +203,13 @@ Message: "The packaging you entered (R10 pot) does not match the configured pack
 
 ### Rule 3: Missing Configuration Handling
 
-**Behavior:** If no `storage_location_config` exists, allow manual initialization and implicitly create configuration.
+**Behavior:** If no `storage_location_config` exists, allow manual initialization and implicitly
+create configuration.
 
 **Why:** Bootstrap scenario - user setting up system for first time.
 
 **Example:**
+
 ```
 No configuration exists for storage_location_id: 200
 
@@ -223,6 +231,7 @@ Result:
 **Why:** Manual initialization is for **initial counts**, not adjustments.
 
 **Example:**
+
 ```
 User Input:
   quantity: 0 ← INVALID!
@@ -240,6 +249,7 @@ Message: "Quantity must be greater than 0"
 #### 1. stock_movements
 
 **INSERT:**
+
 ```sql
 INSERT INTO stock_movements (
     movement_id,              -- UUID
@@ -260,6 +270,7 @@ INSERT INTO stock_movements (
 ```
 
 **Key Differences from Photo Init:**
+
 - ❌ No `processing_session_id` (NULL)
 - ✅ `movement_type`: `"manual_init"` (not `"foto"`)
 - ✅ `source_type`: `"manual"` (not `"ia"`)
@@ -268,6 +279,7 @@ INSERT INTO stock_movements (
 #### 2. stock_batches
 
 **INSERT:**
+
 ```sql
 INSERT INTO stock_batches (
     batch_code,               -- "LOC123-PROD45-20251008-001"
@@ -293,6 +305,7 @@ INSERT INTO stock_batches (
 ```
 
 **Key Differences from Photo Init:**
+
 - ❌ No `quality_score` (NULL, no ML confidence)
 - ❌ No `quantity_empty_containers` (0, no ML detection)
 - ❌ Single batch (no grouping by size, user provides one count)
@@ -308,6 +321,7 @@ INSERT INTO stock_batches (
 #### 4. OPTIONAL INSERT: storage_location_config
 
 **IF missing configuration:**
+
 ```sql
 INSERT INTO storage_location_config (
     storage_location_id,      -- From request
@@ -329,6 +343,7 @@ INSERT INTO storage_location_config (
 ### POST /api/stock/manual
 
 **Request:**
+
 ```json
 {
   "storage_location_id": 123,
@@ -342,6 +357,7 @@ INSERT INTO storage_location_config (
 ```
 
 **Success Response (HTTP 201):**
+
 ```json
 {
   "stock_movement_id": "550e8400-e29b-41d4-a716-446655440000",
@@ -354,6 +370,7 @@ INSERT INTO storage_location_config (
 ```
 
 **Error Response (HTTP 400 - Product Mismatch):**
+
 ```json
 {
   "error": "Product mismatch",
@@ -364,6 +381,7 @@ INSERT INTO storage_location_config (
 ```
 
 **Error Response (HTTP 404 - Location Not Found):**
+
 ```json
 {
   "error": "Storage location not found",
@@ -376,23 +394,23 @@ INSERT INTO storage_location_config (
 
 ## Differences from Photo Initialization
 
-| Aspect | Photo Initialization | Manual Initialization |
-|--------|---------------------|----------------------|
-| **Input** | Photo file (multipart) | JSON request body |
-| **Processing** | Async (Celery) | Synchronous (immediate) |
-| **ML Pipeline** | ✅ YOLO + SAHI | ❌ None |
-| **Detections** | ✅ Individual plants | ❌ None |
-| **Estimations** | ✅ Area-based counts | ❌ None |
-| **Visualization** | ✅ Generated image | ❌ None |
-| **S3 Upload** | ✅ Original + processed | ❌ None |
-| **GPS Lookup** | ✅ From EXIF | ❌ N/A (user specifies location) |
-| **Validation** | ⚠️ Warning if config mismatch | ❌ Hard error if config mismatch |
-| **Accuracy** | 95%+ (ML) | Depends on user |
-| **Speed** | 5-10 minutes | Seconds |
-| **Batch Creation** | Multiple (by size) | Single (user count) |
-| **Quality Score** | ✅ ML confidence | ❌ NULL |
-| **Stock Movement Type** | `"foto"` | `"manual_init"` |
-| **Source Type** | `"ia"` | `"manual"` |
+| Aspect                  | Photo Initialization          | Manual Initialization           |
+|-------------------------|-------------------------------|---------------------------------|
+| **Input**               | Photo file (multipart)        | JSON request body               |
+| **Processing**          | Async (Celery)                | Synchronous (immediate)         |
+| **ML Pipeline**         | ✅ YOLO + SAHI                 | ❌ None                          |
+| **Detections**          | ✅ Individual plants           | ❌ None                          |
+| **Estimations**         | ✅ Area-based counts           | ❌ None                          |
+| **Visualization**       | ✅ Generated image             | ❌ None                          |
+| **S3 Upload**           | ✅ Original + processed        | ❌ None                          |
+| **GPS Lookup**          | ✅ From EXIF                   | ❌ N/A (user specifies location) |
+| **Validation**          | ⚠️ Warning if config mismatch | ❌ Hard error if config mismatch |
+| **Accuracy**            | 95%+ (ML)                     | Depends on user                 |
+| **Speed**               | 5-10 minutes                  | Seconds                         |
+| **Batch Creation**      | Multiple (by size)            | Single (user count)             |
+| **Quality Score**       | ✅ ML confidence               | ❌ NULL                          |
+| **Stock Movement Type** | `"foto"`                      | `"manual_init"`                 |
+| **Source Type**         | `"ia"`                        | `"manual"`                      |
 
 ---
 
@@ -400,20 +418,21 @@ INSERT INTO storage_location_config (
 
 ### Error Types
 
-| Error | HTTP Code | Cause | Solution |
-|-------|-----------|-------|----------|
-| **ProductMismatchException** | 400 | User entered wrong product | Update config OR re-enter correct product |
-| **PackagingMismatchException** | 400 | User entered wrong packaging | Update config OR re-enter correct packaging |
-| **StorageLocationNotFoundException** | 404 | Invalid location_id | Verify location exists |
-| **ProductNotFoundException** | 404 | Invalid product_id | Verify product exists |
-| **PackagingNotFoundException** | 404 | Invalid packaging_id | Verify packaging exists |
-| **ValidationError** | 422 | Invalid request format | Check required fields |
-| **UnauthorizedException** | 401 | Not logged in | Login required |
-| **ForbiddenException** | 403 | Insufficient permissions | Admin/supervisor role needed |
+| Error                                | HTTP Code | Cause                        | Solution                                    |
+|--------------------------------------|-----------|------------------------------|---------------------------------------------|
+| **ProductMismatchException**         | 400       | User entered wrong product   | Update config OR re-enter correct product   |
+| **PackagingMismatchException**       | 400       | User entered wrong packaging | Update config OR re-enter correct packaging |
+| **StorageLocationNotFoundException** | 404       | Invalid location_id          | Verify location exists                      |
+| **ProductNotFoundException**         | 404       | Invalid product_id           | Verify product exists                       |
+| **PackagingNotFoundException**       | 404       | Invalid packaging_id         | Verify packaging exists                     |
+| **ValidationError**                  | 422       | Invalid request format       | Check required fields                       |
+| **UnauthorizedException**            | 401       | Not logged in                | Login required                              |
+| **ForbiddenException**               | 403       | Insufficient permissions     | Admin/supervisor role needed                |
 
 ### Recovery Strategies
 
 **Product Mismatch:**
+
 ```
 Option 1: Update storage_location_config to match new product
   POST /api/configurations/storage-location
@@ -425,6 +444,7 @@ Option 2: Re-enter manual count with correct product
 ```
 
 **Missing Location:**
+
 ```
 Create the storage_location first:
   POST /api/locations/storage-location
@@ -443,6 +463,7 @@ Then retry manual initialization
 **Method:** `async def create_manual_initialization(request: ManualStockInitRequest)`
 
 **Pseudocode:**
+
 ```python
 async def create_manual_initialization(self, request: ManualStockInitRequest):
     # 1. Get storage location (verify exists)
@@ -502,6 +523,7 @@ async def create_manual_initialization(self, request: ManualStockInitRequest):
 **Route:** `POST /api/stock/manual`
 
 **Pseudocode:**
+
 ```python
 @router.post("/stock/manual", status_code=status.HTTP_201_CREATED)
 async def initialize_stock_manually(
@@ -529,7 +551,8 @@ async def initialize_stock_manually(
 
 ## Next Steps
 
-- **Detailed Diagrams:** See [../../flows/manual_stock_initialization/](../../flows/manual_stock_initialization/README.md)
+- **Detailed Diagrams:**
+  See [../../flows/manual_stock_initialization/](../../flows/manual_stock_initialization/README.md)
 - **API Implementation:** See [../../api/endpoints_stock.md](../../api/endpoints_stock.md)
 - **Backend Services:** See [../../backend/service_layer.md](../../backend/service_layer.md)
 

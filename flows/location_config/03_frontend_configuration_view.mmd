@@ -4,50 +4,50 @@ mermaid_version: "v11.3.0+"
 ---
 flowchart TB
     START@{ shape: stadium, label: "Admin Opens Config View" }
-    LOAD@{ shape: cyl, label: "Load Warehouse Hierarchy
-    GET /api/admin/warehouses/hierarchy" }
-    DISPLAY_TREE@{ shape: rect, label: "Display Warehouse Tree
-    • Warehouses
-    • Storage Areas
-    • Storage Locations
-    • Config badges (✓/⚠️)" }
-    SELECT_MODE@{ shape: diamond, label: "Selection Mode?" }
+LOAD@{ shape: cyl, label: "Load Warehouse Hierarchy
+GET /api/admin/warehouses/hierarchy" }
+DISPLAY_TREE@{ shape: rect, label: "Display Warehouse Tree
+• Warehouses
+• Storage Areas
+• Storage Locations
+• Config badges (✓/⚠️)" }
+SELECT_MODE@{ shape: diamond, label: "Selection Mode?" }
 
-    subgraph SINGLE["Single Selection"]
-        CLICK_SINGLE@{ shape: rect, label: "Click Location" }
-        OPEN_PANEL@{ shape: rect, label: "Open Side Panel
-        Show current config" }
-        EDIT_SINGLE@{ shape: rect, label: "Click Edit" }
-    end
+subgraph SINGLE["Single Selection"]
+CLICK_SINGLE@{ shape: rect, label: "Click Location" }
+OPEN_PANEL@{ shape: rect, label: "Open Side Panel
+Show current config" }
+EDIT_SINGLE@{ shape: rect, label: "Click Edit" }
+end
 
-    subgraph BULK["Bulk Selection"]
-        ENABLE_BULK@{ shape: rect, label: "Enable Bulk Mode" }
-        SELECT_MULTIPLE@{ shape: rect, label: "Select N Locations" }
-        CONFIG_BULK@{ shape: rect, label: "Click Configure Selected" }
-    end
+subgraph BULK["Bulk Selection"]
+ENABLE_BULK@{ shape: rect, label: "Enable Bulk Mode" }
+SELECT_MULTIPLE@{ shape: rect, label: "Select N Locations" }
+CONFIG_BULK@{ shape: rect, label: "Click Configure Selected" }
+end
 
-    SHOW_FORM@{ shape: rect, label: "Show Config Form" }
-    SUBMIT@{ shape: rect, label: "User Submits" }
-    API_CALL@{ shape: cyl, label: "POST /api/admin/.../bulk-update
-    or bulk-create" }
-    REFRESH@{ shape: rect, label: "Refresh View" }
-    END@{ shape: stadium, label: "Updated View Displayed" }
+SHOW_FORM@{ shape: rect, label: "Show Config Form" }
+SUBMIT@{ shape: rect, label: "User Submits" }
+API_CALL@{ shape: cyl, label: "POST /api/admin/.../bulk-update
+or bulk-create" }
+REFRESH@{ shape: rect, label: "Refresh View" }
+END@{ shape: stadium, label: "Updated View Displayed" }
 
-    START --> LOAD
-    LOAD --> DISPLAY_TREE
-    DISPLAY_TREE --> SELECT_MODE
+START --> LOAD
+LOAD --> DISPLAY_TREE
+DISPLAY_TREE --> SELECT_MODE
 
-    SELECT_MODE -->|Single| CLICK_SINGLE
-    CLICK_SINGLE --> OPEN_PANEL
-    OPEN_PANEL --> EDIT_SINGLE
-    EDIT_SINGLE --> SHOW_FORM
+SELECT_MODE -->|Single|CLICK_SINGLE
+CLICK_SINGLE --> OPEN_PANEL
+OPEN_PANEL --> EDIT_SINGLE
+EDIT_SINGLE --> SHOW_FORM
 
-    SELECT_MODE -->|Bulk| ENABLE_BULK
-    ENABLE_BULK --> SELECT_MULTIPLE
-    SELECT_MULTIPLE --> CONFIG_BULK
-    CONFIG_BULK --> SHOW_FORM
+SELECT_MODE -->|Bulk|ENABLE_BULK
+ENABLE_BULK --> SELECT_MULTIPLE
+SELECT_MULTIPLE --> CONFIG_BULK
+CONFIG_BULK --> SHOW_FORM
 
-    SHOW_FORM --> SUBMIT
-    SUBMIT --> API_CALL
-    API_CALL --> REFRESH
-    REFRESH --> END
+SHOW_FORM --> SUBMIT
+SUBMIT --> API_CALL
+API_CALL --> REFRESH
+REFRESH --> END

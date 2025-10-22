@@ -11,6 +11,7 @@ Finalize task `{{task-id}}` and prepare for next tasks.
 ## Prerequisites
 
 Before running this command, ensure:
+
 - Task is in `04_testing/` folder
 - All quality gates passed (via `/review-task`)
 - All acceptance criteria checked
@@ -19,6 +20,7 @@ Before running this command, ensure:
 ## Steps
 
 ### 1. Verify Task Location
+
 ```bash
 TASK_FILE="backlog/03_kanban/04_testing/{{task-id}}-*.md"
 
@@ -31,6 +33,7 @@ echo "Found task: $TASK_FILE"
 ```
 
 ### 2. Extract Modified Files
+
 ```bash
 # Read task file to find modified files
 cat "$TASK_FILE" | grep -A 10 "Files Modified\|Files Created" | grep -E "app/|tests/" | awk '{print $2}'
@@ -42,6 +45,7 @@ cat "$TASK_FILE" | grep -A 10 "Files Modified\|Files Created" | grep -E "app/|te
 ```
 
 ### 3. Invoke Git Commit Agent
+
 ```markdown
 ## Team Leader → Git Commit Agent ($(date +%Y-%m-%d\ %H:%M))
 **Task**: {{task-id}} - [Title]
@@ -58,6 +62,7 @@ cat "$TASK_FILE" | grep -A 10 "Files Modified\|Files Created" | grep -E "app/|te
 ```
 
 ### 4. Wait for Git Commit (Git Commit Agent execution)
+
 ```bash
 # Git Commit Agent will:
 # 1. Stage files: git add app/services/... tests/...
@@ -77,6 +82,7 @@ cat "$TASK_FILE" | grep -A 10 "Files Modified\|Files Created" | grep -E "app/|te
 ```
 
 ### 5. Record Commit SHA
+
 ```markdown
 ## Git Commit ($(date +%Y-%m-%d\ %H:%M))
 **Commit SHA**: [sha from Git Commit Agent]
@@ -88,6 +94,7 @@ cat "$TASK_FILE" | grep -A 10 "Files Modified\|Files Created" | grep -E "app/|te
 ```
 
 ### 6. Move to Done
+
 ```bash
 mv "$TASK_FILE" "backlog/03_kanban/05_done/"
 
@@ -95,6 +102,7 @@ echo "✅ Moved {{task-id}} to 05_done/"
 ```
 
 ### 7. Update DATABASE_CARDS_STATUS.md
+
 ```bash
 cat >> backlog/03_kanban/DATABASE_CARDS_STATUS.md <<EOF
 
@@ -125,6 +133,7 @@ EOF
 ```
 
 ### 8. Identify and Unblock Dependent Tasks
+
 ```bash
 # Read epic file to find tasks blocked by {{task-id}}
 cat backlog/02_epics/epic-*.md | grep "Blocked by.*{{task-id}}"
@@ -156,6 +165,7 @@ fi
 ```
 
 ### 9. Report to Scrum Master
+
 ```markdown
 ## Team Leader → Scrum Master ($(date +%Y-%m-%d\ %H:%M))
 **Task**: {{task-id}} - [Title]
@@ -190,6 +200,7 @@ All quality gates passed. Commit [SHA] created.
 ```
 
 ### 10. Celebrate & Next Steps
+
 ```
 ✅ TASK COMPLETED: {{task-id}}
 
@@ -212,6 +223,7 @@ Suggestions:
 **Command**: `/complete-task S001`
 
 **Output**:
+
 ```
 Verifying task location...
 ✅ Found: backlog/03_kanban/04_testing/S001-stock-movement-service.md

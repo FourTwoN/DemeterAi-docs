@@ -13,6 +13,7 @@
 ## 1. INVENTARIO DE SERVICIOS
 
 ### 1.1 Servicios Raíz (22 archivos)
+
 ```
 app/services/
 ├── batch_lifecycle_service.py          ✓ No imports
@@ -40,6 +41,7 @@ app/services/
 ```
 
 ### 1.2 Servicios de Foto (5 archivos)
+
 ```
 app/services/photo/
 ├── detection_service.py                ✓ Detecciones ML
@@ -50,6 +52,7 @@ app/services/photo/
 ```
 
 ### 1.3 Servicios ML Processing (5 archivos)
+
 ```
 app/services/ml_processing/
 ├── band_estimation_service.py          ✓ Sin imports
@@ -66,55 +69,56 @@ app/services/ml_processing/
 ### 2.1 Servicios con Patrón Service→Service (CORRECTO)
 
 #### Nivel 1: Servicios que USAN otros servicios
+
 1. **ProductService**
-   - Usa: `ProductFamilyService.get_family_by_id()`
-   - Razón: Validación de familia antes de crear producto
-   - Patrón: ✓ CORRECTO
+    - Usa: `ProductFamilyService.get_family_by_id()`
+    - Razón: Validación de familia antes de crear producto
+    - Patrón: ✓ CORRECTO
 
 2. **ProductFamilyService**
-   - Usa: `ProductCategoryService.get_category_by_id()`
-   - Razón: Validación de categoría padre
-   - Patrón: ✓ CORRECTO
+    - Usa: `ProductCategoryService.get_category_by_id()`
+    - Razón: Validación de categoría padre
+    - Patrón: ✓ CORRECTO
 
 3. **StorageAreaService**
-   - Usa: `WarehouseService.get_warehouse_by_id()`
-   - Razón: Validación de almacén padre antes de crear área
-   - Patrón: ✓ CORRECTO
+    - Usa: `WarehouseService.get_warehouse_by_id()`
+    - Razón: Validación de almacén padre antes de crear área
+    - Patrón: ✓ CORRECTO
 
 4. **StorageLocationService**
-   - Usa: `WarehouseService.get_warehouse_by_gps()`
-   - Usa: `StorageAreaService.get_storage_area_by_gps()`
-   - Razón: Búsqueda jerárquica completa (GPS → warehouse → area → location)
-   - Patrón: ✓ CORRECTO
+    - Usa: `WarehouseService.get_warehouse_by_gps()`
+    - Usa: `StorageAreaService.get_storage_area_by_gps()`
+    - Razón: Búsqueda jerárquica completa (GPS → warehouse → area → location)
+    - Patrón: ✓ CORRECTO
 
 5. **StorageBinService**
-   - Usa: `StorageLocationService.get_storage_location_by_id()`
-   - Razón: Validación de ubicación padre
-   - Patrón: ✓ CORRECTO
+    - Usa: `StorageLocationService.get_storage_location_by_id()`
+    - Razón: Validación de ubicación padre
+    - Patrón: ✓ CORRECTO
 
 6. **LocationHierarchyService** (AGREGADOR)
-   - Usa: `WarehouseService`, `StorageAreaService`, `StorageLocationService`, `StorageBinService`
-   - Razón: Orquestación de jerarquía completa para reportes
-   - Patrón: ✓ CORRECTO (agregador multi-servicio)
+    - Usa: `WarehouseService`, `StorageAreaService`, `StorageLocationService`, `StorageBinService`
+    - Razón: Orquestación de jerarquía completa para reportes
+    - Patrón: ✓ CORRECTO (agregador multi-servicio)
 
 7. **PhotoUploadService** (ORQUESTADOR)
-   - Usa: `PhotoProcessingSessionService`
-   - Usa: `S3ImageService`
-   - Usa: `LocationHierarchyService`
-   - Razón: Orquestación completa de upload → GPS lookup → S3 → Session
-   - Patrón: ✓ CORRECTO (orquestador principal)
+    - Usa: `PhotoProcessingSessionService`
+    - Usa: `S3ImageService`
+    - Usa: `LocationHierarchyService`
+    - Razón: Orquestación completa de upload → GPS lookup → S3 → Session
+    - Patrón: ✓ CORRECTO (orquestador principal)
 
 8. **PipelineCoordinator** (ORQUESTADOR ML)
-   - Usa: `SahiDetectionService`
-   - Usa: `BandEstimationService`
-   - Usa: `SegmentationService`
-   - Razón: Coordinación del pipeline ML
-   - Patrón: ✓ CORRECTO
+    - Usa: `SahiDetectionService`
+    - Usa: `BandEstimationService`
+    - Usa: `SegmentationService`
+    - Razón: Coordinación del pipeline ML
+    - Patrón: ✓ CORRECTO
 
 9. **SahiDetectionService**
-   - Usa: `ModelCache`
-   - Razón: Acceso a modelo YOLO cacheado
-   - Patrón: ✓ CORRECTO
+    - Usa: `ModelCache`
+    - Razón: Acceso a modelo YOLO cacheado
+    - Patrón: ✓ CORRECTO
 
 10. **SegmentationService**
     - Usa: `ModelCache`
@@ -122,6 +126,7 @@ app/services/ml_processing/
     - Patrón: ✓ CORRECTO
 
 ### 2.2 Servicios con Acceso Directo a Repositorio (CORRECTO)
+
 - Todos los servicios acceden SOLO a su propio repositorio
 - Ej: ProductService → ProductRepository (su repositorio)
 - ✓ Sin violaciones de cross-repository access
@@ -129,6 +134,7 @@ app/services/ml_processing/
 ### 2.3 Análisis de Imports de Repositorios
 
 Total archivos que importan repositorio: 23/32
+
 ```
 Product layer: 6 servicios
   product_category_service.py → ProductCategoryRepository
@@ -178,11 +184,13 @@ Utilities: 3 servicios (sin imports)
 ## 3. DETECCIÓN DE VIOLACIONES
 
 ### 3.1 Cross-Repository Access Check
+
 Búsqueda: ¿Hay servicios que importan múltiples repositorios?
 
 **RESULTADO: ✓ NO VIOLACIONES ENCONTRADAS**
 
 Verificación manual de servicios críticos:
+
 - ProductService: ✓ Solo ProductRepository
 - StorageAreaService: ✓ Solo StorageAreaRepository (no WarehouseRepository)
 - StorageLocationService: ✓ Solo StorageLocationRepository
@@ -195,6 +203,7 @@ Verificación manual de servicios críticos:
 ## 4. ANÁLISIS DE TESTS UNITARIOS
 
 ### 4.1 Tests Existentes (ENCONTRADOS)
+
 ```
 tests/unit/services/
 ├── ml_processing/
@@ -228,6 +237,7 @@ tests/unit/services/
 **Total tests unitarios: 24 archivos encontrados**
 
 ### 4.2 Services SIN Tests Unitarios (5 servicios)
+
 1. ❌ **detection_service.py** - Service crítica para ML (MISSING)
 2. ❌ **estimation_service.py** - Service crítica para ML (MISSING)
 3. ❌ **photo_processing_session_service.py** - Orquestador principal (MISSING)
@@ -235,11 +245,13 @@ tests/unit/services/
 5. ❌ **pipeline_coordinator.py** - Coordinador ML (MISSING)
 
 También falta:
+
 - test_sahi_detection_service.py
 - test_segmentation_service.py
 - test_model_cache.py
 
 ### 4.3 Resumen de Cobertura
+
 - Services con tests: 24/32 = 75%
 - Services SIN tests: 8/32 = 25%
 
@@ -248,6 +260,7 @@ También falta:
 ## 5. PATRONES CORRECTAMENTE IMPLEMENTADOS
 
 ### 5.1 Service→Service Pattern (✓ CORRECTO)
+
 ```python
 # ✓ BIEN: Llamada a otro servicio
 class ProductService:
@@ -263,6 +276,7 @@ class ProductService:
 ```
 
 ### 5.2 Orquestación Service (✓ CORRECTO)
+
 ```python
 # ✓ BIEN: Agregador que orquesta múltiples servicios
 class LocationHierarchyService:
@@ -280,6 +294,7 @@ class LocationHierarchyService:
 ```
 
 ### 5.3 Acceso a Repositorio (✓ CORRECTO)
+
 ```python
 # ✓ BIEN: Acceso SOLO a su propio repositorio
 class StorageAreaService:
@@ -311,6 +326,7 @@ hierarchy = await self.location_service.get_full_hierarchy_by_gps(
 **PROBLEMA**: El método `get_full_hierarchy_by_gps()` NO EXISTE en LocationHierarchyService
 
 **LocationHierarchyService** tiene:
+
 - `get_full_hierarchy(warehouse_id)` ✓
 - `lookup_gps_full_chain(longitude, latitude)` ✓ (Este debería usarse)
 
@@ -341,6 +357,7 @@ task_id = uuid.uuid4()
 ## 7. ANOMALÍAS DETECTADAS
 
 ### 7.1 Servicios Sin Dependencias (Utilidades)
+
 1. **batch_lifecycle_service.py** - Sin init, solo funciones estáticas
 2. **movement_validation_service.py** - Sin init, solo validación
 3. **model_cache.py** - Caché sin acceso a BD
@@ -350,6 +367,7 @@ task_id = uuid.uuid4()
 ### 7.2 Acceso Directo a Session
 
 Servicios que acceden a `self.repo.session.execute()`:
+
 - ProductService (línea 68, 158)
 - StorageAreaService (línea 251, 340)
 - StorageLocationService (línea 169, 181)
@@ -357,6 +375,7 @@ Servicios que acceden a `self.repo.session.execute()`:
 - StockMovementService (línea 29, 35)
 
 **ANÁLISIS**: ✓ CORRECTO
+
 - Razón: Queries complejas que no caben en el repositorio base
 - Acceso es a través del repositorio inyectado (self.repo.session)
 - NO es acceso directo a otro repositorio
@@ -366,6 +385,7 @@ Servicios que acceden a `self.repo.session.execute()`:
 ## 8. QUALITY GATES
 
 ### Checklist de Validación
+
 - ✓ Todos los servicios tienen type hints
 - ✓ Todos los servicios usan async/await
 - ✓ Todos los servicios tienen docstrings
@@ -379,26 +399,29 @@ Servicios que acceden a `self.repo.session.execute()`:
 ## 9. RECOMENDACIONES
 
 ### 9.1 URGENTE (Fix Inmediato)
+
 1. **Corregir PhotoUploadService**
-   - Reemplazar `get_full_hierarchy_by_gps()` por `lookup_gps_full_chain()`
-   - Archivo: `app/services/photo/photo_upload_service.py:149`
+    - Reemplazar `get_full_hierarchy_by_gps()` por `lookup_gps_full_chain()`
+    - Archivo: `app/services/photo/photo_upload_service.py:149`
 
 ### 9.2 IMPORTANTE (Sprint Actual)
+
 1. **Agregar tests unitarios faltantes**
-   - detection_service.py
-   - estimation_service.py
-   - photo_processing_session_service.py
-   - photo_upload_service.py
-   - pipeline_coordinator.py
-   - sahi_detection_service.py
-   - segmentation_service.py
-   - model_cache.py
+    - detection_service.py
+    - estimation_service.py
+    - photo_processing_session_service.py
+    - photo_upload_service.py
+    - pipeline_coordinator.py
+    - sahi_detection_service.py
+    - segmentation_service.py
+    - model_cache.py
 
 2. **Validar cobertura de tests**
-   - Ejecutar: `pytest tests/unit/services/ --cov=app/services --cov-report=term-missing`
-   - Meta: ≥80% cobertura por servicio
+    - Ejecutar: `pytest tests/unit/services/ --cov=app/services --cov-report=term-missing`
+    - Meta: ≥80% cobertura por servicio
 
 ### 9.3 Mejoras Futuras
+
 1. Considerar extraer lógica de acceso a session en helpers
 2. Documentar patrones de orquestación en ADR
 3. Crear guidelines para nuevos servicios
@@ -408,6 +431,7 @@ Servicios que acceden a `self.repo.session.execute()`:
 ## 10. CONCLUSIONES
 
 ### Patrones Implementados Correctamente
+
 - Service→Service communication: ✓ 10/10 servicios que lo usan
 - No cross-repository access: ✓ 0 violaciones detectadas
 - Type hints: ✓ 100% de servicios
@@ -415,12 +439,14 @@ Servicios que acceden a `self.repo.session.execute()`:
 - Clean Architecture: ✓ Adherencia completa
 
 ### Calidad General
+
 - Cobertura de código: 75% (24/32 con tests)
 - Patrones correctos: 84% (27/32)
 - Issues críticos: 1 (PhotoUploadService method name)
 - Issues menores: 0
 
 ### Score Final
+
 **CALIFICACIÓN: A- (85/100)**
 
 - Arquitectura: A (95/100)

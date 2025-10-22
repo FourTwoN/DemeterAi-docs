@@ -2,7 +2,8 @@
 
 ## Purpose
 
-This diagram shows the **detailed implementation flow** for manual filtering analytics, where users select filters through the UI to generate reports and visualizations from the cultivation database.
+This diagram shows the **detailed implementation flow** for manual filtering analytics, where users
+select filters through the UI to generate reports and visualizations from the cultivation database.
 
 ## Scope
 
@@ -25,12 +26,14 @@ The complete manual analytics flow including:
 ## Available Filters
 
 ### Geographic Filters
+
 - **Warehouse**: Filter by one or multiple warehouses
 - **Storage Area**: Filter by cantero (N, S, E, W, C)
 - **Storage Location**: Filter by specific claros
 - **Storage Bin**: Filter by individual bins (boxes/plugs)
 
 ### Product Filters
+
 - **Product Category**: cactus, suculenta, injerto
 - **Product Family**: Filter by botanical family
 - **Product**: Specific product/species
@@ -38,16 +41,19 @@ The complete manual analytics flow including:
 - **Product State**: germinado, plantín, ready_to_sell, etc.
 
 ### Packaging Filters
+
 - **Packaging Type**: pot, tray, plug
 - **Packaging Catalog**: Specific pot sizes (R7, R10, etc.)
 - **Packaging Color**: Filter by pot color
 
 ### Temporal Filters
+
 - **Date Range**: From/To dates
 - **Photo Session**: Filter by specific processing sessions
 - **Stock Movement Period**: Analyze movements in time range
 
 ### Analysis Type
+
 - **Current Stock**: Show current stock levels
 - **Stock Movements**: Show historical movements (transplante, muerte, ventas)
 - **Mortality Analysis**: Calculate and show mortality rates
@@ -57,6 +63,7 @@ The complete manual analytics flow including:
 ## Database Tables Involved
 
 ### Primary Tables
+
 ```sql
 -- Geographic hierarchy
 warehouses (id, code, name, geojson_coordinates)
@@ -91,6 +98,7 @@ photo_processing_sessions (id, storage_location_id,
 ## Query Building Strategy
 
 ### Base Query Template
+
 ```sql
 SELECT
     -- Aggregations based on analysis type
@@ -214,6 +222,7 @@ redis.setex(cache_key, cache_ttl, json.dumps(result))
 ## Visualization Types
 
 ### Chart Types by Analysis
+
 - **Stock Distribution**: Pie chart, stacked bar chart
 - **Temporal Trends**: Line chart, area chart
 - **Geographic Comparison**: Grouped bar chart, heatmap
@@ -221,6 +230,7 @@ redis.setex(cache_key, cache_ttl, json.dumps(result))
 - **Value Analysis**: Currency-formatted tables, bar charts
 
 ### Frontend Libraries
+
 - **Chart.js**: Primary charting library
 - **AG Grid**: Advanced data tables with sorting/filtering
 - **Export**: Chart.js PNG export, table to Excel
@@ -228,6 +238,7 @@ redis.setex(cache_key, cache_ttl, json.dumps(result))
 ## Example Queries
 
 ### Query 1: Stock by Warehouse and Category
+
 ```sql
 SELECT
     w.name as warehouse,
@@ -244,6 +255,7 @@ ORDER BY total_value DESC;
 ```
 
 ### Query 2: Mortality Rate by Storage Area
+
 ```sql
 SELECT
     sa.name as storage_area,
@@ -317,13 +329,13 @@ async def manual_analytics_query(
 
 ## Performance Targets
 
-| Operation | Target | Notes |
-|-----------|--------|-------|
-| Simple query (< 10K rows) | < 200ms | Using indexes |
+| Operation                   | Target  | Notes                    |
+|-----------------------------|---------|--------------------------|
+| Simple query (< 10K rows)   | < 200ms | Using indexes            |
 | Complex query (< 100K rows) | < 500ms | Using materialized views |
-| Large query (> 100K rows) | < 2s | Pagination required |
-| Cache hit | < 50ms | Redis lookup |
-| Chart generation | < 100ms | Frontend Chart.js |
+| Large query (> 100K rows)   | < 2s    | Pagination required      |
+| Cache hit                   | < 50ms  | Redis lookup             |
+| Chart generation            | < 100ms | Frontend Chart.js        |
 
 ---
 

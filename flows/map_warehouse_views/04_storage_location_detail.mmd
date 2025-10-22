@@ -2,56 +2,47 @@
 title: Storage Location Detail View - Full Information Display
 ---
 graph TB
-    %% Entry Point
+%% Entry Point
     UserClick["🖱️ User Clicks<br/>Preview Card<br/>(Level 2)"]
-
-    %% API Call
+%% API Call
     subgraph APICall["🔄 API Call (On-Demand)"]
         FetchDetail["📡 GET /storage-locations/{id}/detail<br/>~300ms"]
         CheckCache{"🔍 Redis Cache?<br/>TTL: 1 hour"}
         QueryDB["💾 Query Database<br/>+ PostGIS<br/>+ Joins"]
-
         UserClick --> FetchDetail
         FetchDetail --> CheckCache
-        CheckCache -->|"Hit"| ReturnCached["✅ Return Cached<br/>~50ms"]
-        CheckCache -->|"Miss"| QueryDB
+        CheckCache -->|" Hit "| ReturnCached["✅ Return Cached<br/>~50ms"]
+        CheckCache -->|" Miss "| QueryDB
         QueryDB --> StoreCache["💾 Store in Redis<br/>TTL: 1 hour"]
         StoreCache --> ReturnData["📤 Return Data"]
     end
 
-    %% Rendering
+%% Rendering
     ReturnData --> RenderView
     ReturnCached --> RenderView
 
     subgraph ViewLayout["🖼️ View Layout"]
         RenderView["🖼️ Render Detail View"]
-
         LeftColumn["📷 Left Column<br/>Processed Image Section"]
         RightColumn["📊 Right Column<br/>Details Sections"]
-
         RenderView --> LeftColumn
         RenderView --> RightColumn
     end
 
-    %% Left Column
+%% Left Column
     subgraph LeftContent["📷 Left Column Content"]
         ProcessedImage["🖼️ Processed Image<br/>ML annotations<br/>Bounding boxes<br/>Lazy load"]
         ImageMeta["📅 Image Metadata<br/>Capture timestamp<br/>Session ID"]
-
         LeftColumn --> ProcessedImage
         LeftColumn --> ImageMeta
     end
 
-    %% Right Column Sections
+%% Right Column Sections
     subgraph RightSections["📊 Right Column Sections"]
         DetectionSection["🔍 Detection Results<br/>- Category counts<br/>- Total detected<br/>- Empty containers<br/>- Avg confidence<br/>- Validation status"]
-
         FinancialSection["💰 Financial Info<br/>- Current value<br/>- Potential value<br/>- Price per unit<br/>- ROI percentage"]
-
         MacetaSection["🪴 Maceta Distribution<br/>Badge tags per size<br/>(8cm, 10cm, 12cm, etc.)"]
-
         QualitySection["⭐ Quality Metrics<br/>- Overall score (bar)<br/>- Health score<br/>- Growth rate<br/>- Mortality rate"]
-
         ActionButtons["🔘 Action Buttons<br/>- View History<br/>- Configure<br/>- Analytics"]
     end
 
@@ -60,15 +51,11 @@ graph TB
     RightColumn --> MacetaSection
     RightColumn --> QualitySection
     RightColumn --> ActionButtons
-
-    %% Detection Details
+%% Detection Details
     subgraph DetectionDetails["🔍 Detection Breakdown"]
         CategoryCounts["📊 Category Counts<br/>- Cactus: X<br/>- Suculenta: Y<br/>- Injerto: Z"]
-
         EmptyContainers["📦 Empty Containers<br/>Count from ML"]
-
         Confidence["🎯 Confidence Score<br/>Average: 0.92 (92%)"]
-
         ValidationStatus["✅ Validation<br/>Validated by user?<br/>Date + user email"]
     end
 
@@ -76,28 +63,21 @@ graph TB
     DetectionSection --> EmptyContainers
     DetectionSection --> Confidence
     DetectionSection --> ValidationStatus
-
-    %% Financial Calculations
+%% Financial Calculations
     subgraph FinancialCalc["💰 Financial Calculations"]
         CurrentValue["💵 Current Value<br/>quantity × cost_per_unit"]
-
         PotentialValue["💎 Potential Value<br/>current_value × 1.3<br/>(30% growth)"]
-
         ROI["📈 ROI %<br/>(potential - current)<br/>/ current × 100"]
     end
 
     FinancialSection --> CurrentValue
     FinancialSection --> PotentialValue
     FinancialSection --> ROI
-
-    %% Quality Score Display
+%% Quality Score Display
     subgraph QualityDisplay["⭐ Quality Score Display"]
         OverallBar["📊 Overall Score Bar<br/>0-100 progress bar<br/>Color: green/yellow/red"]
-
         HealthMetric["❤️ Health Score<br/>Plant health indicator"]
-
         GrowthMetric["📈 Growth Rate<br/>% increase over time"]
-
         MortalityMetric["💀 Mortality Rate<br/>% deaths over time"]
     end
 
@@ -105,30 +85,22 @@ graph TB
     QualitySection --> HealthMetric
     QualitySection --> GrowthMetric
     QualitySection --> MortalityMetric
-
-    %% Navigation Actions
+%% Navigation Actions
     subgraph NavigationActions["🔘 Navigation Options"]
         ViewHistory["📜 View History<br/>Navigate to Level 4<br/>Historical Timeline"]
-
         ConfigureLocation["⚙️ Configure<br/>Edit storage_location<br/>settings"]
-
         ViewAnalytics["📊 View Analytics<br/>Navigate to analytics<br/>dashboard"]
     end
 
     ActionButtons --> ViewHistory
     ActionButtons --> ConfigureLocation
     ActionButtons --> ViewAnalytics
-
     ViewHistory --> HistoryView["📊 Level 4:<br/>Historical Timeline<br/>(Separate API call)"]
-
-    %% Database Queries
+%% Database Queries
     subgraph DatabaseQueries["💾 Database Queries"]
         LocationQuery["📋 storage_locations<br/>Basic info + joins"]
-
         SessionQuery["📸 photo_processing_sessions<br/>Latest session data"]
-
         StockQuery["📦 stock_batches<br/>Quantity, value, quality"]
-
         DetectionsQuery["🔍 detections<br/>Individual detections<br/>(optional, if needed)"]
     end
 
@@ -136,31 +108,26 @@ graph TB
     QueryDB -.-> SessionQuery
     QueryDB -.-> StockQuery
     QueryDB -.-> DetectionsQuery
-
-    %% Performance
+%% Performance
     subgraph Performance["⚡ Performance"]
         ResponseTime["⏱️ Response Time<br/>Cache Hit: ~50ms<br/>Cache Miss: ~300ms"]
-
         CacheStrategy["💾 Cache Strategy<br/>Redis TTL: 1 hour<br/>Invalidate on new photo"]
-
         ImageLoad["🖼️ Image Loading<br/>Lazy load<br/>Show spinner until loaded"]
-
         OnDemand["🎯 On-Demand Fetch<br/>Only load when clicked<br/>Not in bulk-load"]
     end
 
-    %% Styling
-    classDef userClass fill:#4CAF50,stroke:#2E7D32,color:#fff
-    classDef apiClass fill:#2196F3,stroke:#1565C0,color:#fff
-    classDef renderClass fill:#FF9800,stroke:#E65100,color:#fff
-    classDef contentClass fill:#9C27B0,stroke:#6A1B9A,color:#fff
-    classDef calcClass fill:#00BCD4,stroke:#00838F,color:#fff
-    classDef dbClass fill:#F44336,stroke:#C62828,color:#fff
-    classDef perfClass fill:#8BC34A,stroke:#558B2F,color:#fff
-
+%% Styling
+    classDef userClass fill: #4CAF50, stroke: #2E7D32, color: #fff
+    classDef apiClass fill: #2196F3, stroke: #1565C0, color: #fff
+    classDef renderClass fill: #FF9800, stroke: #E65100, color: #fff
+    classDef contentClass fill: #9C27B0, stroke: #6A1B9A, color: #fff
+    classDef calcClass fill: #00BCD4, stroke: #00838F, color: #fff
+    classDef dbClass fill: #F44336, stroke: #C62828, color: #fff
+    classDef perfClass fill: #8BC34A, stroke: #558B2F, color: #fff
     class UserClick userClass
-    class FetchDetail,CheckCache,ReturnCached,ReturnData apiClass
-    class RenderView,LeftColumn,RightColumn renderClass
-    class ProcessedImage,DetectionSection,FinancialSection,MacetaSection,QualitySection contentClass
-    class CurrentValue,PotentialValue,ROI calcClass
-    class LocationQuery,SessionQuery,StockQuery,DetectionsQuery dbClass
-    class ResponseTime,CacheStrategy,ImageLoad,OnDemand perfClass
+class FetchDetail, CheckCache, ReturnCached, ReturnData apiClass
+class RenderView, LeftColumn,RightColumn renderClass
+class ProcessedImage, DetectionSection,FinancialSection, MacetaSection, QualitySection contentClass
+class CurrentValue, PotentialValue,ROI calcClass
+class LocationQuery,SessionQuery, StockQuery, DetectionsQuery dbClass
+class ResponseTime, CacheStrategy,ImageLoad, OnDemand perfClass

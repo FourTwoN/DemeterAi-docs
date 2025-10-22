@@ -1,6 +1,7 @@
 # S034: ReportingService
 
 ## Metadata
+
 - **Epic**: [epic-004-services.md](../../02_epics/epic-004-services.md)
 - **Sprint**: Sprint-06
 - **Status**: `backlog`
@@ -8,12 +9,13 @@
 - **Complexity**: M (3 story points)
 - **Area**: `services/analytics`
 - **Dependencies**:
-  - Blocks: [C030]
-  - Blocked by: [S028, S030]
+    - Blocks: [C030]
+    - Blocked by: [S028, S030]
 
 ## Description
 
-**What**: Predefined reports service (daily summary, monthly reconciliation report, photo processing log).
+**What**: Predefined reports service (daily summary, monthly reconciliation report, photo processing
+log).
 
 **Why**: Standardized reports for operations team.
 
@@ -28,6 +30,7 @@
 - [ ] **AC5**: Unit tests ≥80% coverage
 
 ## Time Tracking
+
 - **Estimated**: 3 story points (~6 hours)
 
 ---

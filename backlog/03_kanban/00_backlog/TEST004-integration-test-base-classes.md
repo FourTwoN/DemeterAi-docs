@@ -1,6 +1,7 @@
 # [TEST004] Integration Test Base Classes
 
 ## Metadata
+
 - **Epic**: epic-012-testing
 - **Sprint**: Sprint-03
 - **Priority**: `medium`
@@ -8,15 +9,19 @@
 - **Dependencies**: Blocked by [TEST001, TEST002]
 
 ## Description
-Create base classes for integration tests: TestCase with pre-configured DB session, authenticated client, common assertions.
+
+Create base classes for integration tests: TestCase with pre-configured DB session, authenticated
+client, common assertions.
 
 ## Acceptance Criteria
+
 - [ ] `BaseTestCase` class with DB session
 - [ ] `AuthenticatedTestCase` class with auth token
 - [ ] Helper methods: `assert_status`, `assert_error`, `assert_json_contains`
 - [ ] Automatic cleanup after each test
 
 ## Implementation
+
 ```python
 class BaseTestCase:
     @pytest.fixture(autouse=True)
@@ -47,6 +52,7 @@ class AuthenticatedTestCase(BaseTestCase):
 ```
 
 **Usage:**
+
 ```python
 class TestStockAPI(AuthenticatedTestCase):
     def test_get_stock_summary(self):
@@ -56,6 +62,7 @@ class TestStockAPI(AuthenticatedTestCase):
 ```
 
 ## Testing
+
 - Test base classes work correctly
 - Test helper methods simplify test code
 - Test cleanup runs after each test

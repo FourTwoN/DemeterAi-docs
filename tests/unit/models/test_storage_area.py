@@ -403,7 +403,8 @@ class TestStorageAreaRelationships:
             code="WH-CHILD",
             name="Child Area",
             warehouse_id=1,
-            parent_area_id=1,  # Will reference parent.storage_area_id after DB insert
+            parent_area_id=1,
+            # Will reference parent.storage_area_id after DB insert
             geojson_coordinates=from_shape(
                 Polygon(
                     [

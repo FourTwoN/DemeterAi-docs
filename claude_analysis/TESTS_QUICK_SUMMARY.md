@@ -32,18 +32,21 @@
 ## Top 3 Critical Issues
 
 ### 🔴 Issue #1: Test Structure Problems (111 failures)
+
 **Problem**: Tests create objects OUTSIDE `pytest.raises()` blocks
 **Files**: `test_product_size.py`, `test_product_state.py`, `test_warehouse.py`
 **Fix Time**: 2-4 hours
 **Impact**: +13% pass rate
 
 ### 🔴 Issue #2: MLPipelineCoordinator Signature Mismatch (17 errors)
+
 **Problem**: Test fixture uses wrong parameter names (`segmentation_svc` vs actual names)
 **File**: `test_pipeline_coordinator.py:251`
 **Fix Time**: 30 minutes
 **Impact**: +2% pass rate, unlock 17 tests
 
 ### 🔴 Issue #3: Services Layer Untested (72% coverage gap)
+
 **Problem**: 26 services have 0% coverage
 **Files**: Most files in `app/services/`
 **Fix Time**: 20-30 hours
@@ -125,19 +128,19 @@ pytest tests/integration/ -v --tb=no --no-cov -q  # 99/164 fail
 ## Next Steps
 
 1. **Immediate** (next 4 hours):
-   - Fix test structure issues
-   - Fix MLPipelineCoordinator signature
-   - Goal: 90% pass rate
+    - Fix test structure issues
+    - Fix MLPipelineCoordinator signature
+    - Goal: 90% pass rate
 
 2. **This Week** (next 30 hours):
-   - Write service layer tests
-   - Write schema tests
-   - Goal: 70% coverage
+    - Write service layer tests
+    - Write schema tests
+    - Goal: 70% coverage
 
 3. **Next Week** (next 15 hours):
-   - Clean up integration tests
-   - Fix ML algorithms
-   - Goal: 80% coverage, 100% pass rate
+    - Clean up integration tests
+    - Fix ML algorithms
+    - Goal: 80% coverage, 100% pass rate
 
 ## Contact
 

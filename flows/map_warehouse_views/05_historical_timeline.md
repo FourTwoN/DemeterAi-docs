@@ -7,7 +7,9 @@
 
 ## Purpose
 
-This subflow details the **historical timeline view** showing storage_location evolution over time with photo periods (every 3 months), tracking quantity changes through plantados, muertes, transplantes, and ventas.
+This subflow details the **historical timeline view** showing storage_location evolution over time
+with photo periods (every 3 months), tracking quantity changes through plantados, muertes,
+transplantes, and ventas.
 
 ## Scope
 
@@ -24,13 +26,13 @@ The historical timeline provides **full traceability** for a storage_location:
 2. **Fetch historical data** → `/api/v1/storage-locations/{id}/history` (~500ms)
 3. **Display timeline** with photo periods (typically every 3 months)
 4. **Per period metrics**:
-   - Fecha (date)
-   - Cantidad inicial (starting quantity from previous period)
-   - Muertes (deaths/losses during period)
-   - Transplantes (transplants out to other locations)
-   - Plantados (new plantings during period)
-   - Cantidad vendida (quantity sold during period)
-   - Cantidad final (ending quantity, should match next period start)
+    - Fecha (date)
+    - Cantidad inicial (starting quantity from previous period)
+    - Muertes (deaths/losses during period)
+    - Transplantes (transplants out to other locations)
+    - Plantados (new plantings during period)
+    - Cantidad vendida (quantity sold during period)
+    - Cantidad final (ending quantity, should match next period start)
 5. **Visualizations**: Line chart showing quantity evolution, movement breakdown
 
 ## Data Structure
@@ -142,6 +144,7 @@ CREATE INDEX idx_mv_location_history_fecha ON mv_storage_location_history(fecha 
 ```
 
 **Refresh strategy:**
+
 ```sql
 -- Refresh daily at midnight via pg_cron
 SELECT cron.schedule(
@@ -159,18 +162,21 @@ REFRESH MATERIALIZED VIEW CONCURRENTLY mv_storage_location_history;
 ### GET /api/v1/storage-locations/{id}/history
 
 **Request:**
+
 ```http
 GET /api/v1/storage-locations/1/history?page=1&per_page=12 HTTP/1.1
 Authorization: Bearer <token>
 ```
 
 **Query Parameters:**
+
 - `page` (optional): Page number (default: 1)
 - `per_page` (optional): Items per page (default: 12 = 3 years of quarterly data)
 
 **Response:** (See HistoricalTimelineResponse structure above)
 
 **Performance:**
+
 - **Response time target**: < 500ms
 - **Cache**: Redis TTL 1 day
 - **Invalidation**: After stock movement transaction or daily materialized view refresh
@@ -399,36 +405,46 @@ export const HistoricalTimeline: React.FC = () => {
 ## Movement Type Definitions
 
 ### plantar
+
 New plants added to location (from nursery, external source, etc.)
 
 ### sembrar
+
 Seeds sown in location (beginning of cultivation cycle)
 
 ### transplante
+
 Plants moved from this location to another storage_location
 
 ### muerte
+
 Plants that died or were discarded (health issues, pests, etc.)
 
 ### ventas
+
 Plants sold to customers (removed from inventory)
 
 ### foto
+
 Photo capture event (triggers quantity detection via ML)
 
 ### ajuste
+
 Manual inventory adjustment (corrections, reconciliation)
 
 ## Traceability Features
 
 ### Movement Audit Trail
+
 Each movement in `stock_movements` table includes:
+
 - `created_by_user_id`: Who made the change
 - `created_at`: When the change occurred
 - `reference_session_id`: Link to photo session (if applicable)
 - `notes`: Optional comments
 
 ### Balance Verification
+
 ```typescript
 // Verify period balance
 const expectedFinal = cantidad_inicial + plantados - (muertes + transplantes + vendidos);
@@ -443,6 +459,7 @@ if (expectedFinal !== cantidad_final) {
 ```
 
 ### Full Chain of Custody
+
 - Link movements to specific users
 - Link movements to photo sessions
 - Link movements between locations (transplante)
@@ -451,17 +468,20 @@ if (expectedFinal !== cantidad_final) {
 ## Performance Considerations
 
 ### Materialized View Benefits
+
 - **Pre-aggregated data**: Complex joins and aggregations done once
 - **Fast queries**: < 500ms response time
 - **Daily refresh**: Balance between freshness and performance
 - **Concurrent refresh**: No blocking during refresh
 
 ### Pagination Strategy
+
 - **Default**: 12 periods per page (3 years of quarterly photos)
 - **Why 12**: Balance between data completeness and load time
 - **Infinite scroll**: Optional for better UX
 
 ### Cache Strategy
+
 ```python
 # Redis cache key
 cache_key = f"cache:location:{location_id}:history:page:{page}"
@@ -477,13 +497,14 @@ redis_client.setex(cache_key, 86400, json.dumps(response))
 
 ## Version History
 
-| Version | Date | Changes |
-|---------|------|---------|
-| 1.0.0 | 2025-10-08 | Initial historical timeline subflow |
+| Version | Date       | Changes                             |
+|---------|------------|-------------------------------------|
+| 1.0.0   | 2025-10-08 | Initial historical timeline subflow |
 
 ---
 
 **Notes:**
+
 - Timeline shows complete traceability for compliance and auditing
 - Photo periods typically every 3 months (configurable)
 - Movement types align with agronomic operations

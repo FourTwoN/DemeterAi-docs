@@ -566,9 +566,9 @@ def test_all_exceptions_inherit_from_base():
     ]
 
     for exc_class in exception_classes:
-        assert issubclass(
-            exc_class, AppBaseException
-        ), f"{exc_class.__name__} must inherit from AppBaseException"
+        assert issubclass(exc_class, AppBaseException), (
+            f"{exc_class.__name__} must inherit from AppBaseException"
+        )
 
 
 def test_exception_count():

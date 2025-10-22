@@ -1,6 +1,7 @@
 # S038: PriceListService
 
 ## Metadata
+
 - **Epic**: [epic-004-services.md](../../02_epics/epic-004-services.md)
 - **Sprint**: Sprint-05
 - **Status**: `backlog`
@@ -8,8 +9,8 @@
 - **Complexity**: M (3 story points)
 - **Area**: `services/config`
 - **Dependencies**:
-  - Blocks: [C034]
-  - Blocked by: [R038, S021, S027]
+    - Blocks: [C034]
+    - Blocked by: [R038, S021, S027]
 
 ## Description
 
@@ -28,10 +29,12 @@
 - [ ] **AC5**: Unit tests ≥85% coverage
 
 ## Technical Notes
+
 - Effective dates for price changes
 - Price history preserved (soft deletes)
 
 ## Time Tracking
+
 - **Estimated**: 3 story points (~6 hours)
 
 ---

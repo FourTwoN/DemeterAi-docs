@@ -67,7 +67,7 @@ class SegmentResult:
         valid_types = {"plug", "box", "segment"}
         if self.container_type not in valid_types:
             raise ValueError(
-                f"Invalid container_type: {self.container_type}. " f"Must be one of {valid_types}"
+                f"Invalid container_type: {self.container_type}. Must be one of {valid_types}"
             )
 
         # Validate confidence
@@ -190,9 +190,7 @@ class SegmentationService:
 
         # Get model from singleton (lazy load)
         if self._model is None or self._worker_id != worker_id:
-            logger.info(
-                f"Loading segmentation model for worker {worker_id} " f"(lazy initialization)"
-            )
+            logger.info(f"Loading segmentation model for worker {worker_id} (lazy initialization)")
             self._model = ModelCache.get_model("segment", worker_id)
             self._worker_id = worker_id
             logger.info("Segmentation model loaded successfully")
@@ -200,8 +198,7 @@ class SegmentationService:
         # Run YOLO inference
         try:
             logger.debug(
-                f"Running segmentation on {image_path.name} "
-                f"(conf≥{conf_threshold}, imgsz={imgsz})"
+                f"Running segmentation on {image_path.name} (conf≥{conf_threshold}, imgsz={imgsz})"
             )
 
             results = self._model.predict(

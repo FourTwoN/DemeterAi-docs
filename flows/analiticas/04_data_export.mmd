@@ -9,399 +9,398 @@ parent_diagram: "00_comprehensive_view.mmd"
 ---
 
 flowchart TB
-    %% =================================================================
-    %% DIAGRAM 04: DATA EXPORT
-    %% =================================================================
-    %%
-    %% PURPOSE:
-    %% Shows how users can export analytics results to Excel or CSV
-    %% for external processing and reporting.
-    %%
-    %% FORMATS:
-    %% - Excel (.xlsx): Multi-sheet, formatted, with charts
-    %% - CSV (.csv): Plain text, universal compatibility
-    %%
-    %% SCOPE: Export button → format selection → file generation → download
-    %% PERFORMANCE TARGET: < 2s for < 10K rows
-    %% =================================================================
-
+%% =================================================================
+%% DIAGRAM 04: DATA EXPORT
+%% =================================================================
+%%
+%% PURPOSE:
+%% Shows how users can export analytics results to Excel or CSV
+%% for external processing and reporting.
+%%
+%% FORMATS:
+%% - Excel (.xlsx): Multi-sheet, formatted, with charts
+%% - CSV (.csv): Plain text, universal compatibility
+%%
+%% SCOPE: Export button → format selection → file generation → download
+%% PERFORMANCE TARGET: < 2s for < 10K rows
+%% =================================================================
     START@{ shape: stadium, label: "📊 User Views Analytics Results
-    Any analytics view:
-    • Manual filters
-    • Sales comparison
-    • AI analytics
+Any analytics view:
+• Manual filters
+• Sales comparison
+• AI analytics
 
-    Results displayed with:
-    • Charts
-    • Tables
-    • Insights
-
-    Export button visible
-    in toolbar
+Results displayed with:
+• Charts
+• Tables
+• Insights
+
+Export button visible
+in toolbar
 
-    ⏱️ Results already loaded" }
-
-    CLICK_EXPORT@{ shape: rect, label: "🔽 User Clicks Export Button
-    Opens dropdown menu:
-    • Export to Excel (.xlsx)
-    • Export to CSV (.csv)
-
-    Icons shown:
-    📗 Excel - Formatted with charts
-    📄 CSV - Plain data only
-
-    User selects format" }
-
-    SELECT_FORMAT@{ shape: diamond, label: "Select Export Format?" }
-
-    %% =================================================================
-    %% EXCEL EXPORT PATH
-    %% =================================================================
-
-    subgraph EXCEL_PATH["📗 EXCEL EXPORT PATH"]
-        direction TB
-
-        PREPARE_EXCEL_DATA@{ shape: rect, label: "📋 Prepare Data for Excel
-        Convert analytics results to:
-        • pandas DataFrame
-        • Summary statistics dict
-        • Chart images (PNG from SVG)
-        • Metadata dict
-
-        Organize data for multiple sheets:
-        1. Summary
-        2. Data
-        3. Charts (if any)
-        4. Metadata
-
-        ⏱️ ~100ms" }
-
-        CHECK_EXCEL_SIZE@{ shape: diamond, label: "Data Size OK?
-        Check:
-        • Rows < 100,000
-        • Memory < 100MB
-
-        If larger:
-        Use async export" }
-
-        ASYNC_EXCEL@{ shape: rect, label: "⏳ Async Export
-        Return:
-        {
-          'task_id': UUID,
-          'status': 'processing',
-          'poll_url': '/status/{id}'
-        }
-
-        User polls for completion
-        Email sent when ready
+⏱️ Results already loaded" }
+
+CLICK_EXPORT@{ shape: rect, label: "🔽 User Clicks Export Button
+Opens dropdown menu:
+• Export to Excel (.xlsx)
+• Export to CSV (.csv)
+
+Icons shown:
+📗 Excel - Formatted with charts
+📄 CSV - Plain data only
+
+User selects format" }
+
+SELECT_FORMAT@{ shape: diamond, label: "Select Export Format?" }
+
+%% =================================================================
+%% EXCEL EXPORT PATH
+%% =================================================================
+
+subgraph EXCEL_PATH["📗 EXCEL EXPORT PATH"]
+direction TB
+
+PREPARE_EXCEL_DATA@{ shape: rect, label: "📋 Prepare Data for Excel
+Convert analytics results to:
+• pandas DataFrame
+• Summary statistics dict
+• Chart images (PNG from SVG)
+• Metadata dict
+
+Organize data for multiple sheets:
+1. Summary
+2. Data
+3. Charts (if any)
+4. Metadata
+
+⏱️ ~100ms" }
+
+CHECK_EXCEL_SIZE@{ shape: diamond, label: "Data Size OK?
+Check:
+• Rows < 100,000
+• Memory < 100MB
+
+If larger:
+Use async export" }
+
+ASYNC_EXCEL@{ shape: rect, label: "⏳ Async Export
+Return:
+{
+'task_id': UUID,
+'status': 'processing',
+'poll_url': '/status/{id}'
+}
+
+User polls for completion
+Email sent when ready
 
-        ⏱️ Background task: 1-5 min" }
-
-        CREATE_WORKBOOK@{ shape: rect, label: "📚 Create Excel Workbook
-        Library: openpyxl
-
-        workbook = Workbook()
+⏱️ Background task: 1-5 min" }
+
+CREATE_WORKBOOK@{ shape: rect, label: "📚 Create Excel Workbook
+Library: openpyxl
+
+workbook = Workbook()
 
-        Initialize sheets:
-        • Summary (active)
-        • Data
-        • Charts
-        • Metadata
-
-        ⏱️ ~50ms" }
+Initialize sheets:
+• Summary (active)
+• Data
+• Charts
+• Metadata
+
+⏱️ ~50ms" }
 
-        FORMAT_SUMMARY_SHEET@{ shape: rect, label: "📄 Format Summary Sheet
-        Write:
-        • Title (bold, large font)
-        • Export timestamp
-        • User info
-        • Summary statistics table
+FORMAT_SUMMARY_SHEET@{ shape: rect, label: "📄 Format Summary Sheet
+Write:
+• Title (bold, large font)
+• Export timestamp
+• User info
+• Summary statistics table
 
-        Styling:
-        • Headers: bold, colored bg
-        • Values: aligned right
-        • Borders on cells
-
-        ⏱️ ~100ms" }
-
-        FORMAT_DATA_SHEET@{ shape: rect, label: "📊 Format Data Sheet
-        Write DataFrame to sheet:
-        • Header row (bold, colored)
-        • Data rows (formatted)
-        • Totals row (if applicable)
-
-        Features:
-        • Auto-adjust column widths
-        • Number formatting (currency, %)
-        • Freeze header row
-        • Alternating row colors
+Styling:
+• Headers: bold, colored bg
+• Values: aligned right
+• Borders on cells
+
+⏱️ ~100ms" }
+
+FORMAT_DATA_SHEET@{ shape: rect, label: "📊 Format Data Sheet
+Write DataFrame to sheet:
+• Header row (bold, colored)
+• Data rows (formatted)
+• Totals row (if applicable)
+
+Features:
+• Auto-adjust column widths
+• Number formatting (currency, %)
+• Freeze header row
+• Alternating row colors
 
-        ⏱️ ~200ms per 1K rows" }
+⏱️ ~200ms per 1K rows" }
 
-        EMBED_CHARTS@{ shape: rect, label: "📈 Embed Charts
-        For each chart:
-        1. Convert SVG to PNG
-           (using cairosvg or similar)
-        2. Add image to sheet
-        3. Position and size
+EMBED_CHARTS@{ shape: rect, label: "📈 Embed Charts
+For each chart:
+1. Convert SVG to PNG
+(using cairosvg or similar)
+2. Add image to sheet
+3. Position and size
 
-        Charts from:
-        • Manual filter visualizations
-        • Sales comparison charts
-        • AI-generated charts
+Charts from:
+• Manual filter visualizations
+• Sales comparison charts
+• AI-generated charts
 
-        ⏱️ ~200ms per chart" }
-
-        FORMAT_METADATA_SHEET@{ shape: rect, label: "📝 Format Metadata Sheet
-        Write:
-        • Query type
-        • Filters applied
-        • SQL query (if applicable)
-        • Execution time
-        • Data freshness date
-
-        Format as key-value table
+⏱️ ~200ms per chart" }
+
+FORMAT_METADATA_SHEET@{ shape: rect, label: "📝 Format Metadata Sheet
+Write:
+• Query type
+• Filters applied
+• SQL query (if applicable)
+• Execution time
+• Data freshness date
+
+Format as key-value table
 
-        ⏱️ ~50ms" }
+⏱️ ~50ms" }
 
-        SAVE_EXCEL@{ shape: rect, label: "💾 Save to BytesIO
-        from io import BytesIO
-        buffer = BytesIO()
-        workbook.save(buffer)
-        buffer.seek(0)
-        excel_bytes = buffer.read()
+SAVE_EXCEL@{ shape: rect, label: "💾 Save to BytesIO
+from io import BytesIO
+buffer = BytesIO()
+workbook.save(buffer)
+buffer.seek(0)
+excel_bytes = buffer.read()
 
-        File size: ~10KB + data
+File size: ~10KB + data
 
-        ⏱️ ~100ms" }
-    end
+⏱️ ~100ms" }
+end
 
-    %% =================================================================
-    %% CSV EXPORT PATH
-    %% =================================================================
-
-    subgraph CSV_PATH["📄 CSV EXPORT PATH"]
-        direction TB
+%% =================================================================
+%% CSV EXPORT PATH
+%% =================================================================
+
+subgraph CSV_PATH["📄 CSV EXPORT PATH"]
+direction TB
 
-        PREPARE_CSV_DATA@{ shape: rect, label: "📋 Prepare Data for CSV
-        Convert to DataFrame
-        (already done)
+PREPARE_CSV_DATA@{ shape: rect, label: "📋 Prepare Data for CSV
+Convert to DataFrame
+(already done)
 
-        Add metadata as comments:
-        # DemeterAI Export
-        # Date: 2025-10-08
-        # User: admin@demeter.com
-
-        ⏱️ ~20ms" }
+Add metadata as comments:
+# DemeterAI Export
+# Date: 2025-10-08
+# User: admin@demeter.com
+
+⏱️ ~20ms" }
 
-        CHECK_CSV_SIZE@{ shape: diamond, label: "Data Size OK?
-        Check rows < 1,000,000
-
-        CSV can handle large files,
-        but browser download may fail
-
-        If too large: async export" }
-
-        ASYNC_CSV@{ shape: rect, label: "⏳ Async Export
-        Similar to Excel async
-        Background processing
-        S3 upload
-        Email notification" }
-
-        GENERATE_CSV@{ shape: rect, label: "📝 Generate CSV String
-        import csv
-        from io import StringIO
-
-        output = StringIO()
-        writer = csv.writer(output)
-
-        Write:
-        • Metadata comments (# prefix)
-        • Blank line
-        • Summary stats
-        • Blank line
-        • Data header
-        • Data rows
-
-        Format:
-        • UTF-8 encoding
-        • Comma delimiter
-        • Quoted strings
-
-        ⏱️ ~50ms per 1K rows" }
-
-        ENCODE_CSV@{ shape: rect, label: "🔤 Encode to Bytes
-        csv_string.encode('utf-8')
-
-        File size: ~100 bytes per row
-
-        ⏱️ ~10ms" }
-    end
-
-    %% =================================================================
-    %% DOWNLOAD DELIVERY
-    %% =================================================================
-
-    BUILD_RESPONSE@{ shape: rect, label: "📦 Build Streaming Response
-    from fastapi.responses import StreamingResponse
-
-    response = StreamingResponse(
-        BytesIO(file_bytes),
-        media_type=media_type,
-        headers={
-          'Content-Disposition':
-            f'attachment; filename={filename}'
-        }
-    )
-
-    Media types:
-    • Excel: 'application/vnd...xlsx'
-    • CSV: 'text/csv; charset=utf-8'
-
-    Filename format:
-    demeter_analytics_YYYYMMDD_HHMMSS.ext
-
-    ⏱️ ~10ms" }
-
-    SEND_RESPONSE@{ shape: rect, label: "✅ Send HTTP Response
-    Status: 200 OK
-    Headers:
-    • Content-Type: media_type
-    • Content-Disposition: attachment
-    • Content-Length: file_size
-
-    Body: file bytes (streaming)
-
-    ⏱️ ~50ms + network time" }
-
-    BROWSER_DOWNLOAD@{ shape: rect, label: "⬇️ Browser Downloads File
-    Browser triggers download:
-    1. Show save dialog
-    2. User confirms location
-    3. File saved to disk
-
-    Or:
-    Automatic download to
-    default folder
-
-    ⏱️ Depends on file size and
-         internet speed" }
-
-    DOWNLOAD_COMPLETE@{ shape: stadium, label: "✅ Download Complete
-    Frontend shows:
-    • Success notification
-    • 'Export complete' message
-    • File size info
-
-    User can:
-    • Open file immediately
-    • Export again
-    • Continue working
-
-    File ready for:
-    • External analysis
-    • Sharing with team
-    • Import to other systems" }
-
-    %% =================================================================
-    %% ERROR PATHS
-    %% =================================================================
-
-    SIZE_TOO_LARGE@{ shape: rect, label: "⚠️ Dataset Too Large
-    Return 413:
-    {
-      'error': 'Dataset too large',
-      'row_count': 500000,
-      'max_sync_rows': 100000,
-      'action': 'Use async export',
-      'async_endpoint': '/api/analytics/export/large'
-    }
-
-    Frontend shows dialog:
-    'Large dataset detected.
-     We will process your export
-     and email you when ready.
-     Continue?'
-
-    [Yes] → Async export
-    [No] → Add filters to reduce size" }
-
-    NO_DATA@{ shape: rect, label: "❌ No Data to Export
-    Return 400:
-    {
-      'error': 'No data available',
-      'action': 'Run analytics query first'
-    }
-
-    This shouldn't happen if
-    export button is properly
-    disabled when no results" }
-
-    EXPORT_ERROR@{ shape: rect, label: "❌ Export Generation Error
-    Return 500:
-    {
-      'error': 'Failed to generate export',
-      'details': error_message,
-      'action': 'Try again or contact support'
-    }
-
-    Possible causes:
-    • Memory error
-    • Chart conversion failed
-    • File system error
-
-    Log error for debugging" }
-
-    %% =================================================================
-    %% CONNECTIONS
-    %% =================================================================
-
-    START --> CLICK_EXPORT
-    CLICK_EXPORT --> SELECT_FORMAT
-
-    SELECT_FORMAT -->|Excel| PREPARE_EXCEL_DATA
-    SELECT_FORMAT -->|CSV| PREPARE_CSV_DATA
-
-    %% Excel path
-    PREPARE_EXCEL_DATA --> CHECK_EXCEL_SIZE
-    CHECK_EXCEL_SIZE -->|Too Large| ASYNC_EXCEL
-    CHECK_EXCEL_SIZE -->|OK| CREATE_WORKBOOK
-
-    CREATE_WORKBOOK --> FORMAT_SUMMARY_SHEET
-    FORMAT_SUMMARY_SHEET --> FORMAT_DATA_SHEET
-    FORMAT_DATA_SHEET --> EMBED_CHARTS
-    EMBED_CHARTS --> FORMAT_METADATA_SHEET
-    FORMAT_METADATA_SHEET --> SAVE_EXCEL
-
-    SAVE_EXCEL --> BUILD_RESPONSE
-
-    %% CSV path
-    PREPARE_CSV_DATA --> CHECK_CSV_SIZE
-    CHECK_CSV_SIZE -->|Too Large| ASYNC_CSV
-    CHECK_CSV_SIZE -->|OK| GENERATE_CSV
-
-    GENERATE_CSV --> ENCODE_CSV
-    ENCODE_CSV --> BUILD_RESPONSE
-
-    %% Download delivery
-    BUILD_RESPONSE --> SEND_RESPONSE
-    SEND_RESPONSE --> BROWSER_DOWNLOAD
-    BROWSER_DOWNLOAD --> DOWNLOAD_COMPLETE
-
-    %% Error paths (not shown in main flow for clarity)
-
-    %% =================================================================
-    %% STYLING
-    %% =================================================================
-
-    classDef excelStyle fill:#E8F5E9,stroke:#388E3C,stroke-width:2px
-    classDef csvStyle fill:#E3F2FD,stroke:#1976D2,stroke-width:2px
-    classDef downloadStyle fill:#F3E5F5,stroke:#7B1FA2,stroke-width:2px
-    classDef asyncStyle fill:#FFF3E0,stroke:#F57C00,stroke-width:2px
-    classDef errorStyle fill:#FFEBEE,stroke:#C62828,stroke-width:2px
-
-    class PREPARE_EXCEL_DATA,CREATE_WORKBOOK,FORMAT_SUMMARY_SHEET,FORMAT_DATA_SHEET,EMBED_CHARTS,FORMAT_METADATA_SHEET,SAVE_EXCEL excelStyle
-    class PREPARE_CSV_DATA,GENERATE_CSV,ENCODE_CSV csvStyle
-    class BUILD_RESPONSE,SEND_RESPONSE,BROWSER_DOWNLOAD,DOWNLOAD_COMPLETE downloadStyle
-    class ASYNC_EXCEL,ASYNC_CSV asyncStyle
-    class SIZE_TOO_LARGE,NO_DATA,EXPORT_ERROR errorStyle
+CHECK_CSV_SIZE@{ shape: diamond, label: "Data Size OK?
+Check rows < 1,000,000
+
+CSV can handle large files,
+but browser download may fail
+
+If too large: async export" }
+
+ASYNC_CSV@{ shape: rect, label: "⏳ Async Export
+Similar to Excel async
+Background processing
+S3 upload
+Email notification" }
+
+GENERATE_CSV@{ shape: rect, label: "📝 Generate CSV String
+import csv
+from io import StringIO
+
+output = StringIO()
+writer = csv.writer(output)
+
+Write:
+• Metadata comments (# prefix)
+• Blank line
+• Summary stats
+• Blank line
+• Data header
+• Data rows
+
+Format:
+• UTF-8 encoding
+• Comma delimiter
+• Quoted strings
+
+⏱️ ~50ms per 1K rows" }
+
+ENCODE_CSV@{ shape: rect, label: "🔤 Encode to Bytes
+csv_string.encode('utf-8')
+
+File size: ~100 bytes per row
+
+⏱️ ~10ms" }
+end
+
+%% =================================================================
+%% DOWNLOAD DELIVERY
+%% =================================================================
+
+BUILD_RESPONSE@{ shape: rect, label: "📦 Build Streaming Response
+from fastapi.responses import StreamingResponse
+
+response = StreamingResponse(
+BytesIO(file_bytes),
+media_type=media_type,
+headers={
+'Content-Disposition':
+f'attachment; filename={filename}'
+}
+)
+
+Media types:
+• Excel: 'application/vnd...xlsx'
+• CSV: 'text/csv; charset=utf-8'
+
+Filename format:
+demeter_analytics_YYYYMMDD_HHMMSS.ext
+
+⏱️ ~10ms" }
+
+SEND_RESPONSE@{ shape: rect, label: "✅ Send HTTP Response
+Status: 200 OK
+Headers:
+• Content-Type: media_type
+• Content-Disposition: attachment
+• Content-Length: file_size
+
+Body: file bytes (streaming)
+
+⏱️ ~50ms + network time" }
+
+BROWSER_DOWNLOAD@{ shape: rect, label: "⬇️ Browser Downloads File
+Browser triggers download:
+1. Show save dialog
+2. User confirms location
+3. File saved to disk
+
+Or:
+Automatic download to
+default folder
+
+⏱️ Depends on file size and
+internet speed" }
+
+DOWNLOAD_COMPLETE@{ shape: stadium, label: "✅ Download Complete
+Frontend shows:
+• Success notification
+• 'Export complete' message
+• File size info
+
+User can:
+• Open file immediately
+• Export again
+• Continue working
+
+File ready for:
+• External analysis
+• Sharing with team
+• Import to other systems" }
+
+%% =================================================================
+%% ERROR PATHS
+%% =================================================================
+
+SIZE_TOO_LARGE@{ shape: rect, label: "⚠️ Dataset Too Large
+Return 413:
+{
+'error': 'Dataset too large',
+'row_count': 500000,
+'max_sync_rows': 100000,
+'action': 'Use async export',
+'async_endpoint': '/api/analytics/export/large'
+}
+
+Frontend shows dialog:
+'Large dataset detected.
+We will process your export
+and email you when ready.
+Continue?'
+
+[Yes] → Async export
+[No] → Add filters to reduce size" }
+
+NO_DATA@{ shape: rect, label: "❌ No Data to Export
+Return 400:
+{
+'error': 'No data available',
+'action': 'Run analytics query first'
+}
+
+This shouldn't happen if
+export button is properly
+disabled when no results" }
+
+EXPORT_ERROR@{ shape: rect, label: "❌ Export Generation Error
+Return 500:
+{
+'error': 'Failed to generate export',
+'details': error_message,
+'action': 'Try again or contact support'
+}
+
+Possible causes:
+• Memory error
+• Chart conversion failed
+• File system error
+
+Log error for debugging" }
+
+%% =================================================================
+%% CONNECTIONS
+%% =================================================================
+
+START --> CLICK_EXPORT
+CLICK_EXPORT --> SELECT_FORMAT
+
+SELECT_FORMAT -->|Excel|PREPARE_EXCEL_DATA
+SELECT_FORMAT -->|CSV|PREPARE_CSV_DATA
+
+%% Excel path
+PREPARE_EXCEL_DATA --> CHECK_EXCEL_SIZE
+CHECK_EXCEL_SIZE -->|Too Large| ASYNC_EXCEL
+CHECK_EXCEL_SIZE -->|OK|CREATE_WORKBOOK
+
+CREATE_WORKBOOK --> FORMAT_SUMMARY_SHEET
+FORMAT_SUMMARY_SHEET --> FORMAT_DATA_SHEET
+FORMAT_DATA_SHEET --> EMBED_CHARTS
+EMBED_CHARTS --> FORMAT_METADATA_SHEET
+FORMAT_METADATA_SHEET --> SAVE_EXCEL
+
+SAVE_EXCEL --> BUILD_RESPONSE
+
+%% CSV path
+PREPARE_CSV_DATA --> CHECK_CSV_SIZE
+CHECK_CSV_SIZE -->|Too Large|ASYNC_CSV
+CHECK_CSV_SIZE -->|OK|GENERATE_CSV
+
+GENERATE_CSV --> ENCODE_CSV
+ENCODE_CSV --> BUILD_RESPONSE
+
+%% Download delivery
+BUILD_RESPONSE --> SEND_RESPONSE
+SEND_RESPONSE --> BROWSER_DOWNLOAD
+BROWSER_DOWNLOAD --> DOWNLOAD_COMPLETE
+
+%% Error paths (not shown in main flow for clarity)
+
+%% =================================================================
+%% STYLING
+%% =================================================================
+
+classDef excelStyle fill:#E8F5E9, stroke: #388E3C, stroke-width: 2px
+classDef csvStyle fill: #E3F2FD, stroke: #1976D2,stroke-width: 2px
+classDef downloadStyle fill: #F3E5F5,stroke: #7B1FA2, stroke-width: 2px
+classDef asyncStyle fill: #FFF3E0, stroke: #F57C00, stroke-width:2px
+classDef errorStyle fill: #FFEBEE, stroke:#C62828, stroke-width: 2px
+
+class PREPARE_EXCEL_DATA,CREATE_WORKBOOK, FORMAT_SUMMARY_SHEET,FORMAT_DATA_SHEET, EMBED_CHARTS, FORMAT_METADATA_SHEET,SAVE_EXCEL excelStyle
+class PREPARE_CSV_DATA, GENERATE_CSV,ENCODE_CSV csvStyle
+class BUILD_RESPONSE,SEND_RESPONSE,BROWSER_DOWNLOAD, DOWNLOAD_COMPLETE downloadStyle
+class ASYNC_EXCEL, ASYNC_CSV asyncStyle
+class SIZE_TOO_LARGE, NO_DATA,EXPORT_ERROR errorStyle

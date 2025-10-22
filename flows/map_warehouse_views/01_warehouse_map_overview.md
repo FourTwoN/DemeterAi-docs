@@ -7,7 +7,9 @@
 
 ## Purpose
 
-This subflow details the **geographic map overview** displaying all warehouses as PostGIS polygons with summary metrics, enabling users to visualize facility locations and navigate to internal warehouse views.
+This subflow details the **geographic map overview** displaying all warehouses as PostGIS polygons
+with summary metrics, enabling users to visualize facility locations and navigate to internal
+warehouse views.
 
 ## Scope
 
@@ -29,19 +31,23 @@ The warehouse map overview is the **entry point** of the map navigation system:
 ## Key Features
 
 ### Geographic Visualization
+
 - **PostGIS polygons**: Warehouse boundaries rendered from `geojson_coordinates` column
 - **Color coding**: Different colors for warehouse types (greenhouse, shadehouse, etc.)
 - **Hover tooltips**: Show warehouse name and quick metrics
 - **Zoom/pan controls**: Standard map navigation
 
 ### Summary Metrics
+
 Each warehouse polygon displays:
+
 - **Claros count**: Total storage_locations in warehouse
 - **Naves count**: Total storage_areas in warehouse
 - **Total plants**: Aggregate from latest photo sessions
 - **Last photo date**: Most recent photo timestamp
 
 ### Performance Optimization
+
 - **Bulk load**: Single API call loads all warehouses + storage data
 - **Materialized view**: Pre-aggregated metrics via `mv_warehouse_summary`
 - **Client cache**: Data stored in frontend state (Redux/Zustand/Context)
@@ -50,6 +56,7 @@ Each warehouse polygon displays:
 ## Database Schema
 
 ### warehouses Table
+
 ```sql
 CREATE TABLE warehouses (
     id SERIAL PRIMARY KEY,
@@ -72,12 +79,14 @@ CREATE INDEX idx_warehouses_type ON warehouses(type);
 ```
 
 **Key fields:**
+
 - `geojson_coordinates`: PostGIS GEOMETRY(POLYGON, 4326) - warehouse boundary in WGS84
 - `centroid`: Auto-generated center point for labels and centering map
 - `area_m2`: Auto-calculated area in square meters using PostGIS geography
 - `type`: Warehouse classification for color coding
 
 ### Materialized View: mv_warehouse_summary
+
 Pre-aggregated metrics for fast map rendering.
 
 ```sql
@@ -109,6 +118,7 @@ CREATE INDEX idx_mv_warehouse_summary_type ON mv_warehouse_summary(warehouse_typ
 ```
 
 **Refresh strategy:**
+
 ```sql
 -- Refresh every 5 minutes via pg_cron
 SELECT cron.schedule(
@@ -124,6 +134,7 @@ REFRESH MATERIALIZED VIEW CONCURRENTLY mv_warehouse_summary;
 ## PostGIS Queries
 
 ### Query 1: Get All Warehouses as GeoJSON
+
 Used by bulk-load endpoint to fetch all warehouse polygons.
 
 ```sql
@@ -146,6 +157,7 @@ ORDER BY ws.warehouse_name;
 ```
 
 **Example output:**
+
 ```json
 {
   "warehouse_id": 1,
@@ -178,6 +190,7 @@ ORDER BY ws.warehouse_name;
 ```
 
 ### Query 2: Get Warehouses Within Map Bounds (Viewport Filtering)
+
 For future optimization when there are many warehouses.
 
 ```sql
@@ -202,6 +215,7 @@ AND ws.active = true;
 ```
 
 **Usage:**
+
 ```javascript
 // Frontend calculates map bounds
 const bounds = map.getBounds();
@@ -217,6 +231,7 @@ fetch(`/api/v1/warehouses/in-bounds?${new URLSearchParams(params)}`);
 ```
 
 ### Query 3: Calculate Warehouse Centroid and Area
+
 For creating new warehouses or updating existing ones.
 
 ```sql
@@ -244,18 +259,22 @@ VALUES (
 ## API Endpoints
 
 ### GET /api/v1/map/bulk-load
+
 Bulk load all warehouse and storage data for initial app load.
 
 **Request:**
+
 ```http
 GET /api/v1/map/bulk-load HTTP/1.1
 Authorization: Bearer <token>
 ```
 
 **Query Parameters:**
+
 - None (loads all active warehouses)
 
 **Response:**
+
 ```json
 {
   "warehouses": [
@@ -294,12 +313,14 @@ Authorization: Bearer <token>
 ```
 
 **Performance:**
+
 - Response time: < 1000ms
 - Payload size: ~500KB - 2MB (compressed)
 - Cache: Redis TTL 10 minutes
 - Compression: GZIP enabled
 
 **Backend Implementation (Python/FastAPI):**
+
 ```python
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
@@ -376,6 +397,7 @@ async def bulk_load_map_data(db: Session = Depends(get_db)):
 ```
 
 **Redis Caching:**
+
 ```python
 import redis
 import json
@@ -405,9 +427,11 @@ async def bulk_load_map_data(db: Session = Depends(get_db)):
 ```
 
 ### GET /api/v1/warehouses/in-bounds (Future Optimization)
+
 Fetch warehouses within map viewport bounds.
 
 **Request:**
+
 ```http
 GET /api/v1/warehouses/in-bounds?minLon=-58.382&minLat=-34.605&maxLon=-58.380&maxLat=-34.603 HTTP/1.1
 Authorization: Bearer <token>
@@ -421,6 +445,7 @@ Same as bulk-load but filtered to viewport.
 ## Frontend Implementation (React + Leaflet)
 
 ### Component: MapOverview
+
 Main map component rendering warehouse polygons.
 
 ```typescript
@@ -692,6 +717,7 @@ export const MapOverview: React.FC = () => {
 ```
 
 ### Global State Management (Zustand Example)
+
 Store bulk-loaded data for use in other components.
 
 ```typescript
@@ -728,16 +754,19 @@ export const useMapStore = create<MapState>((set) => ({
 ## Performance Metrics
 
 ### Response Time
+
 - **Target**: < 1000ms for bulk-load
 - **Actual**: 500-800ms with materialized view + Redis cache
 - **Factors**: Database query (200ms), JSON serialization (100ms), network (200ms)
 
 ### Payload Size
+
 - **Uncompressed**: ~2MB for 10 warehouses with 1000 storage_locations
 - **Compressed (GZIP)**: ~500KB (75% reduction)
 - **Per warehouse**: ~50KB average
 
 ### Cache Hit Rate
+
 - **Redis cache**: 95%+ hit rate during 10-minute window
 - **Browser cache**: Stored in global state for session duration
 - **Invalidation**: On materialized view refresh or manual trigger
@@ -745,16 +774,19 @@ export const useMapStore = create<MapState>((set) => ({
 ## User Experience
 
 ### Loading State
+
 1. **User opens app** → "Loading warehouse map..." spinner (1-2 seconds)
 2. **Map renders** → All polygons appear at once
 3. **Interactions enabled** → User can click/hover immediately
 
 ### Error Handling
+
 - **Network error**: Retry button with error message
 - **Empty data**: "No warehouses found" message
 - **Timeout**: Show partial data if some requests succeed
 
 ### Navigation Flow
+
 1. **User views map** → All warehouses visible
 2. **User clicks warehouse** → Instant navigation (data cached)
 3. **User returns to map** → Map state preserved
@@ -768,13 +800,14 @@ export const useMapStore = create<MapState>((set) => ({
 
 ## Version History
 
-| Version | Date | Changes |
-|---------|------|---------|
-| 1.0.0 | 2025-10-08 | Initial warehouse map overview subflow |
+| Version | Date       | Changes                                |
+|---------|------------|----------------------------------------|
+| 1.0.0   | 2025-10-08 | Initial warehouse map overview subflow |
 
 ---
 
 **Notes:**
+
 - PostGIS SRID 4326 (WGS84) is standard for GPS coordinates
 - Leaflet expects coordinates in [lat, lon] format (reversed from GeoJSON [lon, lat])
 - Materialized view refresh every 5 minutes balances freshness and performance

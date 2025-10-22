@@ -4,177 +4,176 @@ config:
   layout: elk
 ---
 flowchart TD
-    %% ============================================================================
-    %% MANUAL STOCK INITIALIZATION - COMPREHENSIVE VIEW
-    %% ============================================================================
-
+%% ============================================================================
+%% MANUAL STOCK INITIALIZATION - COMPREHENSIVE VIEW
+%% ============================================================================
     START@{ shape: stadium, label: "🚀 User Initiates
-    Manual Stock Count
+Manual Stock Count
 
-    Location: Storage Location Page
-    ⏱️ ~0ms" }
+Location: Storage Location Page
+⏱️ ~0ms" }
 
-    FORM@{ shape: rect, label: "📝 Fill Form
-    - Storage Location
-    - Product
-    - Packaging
-    - Quantity
-    - (Optional) Size, Notes
+FORM@{ shape: rect, label: "📝 Fill Form
+- Storage Location
+- Product
+- Packaging
+- Quantity
+- (Optional) Size, Notes
 
-    ⏱️ ~10ms validation" }
+⏱️ ~10ms validation" }
 
-    SUBMIT@{ shape: rect, label: "📤 POST /api/stock/manual
-    {
-      location_id: 123,
-      product_id: 45,
-      packaging_id: 12,
-      quantity: 1500
-    }
+SUBMIT@{ shape: rect, label: "📤 POST /api/stock/manual
+{
+location_id: 123,
+product_id: 45,
+packaging_id: 12,
+quantity: 1500
+}
 
-    ⏱️ ~20ms" }
+⏱️ ~20ms" }
 
-    API_VALIDATE@{ shape: rect, label: "✅ API Validation
-    Pydantic Schema:
-    - Required fields present
-    - Quantity > 0
-    - Valid IDs
+API_VALIDATE@{ shape: rect, label: "✅ API Validation
+Pydantic Schema:
+- Required fields present
+- Quantity > 0
+- Valid IDs
 
-    ⏱️ ~20ms" }
+⏱️ ~20ms" }
 
-    CHECK_LOCATION@{ shape: cyl, label: "🗄️ Query storage_location
-    SELECT * FROM storage_locations
-    WHERE id = ?
+CHECK_LOCATION@{ shape: cyl, label: "🗄️ Query storage_location
+SELECT * FROM storage_locations
+WHERE id = ?
 
-    ⏱️ ~15ms" }
+⏱️ ~15ms" }
 
-    LOCATION_EXISTS@{ shape: diamond, label: "Location
-    Found?" }
+LOCATION_EXISTS@{ shape: diamond, label: "Location
+Found?" }
 
-    GET_CONFIG@{ shape: cyl, label: "🗄️ Query storage_location_config
-    SELECT * FROM storage_location_config
-    WHERE storage_location_id = ?
+GET_CONFIG@{ shape: cyl, label: "🗄️ Query storage_location_config
+SELECT * FROM storage_location_config
+WHERE storage_location_id = ?
 
-    ⏱️ ~20ms" }
+⏱️ ~20ms" }
 
-    CONFIG_EXISTS@{ shape: diamond, label: "Configuration
-    Exists?" }
+CONFIG_EXISTS@{ shape: diamond, label: "Configuration
+Exists?" }
 
-    VALIDATE_PRODUCT@{ shape: diamond, label: "🔍 CRITICAL CHECK
-    config.product_id ==
-    request.product_id?" }
+VALIDATE_PRODUCT@{ shape: diamond, label: "🔍 CRITICAL CHECK
+config.product_id ==
+request.product_id?" }
 
-    VALIDATE_PACKAGING@{ shape: diamond, label: "🔍 CRITICAL CHECK
-    config.packaging_id ==
-    request.packaging_id?" }
+VALIDATE_PACKAGING@{ shape: diamond, label: "🔍 CRITICAL CHECK
+config.packaging_id ==
+request.packaging_id?" }
 
-    CREATE_MOVEMENT@{ shape: subproc, label: "💾 Create stock_movement
-    - movement_type: 'manual_init'
-    - source_type: 'manual'
-    - quantity: user input
-    - user_id: current user
-    - processing_session_id: NULL
+CREATE_MOVEMENT@{ shape: subproc, label: "💾 Create stock_movement
+- movement_type: 'manual_init'
+- source_type: 'manual'
+- quantity: user input
+- user_id: current user
+- processing_session_id: NULL
 
-    ⏱️ ~50ms" }
+⏱️ ~50ms" }
 
-    CREATE_BATCH@{ shape: subproc, label: "💾 Create stock_batch
-    - batch_code: LOC-PROD-DATE-SEQ
-    - quantity_initial: user input
-    - quantity_current: user input
-    - quality_score: NULL (no ML)
+CREATE_BATCH@{ shape: subproc, label: "💾 Create stock_batch
+- batch_code: LOC-PROD-DATE-SEQ
+- quantity_initial: user input
+- quantity_current: user input
+- quality_score: NULL (no ML)
 
-    ⏱️ ~50ms" }
+⏱️ ~50ms" }
 
-    COMMIT@{ shape: cyl, label: "🗄️ COMMIT Transaction
+COMMIT@{ shape: cyl, label: "🗄️ COMMIT Transaction
 
-    ⏱️ ~30ms" }
+⏱️ ~30ms" }
 
-    SUCCESS@{ shape: stadium, label: "✅ HTTP 201 Created
-    {
-      stock_movement_id,
-      stock_batch_id,
-      message: 'Success'
-    }
+SUCCESS@{ shape: stadium, label: "✅ HTTP 201 Created
+{
+stock_movement_id,
+stock_batch_id,
+message: 'Success'
+}
 
-    ⏱️ ~10ms" }
+⏱️ ~10ms" }
 
-    %% Error nodes
-    ERROR_LOCATION@{ shape: stadium, label: "❌ HTTP 404
-    StorageLocationNotFound
+%% Error nodes
+ERROR_LOCATION@{ shape: stadium, label: "❌ HTTP 404
+StorageLocationNotFound
 
-    User Action: Verify location" }
+User Action: Verify location" }
 
-    ERROR_PRODUCT@{ shape: stadium, label: "❌ HTTP 400
-    ProductMismatchException
+ERROR_PRODUCT@{ shape: stadium, label: "❌ HTTP 400
+ProductMismatchException
 
-    Expected: Echeveria Golden
-    Got: Sedum Blue
+Expected: Echeveria Golden
+Got: Sedum Blue
 
-    User Action: Update config
-    or re-enter correct product" }
+User Action: Update config
+or re-enter correct product" }
 
-    ERROR_PACKAGING@{ shape: stadium, label: "❌ HTTP 400
-    PackagingMismatchException
+ERROR_PACKAGING@{ shape: stadium, label: "❌ HTTP 400
+PackagingMismatchException
 
-    Expected: R7 pot
-    Got: R10 pot
+Expected: R7 pot
+Got: R10 pot
 
-    User Action: Update config
-    or re-enter correct packaging" }
+User Action: Update config
+or re-enter correct packaging" }
 
-    ERROR_VALIDATION@{ shape: stadium, label: "❌ HTTP 422
-    ValidationError
+ERROR_VALIDATION@{ shape: stadium, label: "❌ HTTP 422
+ValidationError
 
-    Examples:
-    - Quantity ≤ 0
-    - Missing required fields
+Examples:
+- Quantity ≤ 0
+- Missing required fields
 
-    User Action: Fix form" }
+User Action: Fix form" }
 
-    CREATE_CONFIG@{ shape: rect, label: "🆕 (Optional) Create Config
-    storage_location_config:
-    - product_id: user input
-    - packaging_id: user input
-    - notes: 'Auto-created'
+CREATE_CONFIG@{ shape: rect, label: "🆕 (Optional) Create Config
+storage_location_config:
+- product_id: user input
+- packaging_id: user input
+- notes: 'Auto-created'
 
-    ⏱️ ~30ms" }
+⏱️ ~30ms" }
 
-    %% Flow connections
-    START --> FORM
-    FORM --> SUBMIT
-    SUBMIT --> API_VALIDATE
+%% Flow connections
+START --> FORM
+FORM --> SUBMIT
+SUBMIT --> API_VALIDATE
 
-    API_VALIDATE -->|✅ Valid| CHECK_LOCATION
-    API_VALIDATE -->|❌ Invalid| ERROR_VALIDATION
+API_VALIDATE -->|✅ Valid|CHECK_LOCATION
+API_VALIDATE -->|❌ Invalid|ERROR_VALIDATION
 
-    CHECK_LOCATION --> LOCATION_EXISTS
+CHECK_LOCATION --> LOCATION_EXISTS
 
-    LOCATION_EXISTS -->|❌ No| ERROR_LOCATION
-    LOCATION_EXISTS -->|✅ Yes| GET_CONFIG
+LOCATION_EXISTS -->|❌ No|ERROR_LOCATION
+LOCATION_EXISTS -->|✅ Yes|GET_CONFIG
 
-    GET_CONFIG --> CONFIG_EXISTS
+GET_CONFIG --> CONFIG_EXISTS
 
-    CONFIG_EXISTS -->|❌ No| CREATE_CONFIG
-    CONFIG_EXISTS -->|✅ Yes| VALIDATE_PRODUCT
+CONFIG_EXISTS -->|❌ No|CREATE_CONFIG
+CONFIG_EXISTS -->|✅ Yes|VALIDATE_PRODUCT
 
-    CREATE_CONFIG --> CREATE_MOVEMENT
+CREATE_CONFIG --> CREATE_MOVEMENT
 
-    VALIDATE_PRODUCT -->|❌ Mismatch| ERROR_PRODUCT
-    VALIDATE_PRODUCT -->|✅ Match| VALIDATE_PACKAGING
+VALIDATE_PRODUCT -->|❌ Mismatch|ERROR_PRODUCT
+VALIDATE_PRODUCT -->|✅ Match|VALIDATE_PACKAGING
 
-    VALIDATE_PACKAGING -->|❌ Mismatch| ERROR_PACKAGING
-    VALIDATE_PACKAGING -->|✅ Match| CREATE_MOVEMENT
+VALIDATE_PACKAGING -->|❌ Mismatch|ERROR_PACKAGING
+VALIDATE_PACKAGING -->|✅ Match|CREATE_MOVEMENT
 
-    CREATE_MOVEMENT --> CREATE_BATCH
-    CREATE_BATCH --> COMMIT
-    COMMIT --> SUCCESS
+CREATE_MOVEMENT --> CREATE_BATCH
+CREATE_BATCH --> COMMIT
+COMMIT --> SUCCESS
 
-    %% Styling
-    classDef successClass fill:#2e7d32,stroke:#1b5e20,color:#fff
-    classDef errorClass fill:#c62828,stroke:#b71c1c,color:#fff
-    classDef criticalClass fill:#f57c00,stroke:#e65100,color:#fff
-    classDef dbClass fill:#1565c0,stroke:#0d47a1,color:#fff
+%% Styling
+classDef successClass fill: #2e7d32, stroke: #1b5e20, color: #fff
+classDef errorClass fill: #c62828, stroke: #b71c1c, color: #fff
+classDef criticalClass fill: #f57c00, stroke: #e65100, color: #fff
+classDef dbClass fill: #1565c0, stroke: #0d47a1, color: #fff
 
-    class SUCCESS successClass
-    class ERROR_LOCATION,ERROR_PRODUCT,ERROR_PACKAGING,ERROR_VALIDATION errorClass
-    class VALIDATE_PRODUCT,VALIDATE_PACKAGING criticalClass
-    class CHECK_LOCATION,GET_CONFIG,COMMIT dbClass
+class SUCCESS successClass
+class ERROR_LOCATION, ERROR_PRODUCT,ERROR_PACKAGING, ERROR_VALIDATION errorClass
+class VALIDATE_PRODUCT,VALIDATE_PACKAGING criticalClass
+class CHECK_LOCATION, GET_CONFIG,COMMIT dbClass

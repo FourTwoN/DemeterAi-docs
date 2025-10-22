@@ -2,7 +2,9 @@
 
 ## Purpose
 
-This diagram provides an **executive-level view** of the complete DemeterAI Analytics System, showing how users can analyze cultivation data through multiple approaches: manual filtering, sales comparison, and AI-powered insights.
+This diagram provides an **executive-level view** of the complete DemeterAI Analytics System,
+showing how users can analyze cultivation data through multiple approaches: manual filtering, sales
+comparison, and AI-powered insights.
 
 ## Scope
 
@@ -16,23 +18,23 @@ This diagram provides an **executive-level view** of the complete DemeterAI Anal
 The diagram illustrates three main analytics approaches:
 
 1. **Manual Filtering Analytics**: Traditional database queries with UI filters
-   - Filter by warehouse, storage area, storage location
-   - Filter by product (family, category), packaging
-   - Filter by date ranges, states
-   - Generate standard reports and visualizations
+    - Filter by warehouse, storage area, storage location
+    - Filter by product (family, category), packaging
+    - Filter by date ranges, states
+    - Generate standard reports and visualizations
 
 2. **Sales vs Stock Comparison**: Upload CSV files to compare actual sales with calculated stock
-   - Upload monthly sales CSV files
-   - Compare with stock calculated from last photo session
-   - Show estimated current stock (stock - sales)
-   - Maintain historical accuracy (changes only affect latest active stock)
+    - Upload monthly sales CSV files
+    - Compare with stock calculated from last photo session
+    - Show estimated current stock (stock - sales)
+    - Maintain historical accuracy (changes only affect latest active stock)
 
 3. **AI-Powered Analytics**: Natural language queries with LLM integration
-   - OpenAI-compatible API integration
-   - Read-only database access
-   - Automatic SQL query generation
-   - Python-based chart generation (SVG, Mermaid, or data for frontend)
-   - Intelligent insight discovery
+    - OpenAI-compatible API integration
+    - Read-only database access
+    - Automatic SQL query generation
+    - Python-based chart generation (SVG, Mermaid, or data for frontend)
+    - Intelligent insight discovery
 
 4. **Data Export**: Export all analytics results to Excel/CSV
 
@@ -41,35 +43,39 @@ The diagram illustrates three main analytics approaches:
 ### Analysis Paths
 
 #### Path 1: Manual Filters
+
 - **Input**: User selects filters via UI
 - **Process**: Backend constructs optimized SQL queries
 - **Output**: Charts, tables, aggregated metrics
 - **Performance**: < 500ms for most queries (uses materialized views)
 
 #### Path 2: Sales Comparison
+
 - **Input**: CSV files with sales data (product, packaging, quantity)
 - **Process**:
-  - Parse CSV files
-  - Query latest active stock from database
-  - Calculate difference (stock - sales = estimated current)
-  - Generate comparison reports
+    - Parse CSV files
+    - Query latest active stock from database
+    - Calculate difference (stock - sales = estimated current)
+    - Generate comparison reports
 - **Output**: Stock vs Sales reports, variance analysis
 - **Note**: Historical stock remains unchanged (only latest active stock considered)
 
 #### Path 3: AI Analytics
+
 - **Input**: Natural language query (e.g., "Show mortality comparison between nave 1 and 2")
 - **Process**:
-  - LLM receives query + database schema
-  - Generates SQL query
-  - Executes query (read-only)
-  - Analyzes results
-  - Generates visualization (Python code execution)
+    - LLM receives query + database schema
+    - Generates SQL query
+    - Executes query (read-only)
+    - Analyzes results
+    - Generates visualization (Python code execution)
 - **Output**: Custom charts, insights, recommendations
 - **Security**: Read-only database access, query validation, execution sandboxing
 
 ### Database Tables Involved
 
 Primary tables for analytics:
+
 - `warehouses`, `storage_areas`, `storage_locations`, `storage_bins`
 - `stock_batches`, `stock_movements`
 - `products`, `product_families`, `product_categories`
@@ -86,6 +92,7 @@ Primary tables for analytics:
 ### Export Capabilities
 
 All analytics can be exported to:
+
 - **Excel (.xlsx)**: Formatted with charts and styling
 - **CSV**: Raw data for external processing
 - **PDF**: Professional reports with visualizations
@@ -112,16 +119,19 @@ The Analytics System is a **read-only analysis layer** that:
 ## Use Cases
 
 ### Business User (Manual Filters)
+
 - "Show me mortality rate by storage area for the last 3 months"
 - "Compare product distribution across warehouses"
 - "Find storage locations with low occupancy"
 
 ### Operations Manager (Sales Comparison)
+
 - "Upload this month's sales and show me current estimated stock"
 - "Compare actual sales vs projected sales from 3 months ago"
 - "Identify discrepancies between sales data and stock calculations"
 
 ### Advanced Analyst (AI-Powered)
+
 - "Show me the correlation between mortality rates and storage location characteristics"
 - "Generate a heatmap of product density across all warehouses"
 - "Predict which storage areas might need restocking based on historical patterns"
@@ -131,6 +141,7 @@ The Analytics System is a **read-only analysis layer** that:
 ### Security Considerations
 
 **AI Analytics Isolation**:
+
 - Read-only database user for LLM queries
 - SQL query validation and sanitization
 - Execution timeout limits (30s max)
@@ -140,6 +151,7 @@ The Analytics System is a **read-only analysis layer** that:
 ### Data Integrity
 
 **Historical Stock Handling**:
+
 - Sales comparisons use snapshot methodology
 - Historical data remains immutable
 - Only latest active stock affected by current changes
@@ -151,9 +163,9 @@ The Analytics System is a **read-only analysis layer** that:
 2. **System** presents appropriate interface
 3. **User** provides input (filters/CSV/natural language)
 4. **Backend** processes request:
-   - Manual: Query database with filters
-   - Sales: Parse CSV + compare with stock
-   - AI: LLM generates query + visualization
+    - Manual: Query database with filters
+    - Sales: Parse CSV + compare with stock
+    - AI: LLM generates query + visualization
 5. **System** returns results (charts, tables, insights)
 6. **User** optionally exports to Excel/CSV
 

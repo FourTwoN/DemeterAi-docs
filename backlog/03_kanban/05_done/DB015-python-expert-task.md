@@ -103,6 +103,7 @@ def __repr__(self) -> str:
 ## Migration Creation
 
 ### Command:
+
 ```bash
 cd /home/lucasg/proyectos/DemeterDocs
 alembic revision -m "create product_categories table"
@@ -165,6 +166,7 @@ def downgrade() -> None:
 **File**: `/home/lucasg/proyectos/DemeterDocs/app/models/__init__.py`
 
 Add:
+
 ```python
 from app.models.product_category import ProductCategory
 
@@ -226,6 +228,7 @@ python -c "from app.models.product_category import ProductCategory; from app.db.
 ## Report Back When Complete
 
 Update this file with:
+
 ```markdown
 ## Python Expert Completion Report (YYYY-MM-DD HH:MM)
 
@@ -258,18 +261,22 @@ Update this file with:
 **Status**: COMPLETE
 
 **Files Created**:
+
 - app/models/product_category.py (229 lines)
 - alembic/versions/0fc9cac096f2_create_product_categories_table.py (58 lines)
 - Updated app/models/__init__.py (added ProductCategory export)
 
 **Quality Gates**:
+
 - Mypy strict mode: PASS (0 errors)
 - Ruff linting: PASS (0 violations)
 - Import test: PASS (ProductCategory imports successfully)
 - Migration created: PASS (0fc9cac096f2_create_product_categories_table.py)
-- Seed data: 8 categories defined (CACTUS, SUCCULENT, BROMELIAD, CARNIVOROUS, ORCHID, FERN, TROPICAL, HERB)
+- Seed data: 8 categories defined (CACTUS, SUCCULENT, BROMELIAD, CARNIVOROUS, ORCHID, FERN,
+  TROPICAL, HERB)
 
 **Model Features**:
+
 - Code validation: uppercase, alphanumeric + underscores, 3-50 chars
 - CHECK constraint: code length 3-50
 - UK constraint: code unique
@@ -279,6 +286,7 @@ Update this file with:
 - __repr__ method: Clean debug output
 
 **Migration Features**:
+
 - Table creation: product_categories with all columns
 - Indexes: B-tree on code
 - Constraints: PK, UK, CHECK

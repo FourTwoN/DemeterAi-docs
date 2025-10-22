@@ -1,6 +1,7 @@
 # [C005] Monthly Reconciliation Report - GET /api/stock/reconciliation
 
 ## Metadata
+
 - **Epic**: epic-003-backend-implementation.md
 - **Sprint**: Sprint-03 (Week 7-8)
 - **Status**: `backlog`
@@ -9,13 +10,14 @@
 - **Area**: `backend/controllers`
 - **Assignee**: TBD
 - **Dependencies**:
-  - Blocked by: [SVC005-reconciliation-service, DB007, DB008]
+    - Blocked by: [SVC005-reconciliation-service, DB007, DB008]
 
 ## Description
 
 Generate monthly reconciliation report with calculated sales.
 
 **What**: GET endpoint returning:
+
 - Previous month photo count
 - Movements (plantado, muerte, trasplante)
 - Current month photo count
@@ -43,10 +45,10 @@ Generate monthly reconciliation report with calculated sales.
   ```
 
 - [ ] **AC2**: Response includes:
-  - opening_count (from photo/manual)
-  - movements_summary (plantado, muerte, trasplante totals)
-  - closing_count (from end-month photo)
-  - **calculated_sales** = opening + movements - closing
+    - opening_count (from photo/manual)
+    - movements_summary (plantado, muerte, trasplante totals)
+    - closing_count (from end-month photo)
+    - **calculated_sales** = opening + movements - closing
 
 - [ ] **AC3**: Validation: year 2020-2030, month 1-12
 
@@ -59,6 +61,7 @@ Generate monthly reconciliation report with calculated sales.
 - [ ] Unit tests ≥85%
 
 ## Time Tracking
+
 - **Estimated**: 3 story points
 
 ---

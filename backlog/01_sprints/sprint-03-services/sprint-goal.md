@@ -1,4 +1,5 @@
 # Sprint 03: Services Layer
+
 ## Sprint Goal
 
 **Duration**: Week 7-8 (Days 31-40)
@@ -9,7 +10,8 @@
 
 ## Goal Statement
 
-> **"Implement complete business logic layer (42 service classes) following Clean Architecture, enabling API controller development in Sprint 04."**
+> **"Implement complete business logic layer (42 service classes) following Clean Architecture,
+enabling API controller development in Sprint 04."**
 
 ---
 
@@ -32,25 +34,30 @@
 ### In Scope (42 cards, 76 points)
 
 **Location Services (S001-S010)**: 15 points
+
 - Warehouse, StorageArea, StorageLocation, StorageBin services
 - Geospatial queries (PostGIS integration)
 
 **Product & Packaging Services (S011-S022)**: 18 points
+
 - Product catalog management
 - Packaging catalog management
 - Classifications, pricing
 
 **Stock Core Services (S023-S036)**: 25 points
+
 - StockMovementService (CREATE: photo init, manual init, plantado, muerte, transplante, ventas)
 - StockBatchService (aggregation, event sourcing)
 - PhotoSessionService (S3 upload, processing coordination)
 
 **Configuration Services (S037-S042)**: 18 points
+
 - StorageLocationConfigService (expected product/packaging)
 - DensityParameterService (auto-calibration)
 - User management services
 
 ### Out of Scope
+
 - ❌ API controllers (Sprint 04)
 - ❌ Celery workers (Sprint 04)
 

@@ -1,6 +1,7 @@
 # [C024] Create Price List - POST /api/price-list
 
 ## Metadata
+
 - **Epic**: epic-003-backend-implementation.md
 - **Sprint**: Sprint-06
 - **Status**: `backlog`
@@ -9,8 +10,8 @@
 - **Area**: `backend/controllers`
 - **Assignee**: TBD
 - **Dependencies**:
-  - Blocks: [SCH007]
-  - Blocked by: [SVC011-price-list-service, DB027-price-list-model]
+    - Blocks: [SCH007]
+    - Blocked by: [SVC011-price-list-service, DB027-price-list-model]
 
 ## Description
 
@@ -35,6 +36,7 @@ async def create_price_list(
 **Coverage Target**: ≥80%
 
 ## Time Tracking
+
 - **Estimated**: 2 story points
 
 ---
