@@ -53,8 +53,8 @@ from app.services.ml_processing.sahi_detection_service import (
     SAHIDetectionService,
 )
 from app.services.ml_processing.segmentation_service import (
-    SegmentResult,
     SegmentationService,
+    SegmentResult,
 )
 
 logger = logging.getLogger(__name__)
@@ -271,9 +271,7 @@ class MLPipelineCoordinator:
 
             try:
                 # Crop segment from original image
-                segment_crop_path = await self._crop_segment(
-                    image_path, segment, session_id, idx
-                )
+                segment_crop_path = await self._crop_segment(image_path, segment, session_id, idx)
 
                 # Run SAHI detection on segment crop
                 detections = await self.sahi_service.detect_in_segmento(
@@ -327,9 +325,7 @@ class MLPipelineCoordinator:
                 # Get detections for this segment
                 # NOTE: In production, we'd need to track which detections belong to
                 # which segment. For now, we pass all detections and the segment mask.
-                segment_crop_path = await self._crop_segment(
-                    image_path, segment, session_id, idx
-                )
+                segment_crop_path = await self._crop_segment(image_path, segment, session_id, idx)
 
                 # Create segment mask from polygon
                 segment_mask = self._create_segment_mask(segment, image_path)
@@ -518,9 +514,7 @@ class MLPipelineCoordinator:
             )
             raise RuntimeError(f"Segment cropping failed: {e}") from e
 
-    def _create_segment_mask(
-        self, segment: SegmentResult, image_path: Path
-    ) -> "np.ndarray":
+    def _create_segment_mask(self, segment: SegmentResult, image_path: Path) -> "np.ndarray":
         """Create binary mask from segment polygon.
 
         Converts segment polygon coordinates to binary mask for band estimation.
@@ -546,9 +540,7 @@ class MLPipelineCoordinator:
             img_height, img_width = img.shape[:2]
 
             # Convert normalized polygon to absolute pixels
-            polygon_px = [
-                (int(x * img_width), int(y * img_height)) for x, y in segment.polygon
-            ]
+            polygon_px = [(int(x * img_width), int(y * img_height)) for x, y in segment.polygon]
 
             # Create mask
             mask = np.zeros((img_height, img_width), dtype=np.uint8)
