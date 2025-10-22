@@ -102,8 +102,8 @@ class AnalyticsService:
             extra={"warehouse_id": warehouse_id, "product_id": product_id},
         )
 
-        # Access database session through service (Service→Service pattern)
-        session: AsyncSession = self.stock_batch_service.repo.session
+        # Access database session through repository within service
+        session: AsyncSession = self.stock_batch_service.batch_repo.session
 
         # Build base query with aggregations
         stmt = select(
@@ -177,7 +177,7 @@ class AnalyticsService:
             },
         )
 
-        session: AsyncSession = self.stock_movement_service.repo.session
+        session: AsyncSession = self.stock_movement_service.movement_repo.session
         results = []
 
         current_date = start_date
@@ -248,11 +248,11 @@ class AnalyticsService:
         """Export inventory data in specified format."""
         logger.info("Exporting data", extra={"format": export_format, "warehouse_id": warehouse_id})
 
-        session: AsyncSession = self.stock_batch_service.repo.session
+        session: AsyncSession = self.stock_batch_service.batch_repo.session
 
         stmt = select(StockBatch)
         if warehouse_id:
-            stmt = stmt.where(StockBatch.warehouse_id == warehouse_id)
+            stmt = stmt.where(StockBatch.warehouse_id == warehouse_id)  # type: ignore[attr-defined]
 
         try:
             result = await session.execute(stmt)
