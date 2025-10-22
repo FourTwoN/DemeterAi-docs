@@ -21,7 +21,7 @@ class ProductCreateRequest(BaseModel):
     )
     description: str | None = Field(None, description="Optional detailed description")
     custom_attributes: dict[str, Any] | None = Field(
-        default_factory=dict,
+        default_factory=dict,  # type: ignore[arg-type]
         description="JSONB flexible metadata (color, variegation, growth_rate, etc.)",
     )
 
@@ -41,13 +41,13 @@ class ProductUpdateRequest(BaseModel):
 class ProductResponse(BaseModel):
     """Response schema for product."""
 
-    product_id: int
-    family_id: int
-    sku: str
-    common_name: str
-    scientific_name: str | None
-    description: str | None
-    custom_attributes: dict[str, Any]
+    product_id: int = Field(..., description="Product primary key (auto-generated)")
+    family_id: int = Field(..., description="Parent family ID (FK to product_families)")
+    sku: str = Field(..., description="Unique Stock Keeping Unit")
+    common_name: str = Field(..., description="Human-readable product name")
+    scientific_name: str | None = Field(None, description="Optional scientific name")
+    description: str | None = Field(None, description="Optional detailed description")
+    custom_attributes: dict[str, Any] = Field(default_factory=dict, description="JSONB metadata")
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -55,10 +55,10 @@ class ProductResponse(BaseModel):
     def from_model(cls, product_model: "Product") -> "ProductResponse":
         """Create response from SQLAlchemy model."""
         return cls(
-            product_id=product_model.product_id,
-            family_id=product_model.family_id,
-            sku=product_model.sku,
-            common_name=product_model.common_name,
+            product_id=product_model.product_id,  # type: ignore[arg-type]
+            family_id=product_model.family_id,  # type: ignore[arg-type]
+            sku=product_model.sku,  # type: ignore[arg-type]
+            common_name=product_model.common_name,  # type: ignore[arg-type]
             scientific_name=product_model.scientific_name,
             description=product_model.description,
             custom_attributes=product_model.custom_attributes or {},
