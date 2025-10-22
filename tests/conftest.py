@@ -22,9 +22,12 @@ from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_asyn
 from sqlalchemy.pool import NullPool
 
 from app.core.config import settings
+from app.core.logging import get_logger
 from app.db.base import Base
 from app.db.session import get_db_session
 from app.main import app
+
+logger = get_logger(__name__)
 
 # Use PostgreSQL test database (real database with PostGIS)
 # This ensures tests are representative of production behavior
@@ -1146,12 +1149,13 @@ def pytest_configure(config):
     # Store db_url in config for access in tests (override TEST_DATABASE_URL if provided)
     config.db_url = config.getoption("--db-url") or TEST_DATABASE_URL
 
-    # Show database configuration
-    print("\n" + "=" * 70)
-    print("USING PostgreSQL + PostGIS TEST DATABASE")
-    print(f"Database URL: {config.db_url.replace('demeter_test_password', '***')}")
-    print("All tests (unit + integration) will use PostgreSQL")
-    print("=" * 70 + "\n")
+    # Log database configuration
+    logger.info(
+        "Test database configured",
+        database_type="PostgreSQL + PostGIS",
+        database_url=config.db_url.replace("demeter_test_password", "***"),
+        test_scope="unit + integration",
+    )
 
 
 def pytest_collection_modifyitems(config, items):

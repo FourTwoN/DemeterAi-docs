@@ -13,12 +13,14 @@ Run with: python verify_metrics.py
 
 import sys
 
+from app.core.logging import get_logger
+
+logger = get_logger(__name__)
+
 
 def verify_structure() -> bool:
     """Verify file structure without prometheus_client."""
-    print("=" * 70)
-    print("STEP 1: Verifying file structure...")
-    print("=" * 70)
+    logger.info("Verifying file structure")
 
     try:
         import ast
@@ -28,8 +30,7 @@ def verify_structure() -> bool:
 
         # Count functions
         functions = [node.name for node in ast.walk(tree) if isinstance(node, ast.FunctionDef)]
-        print(f"✅ Functions defined: {len(functions)}")
-        print("   Key functions:")
+        logger.info("Functions defined", count=len(functions))
         for func in [
             "setup_metrics",
             "get_metrics_collector",
@@ -37,81 +38,79 @@ def verify_structure() -> bool:
             "record_s3_operation",
         ]:
             if func in functions:
-                print(f"      ✅ {func}")
+                logger.debug("Key function found", function=func)
             else:
-                print(f"      ❌ {func} MISSING!")
+                logger.error("Key function missing", function=func)
                 return False
 
         # Check docstring
         docstring = ast.get_docstring(tree)
         if docstring:
-            print(f"✅ Module docstring present ({len(docstring)} chars)")
+            logger.debug("Module docstring present", length=len(docstring))
         else:
-            print("❌ Module docstring missing!")
+            logger.error("Module docstring missing")
             return False
 
-        print("\n✅ File structure verification PASSED\n")
+        logger.info("File structure verification PASSED")
         return True
 
     except Exception as e:
-        print(f"❌ Structure verification FAILED: {e}")
+        logger.error("Structure verification FAILED", error=str(e), exc_info=True)
         return False
 
 
 def verify_imports() -> bool:
     """Verify imports work (requires prometheus_client)."""
-    print("=" * 70)
-    print("STEP 2: Verifying imports...")
-    print("=" * 70)
+    logger.info("Verifying imports")
 
     try:
         # Check if prometheus_client is available
         try:
             import prometheus_client  # type: ignore[import-not-found]
 
-            print(f"✅ prometheus_client installed (version: {prometheus_client.__version__})")
+            logger.info("prometheus_client installed", version=prometheus_client.__version__)
         except ImportError:
-            print("⚠️  prometheus_client NOT installed - skipping runtime tests")
-            print("   Install with: pip install prometheus-client")
+            logger.warning("prometheus_client NOT installed - skipping runtime tests")
+            logger.info("Install with: pip install prometheus-client")
             return False
 
         # Import the metrics module
         sys.path.insert(0, ".")
         import app.core.metrics  # noqa: F401
 
-        print("✅ All imports successful")
-        print("   Exported functions:")
-        print("      ✅ setup_metrics")
-        print("      ✅ get_metrics_collector")
-        print("      ✅ get_metrics_text")
-        print("      ✅ time_operation (sync context manager)")
-        print("      ✅ time_operation_async (async context manager)")
-        print("      ✅ track_api_request (decorator)")
-        print("      ✅ track_stock_operation (decorator)")
-        print("      ✅ track_ml_inference (decorator)")
-        print("      ✅ record_s3_operation")
-        print("      ✅ record_warehouse_query")
-        print("      ✅ record_product_search")
-        print("      ✅ record_celery_task")
-        print("      ✅ record_db_query")
-        print("      ✅ update_db_pool_metrics")
+        logger.info("All imports successful")
+        exported_functions = [
+            "setup_metrics",
+            "get_metrics_collector",
+            "get_metrics_text",
+            "time_operation (sync context manager)",
+            "time_operation_async (async context manager)",
+            "track_api_request (decorator)",
+            "track_stock_operation (decorator)",
+            "track_ml_inference (decorator)",
+            "record_s3_operation",
+            "record_warehouse_query",
+            "record_product_search",
+            "record_celery_task",
+            "record_db_query",
+            "update_db_pool_metrics",
+        ]
+        logger.debug("Exported functions verified", functions=exported_functions)
 
-        print("\n✅ Import verification PASSED\n")
+        logger.info("Import verification PASSED")
         return True
 
     except ImportError as e:
-        print(f"❌ Import FAILED: {e}")
+        logger.error("Import FAILED", error=str(e), exc_info=True)
         return False
     except Exception as e:
-        print(f"❌ Unexpected error: {e}")
+        logger.error("Unexpected error during import verification", error=str(e), exc_info=True)
         return False
 
 
 def verify_initialization() -> bool:
     """Verify metrics initialization."""
-    print("=" * 70)
-    print("STEP 3: Verifying initialization...")
-    print("=" * 70)
+    logger.info("Verifying metrics initialization")
 
     try:
         from app.core.metrics import get_metrics_collector, setup_metrics
@@ -120,42 +119,37 @@ def verify_initialization() -> bool:
         setup_metrics(enable_metrics=False)
         registry = get_metrics_collector()
         if registry is not None:
-            print("❌ Registry should be None when metrics disabled")
+            logger.error("Registry should be None when metrics disabled")
             return False
-        print("✅ Metrics correctly disabled when enable_metrics=False")
+        logger.info("Metrics correctly disabled when enable_metrics=False")
 
         # Test with metrics enabled
         setup_metrics(enable_metrics=True)
         registry = get_metrics_collector()
         if registry is None:
-            print("❌ Registry should not be None when metrics enabled")
+            logger.error("Registry should not be None when metrics enabled")
             return False
-        print("✅ Metrics correctly enabled when enable_metrics=True")
+        logger.info("Metrics correctly enabled when enable_metrics=True")
 
         # Check registry type
         from prometheus_client import CollectorRegistry
 
         if not isinstance(registry, CollectorRegistry):
-            print(f"❌ Registry wrong type: {type(registry)}")
+            logger.error("Registry wrong type", actual_type=type(registry).__name__)
             return False
-        print(f"✅ Registry is correct type: {type(registry).__name__}")
+        logger.info("Registry is correct type", type=type(registry).__name__)
 
-        print("\n✅ Initialization verification PASSED\n")
+        logger.info("Initialization verification PASSED")
         return True
 
     except Exception as e:
-        print(f"❌ Initialization verification FAILED: {e}")
-        import traceback
-
-        traceback.print_exc()
+        logger.error("Initialization verification FAILED", error=str(e), exc_info=True)
         return False
 
 
 def verify_metrics_export() -> bool:
     """Verify metrics can be exported."""
-    print("=" * 70)
-    print("STEP 4: Verifying metrics export...")
-    print("=" * 70)
+    logger.info("Verifying metrics export")
 
     try:
         from app.core.metrics import (
@@ -176,7 +170,7 @@ def verify_metrics_export() -> bool:
         metrics_text = get_metrics_text()
 
         if not metrics_text:
-            print("❌ Metrics export returned empty")
+            logger.error("Metrics export returned empty")
             return False
 
         # Decode and verify
@@ -191,28 +185,21 @@ def verify_metrics_export() -> bool:
 
         for metric_name in expected_metrics:
             if metric_name in metrics_str:
-                print(f"   ✅ Found metric: {metric_name}")
+                logger.debug("Found metric", metric=metric_name)
             else:
-                print(f"   ⚠️  Metric not found in export: {metric_name}")
+                logger.warning("Metric not found in export", metric=metric_name)
 
-        print(f"\n✅ Metrics export size: {len(metrics_text)} bytes")
-        print("✅ Metrics export verification PASSED\n")
+        logger.info("Metrics export verification PASSED", size_bytes=len(metrics_text))
         return True
 
     except Exception as e:
-        print(f"❌ Metrics export verification FAILED: {e}")
-        import traceback
-
-        traceback.print_exc()
+        logger.error("Metrics export verification FAILED", error=str(e), exc_info=True)
         return False
 
 
 def main() -> int:
     """Run all verification tests."""
-    print("\n" + "=" * 70)
-    print("PROMETHEUS METRICS VERIFICATION")
-    print("File: app/core/metrics.py")
-    print("=" * 70 + "\n")
+    logger.info("Starting Prometheus metrics verification", module="app/core/metrics.py")
 
     results = []
 
@@ -225,14 +212,11 @@ def main() -> int:
 
     # Skip runtime tests if prometheus_client not installed
     if not imports_ok:
-        print("\n" + "=" * 70)
-        print("SUMMARY (Limited - prometheus_client not installed)")
-        print("=" * 70)
+        logger.warning("Skipping runtime tests - prometheus_client not installed")
         for test_name, passed in results:
-            status = "✅ PASS" if passed else "❌ FAIL"
-            print(f"{status}: {test_name}")
-        print("\nInstall prometheus-client to run full verification:")
-        print("  pip install prometheus-client")
+            status = "PASS" if passed else "FAIL"
+            logger.info("Verification result", test=test_name, status=status)
+        logger.info("Install prometheus-client to run full verification")
         return 0
 
     # Step 3: Initialization
@@ -242,31 +226,27 @@ def main() -> int:
     results.append(("Metrics Export", verify_metrics_export()))
 
     # Summary
-    print("\n" + "=" * 70)
-    print("VERIFICATION SUMMARY")
-    print("=" * 70)
-
     all_passed = True
     for test_name, passed in results:
-        status = "✅ PASS" if passed else "❌ FAIL"
-        print(f"{status}: {test_name}")
+        status = "PASS" if passed else "FAIL"
+        logger.info("Verification result", test=test_name, status=status)
         if not passed:
             all_passed = False
 
-    print("=" * 70)
-
     if all_passed:
-        print("\n🎉 ALL VERIFICATIONS PASSED! 🎉")
-        print("\nThe metrics module is ready for integration:")
-        print("  1. Add 'prometheus-client' to requirements.txt")
-        print("  2. Add ENABLE_METRICS to app/core/config.py")
-        print("  3. Call setup_metrics() in app/main.py on startup")
-        print("  4. Add /metrics endpoint to expose metrics")
-        print("\n")
+        logger.info("ALL VERIFICATIONS PASSED")
+        logger.info(
+            "Metrics module ready for integration",
+            next_steps=[
+                "Add 'prometheus-client' to requirements.txt",
+                "Add ENABLE_METRICS to app/core/config.py",
+                "Call setup_metrics() in app/main.py on startup",
+                "Add /metrics endpoint to expose metrics",
+            ],
+        )
         return 0
     else:
-        print("\n❌ SOME VERIFICATIONS FAILED")
-        print("Please review the errors above.\n")
+        logger.error("SOME VERIFICATIONS FAILED - review logs above")
         return 1
 
 

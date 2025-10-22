@@ -10,6 +10,12 @@ This script generates services for:
 All follow the same CRUD pattern as ProductCategoryService.
 """
 
+import sys
+
+from app.core.logging import get_logger
+
+logger = get_logger(__name__)
+
 SIMPLE_SERVICES = [
     # (Service Name, Model Name, Repo Name, ID Field, Has Description)
     ("ProductStateService", "ProductState", "ProductStateRepository", "state_id", True),
@@ -136,12 +142,25 @@ def generate_service(
 
 
 if __name__ == "__main__":
-    print("Generating simple CRUD services...")
+    logger.info("Starting service generation", count=len(SIMPLE_SERVICES))
+    generated_count = 0
+
     for service_info in SIMPLE_SERVICES:
         service_name, model_name, repo_name, id_field, has_desc = service_info
         file_path, code = generate_service(service_name, model_name, repo_name, id_field, has_desc)
-        print(f"Generated: {file_path}")
-        with open(file_path, "w") as f:
-            f.write(code)
+        logger.debug("Generating service", service=service_name, file=file_path)
 
-    print(f"\nGenerated {len(SIMPLE_SERVICES)} services!")
+        try:
+            with open(file_path, "w") as f:
+                f.write(code)
+            logger.info("Service generated successfully", service=service_name, file=file_path)
+            generated_count += 1
+        except OSError as e:
+            logger.error(
+                "Failed to generate service", service=service_name, file=file_path, error=str(e)
+            )
+            sys.exit(1)
+
+    logger.info(
+        "Service generation completed", generated=generated_count, total=len(SIMPLE_SERVICES)
+    )
