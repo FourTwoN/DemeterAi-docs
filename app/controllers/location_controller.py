@@ -301,15 +301,11 @@ async def search_by_gps(
                 detail=f"No location found at GPS coordinates ({longitude}, {latitude})",
             )
 
+        # Result already contains complete hierarchy from service method
+        warehouse = result["warehouse"]
+        area = result["area"]
         location = result["location"]
         bins = result["bins"]
-
-        # Get area and warehouse by traversing the hierarchy
-        # StorageLocationResponse has storage_area_id
-        area = await service.area_service.get_storage_area_by_id(location.storage_area_id)
-        warehouse = None
-        if area:
-            warehouse = await service.warehouse_service.get_warehouse_by_id(area.warehouse_id)
 
         logger.info(
             "GPS search successful",

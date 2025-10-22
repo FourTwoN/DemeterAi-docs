@@ -4,10 +4,14 @@ Orchestrates warehouse → area → location → bin hierarchy queries.
 Critical for reporting and analytics dashboards.
 """
 
+import logging
+
 from app.services.storage_area_service import StorageAreaService
 from app.services.storage_bin_service import StorageBinService
 from app.services.storage_location_service import StorageLocationService
 from app.services.warehouse_service import WarehouseService
+
+logger = logging.getLogger(__name__)
 
 
 class LocationHierarchyService:
@@ -27,8 +31,10 @@ class LocationHierarchyService:
 
     async def get_full_hierarchy(self, warehouse_id: int) -> dict:
         """Get complete hierarchy: warehouse → areas → locations → bins."""
+        logger.debug(f"Fetching full hierarchy for warehouse {warehouse_id}")
         warehouse = await self.warehouse_service.get_warehouse_by_id(warehouse_id)
         areas = await self.area_service.get_areas_by_warehouse(warehouse_id)
+        logger.debug(f"Found {len(areas)} areas for warehouse {warehouse_id}")
 
         hierarchy = {"warehouse": warehouse, "areas": []}
 
@@ -45,17 +51,41 @@ class LocationHierarchyService:
         return hierarchy
 
     async def lookup_gps_full_chain(self, longitude: float, latitude: float) -> dict | None:
-        """GPS → full chain (warehouse → area → location) for photo localization."""
+        """GPS → full chain (warehouse → area → location) for photo localization.
+
+        Returns complete hierarchy including warehouse and storage area.
+
+        Returns:
+            dict with keys: warehouse, area, location, bins
+            or None if location not found at GPS coordinates
+        """
+        logger.debug(f"GPS lookup: longitude={longitude}, latitude={latitude}")
         # Use StorageLocationService's GPS lookup (already does full chain)
         location = await self.location_service.get_location_by_gps(longitude, latitude)
 
         if not location:
+            logger.debug(f"No location found at GPS coordinates ({longitude}, {latitude})")
             return None
+
+        logger.debug(
+            f"Found location {location.storage_location_id} at GPS ({longitude}, {latitude})"
+        )
+
+        # Get parent storage area
+        area = await self.area_service.get_storage_area_by_id(location.storage_area_id)
+
+        # Get parent warehouse
+        warehouse = None
+        if area:
+            warehouse = await self.warehouse_service.get_warehouse_by_id(area.warehouse_id)
+            logger.debug(
+                f"Full hierarchy: warehouse={warehouse.warehouse_id if warehouse else None}, area={area.storage_area_id}, location={location.storage_location_id}"
+            )
 
         # Get bins for this location
         bins = await self.bin_service.get_bins_by_location(location.storage_location_id)
 
-        return {"location": location, "bins": bins}
+        return {"warehouse": warehouse, "area": area, "location": location, "bins": bins}
 
     async def validate_hierarchy(
         self,

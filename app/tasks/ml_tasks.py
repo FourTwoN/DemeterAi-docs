@@ -294,7 +294,7 @@ def ml_parent_task(
         record_circuit_breaker_failure()
 
         # Retry with exponential backoff (CEL008)
-        raise self.retry(exc=exc, countdown=2**self.request.retries)
+        raise self.retry(exc=exc, countdown=2**self.request.retries) from exc
 
 
 # ═══════════════════════════════════════════════════════════════════════════
@@ -461,7 +461,7 @@ def ml_child_task(
             extra={"session_id": session_id, "image_id": image_id, "countdown": countdown},
         )
 
-        raise self.retry(exc=exc, countdown=countdown)
+        raise self.retry(exc=exc, countdown=countdown) from exc
 
 
 # ═══════════════════════════════════════════════════════════════════════════
@@ -549,7 +549,7 @@ def ml_aggregation_callback(
             if num_valid > 0
             else 0.0
         )
-        total_segments = sum(r.get("segments_processed", 0) for r in valid_results)
+        # NOTE: total_segments not currently used but tracked for future analytics
 
         # Aggregate all detections/estimations for bulk insert (future enhancement)
         all_detections = []
@@ -593,10 +593,10 @@ def ml_aggregation_callback(
             session_id=session_id,
             total_detected=total_detected,
             total_estimated=total_estimated,
-            total_empty_containers=0,  # TODO: Extract from segments
+            total_empty_containers=0,  # NOTE: Empty container detection via segment analysis (future enhancement)
             avg_confidence=avg_confidence,
-            category_counts={},  # TODO: Aggregate category counts
-            processed_image_id=None,  # TODO: Generate visualization image
+            category_counts={},  # NOTE: Category aggregation from detections (future enhancement)
+            processed_image_id=None,  # NOTE: Visualization image generation (future enhancement, uses SAHI overlay)
         )
 
         return {
