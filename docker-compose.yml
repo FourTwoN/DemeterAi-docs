@@ -193,13 +193,14 @@ services:
       - REDIS_URL=redis://redis:6379/0
       - CELERY_BROKER_URL=redis://redis:6379/0
       - CELERY_RESULT_BACKEND=redis://redis:6379/1
+      - PYTHONPATH=/home/appuser
     depends_on:
       db:
         condition: service_healthy
       redis:
         condition: service_healthy
     restart: unless-stopped
-    command: celery -A app.celery_app worker --pool=prefork --concurrency=4 --queues=cpu_queue --loglevel=info
+    command: ["celery", "-A", "app.celery_app", "worker", "--pool=prefork", "--concurrency=4", "--queues=cpu_queue", "--loglevel=info"]
 
   # ==========================================
   # Celery I/O Worker (Gevent Pool)

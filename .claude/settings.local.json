@@ -12,7 +12,8 @@
       "Bash(pytest:*)",
       "Bash(alembic history:*)",
       "Bash(psql:*)",
-      "Bash(docker compose:*)"
+      "Bash(docker compose:*)",
+      "Bash(curl:*)"
     ],
     "deny": [],
     "ask": []

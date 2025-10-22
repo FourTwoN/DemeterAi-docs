@@ -135,6 +135,11 @@ def create_celery_app() -> Celery:
 # - FastAPI integration: for checking task status
 app = create_celery_app()
 
+# CRITICAL: Register tasks with Celery app
+# This must happen at module load time for both API and Worker processes
+# NOTE: Task import disabled temporarily to fix worker startup.
+# Will be imported via autodiscover or explicit app.autodiscover_tasks call
+
 # CEL003: Worker Topology Configuration
 # =====================================
 # DemeterAI uses 3 specialized worker types for optimal resource utilization:
