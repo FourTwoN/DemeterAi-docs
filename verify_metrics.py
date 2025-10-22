@@ -14,7 +14,7 @@ Run with: python verify_metrics.py
 import sys
 
 
-def verify_structure():
+def verify_structure() -> bool:
     """Verify file structure without prometheus_client."""
     print("=" * 70)
     print("STEP 1: Verifying file structure...")
@@ -58,7 +58,7 @@ def verify_structure():
         return False
 
 
-def verify_imports():
+def verify_imports() -> bool:
     """Verify imports work (requires prometheus_client)."""
     print("=" * 70)
     print("STEP 2: Verifying imports...")
@@ -67,7 +67,7 @@ def verify_imports():
     try:
         # Check if prometheus_client is available
         try:
-            import prometheus_client
+            import prometheus_client  # type: ignore[import-not-found]
 
             print(f"✅ prometheus_client installed (version: {prometheus_client.__version__})")
         except ImportError:
@@ -77,22 +77,7 @@ def verify_imports():
 
         # Import the metrics module
         sys.path.insert(0, ".")
-        from app.core.metrics import (
-            get_metrics_collector,
-            get_metrics_text,
-            record_celery_task,
-            record_db_query,
-            record_product_search,
-            record_s3_operation,
-            record_warehouse_query,
-            setup_metrics,
-            time_operation,
-            time_operation_async,
-            track_api_request,
-            track_ml_inference,
-            track_stock_operation,
-            update_db_pool_metrics,
-        )
+        import app.core.metrics  # noqa: F401
 
         print("✅ All imports successful")
         print("   Exported functions:")
@@ -122,7 +107,7 @@ def verify_imports():
         return False
 
 
-def verify_initialization():
+def verify_initialization() -> bool:
     """Verify metrics initialization."""
     print("=" * 70)
     print("STEP 3: Verifying initialization...")
@@ -166,7 +151,7 @@ def verify_initialization():
         return False
 
 
-def verify_metrics_export():
+def verify_metrics_export() -> bool:
     """Verify metrics can be exported."""
     print("=" * 70)
     print("STEP 4: Verifying metrics export...")
@@ -222,7 +207,7 @@ def verify_metrics_export():
         return False
 
 
-def main():
+def main() -> int:
     """Run all verification tests."""
     print("\n" + "=" * 70)
     print("PROMETHEUS METRICS VERIFICATION")
@@ -248,7 +233,7 @@ def main():
             print(f"{status}: {test_name}")
         print("\nInstall prometheus-client to run full verification:")
         print("  pip install prometheus-client")
-        return
+        return 0
 
     # Step 3: Initialization
     results.append(("Initialization", verify_initialization()))

@@ -107,7 +107,7 @@ class ProductCategory(Base):
         # Query by code (UK index used)
         category = session.query(ProductCategory).filter_by(code="BROMELIAD").first()
         # Access primary key via .id
-        print(f"Category ID: {category.id}")
+        logger.debug(f"Category ID: {category.id}")
         ```
     """
 

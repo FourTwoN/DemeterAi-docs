@@ -37,7 +37,7 @@ except ImportError:
     get_sliced_prediction = None
 
 try:
-    from PIL import Image  # type: ignore[import-not-found,import-untyped]
+    from PIL import Image  # type: ignore[import-not-found]
 except ImportError:
     Image = None
 

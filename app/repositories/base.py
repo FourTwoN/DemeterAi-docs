@@ -35,7 +35,7 @@ See:
     - backlog/04_templates/starter-code/base_repository.py (template)
 """
 
-from typing import Any, Generic, TypeVar
+from typing import Any, TypeVar
 
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -47,7 +47,7 @@ from app.db.base import Base
 T = TypeVar("T", bound=Base)
 
 
-class AsyncRepository(Generic[T]):
+class AsyncRepository[T: Base]:
     """Generic async repository providing CRUD operations for any SQLAlchemy model.
 
     This base class implements common database operations using SQLAlchemy 2.0

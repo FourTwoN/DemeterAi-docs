@@ -6,7 +6,7 @@ from typing import TYPE_CHECKING
 from pydantic import BaseModel, ConfigDict, Field
 
 if TYPE_CHECKING:
-    from app.models.price_list import PriceList
+    pass
 
 
 class PriceListCreateRequest(BaseModel):
@@ -28,24 +28,17 @@ class PriceListUpdateRequest(BaseModel):
 class PriceListResponse(BaseModel):
     """Response schema for price list."""
 
-    price_list_id: int
-    code: str
-    name: str
-    price_per_unit: float
-    currency: str
-    created_at: datetime
+    id: int
+    packaging_catalog_id: int
+    product_categories_id: int
+    wholesale_unit_price: int
+    retail_unit_price: int
+    SKU: str | None
+    unit_per_storage_box: int | None
+    wholesale_total_price_per_box: int | None
+    observations: str | None
+    availability: str | None
+    discount_factor: int | None
     updated_at: datetime | None
 
     model_config = ConfigDict(from_attributes=True)
-
-    @classmethod
-    def from_model(cls, model: "PriceList") -> "PriceListResponse":
-        return cls(
-            price_list_id=model.price_list_id,
-            code=model.code,
-            name=model.name,
-            price_per_unit=model.price_per_unit,
-            currency=model.currency,
-            created_at=model.created_at,
-            updated_at=model.updated_at,
-        )

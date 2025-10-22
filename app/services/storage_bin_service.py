@@ -22,7 +22,11 @@ class StorageBinService:
         await self.location_service.get_storage_location_by_id(request.storage_location_id)
 
         # Check code uniqueness
-        existing = await self.bin_repo.get_by_field("code", request.code)
+        from sqlalchemy import select
+
+        stmt = select(self.bin_repo.model).where(self.bin_repo.model.code == request.code)
+        result = await self.bin_repo.session.execute(stmt)
+        existing = result.scalars().first()
         if existing:
             raise DuplicateCodeException(code=request.code)
 

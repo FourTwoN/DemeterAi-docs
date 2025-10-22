@@ -48,6 +48,8 @@ See:
     - Model: app/models/storage_area.py
 """
 
+from typing import Any, Literal, overload
+
 from app.core.exceptions import (
     DuplicateCodeException,
     GeometryOutOfBoundsException,
@@ -153,7 +155,13 @@ class StorageAreaService:
             raise WarehouseNotFoundException(warehouse_id=request.warehouse_id)
 
         # 2. Check code uniqueness (business rule: codes must be unique)
-        existing = await self.storage_area_repo.get_by_field("code", request.code)
+        from sqlalchemy import select
+
+        stmt = select(self.storage_area_repo.model).where(
+            self.storage_area_repo.model.code == request.code
+        )
+        result = await self.storage_area_repo.session.execute(stmt)
+        existing = result.scalars().first()
         if existing:
             raise DuplicateCodeException(code=request.code)
 
@@ -255,6 +263,16 @@ class StorageAreaService:
             return None
 
         return StorageAreaResponse.from_model(area)
+
+    @overload
+    async def get_areas_by_warehouse(
+        self, warehouse_id: int, active_only: bool = True, include_locations: Literal[False] = False
+    ) -> list[StorageAreaResponse]: ...
+
+    @overload
+    async def get_areas_by_warehouse(
+        self, warehouse_id: int, active_only: bool = True, include_locations: Literal[True] = True
+    ) -> list[StorageAreaWithLocationsResponse]: ...
 
     async def get_areas_by_warehouse(
         self, warehouse_id: int, active_only: bool = True, include_locations: bool = False
@@ -397,6 +415,8 @@ class StorageAreaService:
 
         if "geojson_coordinates" in update_data:
             # Get parent warehouse to validate containment
+            if not area.warehouse_id:
+                raise StorageAreaNotFoundException(area_id=area_id)
             warehouse = await self.warehouse_service.get_warehouse_by_id(area.warehouse_id)
             self._validate_within_parent(
                 update_data["geojson_coordinates"], warehouse.geojson_coordinates
@@ -411,9 +431,11 @@ class StorageAreaService:
 
         # 3. Update storage area
         updated = await self.storage_area_repo.update(area_id, update_data)
+        if not updated:
+            raise StorageAreaNotFoundException(area_id=area_id)
 
         # 4. Transform to response
-        return StorageAreaResponse.from_model(updated)  # type: ignore
+        return StorageAreaResponse.from_model(updated)
 
     async def delete_storage_area(self, area_id: int) -> bool:
         """Soft delete storage area (set active=False).
@@ -449,7 +471,9 @@ class StorageAreaService:
         await self.storage_area_repo.update(area_id, {"active": False})
         return True
 
-    def _validate_within_parent(self, child_geojson: dict, parent_geojson: dict) -> None:
+    def _validate_within_parent(
+        self, child_geojson: dict[str, Any], parent_geojson: dict[str, Any]
+    ) -> None:
         """Validate child geometry is fully within parent boundaries (private helper).
 
         Uses Shapely for geometry containment check before database insert.

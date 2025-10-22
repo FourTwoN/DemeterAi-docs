@@ -4,6 +4,7 @@ This module defines request/response schemas for photo processing sessions.
 """
 
 from datetime import datetime
+from typing import Any
 from uuid import UUID
 
 from pydantic import BaseModel, Field, field_validator
@@ -24,10 +25,10 @@ class PhotoProcessingSessionCreate(BaseModel):
     total_estimated: int = Field(0, ge=0, description="Total estimations count")
     total_empty_containers: int = Field(0, ge=0, description="Empty container count")
     avg_confidence: float | None = Field(None, ge=0.0, le=1.0, description="Average ML confidence")
-    category_counts: dict | None = Field(
+    category_counts: dict[str, int] | None = Field(
         default_factory=dict, description="Detection counts by category"
     )
-    manual_adjustments: dict | None = Field(
+    manual_adjustments: dict[str, Any] | None = Field(
         default_factory=dict, description="User adjustments to ML results"
     )
     error_message: str | None = Field(None, description="Error message if failed")
@@ -45,8 +46,8 @@ class PhotoProcessingSessionUpdate(BaseModel):
     total_estimated: int | None = Field(None, ge=0)
     total_empty_containers: int | None = Field(None, ge=0)
     avg_confidence: float | None = Field(None, ge=0.0, le=1.0)
-    category_counts: dict | None = Field(None)
-    manual_adjustments: dict | None = Field(None)
+    category_counts: dict[str, int] | None = Field(None)
+    manual_adjustments: dict[str, Any] | None = Field(None)
     error_message: str | None = Field(None)
     validated: bool | None = Field(None)
     validated_by_user_id: int | None = Field(None)
@@ -67,13 +68,13 @@ class PhotoProcessingSessionResponse(BaseModel):
     total_estimated: int = Field(...)
     total_empty_containers: int = Field(...)
     avg_confidence: float | None = Field(None)
-    category_counts: dict = Field(default_factory=dict)
+    category_counts: dict[str, int] = Field(default_factory=dict)
     status: ProcessingSessionStatusEnum = Field(...)
     error_message: str | None = Field(None)
     validated: bool = Field(...)
     validated_by_user_id: int | None = Field(None)
     validation_date: datetime | None = Field(None)
-    manual_adjustments: dict = Field(default_factory=dict)
+    manual_adjustments: dict[str, Any] = Field(default_factory=dict)
     created_at: datetime = Field(...)
     updated_at: datetime | None = Field(None)
 
@@ -81,6 +82,6 @@ class PhotoProcessingSessionResponse(BaseModel):
 
     @field_validator("category_counts", "manual_adjustments", mode="before")
     @classmethod
-    def ensure_dict(cls, v):
+    def ensure_dict(cls, v: Any) -> dict[str, Any]:
         """Ensure JSONB fields are dicts, not None."""
         return v if v is not None else {}

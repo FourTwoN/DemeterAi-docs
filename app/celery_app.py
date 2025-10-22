@@ -16,8 +16,8 @@ Security Notes:
 - Redis connection from Docker Compose network
 """
 
-from celery import Celery
-from kombu import Exchange, Queue
+from celery import Celery  # type: ignore[import-not-found]
+from kombu import Exchange, Queue  # type: ignore[import-not-found]
 
 
 def create_celery_app() -> Celery:

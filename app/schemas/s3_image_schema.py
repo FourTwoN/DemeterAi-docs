@@ -5,6 +5,7 @@ upload, download, and presigned URL generation.
 """
 
 from datetime import datetime
+from typing import Any
 from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field
@@ -38,8 +39,8 @@ class S3ImageUploadRequest(BaseModel):
         default=UploadSourceEnum.WEB, description="Upload source"
     )
     uploaded_by_user_id: int | None = Field(default=None, description="User ID (optional)")
-    exif_metadata: dict | None = Field(default=None, description="EXIF camera metadata")
-    gps_coordinates: dict | None = Field(
+    exif_metadata: dict[str, Any] | None = Field(default=None, description="EXIF camera metadata")
+    gps_coordinates: dict[str, Any] | None = Field(
         default=None, description="GPS coordinates {lat, lng, altitude, accuracy}"
     )
 
@@ -84,7 +85,7 @@ class S3ImageResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
     @classmethod
-    def from_model(cls, model, presigned_url: str | None = None) -> "S3ImageResponse":
+    def from_model(cls, model: Any, presigned_url: str | None = None) -> "S3ImageResponse":
         """Create response from SQLAlchemy model with optional presigned URL.
 
         Args:

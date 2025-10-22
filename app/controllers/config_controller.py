@@ -98,7 +98,7 @@ async def get_location_defaults(
                 "Location defaults found",
                 extra={
                     "location_id": location_id,
-                    "config_id": config.config_id,
+                    "config_id": config.id,
                     "product_id": config.product_id,
                 },
             )
@@ -185,7 +185,7 @@ async def set_location_defaults(
         logger.info(
             "Location defaults set",
             extra={
-                "config_id": config.config_id,
+                "config_id": config.id,
                 "location_id": config.storage_location_id,
                 "product_id": config.product_id,
             },
@@ -274,7 +274,8 @@ async def get_density_parameters(
 
         service = factory.get_density_parameter_service()
         if product_id and packaging_catalog_id:
-            params = await service.get_by_product_and_packaging(product_id, packaging_catalog_id)
+            param = await service.get_by_product_and_packaging(product_id, packaging_catalog_id)
+            params = [param] if param else []
         elif product_id:
             params = await service.get_by_product(product_id)
         else:

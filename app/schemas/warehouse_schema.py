@@ -42,7 +42,7 @@ See:
 """
 
 from datetime import datetime
-from typing import Any
+from typing import Any, cast
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
@@ -338,15 +338,17 @@ class WarehouseResponse(BaseModel):
             centroid = to_shape(warehouse.centroid).__geo_interface__
 
         return cls(
-            warehouse_id=warehouse.warehouse_id,
-            code=warehouse.code,
-            name=warehouse.name,
-            warehouse_type=warehouse.warehouse_type.value,  # Enum to string
+            warehouse_id=cast(int, warehouse.warehouse_id),
+            code=cast(str, warehouse.code),
+            name=cast(str, warehouse.name),
+            warehouse_type=warehouse.warehouse_type.value
+            if warehouse.warehouse_type
+            else "",  # Enum to string
             geojson_coordinates=geojson,
             centroid=centroid,
             area_m2=float(warehouse.area_m2) if warehouse.area_m2 else None,
-            active=warehouse.active,
-            created_at=warehouse.created_at,
+            active=cast(bool, warehouse.active),
+            created_at=cast(datetime, warehouse.created_at),
             updated_at=warehouse.updated_at,
         )
 

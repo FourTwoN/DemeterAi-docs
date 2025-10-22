@@ -40,19 +40,33 @@ Environment Variables:
     APP_ENV: Environment name (default: development)
 """
 
-from opentelemetry import metrics, trace
-from opentelemetry.exporter.otlp.proto.grpc.metric_exporter import OTLPMetricExporter
-from opentelemetry.exporter.otlp.proto.grpc.trace_exporter import OTLPSpanExporter
-from opentelemetry.instrumentation.celery import CeleryInstrumentor
-from opentelemetry.instrumentation.fastapi import FastAPIInstrumentor
-from opentelemetry.instrumentation.redis import RedisInstrumentor
-from opentelemetry.instrumentation.requests import RequestsInstrumentor
-from opentelemetry.instrumentation.sqlalchemy import SQLAlchemyInstrumentor
-from opentelemetry.sdk.metrics import MeterProvider
-from opentelemetry.sdk.metrics.export import PeriodicExportingMetricReader
-from opentelemetry.sdk.resources import Resource
-from opentelemetry.sdk.trace import TracerProvider
-from opentelemetry.sdk.trace.export import BatchSpanProcessor
+from opentelemetry import metrics, trace  # type: ignore[import-not-found]
+from opentelemetry.exporter.otlp.proto.grpc.metric_exporter import (  # type: ignore[import-not-found]
+    OTLPMetricExporter,
+)
+from opentelemetry.exporter.otlp.proto.grpc.trace_exporter import (  # type: ignore[import-not-found]
+    OTLPSpanExporter,
+)
+from opentelemetry.instrumentation.celery import (  # type: ignore[import-not-found]
+    CeleryInstrumentor,
+)
+from opentelemetry.instrumentation.fastapi import (  # type: ignore[import-not-found]
+    FastAPIInstrumentor,
+)
+from opentelemetry.instrumentation.redis import RedisInstrumentor  # type: ignore[import-not-found]
+from opentelemetry.instrumentation.requests import (  # type: ignore[import-not-found]
+    RequestsInstrumentor,
+)
+from opentelemetry.instrumentation.sqlalchemy import (  # type: ignore[import-not-found]
+    SQLAlchemyInstrumentor,
+)
+from opentelemetry.sdk.metrics import MeterProvider  # type: ignore[import-not-found]
+from opentelemetry.sdk.metrics.export import (  # type: ignore[import-not-found]
+    PeriodicExportingMetricReader,
+)
+from opentelemetry.sdk.resources import Resource  # type: ignore[import-not-found]
+from opentelemetry.sdk.trace import TracerProvider  # type: ignore[import-not-found]
+from opentelemetry.sdk.trace.export import BatchSpanProcessor  # type: ignore[import-not-found]
 
 from app.core.config import settings
 from app.core.logging import get_logger
@@ -76,7 +90,9 @@ def _create_resource() -> Resource:
         - deployment.environment: "production"
         - service.namespace: "demeterai"
     """
-    resource_attributes = {
+    from collections.abc import Mapping
+
+    resource_attributes: Mapping[str, str] = {
         "service.name": settings.OTEL_SERVICE_NAME,
         "service.version": "2.0.0",
         "deployment.environment": settings.APP_ENV,

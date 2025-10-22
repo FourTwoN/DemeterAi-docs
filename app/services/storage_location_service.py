@@ -26,6 +26,8 @@ See:
     - Model: app/models/storage_location.py
 """
 
+from typing import Any
+
 from app.core.exceptions import (
     DuplicateCodeException,
     GeometryOutOfBoundsException,
@@ -91,7 +93,11 @@ class StorageLocationService:
         area = await self.area_service.get_storage_area_by_id(request.storage_area_id)
 
         # 2. Check code uniqueness
-        existing = await self.location_repo.get_by_field("code", request.code)
+        from sqlalchemy import select
+
+        stmt = select(self.location_repo.model).where(self.location_repo.model.code == request.code)
+        result = await self.location_repo.session.execute(stmt)
+        existing = result.scalars().first()
         if existing:
             raise DuplicateCodeException(code=request.code)
 
@@ -204,6 +210,8 @@ class StorageLocationService:
 
         if "coordinates" in update_data:
             # Validate new point within parent area
+            if not location.storage_area_id:
+                raise StorageLocationNotFoundException(location_id=location_id)
             area = await self.area_service.get_storage_area_by_id(location.storage_area_id)
             self._validate_point_within_area(update_data["coordinates"], area.geojson_coordinates)
 
@@ -215,7 +223,9 @@ class StorageLocationService:
             update_data["coordinates"] = from_shape(point, srid=4326)
 
         updated = await self.location_repo.update(location_id, update_data)
-        return StorageLocationResponse.from_model(updated)  # type: ignore
+        if not updated:
+            raise StorageLocationNotFoundException(location_id=location_id)
+        return StorageLocationResponse.from_model(updated)
 
     async def delete_storage_location(self, location_id: int) -> bool:
         """Soft delete storage location (set active=False)."""
@@ -226,7 +236,9 @@ class StorageLocationService:
         await self.location_repo.update(location_id, {"active": False})
         return True
 
-    def _validate_point_within_area(self, point_geojson: dict, area_polygon_geojson: dict) -> None:
+    def _validate_point_within_area(
+        self, point_geojson: dict[str, Any], area_polygon_geojson: dict[str, Any]
+    ) -> None:
         """Validate point is within parent area polygon."""
         from shapely.geometry import shape
 

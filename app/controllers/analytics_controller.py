@@ -17,7 +17,6 @@ Endpoints:
 """
 
 from datetime import date
-from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from fastapi.responses import StreamingResponse
@@ -26,7 +25,10 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.logging import get_logger
 from app.db.session import get_db_session
 from app.factories.service_factory import ServiceFactory
-from app.schemas.analytics_schema import InventoryReportResponse
+from app.schemas.analytics_schema import (
+    DailyPlantCountResponse,
+    InventoryReportResponse,
+)
 
 logger = get_logger(__name__)
 
@@ -50,7 +52,7 @@ def get_factory(session: AsyncSession = Depends(get_db_session)) -> ServiceFacto
 
 @router.get(
     "/daily-counts",
-    response_model=list[dict],
+    response_model=list[DailyPlantCountResponse],
     summary="Get daily plant counts",
 )
 async def get_daily_plant_counts(
@@ -59,7 +61,7 @@ async def get_daily_plant_counts(
     location_id: int | None = Query(None, description="Filter by storage location ID"),
     product_id: int | None = Query(None, description="Filter by product ID"),
     factory: ServiceFactory = Depends(get_factory),
-) -> list[dict[str, Any]]:
+) -> list[DailyPlantCountResponse]:
     """Get daily plant counts time series (C024).
 
     Aggregates stock movement data by day to show inventory trends.

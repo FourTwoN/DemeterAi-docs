@@ -21,7 +21,7 @@ This migration must be applied BEFORE creating any models with geometry columns.
 """
 from typing import Sequence, Union
 
-from alembic import op
+from alembic import op  # type: ignore[attr-defined]
 
 # revision identifiers, used by Alembic.
 revision: str = '6f1b94ebef45'

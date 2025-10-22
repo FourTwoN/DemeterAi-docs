@@ -22,6 +22,8 @@ Critical Rules:
     - File size validation (max 20MB)
 """
 
+import uuid
+
 from fastapi import UploadFile
 
 from app.core.exceptions import (
@@ -30,10 +32,12 @@ from app.core.exceptions import (
 )
 from app.core.logging import get_logger
 from app.models.photo_processing_session import ProcessingSessionStatusEnum
+from app.models.s3_image import ContentTypeEnum, UploadSourceEnum
 from app.schemas.photo_processing_session_schema import (
     PhotoProcessingSessionCreate,
 )
 from app.schemas.photo_schema import PhotoUploadResponse
+from app.schemas.s3_image_schema import S3ImageUploadRequest
 from app.services.photo.photo_processing_session_service import (
     PhotoProcessingSessionService,
 )
@@ -166,17 +170,34 @@ class PhotoUploadService:
         file_bytes = await file.read()
         await file.seek(0)  # Reset file pointer
 
-        # Upload original image (returns S3Image record)
+        # Generate temporary session_id for S3 upload (will be replaced by actual session)
+        temp_session_id = uuid.uuid4()
+
+        # Create upload request with required metadata
+        upload_request = S3ImageUploadRequest(
+            session_id=temp_session_id,
+            filename=file.filename or "photo.jpg",
+            content_type=ContentTypeEnum(file.content_type or "image/jpeg"),
+            file_size_bytes=len(file_bytes),
+            width_px=0,  # Will be set by ML pipeline
+            height_px=0,  # Will be set by ML pipeline
+            upload_source=UploadSourceEnum.WEB,
+            uploaded_by_user_id=user_id,
+            exif_metadata=None,
+            gps_coordinates={"latitude": gps_latitude, "longitude": gps_longitude},
+        )
+
+        # Upload original image (returns S3ImageResponse)
         original_image = await self.s3_service.upload_original(
             file_bytes=file_bytes,
-            filename=file.filename or "photo.jpg",
-            content_type=file.content_type or "image/jpeg",
+            session_id=temp_session_id,
+            upload_request=upload_request,
         )
 
         logger.info(
             "Original image uploaded to S3",
             extra={
-                "s3_key": original_image.s3_key,
+                "s3_key": original_image.s3_key_original,
                 "image_id": str(original_image.image_id),
             },
         )
@@ -187,6 +208,7 @@ class PhotoUploadService:
         session_request = PhotoProcessingSessionCreate(
             storage_location_id=storage_location_id,
             original_image_id=original_image.image_id,
+            processed_image_id=None,
             status=ProcessingSessionStatusEnum.PENDING,
             total_detected=0,
             total_estimated=0,
@@ -194,6 +216,7 @@ class PhotoUploadService:
             avg_confidence=None,
             category_counts={},
             manual_adjustments={},
+            error_message=None,
         )
 
         session = await self.session_service.create_session(session_request)
@@ -210,7 +233,7 @@ class PhotoUploadService:
         # STEP 5: Dispatch ML pipeline (Celery task)
         from app.tasks.ml_tasks import ml_parent_task
 
-        celery_task = ml_parent_task.delay(session.session_id, original_image.s3_key)
+        celery_task = ml_parent_task.delay(session.session_id, original_image.s3_key_original)
         task_id = celery_task.id
 
         logger.info(
@@ -218,7 +241,7 @@ class PhotoUploadService:
             extra={
                 "task_id": str(task_id),
                 "session_id": str(session.session_id),
-                "s3_key": original_image.s3_key,
+                "s3_key": original_image.s3_key_original,
             },
         )
 

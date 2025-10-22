@@ -21,7 +21,7 @@ class ProductCreateRequest(BaseModel):
     )
     description: str | None = Field(None, description="Optional detailed description")
     custom_attributes: dict[str, Any] | None = Field(
-        default_factory=dict,  # type: ignore[arg-type]
+        default_factory=dict,
         description="JSONB flexible metadata (color, variegation, growth_rate, etc.)",
     )
 

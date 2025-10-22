@@ -147,7 +147,7 @@ class WarehouseRepository(AsyncRepository[Warehouse]):
             # Get warehouses with storage areas (single query)
             warehouses = await repo.get_active_warehouses(with_areas=True)
             for wh in warehouses:
-                print(wh.storage_areas)  # No additional query
+                logger.debug(wh.storage_areas)  # No additional query
             ```
         """
         stmt = select(Warehouse).where(Warehouse.active == True)  # noqa: E712

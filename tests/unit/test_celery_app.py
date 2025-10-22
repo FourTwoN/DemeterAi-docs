@@ -199,7 +199,7 @@ class TestCeleryAppQueueConfiguration:
             return app
         except ImportError:
             # Create mock with queue configuration
-            from kombu import Queue
+            from kombu import Queue  # type: ignore[import-not-found]
 
             mock_app = MagicMock()
             mock_app.conf.task_queues = [
@@ -218,15 +218,12 @@ class TestCeleryAppQueueConfiguration:
         try:
             queues = celery_app.conf.task_queues
 
-            if queues is not None:
+            if queues is not None and isinstance(queues, (list, tuple)):
                 # Extract queue names
-                if isinstance(queues, (list, tuple)):
-                    queue_names = [q.name if hasattr(q, "name") else str(q) for q in queues]
+                queue_names = [q.name if hasattr(q, "name") else str(q) for q in queues]
 
-                    # Verify expected queues exist
-                    assert "default" in queue_names or any(
-                        "default" in q.lower() for q in queue_names
-                    )
+                # Verify expected queues exist
+                assert "default" in queue_names or any("default" in q.lower() for q in queue_names)
         except AttributeError:
             # Queue configuration might not be set yet
             # This is acceptable for initial implementation
@@ -319,7 +316,7 @@ class TestCeleryAppImport:
     def test_celery_app_is_celery_instance(self):
         """Verify exported app is a Celery instance."""
         try:
-            from celery import Celery
+            from celery import Celery  # type: ignore[import-not-found]
 
             from app.celery_app import app
 

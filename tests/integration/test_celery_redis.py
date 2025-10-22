@@ -132,13 +132,13 @@ async def test_celery_inspect_available():
         assert inspect is not None
 
         # Try to get stats (will be empty if no workers)
-        try:
+        # Stats might be None if no workers are running
+        # That's okay - we just verify inspect works
+        # Some connection errors are expected in test environment
+        from contextlib import suppress
+
+        with suppress(Exception):
             stats = inspect.stats()
-            # Stats might be None if no workers are running
-            # That's okay - we just verify inspect works
-        except Exception:
-            # Some connection errors are expected in test environment
-            pass
 
     except ImportError:
         pytest.skip("celery_app module not yet implemented")

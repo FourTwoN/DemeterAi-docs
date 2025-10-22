@@ -100,7 +100,7 @@ class {service_name}:
 '''
 
 
-def snake_case(name):
+def snake_case(name: str) -> str:
     """Convert CamelCase to snake_case."""
     import re
 
@@ -108,7 +108,9 @@ def snake_case(name):
     return re.sub("([a-z0-9])([A-Z])", r"\1_\2", s1).lower()
 
 
-def generate_service(service_name, model_name, repo_name, id_field, has_description):
+def generate_service(
+    service_name: str, model_name: str, repo_name: str, id_field: str, has_description: bool
+) -> tuple[str, str]:
     """Generate service code."""
     model_lower = model_name.lower().replace("_", " ")
     repo_module = snake_case(repo_name)

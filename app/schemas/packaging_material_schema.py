@@ -1,12 +1,11 @@
 """Packaging Material Pydantic schemas."""
 
-from datetime import datetime
 from typing import TYPE_CHECKING
 
 from pydantic import BaseModel, ConfigDict, Field
 
 if TYPE_CHECKING:
-    from app.models.packaging_material import PackagingMaterial
+    pass
 
 
 class PackagingMaterialCreateRequest(BaseModel):
@@ -25,20 +24,9 @@ class PackagingMaterialUpdateRequest(BaseModel):
 class PackagingMaterialResponse(BaseModel):
     """Response schema for packaging material."""
 
-    packaging_material_id: int
+    id: int
     code: str
     name: str
-    created_at: datetime
-    updated_at: datetime | None
+    description: str | None
 
     model_config = ConfigDict(from_attributes=True)
-
-    @classmethod
-    def from_model(cls, model: "PackagingMaterial") -> "PackagingMaterialResponse":
-        return cls(
-            packaging_material_id=model.packaging_material_id,
-            code=model.code,
-            name=model.name,
-            created_at=model.created_at,
-            updated_at=model.updated_at,
-        )

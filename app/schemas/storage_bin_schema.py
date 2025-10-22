@@ -29,7 +29,8 @@ class StorageBinResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
     @classmethod
-    def from_model(cls, bin_model):
+    def from_model(cls, bin_model: Any) -> "StorageBinResponse":
+        """Create response from SQLAlchemy model."""
         return cls(
             bin_id=bin_model.bin_id,
             storage_location_id=bin_model.storage_location_id,

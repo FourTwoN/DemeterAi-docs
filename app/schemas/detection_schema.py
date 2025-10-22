@@ -2,6 +2,7 @@
 
 from datetime import datetime
 from decimal import Decimal
+from typing import Any
 
 from pydantic import BaseModel, Field
 
@@ -16,7 +17,7 @@ class DetectionCreate(BaseModel):
     center_y_px: Decimal = Field(..., description="Bounding box center Y coordinate")
     width_px: int = Field(..., gt=0, description="Bounding box width in pixels")
     height_px: int = Field(..., gt=0, description="Bounding box height in pixels")
-    bbox_coordinates: dict = Field(..., description="Full bbox {x1, y1, x2, y2}")
+    bbox_coordinates: dict[str, Any] = Field(..., description="Full bbox {x1, y1, x2, y2}")
     detection_confidence: Decimal = Field(..., ge=0.0, le=1.0, description="ML confidence score")
     is_empty_container: bool = Field(False, description="Empty container flag")
     is_alive: bool = Field(True, description="Plant alive flag")
@@ -45,7 +46,7 @@ class DetectionResponse(BaseModel):
     width_px: int = Field(...)
     height_px: int = Field(...)
     area_px: Decimal | None = Field(None, description="Computed area")
-    bbox_coordinates: dict = Field(...)
+    bbox_coordinates: dict[str, Any] = Field(...)
     detection_confidence: Decimal = Field(...)
     is_empty_container: bool = Field(...)
     is_alive: bool = Field(...)

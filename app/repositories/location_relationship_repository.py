@@ -168,8 +168,8 @@ class LocationRelationshipRepository(AsyncRepository[LocationRelationship]):
             ```python
             rel = await repo.get_with_locations(123)
             if rel:
-                print(rel.parent_location.location_code)  # No additional query
-                print(rel.child_location.location_code)   # No additional query
+                logger.debug(rel.parent_location.location_code)  # No additional query
+                logger.debug(rel.child_location.location_code)   # No additional query
             ```
         """
         stmt = (

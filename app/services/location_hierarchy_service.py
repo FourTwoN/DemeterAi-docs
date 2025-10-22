@@ -5,6 +5,7 @@ Critical for reporting and analytics dashboards.
 """
 
 import logging
+from typing import Any
 
 from app.services.storage_area_service import StorageAreaService
 from app.services.storage_bin_service import StorageBinService
@@ -29,18 +30,18 @@ class LocationHierarchyService:
         self.location_service = location_service
         self.bin_service = bin_service
 
-    async def get_full_hierarchy(self, warehouse_id: int) -> dict:
+    async def get_full_hierarchy(self, warehouse_id: int) -> dict[str, Any]:
         """Get complete hierarchy: warehouse → areas → locations → bins."""
         logger.debug(f"Fetching full hierarchy for warehouse {warehouse_id}")
         warehouse = await self.warehouse_service.get_warehouse_by_id(warehouse_id)
         areas = await self.area_service.get_areas_by_warehouse(warehouse_id)
         logger.debug(f"Found {len(areas)} areas for warehouse {warehouse_id}")
 
-        hierarchy = {"warehouse": warehouse, "areas": []}
+        hierarchy: dict[str, Any] = {"warehouse": warehouse, "areas": []}
 
         for area in areas:
             locations = await self.location_service.get_locations_by_area(area.storage_area_id)
-            area_data = {"area": area, "locations": []}
+            area_data: dict[str, Any] = {"area": area, "locations": []}
 
             for loc in locations:
                 bins = await self.bin_service.get_bins_by_location(loc.storage_location_id)
@@ -50,7 +51,9 @@ class LocationHierarchyService:
 
         return hierarchy
 
-    async def lookup_gps_full_chain(self, longitude: float, latitude: float) -> dict | None:
+    async def lookup_gps_full_chain(
+        self, longitude: float, latitude: float
+    ) -> dict[str, Any] | None:
         """GPS → full chain (warehouse → area → location) for photo localization.
 
         Returns complete hierarchy including warehouse and storage area.
@@ -93,7 +96,7 @@ class LocationHierarchyService:
         area_id: int | None = None,
         location_id: int | None = None,
         bin_id: int | None = None,
-    ) -> dict:
+    ) -> dict[str, Any]:
         """Validate that a location hierarchy is valid and consistent.
 
         Checks that:
@@ -110,8 +113,8 @@ class LocationHierarchyService:
         Returns:
             dict with 'valid' (bool), 'errors' (list), and validated entities
         """
-        errors = []
-        validated = {}
+        errors: list[str] = []
+        validated: dict[str, Any] = {}
 
         # Validate warehouse
         if warehouse_id:

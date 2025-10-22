@@ -18,19 +18,19 @@ class PriceListService:
         """Create a new pricelist."""
         data = request.model_dump()
         model = await self.repo.create(data)
-        return PriceListResponse.from_model(model)
+        return PriceListResponse.model_validate(model)
 
     async def get_by_id(self, id: int) -> PriceListResponse:
         """Get pricelist by ID."""
         model = await self.repo.get(id)
         if not model:
             raise ValueError("PriceList {id} not found")
-        return PriceListResponse.from_model(model)
+        return PriceListResponse.model_validate(model)
 
     async def get_all(self, limit: int = 100) -> list[PriceListResponse]:
         """Get all pricelists."""
         models = await self.repo.get_multi(limit=limit)
-        return [PriceListResponse.from_model(m) for m in models]
+        return [PriceListResponse.model_validate(m) for m in models]
 
     async def update(self, id: int, request: PriceListUpdateRequest) -> PriceListResponse:
         """Update pricelist."""
@@ -40,7 +40,7 @@ class PriceListService:
 
         update_data = request.model_dump(exclude_unset=True)
         updated_model = await self.repo.update(id, update_data)
-        return PriceListResponse.from_model(updated_model)
+        return PriceListResponse.model_validate(updated_model)
 
     async def delete(self, id: int) -> None:
         """Delete pricelist."""

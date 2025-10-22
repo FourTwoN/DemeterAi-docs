@@ -50,7 +50,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any
 
-from celery import chord
+from celery import Task, chord  # type: ignore[import-not-found]
 
 from app.celery_app import app
 from app.core.exceptions import (
@@ -78,7 +78,7 @@ logger = get_logger(__name__)
 # Circuit Breaker Configuration (CEL008)
 CIRCUIT_BREAKER_THRESHOLD = 5  # Open circuit after 5 consecutive failures
 CIRCUIT_BREAKER_TIMEOUT = 300  # 5 minutes cooldown before retry
-circuit_breaker_state: dict[str, dict[str, Any]] = {
+circuit_breaker_state: dict[str, Any] = {
     "failures": 0,
     "last_failure_time": None,
     "state": "closed",  # closed, open, half_open
@@ -108,16 +108,17 @@ def check_circuit_breaker() -> None:
     """
     global circuit_breaker_state
 
-    if circuit_breaker_state["state"] == "closed":
+    state = circuit_breaker_state["state"]
+
+    if state == "closed":
         # Normal operation
         return
 
-    if circuit_breaker_state["state"] == "open":
+    if state == "open":
         # Check if cooldown period has passed
-        if circuit_breaker_state["last_failure_time"] is not None:
-            elapsed = (
-                datetime.utcnow() - circuit_breaker_state["last_failure_time"]
-            ).total_seconds()
+        last_failure = circuit_breaker_state["last_failure_time"]
+        if last_failure is not None:
+            elapsed = (datetime.utcnow() - last_failure).total_seconds()
             if elapsed >= CIRCUIT_BREAKER_TIMEOUT:
                 # Transition to half_open (test recovery)
                 circuit_breaker_state["state"] = "half_open"
@@ -125,12 +126,13 @@ def check_circuit_breaker() -> None:
                 return
 
         # Circuit still open
+        failures = circuit_breaker_state["failures"]
         raise CircuitBreakerException(
-            reason=f"Circuit breaker OPEN due to {circuit_breaker_state['failures']} failures. "
+            reason=f"Circuit breaker OPEN due to {failures} failures. "
             f"Retry after cooldown period ({CIRCUIT_BREAKER_TIMEOUT}s)."
         )
 
-    if circuit_breaker_state["state"] == "half_open":
+    if state == "half_open":
         # Allow request to test recovery
         logger.info("Circuit breaker HALF_OPEN: Allowing test request")
         return
@@ -140,13 +142,15 @@ def record_circuit_breaker_success() -> None:
     """Record successful task execution (reset circuit breaker)."""
     global circuit_breaker_state
 
-    if circuit_breaker_state["state"] == "half_open":
+    state = circuit_breaker_state["state"]
+
+    if state == "half_open":
         # Recovery successful, close circuit
         circuit_breaker_state["state"] = "closed"
         circuit_breaker_state["failures"] = 0
         circuit_breaker_state["last_failure_time"] = None
         logger.info("Circuit breaker CLOSED (recovery successful)")
-    elif circuit_breaker_state["state"] == "closed":
+    elif state == "closed":
         # Reset failure counter on success
         circuit_breaker_state["failures"] = 0
 
@@ -155,20 +159,19 @@ def record_circuit_breaker_failure() -> None:
     """Record task failure (increment circuit breaker counter)."""
     global circuit_breaker_state
 
-    circuit_breaker_state["failures"] += 1
+    failures = int(circuit_breaker_state["failures"]) + 1
+    circuit_breaker_state["failures"] = failures
     circuit_breaker_state["last_failure_time"] = datetime.utcnow()
 
-    if circuit_breaker_state["failures"] >= CIRCUIT_BREAKER_THRESHOLD:
+    if failures >= CIRCUIT_BREAKER_THRESHOLD:
         # Open circuit
         circuit_breaker_state["state"] = "open"
         logger.error(
-            f"Circuit breaker OPENED after {circuit_breaker_state['failures']} failures. "
+            f"Circuit breaker OPENED after {failures} failures. "
             f"Cooldown: {CIRCUIT_BREAKER_TIMEOUT}s"
         )
     else:
-        logger.warning(
-            f"Circuit breaker failure recorded: {circuit_breaker_state['failures']}/{CIRCUIT_BREAKER_THRESHOLD}"
-        )
+        logger.warning(f"Circuit breaker failure recorded: {failures}/{CIRCUIT_BREAKER_THRESHOLD}")
 
 
 # ═══════════════════════════════════════════════════════════════════════════
@@ -176,9 +179,9 @@ def record_circuit_breaker_failure() -> None:
 # ═══════════════════════════════════════════════════════════════════════════
 
 
-@app.task(bind=True, queue="cpu_queue", max_retries=2)
+@app.task(bind=True, queue="cpu_queue", max_retries=2)  # type: ignore[misc]
 def ml_parent_task(
-    self,
+    self: Task,
     session_id: int,
     image_data: list[dict[str, Any]],
 ) -> dict[str, Any]:
@@ -302,9 +305,9 @@ def ml_parent_task(
 # ═══════════════════════════════════════════════════════════════════════════
 
 
-@app.task(bind=True, queue="gpu_queue", max_retries=3)
+@app.task(bind=True, queue="gpu_queue", max_retries=3)  # type: ignore[misc]
 def ml_child_task(
-    self,
+    self: Task,
     session_id: int,
     image_id: int,
     image_path: str,
@@ -469,7 +472,7 @@ def ml_child_task(
 # ═══════════════════════════════════════════════════════════════════════════
 
 
-@app.task(queue="cpu_queue")
+@app.task(queue="cpu_queue")  # type: ignore[misc]
 def ml_aggregation_callback(
     results: list[dict[str, Any]],
     session_id: int,
@@ -635,7 +638,7 @@ def _mark_session_processing(session_id: int, celery_task_id: str) -> None:
     """
     import asyncio
 
-    async def _update():
+    async def _update() -> None:
         async for session in get_db_session():
             repo = PhotoProcessingSessionRepository(session)
             service = PhotoProcessingSessionService(repo)
@@ -651,7 +654,7 @@ def _mark_session_completed(
     total_estimated: int,
     total_empty_containers: int,
     avg_confidence: float,
-    category_counts: dict,
+    category_counts: dict[str, Any],
     processed_image_id: Any,
 ) -> None:
     """Mark session as COMPLETED with ML results (called by callback).
@@ -667,7 +670,7 @@ def _mark_session_completed(
     """
     import asyncio
 
-    async def _update():
+    async def _update() -> None:
         async for session in get_db_session():
             repo = PhotoProcessingSessionRepository(session)
             service = PhotoProcessingSessionService(repo)
@@ -694,7 +697,7 @@ def _mark_session_failed(session_id: int, error_message: str) -> None:
     """
     import asyncio
 
-    async def _update():
+    async def _update() -> None:
         async for session in get_db_session():
             repo = PhotoProcessingSessionRepository(session)
             service = PhotoProcessingSessionService(repo)

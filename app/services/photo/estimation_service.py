@@ -116,7 +116,9 @@ class EstimationService:
                 "estimation_id": estimation.id,
                 "session_id": estimation.session_id,
                 "estimated_count": estimation.estimated_count,
-                "method": estimation.calculation_method.value,
+                "method": estimation.calculation_method.value
+                if estimation.calculation_method
+                else "None",
             },
         )
 
@@ -267,25 +269,34 @@ class EstimationService:
         estimations = await self.repo.get_by_session(session_id, limit=10000)
 
         if not estimations:
+            from decimal import Decimal
+
             return EstimationStatistics(
                 total_count=0,
                 total_estimated_plants=0,
-                avg_confidence=0.0,
-                min_confidence=0.0,
-                max_confidence=0.0,
+                avg_confidence=Decimal("0.0"),
+                min_confidence=Decimal("0.0"),
+                max_confidence=Decimal("0.0"),
                 band_estimation_count=0,
                 density_estimation_count=0,
                 grid_analysis_count=0,
             )
 
         # Calculate statistics
-        total_count = len(estimations)
-        total_estimated_plants = sum(e.estimated_count for e in estimations)
+        from decimal import Decimal
 
-        confidences = [float(e.estimation_confidence) for e in estimations]
-        avg_confidence = sum(confidences) / len(confidences)
-        min_confidence = min(confidences)
-        max_confidence = max(confidences)
+        total_count = len(estimations)
+        total_estimated_plants = sum(
+            e.estimated_count if e.estimated_count else 0 for e in estimations
+        )
+
+        confidences = [
+            float(e.estimation_confidence) if e.estimation_confidence is not None else 0.0
+            for e in estimations
+        ]
+        avg_confidence = Decimal(str(sum(confidences) / len(confidences)))
+        min_confidence = Decimal(str(min(confidences)))
+        max_confidence = Decimal(str(max(confidences)))
 
         # Count by method
         band_estimation_count = sum(

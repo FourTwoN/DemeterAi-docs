@@ -29,8 +29,8 @@ Note:
 import asyncio
 import uuid
 
-import boto3
-from pybreaker import CircuitBreaker, CircuitBreakerError
+import boto3  # type: ignore[import-not-found]
+from pybreaker import CircuitBreaker, CircuitBreakerError  # type: ignore[import-not-found]
 
 from app.core.config import settings
 from app.core.exceptions import S3UploadException, ValidationException
@@ -143,8 +143,8 @@ class S3ImageService:
                 height_px=3000,
             )
             result = await service.upload_original(file_bytes, session_id, request)
-            print(f"Uploaded to: {result.s3_key_original}")
-            print(f"Presigned URL: {result.presigned_url}")
+            logger.debug(f"Uploaded to: {result.s3_key_original}")
+            logger.debug(f"Presigned URL: {result.presigned_url}")
             ```
         """
         # Validate file size (1 byte to 500MB)
@@ -264,7 +264,7 @@ class S3ImageService:
                 session_id=session_id,
                 filename="detections_annotated.jpg"
             )
-            print(f"Visualization uploaded: {result.s3_key_original}")
+            logger.debug(f"Visualization uploaded: {result.s3_key_original}")
             ```
         """
         # Validate file size
@@ -371,7 +371,7 @@ class S3ImageService:
         logger.info("Downloading image from S3", s3_key=s3_key, bucket=bucket)
 
         try:
-            return await self._download_from_s3(s3_key=s3_key, bucket=bucket)
+            return await self._download_from_s3(s3_key=s3_key, bucket=bucket)  # type: ignore[no-any-return]
         except CircuitBreakerError as e:
             logger.error(
                 "S3 circuit breaker open - too many failures",
@@ -411,7 +411,7 @@ class S3ImageService:
                 s3_key="session-123/photo.jpg",
                 expiry_hours=24
             )
-            print(f"Share this URL: {url}")
+            logger.debug(f"Share this URL: {url}")
             # URL valid for 24 hours
             ```
         """
@@ -448,7 +448,7 @@ class S3ImageService:
                 expiry_hours=expiry_hours,
             )
 
-            return presigned_url
+            return presigned_url  # type: ignore[no-any-return]
 
         except Exception as e:
             logger.error(
@@ -485,9 +485,9 @@ class S3ImageService:
             service = S3ImageService(repo)
             deleted = await service.delete_image(image_id)
             if deleted:
-                print("Image deleted successfully")
+                logger.debug("Image deleted successfully")
             else:
-                print("Image not found")
+                logger.debug("Image not found")
             ```
         """
         # Get image from database
@@ -513,8 +513,8 @@ class S3ImageService:
                 s3_key=s3_image.s3_key_original,
             )
             raise S3UploadException(
-                file_name=s3_image.s3_key_original,
-                bucket=s3_image.s3_bucket,
+                file_name=s3_image.s3_key_original or "unknown",
+                bucket=s3_image.s3_bucket or "unknown",
                 error="S3 service temporarily unavailable (circuit breaker open)",
             ) from e
 
@@ -544,7 +544,7 @@ class S3ImageService:
     # Private helper methods (S3 operations with circuit breaker)
     # =========================================================================
 
-    @s3_circuit_breaker
+    @s3_circuit_breaker  # type: ignore[misc]
     async def _upload_to_s3(
         self, s3_key: str, file_bytes: bytes, bucket: str, content_type: str
     ) -> None:
@@ -591,7 +591,7 @@ class S3ImageService:
             )
             raise S3UploadException(file_name=s3_key, bucket=bucket, error=str(e)) from e
 
-    @s3_circuit_breaker
+    @s3_circuit_breaker  # type: ignore[misc]
     async def _download_from_s3(self, s3_key: str, bucket: str) -> bytes:
         """Download file from S3 with circuit breaker protection.
 
@@ -621,7 +621,7 @@ class S3ImageService:
                 file_size=len(file_bytes),
             )
 
-            return file_bytes
+            return file_bytes  # type: ignore[no-any-return]
 
         except Exception as e:
             logger.error(
@@ -635,7 +635,7 @@ class S3ImageService:
                 file_name=s3_key, bucket=bucket, error=f"Download failed: {str(e)}"
             ) from e
 
-    @s3_circuit_breaker
+    @s3_circuit_breaker  # type: ignore[misc]
     async def _delete_from_s3(self, s3_key: str, bucket: str) -> None:
         """Delete file from S3 with circuit breaker protection.
 

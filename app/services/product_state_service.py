@@ -40,6 +40,8 @@ class ProductStateService:
 
         update_data = request.model_dump(exclude_unset=True)
         updated_model = await self.repo.update(id, update_data)
+        if updated_model is None:
+            raise ValueError(f"Failed to update ProductState {id}")
         return ProductStateResponse.from_model(updated_model)
 
     async def delete(self, id: int) -> None:

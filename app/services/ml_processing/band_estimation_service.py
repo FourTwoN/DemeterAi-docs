@@ -36,14 +36,14 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 try:
-    import cv2  # type: ignore[import-not-found,import-untyped]
-    import numpy as np  # type: ignore[import-not-found,import-untyped]
+    import cv2  # type: ignore[import-not-found]
+    import numpy as np  # type: ignore[import-not-found]
 except ImportError:
     cv2 = None
     np = None
 
 if TYPE_CHECKING:
-    from numpy.typing import NDArray
+    from numpy.typing import NDArray  # type: ignore[import-not-found]
 else:
     NDArray = Any
 

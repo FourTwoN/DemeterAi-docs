@@ -20,8 +20,12 @@ Usage:
 """
 
 import re
+from typing import TYPE_CHECKING, Any
 
-import bcrypt
+import bcrypt  # type: ignore[import-not-found]
+
+if TYPE_CHECKING:
+    pass
 
 # Password strength requirements
 PASSWORD_MIN_LENGTH = 12
@@ -114,7 +118,7 @@ def hash_password(password: str) -> str:
 
     # Generate salt and hash
     salt = bcrypt.gensalt(rounds=BCRYPT_COST_FACTOR)
-    hashed = bcrypt.hashpw(password_bytes, salt)
+    hashed: bytes = bcrypt.hashpw(password_bytes, salt)
 
     # Return as string
     return hashed.decode("utf-8")
@@ -146,7 +150,8 @@ def verify_password(plain_password: str, hashed_password: str) -> bool:
         hashed_bytes = hashed_password.encode("utf-8")
 
         # Verify with constant-time comparison
-        return bcrypt.checkpw(password_bytes, hashed_bytes)
+        result: bool = bcrypt.checkpw(password_bytes, hashed_bytes)
+        return result
     except Exception:
         # Invalid hash format or verification error
         return False
@@ -184,7 +189,7 @@ def needs_rehash(hashed_password: str, rounds: int = BCRYPT_COST_FACTOR) -> bool
         return True
 
 
-def get_password_requirements() -> dict[str, any]:
+def get_password_requirements() -> dict[str, Any]:
     """
     Get password requirements for client-side validation.
 

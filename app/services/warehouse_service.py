@@ -44,6 +44,8 @@ See:
     - Model: app/models/warehouse.py
 """
 
+from typing import Any, Literal, overload
+
 from app.core.exceptions import DuplicateCodeException, WarehouseNotFoundException
 from app.repositories.warehouse_repository import WarehouseRepository
 from app.schemas.warehouse_schema import (
@@ -208,6 +210,16 @@ class WarehouseService:
 
         return WarehouseResponse.from_model(warehouse)
 
+    @overload
+    async def get_active_warehouses(
+        self, include_areas: Literal[False] = False
+    ) -> list[WarehouseResponse]: ...
+
+    @overload
+    async def get_active_warehouses(
+        self, include_areas: Literal[True] = True
+    ) -> list[WarehouseWithAreasResponse]: ...
+
     async def get_active_warehouses(
         self, include_areas: bool = False
     ) -> list[WarehouseResponse] | list[WarehouseWithAreasResponse]:
@@ -300,9 +312,11 @@ class WarehouseService:
 
         # 3. Update warehouse
         updated = await self.warehouse_repo.update(warehouse_id, update_data)
+        if not updated:
+            raise WarehouseNotFoundException(warehouse_id=warehouse_id)
 
         # 4. Transform to response
-        return WarehouseResponse.from_model(updated)  # type: ignore
+        return WarehouseResponse.from_model(updated)
 
     async def delete_warehouse(self, warehouse_id: int) -> bool:
         """Soft delete warehouse (set active=False).
@@ -338,7 +352,7 @@ class WarehouseService:
         await self.warehouse_repo.update(warehouse_id, {"active": False})
         return True
 
-    def _validate_geometry(self, geojson: dict) -> None:
+    def _validate_geometry(self, geojson: dict[str, Any]) -> None:
         """Validate warehouse boundary geometry (private helper).
 
         Uses Shapely for geometry validation before database insert.

@@ -138,7 +138,7 @@ async def create_product_category(
 
         logger.info(
             "Product category created",
-            extra={"category_id": category.category_id, "name": category.name},
+            extra={"category_id": category.id, "name": category.name},
         )
 
         return category
@@ -410,8 +410,7 @@ async def create_product(
         logger.info(
             "Creating product",
             extra={
-                "name": request.name,
-                "category_id": request.category_id,
+                "common_name": request.common_name,
                 "family_id": request.family_id,
             },
         )
@@ -424,7 +423,7 @@ async def create_product(
             extra={
                 "product_id": product.product_id,
                 "sku": product.sku,
-                "name": product.name,
+                "common_name": product.common_name,
             },
         )
 

@@ -1,6 +1,7 @@
 """Batch lifecycle business logic service."""
 
 from datetime import date, timedelta
+from typing import Any
 
 
 class BatchLifecycleService:
@@ -22,7 +23,7 @@ class BatchLifecycleService:
             return date.today()
         return planting_date + timedelta(days=growth_days)
 
-    async def check_batch_status(self, batch_data: dict) -> dict:
+    async def check_batch_status(self, batch_data: dict[str, Any]) -> dict[str, Any]:
         """Check batch lifecycle status.
 
         Returns status indicators:
@@ -30,7 +31,10 @@ class BatchLifecycleService:
         - health: good, warning, critical
         - days_to_ready: int
         """
-        age_days = await self.calculate_batch_age_days(batch_data.get("planting_date"))
+        planting_date = batch_data.get("planting_date")
+        if planting_date is None:
+            planting_date = date.today()
+        age_days = await self.calculate_batch_age_days(planting_date)
 
         # Simple heuristic
         if age_days < 30:

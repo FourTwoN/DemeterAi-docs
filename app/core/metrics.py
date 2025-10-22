@@ -27,12 +27,12 @@ Usage:
         ...
 """
 
-from collections.abc import Callable
+from collections.abc import AsyncGenerator, Callable, Generator
 from contextlib import asynccontextmanager, contextmanager
 from functools import wraps
 from typing import Any
 
-from prometheus_client import (
+from prometheus_client import (  # type: ignore[import-not-found]
     CollectorRegistry,
     Counter,
     Gauge,
@@ -291,7 +291,7 @@ def setup_metrics(enable_metrics: bool | None = None) -> None:
 
 
 @contextmanager
-def time_operation(metric: Histogram | None, **labels: str):
+def time_operation(metric: Histogram | None, **labels: str) -> Generator[None, None, None]:
     """Context manager for timing synchronous operations.
 
     Usage:
@@ -311,7 +311,9 @@ def time_operation(metric: Histogram | None, **labels: str):
 
 
 @asynccontextmanager
-async def time_operation_async(metric: Histogram | None, **labels: str):
+async def time_operation_async(
+    metric: Histogram | None, **labels: str
+) -> AsyncGenerator[None, None]:
     """Async context manager for timing async operations.
 
     Usage:
@@ -337,7 +339,9 @@ async def time_operation_async(metric: Histogram | None, **labels: str):
         metric.labels(**labels).observe(duration)
 
 
-def track_api_request(endpoint: str, method: str = "GET"):
+def track_api_request(
+    endpoint: str, method: str = "GET"
+) -> Callable[[Callable[..., Any]], Callable[..., Any]]:
     """Decorator to track API request metrics.
 
     Usage:
@@ -350,7 +354,7 @@ def track_api_request(endpoint: str, method: str = "GET"):
         method: HTTP method
     """
 
-    def decorator(func: Callable) -> Callable:
+    def decorator(func: Callable[..., Any]) -> Callable[..., Any]:
         @wraps(func)
         async def wrapper(*args: Any, **kwargs: Any) -> Any:
             if not _metrics_enabled or api_request_duration_seconds is None:
@@ -385,7 +389,9 @@ def track_api_request(endpoint: str, method: str = "GET"):
     return decorator
 
 
-def track_stock_operation(operation: str, product_type: str = "unknown"):
+def track_stock_operation(
+    operation: str, product_type: str = "unknown"
+) -> Callable[[Callable[..., Any]], Callable[..., Any]]:
     """Decorator to track stock operation metrics.
 
     Usage:
@@ -398,7 +404,7 @@ def track_stock_operation(operation: str, product_type: str = "unknown"):
         product_type: Type of product
     """
 
-    def decorator(func: Callable) -> Callable:
+    def decorator(func: Callable[..., Any]) -> Callable[..., Any]:
         @wraps(func)
         async def wrapper(*args: Any, **kwargs: Any) -> Any:
             if not _metrics_enabled or stock_operations_total is None:
@@ -421,7 +427,9 @@ def track_stock_operation(operation: str, product_type: str = "unknown"):
     return decorator
 
 
-def track_ml_inference(model_type: str = "yolo"):
+def track_ml_inference(
+    model_type: str = "yolo",
+) -> Callable[[Callable[..., Any]], Callable[..., Any]]:
     """Decorator to track ML inference metrics.
 
     Usage:
@@ -433,7 +441,7 @@ def track_ml_inference(model_type: str = "yolo"):
         model_type: Type of ML model
     """
 
-    def decorator(func: Callable) -> Callable:
+    def decorator(func: Callable[..., Any]) -> Callable[..., Any]:
         @wraps(func)
         async def wrapper(*args: Any, **kwargs: Any) -> Any:
             if not _metrics_enabled or ml_inference_duration_seconds is None:
@@ -608,4 +616,4 @@ def get_metrics_text() -> bytes:
     if not _metrics_enabled or _registry is None:
         return b""
 
-    return generate_latest(_registry)
+    return generate_latest(_registry)  # type: ignore[no-any-return]

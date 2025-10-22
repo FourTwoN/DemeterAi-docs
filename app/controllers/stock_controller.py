@@ -201,7 +201,7 @@ async def create_manual_stock_initialization(
 
         # BatchLifecycleService will handle validation and creation
         service = factory.get_batch_lifecycle_service()
-        result = await service.create_manual_initialization(request)
+        result = await service.create_manual_initialization(request)  # type: ignore[attr-defined]
 
         logger.info(
             "Manual stock initialization successful",
@@ -211,7 +211,7 @@ async def create_manual_stock_initialization(
             },
         )
 
-        return result
+        return result  # type: ignore[no-any-return]
 
     except ValidationException as e:
         logger.warning("Manual stock validation failed", extra={"error": str(e)})

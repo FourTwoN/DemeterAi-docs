@@ -124,7 +124,7 @@ class MLPipelineCoordinator:
         ...     image_path="/photos/greenhouse_001.jpg",
         ...     worker_id=0
         ... )
-        >>> print(f"Detected: {result.total_detected}, Estimated: {result.total_estimated}")
+        >>> logger.debug(f"Detected: {result.total_detected}, Estimated: {result.total_estimated}")
         Detected: 842, Estimated: 158
     """
 
@@ -193,8 +193,10 @@ class MLPipelineCoordinator:
             ...     image_path="/photos/greenhouse_001.jpg",
             ...     worker_id=0
             ... )
-            >>> print(f"Processed {result.segments_processed} segments")
-            >>> print(f"Total plants: {result.total_detected + result.total_estimated}")
+            >>> logger.debug(f"Processed {result.segments_processed} segments")
+            Processed 42 segments
+            >>> logger.debug(f"Total plants: {result.total_detected + result.total_estimated}")
+            Total plants: 1000
         """
         start_time = time.time()
         image_path = Path(image_path)
@@ -473,7 +475,7 @@ class MLPipelineCoordinator:
         try:
             # NOTE: In production, use proper temp file management
             # For now, create temp crops in same directory as original
-            import cv2  # type: ignore[import-not-found,import-untyped]
+            import cv2  # type: ignore[import-not-found]
 
             img = cv2.imread(str(image_path))
             if img is None:
@@ -527,7 +529,7 @@ class MLPipelineCoordinator:
             RuntimeError: If mask creation fails
         """
         try:
-            import cv2  # type: ignore[import-not-found,import-untyped]
+            import cv2
 
             # Get image dimensions
             img = cv2.imread(str(image_path))

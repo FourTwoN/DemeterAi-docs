@@ -995,7 +995,7 @@ def user_factory(db_session):
     Usage:
         user = await user_factory(email="test@example.com", first_name="John")
     """
-    from bcrypt import gensalt, hashpw
+    from bcrypt import gensalt, hashpw  # type: ignore[import-not-found]
 
     from app.models.user import User, UserRoleEnum
 

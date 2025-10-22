@@ -44,6 +44,8 @@ class StorageLocationConfigService:
 
         update_data = request.model_dump(exclude_unset=True)
         updated_model = await self.repo.update(id, update_data)
+        if not updated_model:
+            raise ValueError(f"StorageLocationConfig {id} not found after update")
         return StorageLocationConfigResponse.from_model(updated_model)
 
     async def delete(self, id: int) -> None:
@@ -77,7 +79,9 @@ class StorageLocationConfigService:
         if existing:
             # Update existing
             update_data = request.model_dump(exclude_unset=True)
-            updated_model = await self.repo.update(existing.storage_location_config_id, update_data)
+            updated_model = await self.repo.update(existing.id, update_data)
+            if not updated_model:
+                raise ValueError(f"StorageLocationConfig {existing.id} not found after update")
             return StorageLocationConfigResponse.from_model(updated_model)
         else:
             # Create new

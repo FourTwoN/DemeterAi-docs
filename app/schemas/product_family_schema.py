@@ -41,10 +41,12 @@ class ProductFamilyResponse(BaseModel):
     @classmethod
     def from_model(cls, family_model: "ProductFamily") -> "ProductFamilyResponse":
         """Create response from SQLAlchemy model."""
+        from typing import cast
+
         return cls(
-            family_id=family_model.family_id,
-            category_id=family_model.category_id,
-            name=family_model.name,
+            family_id=cast(int, family_model.family_id),
+            category_id=cast(int, family_model.category_id),
+            name=cast(str, family_model.name),
             scientific_name=family_model.scientific_name,
             description=family_model.description,
         )

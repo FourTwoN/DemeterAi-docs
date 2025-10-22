@@ -18,19 +18,19 @@ class PackagingTypeService:
         """Create a new packagingtype."""
         data = request.model_dump()
         model = await self.repo.create(data)
-        return PackagingTypeResponse.from_model(model)
+        return PackagingTypeResponse.model_validate(model)
 
     async def get_by_id(self, id: int) -> PackagingTypeResponse:
         """Get packagingtype by ID."""
         model = await self.repo.get(id)
         if not model:
             raise ValueError("PackagingType {id} not found")
-        return PackagingTypeResponse.from_model(model)
+        return PackagingTypeResponse.model_validate(model)
 
     async def get_all(self, limit: int = 100) -> list[PackagingTypeResponse]:
         """Get all packagingtypes."""
         models = await self.repo.get_multi(limit=limit)
-        return [PackagingTypeResponse.from_model(m) for m in models]
+        return [PackagingTypeResponse.model_validate(m) for m in models]
 
     async def update(self, id: int, request: PackagingTypeUpdateRequest) -> PackagingTypeResponse:
         """Update packagingtype."""
@@ -40,7 +40,7 @@ class PackagingTypeService:
 
         update_data = request.model_dump(exclude_unset=True)
         updated_model = await self.repo.update(id, update_data)
-        return PackagingTypeResponse.from_model(updated_model)
+        return PackagingTypeResponse.model_validate(updated_model)
 
     async def delete(self, id: int) -> None:
         """Delete packagingtype."""

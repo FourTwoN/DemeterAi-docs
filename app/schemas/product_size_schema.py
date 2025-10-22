@@ -34,8 +34,8 @@ class ProductSizeResponse(BaseModel):
     product_size_id: int
     code: str
     name: str
-    min_height_cm: float
-    max_height_cm: float
+    min_height_cm: float | None
+    max_height_cm: float | None
     created_at: datetime
     updated_at: datetime | None
 
@@ -44,12 +44,31 @@ class ProductSizeResponse(BaseModel):
     @classmethod
     def from_model(cls, model: "ProductSize") -> "ProductSizeResponse":
         """Create response from SQLAlchemy model."""
+        from decimal import Decimal
+        from typing import cast
+
+        min_h = None
+        if model.min_height_cm is not None:
+            min_h = (
+                float(model.min_height_cm)
+                if isinstance(model.min_height_cm, Decimal)
+                else model.min_height_cm
+            )
+
+        max_h = None
+        if model.max_height_cm is not None:
+            max_h = (
+                float(model.max_height_cm)
+                if isinstance(model.max_height_cm, Decimal)
+                else model.max_height_cm
+            )
+
         return cls(
-            product_size_id=model.product_size_id,
-            code=model.code,
-            name=model.name,
-            min_height_cm=model.min_height_cm,
-            max_height_cm=model.max_height_cm,
-            created_at=model.created_at,
+            product_size_id=cast(int, model.product_size_id),
+            code=cast(str, model.code),
+            name=cast(str, model.name),
+            min_height_cm=min_h,
+            max_height_cm=max_h,
+            created_at=cast(datetime, model.created_at),
             updated_at=model.updated_at,
         )

@@ -44,11 +44,13 @@ class ProductCategoryResponse(BaseModel):
     @classmethod
     def from_model(cls, category_model: "ProductCategory") -> "ProductCategoryResponse":
         """Create response from SQLAlchemy model."""
+        from typing import cast
+
         return cls(
-            id=category_model.id,
-            code=category_model.code,
-            name=category_model.name,
+            id=cast(int, category_model.id),
+            code=cast(str, category_model.code),
+            name=cast(str, category_model.name),
             description=category_model.description,
-            created_at=category_model.created_at,
+            created_at=cast(datetime, category_model.created_at),
             updated_at=category_model.updated_at,
         )

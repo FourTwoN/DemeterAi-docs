@@ -18,6 +18,8 @@ Critical Rules:
     - All database operations are async
 """
 
+from typing import Any
+
 from app.core.exceptions import (
     ValidationException,
 )
@@ -105,7 +107,9 @@ class DetectionService:
             extra={
                 "detection_id": detection.id,
                 "session_id": detection.session_id,
-                "confidence": float(detection.detection_confidence),
+                "confidence": float(detection.detection_confidence)
+                if detection.detection_confidence is not None
+                else 0.0,
             },
         )
 
@@ -250,7 +254,10 @@ class DetectionService:
         empty_container_count = sum(1 for d in detections if d.is_empty_container)
         dead_count = sum(1 for d in detections if not d.is_alive)
 
-        confidences = [float(d.detection_confidence) for d in detections]
+        confidences = [
+            float(d.detection_confidence) if d.detection_confidence is not None else 0.0
+            for d in detections
+        ]
         avg_confidence = sum(confidences) / len(confidences)
         min_confidence = min(confidences)
         max_confidence = max(confidences)
@@ -275,7 +282,7 @@ class DetectionService:
             max_confidence=max_confidence,
         )
 
-    def _validate_bounding_box(self, bbox: dict) -> None:
+    def _validate_bounding_box(self, bbox: dict[str, Any]) -> None:
         """Validate bounding box coordinates.
 
         Args:

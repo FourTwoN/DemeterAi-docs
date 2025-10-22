@@ -18,19 +18,19 @@ class DensityParameterService:
         """Create a new densityparameter."""
         data = request.model_dump()
         model = await self.repo.create(data)
-        return DensityParameterResponse.from_model(model)
+        return DensityParameterResponse.model_validate(model)
 
     async def get_by_id(self, id: int) -> DensityParameterResponse:
         """Get densityparameter by ID."""
         model = await self.repo.get(id)
         if not model:
             raise ValueError("DensityParameter {id} not found")
-        return DensityParameterResponse.from_model(model)
+        return DensityParameterResponse.model_validate(model)
 
-    async def get_all(self, limit: int = 100) -> list[DensityParameterResponse]:
+    async def get_all(self, skip: int = 0, limit: int = 100) -> list[DensityParameterResponse]:
         """Get all densityparameters."""
-        models = await self.repo.get_multi(limit=limit)
-        return [DensityParameterResponse.from_model(m) for m in models]
+        models = await self.repo.get_multi(skip=skip, limit=limit)
+        return [DensityParameterResponse.model_validate(m) for m in models]
 
     async def update(
         self, id: int, request: DensityParameterUpdateRequest
@@ -42,7 +42,7 @@ class DensityParameterService:
 
         update_data = request.model_dump(exclude_unset=True)
         updated_model = await self.repo.update(id, update_data)
-        return DensityParameterResponse.from_model(updated_model)
+        return DensityParameterResponse.model_validate(updated_model)
 
     async def delete(self, id: int) -> None:
         """Delete densityparameter."""
@@ -65,7 +65,7 @@ class DensityParameterService:
         )
         result = await self.repo.session.execute(stmt)
         model = result.scalars().first()
-        return DensityParameterResponse.from_model(model) if model else None
+        return DensityParameterResponse.model_validate(model) if model else None
 
     async def get_by_product(self, product_id: int) -> list[DensityParameterResponse]:
         """Get all density parameters for a product."""
@@ -76,4 +76,4 @@ class DensityParameterService:
         stmt = select(DensityParameter).where(DensityParameter.product_id == product_id)
         result = await self.repo.session.execute(stmt)
         models = result.scalars().all()
-        return [DensityParameterResponse.from_model(m) for m in models]
+        return [DensityParameterResponse.model_validate(m) for m in models]

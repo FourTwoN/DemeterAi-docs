@@ -1,6 +1,7 @@
 """Storage Bin Type Pydantic schemas (simple lookup table)."""
 
 from datetime import datetime
+from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -21,7 +22,8 @@ class StorageBinTypeResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
     @classmethod
-    def from_model(cls, type_model):
+    def from_model(cls, type_model: Any) -> "StorageBinTypeResponse":
+        """Create response from SQLAlchemy model."""
         return cls(
             storage_bin_type_id=type_model.storage_bin_type_id,
             code=type_model.code,

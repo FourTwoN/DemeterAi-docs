@@ -1,5 +1,7 @@
 """Movement validation business logic service."""
 
+from typing import Any
+
 
 class MovementValidationService:
     """Service for validating stock movements before creation."""
@@ -7,7 +9,7 @@ class MovementValidationService:
     def __init__(self) -> None:
         pass
 
-    async def validate_movement_request(self, movement_data: dict) -> dict:
+    async def validate_movement_request(self, movement_data: dict[str, Any]) -> dict[str, Any]:
         """Validate movement data before creation.
 
         Rules:

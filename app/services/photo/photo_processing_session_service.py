@@ -175,12 +175,16 @@ class PhotoProcessingSessionService:
             )
 
         # Validate status transition if status is being updated
-        if request.status is not None:
+        if request.status is not None and existing.status is not None:
             self._validate_status_transition(existing.status, request.status)
 
         # Update session
         update_data = request.model_dump(exclude_unset=True)
         updated = await self.repo.update(session_id, update_data)
+        if not updated:
+            raise ResourceNotFoundException(
+                resource_type="PhotoProcessingSession", resource_id=session_id
+            )
 
         logger.info(
             "Photo processing session updated",
@@ -218,8 +222,9 @@ class PhotoProcessingSessionService:
 
         # Validate status is PENDING
         if existing.status != ProcessingSessionStatusEnum.PENDING:
+            current_status = existing.status.value if existing.status else "None"
             raise InvalidStatusTransitionException(
-                current=existing.status.value,
+                current=current_status,
                 target=ProcessingSessionStatusEnum.PROCESSING.value,
                 reason="Session must be PENDING to start processing",
             )
@@ -231,6 +236,10 @@ class PhotoProcessingSessionService:
                 "status": ProcessingSessionStatusEnum.PROCESSING,
             },
         )
+        if not updated:
+            raise ResourceNotFoundException(
+                resource_type="PhotoProcessingSession", resource_id=session_id
+            )
 
         logger.info(
             "Session marked as processing",
@@ -249,7 +258,7 @@ class PhotoProcessingSessionService:
         total_estimated: int,
         total_empty_containers: int,
         avg_confidence: float,
-        category_counts: dict,
+        category_counts: dict[str, int],
         processed_image_id: UUID,
     ) -> PhotoProcessingSessionResponse:
         """Mark session as completed with ML results.
@@ -284,8 +293,9 @@ class PhotoProcessingSessionService:
 
         # Validate status is PROCESSING
         if existing.status != ProcessingSessionStatusEnum.PROCESSING:
+            current_status = existing.status.value if existing.status else "None"
             raise InvalidStatusTransitionException(
-                current=existing.status.value,
+                current=current_status,
                 target=ProcessingSessionStatusEnum.COMPLETED.value,
                 reason="Session must be PROCESSING to mark as completed",
             )
@@ -327,6 +337,10 @@ class PhotoProcessingSessionService:
                 "processed_image_id": processed_image_id,
             },
         )
+        if not updated:
+            raise ResourceNotFoundException(
+                resource_type="PhotoProcessingSession", resource_id=session_id
+            )
 
         logger.info(
             "Session marked as completed",
@@ -373,6 +387,10 @@ class PhotoProcessingSessionService:
                 "error_message": error_message,
             },
         )
+        if not updated:
+            raise ResourceNotFoundException(
+                resource_type="PhotoProcessingSession", resource_id=session_id
+            )
 
         logger.warning(
             "Session marked as failed",

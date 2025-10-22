@@ -88,7 +88,7 @@ class StorageLocationResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
     @classmethod
-    def from_model(cls, location):
+    def from_model(cls, location: Any) -> "StorageLocationResponse":
         """Transform SQLAlchemy StorageLocation to Pydantic schema."""
         from geoalchemy2.shape import to_shape
 

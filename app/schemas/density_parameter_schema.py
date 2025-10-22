@@ -6,7 +6,7 @@ from typing import TYPE_CHECKING
 from pydantic import BaseModel, ConfigDict, Field
 
 if TYPE_CHECKING:
-    from app.models.density_parameter import DensityParameter
+    pass
 
 
 class DensityParameterCreateRequest(BaseModel):
@@ -28,22 +28,16 @@ class DensityParameterUpdateRequest(BaseModel):
 class DensityParameterResponse(BaseModel):
     """Response schema for density parameter."""
 
-    density_parameter_id: int
-    name: str
+    id: int
+    storage_bin_type_id: int
+    product_id: int
+    packaging_catalog_id: int
+    avg_area_per_plant_cm2: float
     plants_per_m2: float
-    confidence_threshold: float
+    overlap_adjustment_factor: float
+    avg_diameter_cm: float
+    notes: str | None
     created_at: datetime
     updated_at: datetime | None
 
     model_config = ConfigDict(from_attributes=True)
-
-    @classmethod
-    def from_model(cls, model: "DensityParameter") -> "DensityParameterResponse":
-        return cls(
-            density_parameter_id=model.density_parameter_id,
-            name=model.name,
-            plants_per_m2=model.plants_per_m2,
-            confidence_threshold=model.confidence_threshold,
-            created_at=model.created_at,
-            updated_at=model.updated_at,
-        )

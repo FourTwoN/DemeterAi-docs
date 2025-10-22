@@ -1,7 +1,7 @@
 """Product State Pydantic schemas."""
 
 from datetime import datetime
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, cast
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -40,10 +40,10 @@ class ProductStateResponse(BaseModel):
     def from_model(cls, model: "ProductState") -> "ProductStateResponse":
         """Create response from SQLAlchemy model."""
         return cls(
-            product_state_id=model.product_state_id,
-            code=model.code,
-            name=model.name,
-            is_sellable=model.is_sellable,
-            created_at=model.created_at,
+            product_state_id=cast(int, model.product_state_id),
+            code=cast(str, model.code),
+            name=cast(str, model.name),
+            is_sellable=cast(bool, model.is_sellable),
+            created_at=cast(datetime, model.created_at),
             updated_at=model.updated_at,
         )

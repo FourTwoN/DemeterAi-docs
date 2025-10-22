@@ -27,8 +27,8 @@ from dataclasses import asdict
 from unittest.mock import patch
 
 # Import cv2 after numpy to avoid import issues
-import cv2
-import numpy as np
+import cv2  # type: ignore[import-not-found]
+import numpy as np  # type: ignore[import-not-found]
 import pytest
 
 # =============================================================================

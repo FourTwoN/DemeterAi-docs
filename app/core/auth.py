@@ -44,7 +44,7 @@ from typing import Any
 import httpx
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
-from jose import JWTError, jwt
+from jose import JWTError, jwt  # type: ignore[import-untyped]
 from pydantic import BaseModel, Field, field_validator
 
 from app.core.config import settings
@@ -228,7 +228,7 @@ async def fetch_jwks() -> dict[str, Any]:
         async with httpx.AsyncClient(timeout=10.0) as client:
             response = await client.get(config.jwks_uri)
             response.raise_for_status()
-            jwks = response.json()
+            jwks: dict[str, Any] = response.json()
 
             logger.debug(
                 "Fetched JWKS from Auth0",
@@ -263,7 +263,8 @@ def _cache_jwks(jwks_json: str) -> dict[str, Any]:
     """
     import json
 
-    return json.loads(jwks_json)
+    result: dict[str, Any] = json.loads(jwks_json)
+    return result
 
 
 async def get_signing_key(token: str) -> str:
@@ -323,9 +324,12 @@ async def get_signing_key(token: str) -> str:
     logger.debug("Found signing key for token", kid=kid)
 
     # Convert RSA key to PEM format (python-jose requires this)
-    from jose.backends import RSAKey
+    from jose.backends import RSAKey  # type: ignore[import-untyped]
 
-    return RSAKey(rsa_key, algorithm="RS256").to_pem().decode("utf-8")
+    rsa_key_obj = RSAKey(rsa_key, algorithm="RS256")
+    pem_bytes = rsa_key_obj.to_pem()
+    pem_key: str = pem_bytes.decode("utf-8")
+    return pem_key
 
 
 # =============================================================================
@@ -441,7 +445,7 @@ async def get_current_user(
 # =============================================================================
 
 
-def require_role(allowed_roles: list[str]) -> Callable:
+def require_role(allowed_roles: list[str]) -> Callable[[Callable[..., Any]], Callable[..., Any]]:
     """Decorator to enforce role-based access control.
 
     Usage:
@@ -460,9 +464,9 @@ def require_role(allowed_roles: list[str]) -> Callable:
         ForbiddenException: If user lacks required role
     """
 
-    def decorator(func: Callable) -> Callable:
+    def decorator(func: Callable[..., Any]) -> Callable[..., Any]:
         @wraps(func)
-        async def wrapper(*args, **kwargs):
+        async def wrapper(*args: Any, **kwargs: Any) -> Any:
             # Extract user from kwargs (injected by get_current_user dependency)
             user: TokenClaims | None = kwargs.get("user")
 

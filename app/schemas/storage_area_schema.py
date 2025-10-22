@@ -40,7 +40,7 @@ See:
 """
 
 from datetime import datetime
-from typing import Any
+from typing import Any, cast
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
@@ -351,17 +351,17 @@ class StorageAreaResponse(BaseModel):
             centroid = to_shape(area.centroid).__geo_interface__
 
         return cls(
-            storage_area_id=area.storage_area_id,
-            warehouse_id=area.warehouse_id,
+            storage_area_id=cast(int, area.storage_area_id),
+            warehouse_id=cast(int, area.warehouse_id),
             parent_area_id=area.parent_area_id,
-            code=area.code,
-            name=area.name,
+            code=cast(str, area.code),
+            name=cast(str, area.name),
             position=area.position.value if area.position else None,
             geojson_coordinates=geojson,
             centroid=centroid,
             area_m2=float(area.area_m2) if area.area_m2 else None,
-            active=area.active,
-            created_at=area.created_at,
+            active=cast(bool, area.active),
+            created_at=cast(datetime, area.created_at),
             updated_at=area.updated_at,
         )
 

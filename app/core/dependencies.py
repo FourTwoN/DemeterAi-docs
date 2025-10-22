@@ -46,7 +46,8 @@ Usage:
         return user
 """
 
-from collections.abc import AsyncGenerator
+from collections.abc import AsyncGenerator, Callable, Coroutine
+from typing import Any
 
 from fastapi import Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -291,9 +292,9 @@ async def get_worker_user(
     return user
 
 
-async def get_authorized_user(
+def get_authorized_user(
     allowed_roles: list[str],
-) -> TokenClaims:
+) -> Callable[[TokenClaims], Coroutine[Any, Any, TokenClaims]]:
     """FastAPI dependency factory: Generic role-based authorization.
 
     Creates a custom dependency that checks for any of the specified roles.

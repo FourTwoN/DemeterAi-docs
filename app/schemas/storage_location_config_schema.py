@@ -1,7 +1,7 @@
 """Storage Location Config Pydantic schemas."""
 
 from datetime import datetime
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, cast
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -31,12 +31,14 @@ class StorageLocationConfigUpdateRequest(BaseModel):
 class StorageLocationConfigResponse(BaseModel):
     """Response schema for storage location config."""
 
-    storage_location_config_id: int
+    id: int
     storage_location_id: int
     product_id: int
-    packaging_catalog_id: int
-    product_state_id: int
-    expected_quantity: int
+    packaging_catalog_id: int | None
+    expected_product_state_id: int
+    area_cm2: float
+    active: bool
+    notes: str | None
     created_at: datetime
     updated_at: datetime | None
 
@@ -44,13 +46,20 @@ class StorageLocationConfigResponse(BaseModel):
 
     @classmethod
     def from_model(cls, model: "StorageLocationConfig") -> "StorageLocationConfigResponse":
+        from decimal import Decimal
+
         return cls(
-            storage_location_config_id=model.storage_location_config_id,
-            storage_location_id=model.storage_location_id,
-            product_id=model.product_id,
+            id=cast(int, model.id),
+            storage_location_id=cast(int, model.storage_location_id),
+            product_id=cast(int, model.product_id),
             packaging_catalog_id=model.packaging_catalog_id,
-            product_state_id=model.product_state_id,
-            expected_quantity=model.expected_quantity,
-            created_at=model.created_at,
+            expected_product_state_id=cast(int, model.expected_product_state_id),
+            area_cm2=cast(
+                float,
+                float(model.area_cm2) if isinstance(model.area_cm2, Decimal) else model.area_cm2,
+            ),
+            active=cast(bool, model.active),
+            notes=model.notes,
+            created_at=cast(datetime, model.created_at),
             updated_at=model.updated_at,
         )

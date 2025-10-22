@@ -112,17 +112,25 @@ class AnalyticsService:
         )
 
         # Apply filters if provided
-        filters = []
         if warehouse_id is not None:
-            filters.append(StockBatch.warehouse_id == warehouse_id)
+            # StockBatch → current_storage_bin → storage_location → storage_area → warehouse
+            from app.models.storage_area import StorageArea
+            from app.models.storage_bin import StorageBin
+            from app.models.storage_location import StorageLocation
+            from app.models.warehouse import Warehouse
+
+            stmt = (
+                stmt.join(StockBatch.current_storage_bin)
+                .join(StorageBin.storage_location)
+                .join(StorageLocation.storage_area)
+                .join(StorageArea.warehouse)
+                .where(Warehouse.warehouse_id == warehouse_id)
+            )
             logger.debug(f"Applied warehouse filter: warehouse_id={warehouse_id}")
 
         if product_id is not None:
-            filters.append(StockBatch.product_id == product_id)
+            stmt = stmt.where(StockBatch.product_id == product_id)
             logger.debug(f"Applied product filter: product_id={product_id}")
-
-        if filters:
-            stmt = stmt.where(*filters)
 
         # Execute query
         try:
@@ -201,8 +209,16 @@ class AnalyticsService:
             )
 
             if location_id:
-                stmt_in = stmt_in.where(StockMovement.destination_location_id == location_id)
-                stmt_out = stmt_out.where(StockMovement.source_location_id == location_id)
+                # StockMovement uses bin_id, need to join to get location_id
+                from app.models.storage_bin import StorageBin
+
+                stmt_in = stmt_in.join(
+                    StorageBin, StockMovement.destination_bin_id == StorageBin.bin_id
+                ).where(StorageBin.storage_location_id == location_id)
+
+                stmt_out = stmt_out.join(
+                    StorageBin, StockMovement.source_bin_id == StorageBin.bin_id
+                ).where(StorageBin.storage_location_id == location_id)
 
             try:
                 result_in = await session.execute(stmt_in)
@@ -212,9 +228,14 @@ class AnalyticsService:
                 movements_out = result_out.scalar() or 0
                 net_change = movements_in - movements_out
 
-                stmt_total = select(func.coalesce(func.sum(StockBatch.quantity), 0))
+                stmt_total = select(func.coalesce(func.sum(StockBatch.quantity_current), 0))
                 if location_id:
-                    stmt_total = stmt_total.where(StockBatch.storage_location_id == location_id)
+                    # StockBatch → current_storage_bin → storage_location
+                    from app.models.storage_bin import StorageBin
+
+                    stmt_total = stmt_total.join(
+                        StorageBin, StockBatch.current_storage_bin_id == StorageBin.bin_id
+                    ).where(StorageBin.storage_location_id == location_id)
                 if product_id:
                     stmt_total = stmt_total.where(StockBatch.product_id == product_id)
 
@@ -252,7 +273,19 @@ class AnalyticsService:
 
         stmt = select(StockBatch)
         if warehouse_id:
-            stmt = stmt.where(StockBatch.warehouse_id == warehouse_id)  # type: ignore[attr-defined]
+            # StockBatch → current_storage_bin → storage_location → storage_area → warehouse
+            from app.models.storage_area import StorageArea
+            from app.models.storage_bin import StorageBin
+            from app.models.storage_location import StorageLocation
+            from app.models.warehouse import Warehouse
+
+            stmt = (
+                stmt.join(StockBatch.current_storage_bin)
+                .join(StorageBin.storage_location)
+                .join(StorageLocation.storage_area)
+                .join(StorageArea.warehouse)
+                .where(Warehouse.warehouse_id == warehouse_id)
+            )
 
         try:
             result = await session.execute(stmt)
@@ -277,10 +310,12 @@ class AnalyticsService:
                         {
                             "id": batch.id,
                             "batch_code": batch.batch_code,
-                            "warehouse_id": batch.warehouse_id,
+                            "warehouse_id": batch.current_storage_bin.storage_location.storage_area.warehouse_id,
                             "product_id": batch.product_id,
-                            "quantity": batch.quantity,
-                            "created_at": batch.created_at.isoformat(),
+                            "quantity": batch.quantity_current,
+                            "created_at": batch.created_at.isoformat()
+                            if batch.created_at
+                            else None,
                         }
                     )
                 data = output.getvalue()
@@ -291,10 +326,10 @@ class AnalyticsService:
                     {
                         "id": batch.id,
                         "batch_code": batch.batch_code,
-                        "warehouse_id": batch.warehouse_id,
+                        "warehouse_id": batch.current_storage_bin.storage_location.storage_area.warehouse_id,
                         "product_id": batch.product_id,
-                        "quantity": batch.quantity,
-                        "created_at": batch.created_at.isoformat(),
+                        "quantity": batch.quantity_current,
+                        "created_at": batch.created_at.isoformat() if batch.created_at else None,
                     }
                     for batch in batches
                 ]

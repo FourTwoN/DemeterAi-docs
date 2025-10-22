@@ -71,7 +71,7 @@ class ProductService:
         max_suffix = 0
         for product in family_products:
             # Extract suffix from SKU (format: PREFIX-NNN)
-            if product.sku.startswith(family_prefix + "-"):
+            if product.sku and product.sku.startswith(family_prefix + "-"):
                 suffix_str = product.sku.split("-")[-1]
                 try:
                     suffix_num = int(suffix_str)

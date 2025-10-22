@@ -13,7 +13,13 @@ class StockBatchService:
     async def create_stock_batch(self, request: StockBatchCreateRequest) -> StockBatchResponse:
         """Create new stock batch."""
         # Check code uniqueness
-        existing = await self.batch_repo.get_by_field("batch_code", request.batch_code)
+        from sqlalchemy import select
+
+        stmt = select(self.batch_repo.model).where(
+            self.batch_repo.model.batch_code == request.batch_code
+        )
+        result = await self.batch_repo.session.execute(stmt)
+        existing = result.scalars().first()
         if existing:
             raise ValueError(f"Batch code '{request.batch_code}' already exists")
 
