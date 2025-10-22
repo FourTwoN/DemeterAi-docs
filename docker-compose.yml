@@ -200,7 +200,7 @@ services:
       redis:
         condition: service_healthy
     restart: unless-stopped
-    command: ["celery", "-A", "app.celery_app", "worker", "--pool=prefork", "--concurrency=4", "--queues=cpu_queue", "--loglevel=info"]
+    command: python /app/scripts/start_celery_worker.py
 
   # ==========================================
   # Celery I/O Worker (Gevent Pool)
