@@ -114,9 +114,16 @@ class WarehouseRepository(AsyncRepository[Warehouse]):
         Note:
             Undefined behavior if warehouse polygons overlap.
             ST_Contains returns first match only.
+
+        WARNING:
+            Database has coordinates stored as (latitude, longitude) but PostGIS expects
+            (longitude, latitude). This method inverts the coordinates to match the stored data.
+            TODO: Update database to use correct coordinate order.
         """
         # Create PostGIS point from coordinates (SRID 4326 = WGS84)
-        point = ST_SetSRID(ST_MakePoint(longitude, latitude), 4326)
+        # NOTE: Database stores geometries as (lat, lon) instead of (lon, lat)
+        # Inverting here temporarily until database is migrated
+        point = ST_SetSRID(ST_MakePoint(latitude, longitude), 4326)
 
         # Find warehouse polygon containing this point
         stmt = select(Warehouse).where(ST_Contains(Warehouse.geojson_coordinates, point))

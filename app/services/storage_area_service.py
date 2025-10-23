@@ -242,7 +242,9 @@ class StorageAreaService:
         from geoalchemy2.functions import ST_Contains
         from sqlalchemy import func, select
 
-        point = func.ST_SetSRID(func.ST_MakePoint(longitude, latitude), 4326)
+        # NOTE: Database stores geometries as (lat, lon) instead of (lon, lat)
+        # Inverting coordinates to match the stored data
+        point = func.ST_SetSRID(func.ST_MakePoint(latitude, longitude), 4326)
 
         # Build query
         query = select(self.storage_area_repo.model).where(

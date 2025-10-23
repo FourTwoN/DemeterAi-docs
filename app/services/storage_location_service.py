@@ -161,13 +161,16 @@ class StorageLocationService:
             return None
 
         # 3. Find storage location
-        from geoalchemy2.functions import ST_Contains
+        from geoalchemy2.functions import ST_Equals
         from sqlalchemy import func, select
 
-        point = func.ST_SetSRID(func.ST_MakePoint(longitude, latitude), 4326)
+        # NOTE: Database stores geometries as (lat, lon) instead of (lon, lat)
+        # Inverting coordinates to match the stored data
+        point = func.ST_SetSRID(func.ST_MakePoint(latitude, longitude), 4326)
 
+        # Storage locations are POINTS, so use ST_Equals instead of ST_Contains
         query = select(self.location_repo.model).where(
-            (ST_Contains(self.location_repo.model.coordinates, point))
+            (ST_Equals(self.location_repo.model.coordinates, point))
             & (self.location_repo.model.storage_area_id == area.storage_area_id)
             & (self.location_repo.model.active == True)  # noqa: E712
         )
