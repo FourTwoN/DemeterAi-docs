@@ -135,10 +135,11 @@ def create_celery_app() -> Celery:
 # - FastAPI integration: for checking task status
 app = create_celery_app()
 
-# CRITICAL: Register tasks with Celery app
-# This must happen at module load time for both API and Worker processes
-# NOTE: Task import disabled temporarily to fix worker startup.
-# Will be imported via autodiscover or explicit app.autodiscover_tasks call
+# Autodiscover tasks from the app.tasks package
+# This is called at worker startup to find and register all task modules
+# Tasks import this app module, so we avoid circular imports by using autodiscovery
+# instead of eager imports at module load time
+app.autodiscover_tasks(["app.tasks"])
 
 # CEL003: Worker Topology Configuration
 # =====================================
