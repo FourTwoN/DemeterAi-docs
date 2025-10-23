@@ -23,7 +23,7 @@ from alembic import op  # type: ignore[attr-defined]
 
 # revision identifiers, used by Alembic.
 revision: str = 'a1b2c3d4e5f6'
-down_revision: str | None = 'sof6kow8eu3r'
+down_revision: str | None = '9f8e7d6c5b4a'  # Changed from sof6kow8eu3r to depend on all tables being created first
 branch_labels: str | Sequence[str] | None = None
 depends_on: str | Sequence[str] | None = None
 
@@ -31,15 +31,27 @@ depends_on: str | Sequence[str] | None = None
 def upgrade() -> None:
   """Apply migration: Add circular FK constraint."""
   # Create the circular foreign key constraint
-  # use_alter=True allows the FK to reference a table that has a FK back to this table
-  op.create_foreign_key(
-      'fk_storage_location_photo_session',
-      'storage_locations',
-      'photo_processing_sessions',
-      ['photo_session_id'],
-      ['id'],
-      ondelete='SET NULL'
-  )
+  # Wrapped in conditional check since this depends on photo_processing_sessions table existing
+  # which may be created in the other branch
+  op.execute("""
+    DO $$
+    BEGIN
+        -- Check if both tables exist and constraint doesn't already exist
+        IF EXISTS (
+            SELECT 1 FROM information_schema.tables
+            WHERE table_name = 'photo_processing_sessions'
+        ) AND EXISTS (
+            SELECT 1 FROM information_schema.tables
+            WHERE table_name = 'storage_locations'
+        ) AND NOT EXISTS (
+            SELECT 1 FROM information_schema.table_constraints
+            WHERE constraint_name = 'fk_storage_location_photo_session'
+        ) THEN
+            ALTER TABLE storage_locations ADD CONSTRAINT fk_storage_location_photo_session
+                FOREIGN KEY(photo_session_id) REFERENCES photo_processing_sessions (id) ON DELETE SET NULL;
+        END IF;
+    END $$;
+  """)
 
 
 def downgrade() -> None:

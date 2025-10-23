@@ -13,7 +13,10 @@
       "Bash(alembic history:*)",
       "Bash(psql:*)",
       "Bash(docker compose:*)",
-      "Bash(curl:*)"
+      "Bash(curl:*)",
+      "Bash(docker ps:*)",
+      "Bash(docker exec:*)",
+      "Bash(docker logs:*)"
     ],
     "deny": [],
     "ask": []
