@@ -22,9 +22,11 @@ Critical Rules:
     - File size validation (max 20MB)
 """
 
+import io
 import uuid
 
 from fastapi import UploadFile
+from PIL import Image
 
 from app.core.exceptions import (
     ResourceNotFoundException,
@@ -153,6 +155,7 @@ class PhotoUploadService:
                 resource_id=f"GPS({gps_longitude}, {gps_latitude})",
             )
 
+        # location is StorageLocationResponse (schema), which uses storage_location_id
         storage_location_id = location.storage_location_id
 
         logger.info(
@@ -170,6 +173,26 @@ class PhotoUploadService:
         file_bytes = await file.read()
         await file.seek(0)  # Reset file pointer
 
+        # Extract image dimensions using PIL
+        logger.info("Extracting image dimensions")
+        try:
+            image_stream = io.BytesIO(file_bytes)
+            pil_image = Image.open(image_stream)
+            width_px = pil_image.width
+            height_px = pil_image.height
+            logger.info(
+                "Image dimensions extracted",
+                extra={"width_px": width_px, "height_px": height_px},
+            )
+        except Exception as e:
+            logger.error(
+                "Failed to extract image dimensions",
+                extra={"error": str(e)},
+            )
+            # Default to 1x1 if extraction fails (will still validate)
+            width_px = 1
+            height_px = 1
+
         # Generate temporary session_id for S3 upload (will be replaced by actual session)
         temp_session_id = uuid.uuid4()
 
@@ -179,8 +202,8 @@ class PhotoUploadService:
             filename=file.filename or "photo.jpg",
             content_type=ContentTypeEnum(file.content_type or "image/jpeg"),
             file_size_bytes=len(file_bytes),
-            width_px=0,  # Will be set by ML pipeline
-            height_px=0,  # Will be set by ML pipeline
+            width_px=width_px,  # Extracted from PIL
+            height_px=height_px,  # Extracted from PIL
             upload_source=UploadSourceEnum.WEB,
             uploaded_by_user_id=user_id,
             exif_metadata=None,

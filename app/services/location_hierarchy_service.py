@@ -44,7 +44,7 @@ class LocationHierarchyService:
             area_data: dict[str, Any] = {"area": area, "locations": []}
 
             for loc in locations:
-                bins = await self.bin_service.get_bins_by_location(loc.storage_location_id)
+                bins = await self.bin_service.get_bins_by_location(loc.location_id)
                 area_data["locations"].append({"location": loc, "bins": bins})
 
             hierarchy["areas"].append(area_data)
@@ -71,7 +71,7 @@ class LocationHierarchyService:
             return None
 
         logger.debug(
-            f"Found location {location.storage_location_id} at GPS ({longitude}, {latitude})"
+            f"Found location {location.location_id} at GPS ({longitude}, {latitude})"
         )
 
         # Get parent storage area
@@ -82,11 +82,11 @@ class LocationHierarchyService:
         if area:
             warehouse = await self.warehouse_service.get_warehouse_by_id(area.warehouse_id)
             logger.debug(
-                f"Full hierarchy: warehouse={warehouse.warehouse_id if warehouse else None}, area={area.storage_area_id}, location={location.storage_location_id}"
+                f"Full hierarchy: warehouse={warehouse.warehouse_id if warehouse else None}, area={area.storage_area_id}, location={location.location_id}"
             )
 
         # Get bins for this location
-        bins = await self.bin_service.get_bins_by_location(location.storage_location_id)
+        bins = await self.bin_service.get_bins_by_location(location.location_id)
 
         return {"warehouse": warehouse, "area": area, "location": location, "bins": bins}
 

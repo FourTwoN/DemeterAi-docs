@@ -97,7 +97,7 @@ class StorageLocationResponse(BaseModel):
         centroid = to_shape(location.centroid).__geo_interface__ if location.centroid else None
 
         return cls(
-            storage_location_id=location.storage_location_id,
+            storage_location_id=location.location_id,  # Fixed: model uses location_id, not storage_location_id
             storage_area_id=location.storage_area_id,
             code=location.code,
             name=location.name,

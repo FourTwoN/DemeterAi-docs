@@ -29,7 +29,6 @@ from app.models.storage_area import StorageArea
 from app.models.storage_location import StorageLocation
 from app.models.warehouse import Warehouse
 
-
 # =============================================================================
 # Fixtures
 # =============================================================================
@@ -41,7 +40,9 @@ async def test_warehouse(db_session):
     from geoalchemy2.elements import WKTElement
 
     # Create polygon covering Santiago, Chile area
-    polygon_wkt = "POLYGON((-70.75 -33.55, -70.55 -33.55, -70.55 -33.35, -70.75 -33.35, -70.75 -33.55))"
+    polygon_wkt = (
+        "POLYGON((-70.75 -33.55, -70.55 -33.55, -70.55 -33.35, -70.75 -33.35, -70.75 -33.55))"
+    )
     geometry = WKTElement(polygon_wkt, srid=4326)
 
     warehouse = Warehouse(
@@ -64,7 +65,9 @@ async def test_storage_area(db_session, test_warehouse):
     """Create test storage area."""
     from geoalchemy2.elements import WKTElement
 
-    polygon_wkt = "POLYGON((-70.70 -33.50, -70.60 -33.50, -70.60 -33.40, -70.70 -33.40, -70.70 -33.50))"
+    polygon_wkt = (
+        "POLYGON((-70.70 -33.50, -70.60 -33.50, -70.60 -33.40, -70.70 -33.40, -70.70 -33.50))"
+    )
     geometry = WKTElement(polygon_wkt, srid=4326)
 
     storage_area = StorageArea(
@@ -177,7 +180,11 @@ async def test_photo_upload_flow_v3_complete_e2e(
                 response = await client.post(
                     "/api/v1/stock/photo",
                     files={
-                        "file": ("greenhouse_photo.jpg", io.BytesIO(test_photo_bytes), "image/jpeg"),
+                        "file": (
+                            "greenhouse_photo.jpg",
+                            io.BytesIO(test_photo_bytes),
+                            "image/jpeg",
+                        ),
                     },
                     data={
                         "longitude": str(gps_longitude),
@@ -187,7 +194,9 @@ async def test_photo_upload_flow_v3_complete_e2e(
                 )
 
             # Assert 1: Response status and structure
-            assert response.status_code == 202, f"Expected 202, got {response.status_code}: {response.text}"
+            assert response.status_code == 202, (
+                f"Expected 202, got {response.status_code}: {response.text}"
+            )
 
             response_data = response.json()
             assert "task_id" in response_data, "Response missing task_id"

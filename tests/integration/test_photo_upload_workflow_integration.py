@@ -30,7 +30,6 @@ from app.models.storage_location import StorageLocation
 from app.models.warehouse import Warehouse
 from app.services.photo.photo_upload_service import PhotoUploadService
 
-
 # =============================================================================
 # Fixtures
 # =============================================================================
@@ -66,7 +65,9 @@ async def test_storage_area(db_session, test_warehouse):
     from geoalchemy2.elements import WKTElement
 
     # Create polygon inside warehouse
-    polygon_wkt = "POLYGON((-70.68 -33.48, -70.66 -33.48, -70.66 -33.46, -70.68 -33.46, -70.68 -33.48))"
+    polygon_wkt = (
+        "POLYGON((-70.68 -33.48, -70.66 -33.48, -70.66 -33.46, -70.68 -33.46, -70.68 -33.48))"
+    )
     geometry = WKTElement(polygon_wkt, srid=4326)
 
     storage_area = StorageArea(
@@ -246,7 +247,10 @@ async def test_photo_upload_complete_workflow_with_real_db(
             assert call_kwargs["session_id"] == session.id
             assert len(call_kwargs["image_data"]) == 1
             assert call_kwargs["image_data"][0]["image_id"] == str(s3_image.image_id)
-            assert call_kwargs["image_data"][0]["storage_location_id"] == test_storage_location.location_id
+            assert (
+                call_kwargs["image_data"][0]["storage_location_id"]
+                == test_storage_location.location_id
+            )
 
 
 @pytest.mark.asyncio

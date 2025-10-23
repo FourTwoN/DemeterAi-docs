@@ -2,21 +2,19 @@
 """Create minimal test data for E2E testing."""
 
 import asyncio
-from pathlib import Path
 import sys
+from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent))
 
-from sqlalchemy.ext.asyncio import create_async_engine
-from sqlalchemy.orm import sessionmaker
 from geoalchemy2.shape import from_shape
 from shapely.geometry import Point, Polygon
+from sqlalchemy.ext.asyncio import create_async_engine
 
-from app.models.warehouse import Warehouse
 from app.models.storage_area import StorageArea
 from app.models.storage_location import StorageLocation
 from app.models.user import User
-from app.db.base import Base
+from app.models.warehouse import Warehouse
 
 DATABASE_URL = "postgresql+asyncpg://demeter:demeter_dev_password@localhost:5432/demeterai"
 
@@ -31,7 +29,9 @@ async def create_test_data():
 
         async with AsyncSession(engine) as session:
             # Create warehouse
-            wh_polygon = Polygon([(-33.04, -68.71), (-33.04, -68.69), (-33.06, -68.69), (-33.06, -68.71)])
+            wh_polygon = Polygon(
+                [(-33.04, -68.71), (-33.04, -68.69), (-33.06, -68.69), (-33.06, -68.71)]
+            )
             wh_centroid = wh_polygon.centroid
 
             warehouse = Warehouse(
@@ -47,7 +47,9 @@ async def create_test_data():
             print(f"✓ Created warehouse: {warehouse.code}")
 
             # Create storage area
-            sa_polygon = Polygon([(-33.041, -68.705), (-33.041, -68.695), (-33.049, -68.695), (-33.049, -68.705)])
+            sa_polygon = Polygon(
+                [(-33.041, -68.705), (-33.041, -68.695), (-33.049, -68.695), (-33.049, -68.705)]
+            )
             sa_centroid = sa_polygon.centroid
 
             storage_area = StorageArea(
@@ -96,10 +98,19 @@ async def create_test_data():
 
             # Verify
             from sqlalchemy import select
-            wh_count = await session.scalar(select(len(__import__("app.models.warehouse", fromlist=["Warehouse"]).Warehouse.__table__)))
-            print(f"\n✓ Test data created successfully!")
-            print(f"  Use GPS: latitude=-33.043, longitude=-68.701")
-            print(f"  Use user_id=1")
+
+            wh_count = await session.scalar(
+                select(
+                    len(
+                        __import__(
+                            "app.models.warehouse", fromlist=["Warehouse"]
+                        ).Warehouse.__table__
+                    )
+                )
+            )
+            print("\n✓ Test data created successfully!")
+            print("  Use GPS: latitude=-33.043, longitude=-68.701")
+            print("  Use user_id=1")
 
     await _create()
     await engine.dispose()
