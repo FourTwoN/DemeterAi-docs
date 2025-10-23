@@ -511,6 +511,17 @@ class BandEstimationService:
         if img is None:
             raise ValueError(f"Failed to load image: {image_path}")
 
+        # Ensure mask matches image dimensions
+        if residual_mask.shape[:2] != img.shape[:2]:
+            logger.warning(
+                f"Mask shape {residual_mask.shape[:2]} doesn't match image shape {img.shape[:2]}, resizing mask"
+            )
+            residual_mask = cv2.resize(
+                residual_mask,
+                (img.shape[1], img.shape[0]),
+                interpolation=cv2.INTER_NEAREST
+            )
+
         # Mask image to residual region only
         img_masked = cv2.bitwise_and(img, img, mask=residual_mask)
 

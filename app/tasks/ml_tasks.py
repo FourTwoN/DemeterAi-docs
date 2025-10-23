@@ -371,80 +371,83 @@ def ml_child_task(
         # For S3 keys (development mode), we create a mock result
         # For production, implement S3 download + local processing
         image_file = Path(image_path)
-        is_local_file = image_file.exists()
+        is_local_file = image_file.exists() and image_file.is_absolute()
 
-        if is_local_file:
-            # Production mode: local file processing
-            logger.info(
-                f"Processing local image file: {image_path}",
-                extra={"image_path": image_path},
-            )
+        # Determine the actual path to use for processing
+        processing_path = image_path
+        temp_file_created = False
 
-            # Initialize ML services (dependency injection)
-            # Services handle model loading/caching via ModelCache singleton
-            segmentation_service = SegmentationService()
-            sahi_service = SAHIDetectionService(worker_id=0)  # Worker 0 (GPU-exclusive)
-            band_estimation_service = BandEstimationService()
-
-            # Initialize pipeline coordinator
-            coordinator = MLPipelineCoordinator(
-                segmentation_service=segmentation_service,
-                sahi_service=sahi_service,
-                band_estimation_service=band_estimation_service,
-            )
-
-            # Run complete ML pipeline (blocking, async coordination handled internally)
-            # This is CPU/GPU intensive (5-10 mins CPU, 1-3 mins GPU)
-            import asyncio
-
-            result: PipelineResult = asyncio.run(
-                coordinator.process_complete_pipeline(
-                    session_id=session_id,
-                    image_path=image_path,
-                    worker_id=0,  # GPU worker 0
-                    conf_threshold_segment=0.30,
-                    conf_threshold_detect=0.25,
-                )
-            )
-        else:
-            # Production mode: Download from S3 and process
-            logger.info(f"Downloading image from S3: {image_path}")
-
-            # Initialize ML services (dependency injection)
-            # Services handle model loading/caching via ModelCache singleton
-            segmentation_service = SegmentationService()
-            sahi_service = SAHIDetectionService(worker_id=0)  # Worker 0 (GPU-exclusive)
-            band_estimation_service = BandEstimationService()
-
-            # Initialize pipeline coordinator
-            coordinator = MLPipelineCoordinator(
-                segmentation_service=segmentation_service,
-                sahi_service=sahi_service,
-                band_estimation_service=band_estimation_service,
-            )
-
-            # Download image from S3 to temp file
-            import boto3
-
-            s3 = boto3.client("s3")
+        if not is_local_file:
+            # Check if file was already downloaded to /tmp (e.g., from a previous retry)
             temp_path = f"/tmp/{image_id}.jpg"
-            s3.download_file("demeter-photos-original", image_path, temp_path)
+            temp_file = Path(temp_path)
 
-            # Run actual ML pipeline
-            import asyncio
-
-            result: PipelineResult = asyncio.run(
-                coordinator.process_complete_pipeline(
-                    session_id=session_id,
-                    image_path=temp_path,
-                    worker_id=0,
-                    conf_threshold_segment=0.30,
-                    conf_threshold_detect=0.25,
+            if temp_file.exists():
+                # File already exists in /tmp, use it
+                logger.info(
+                    f"Using cached file from /tmp: {temp_path}",
+                    extra={"image_path": image_path, "temp_path": temp_path},
                 )
-            )
+                processing_path = temp_path
+            else:
+                # Download from S3
+                logger.info(
+                    f"Downloading image from S3: {image_path}",
+                    extra={"s3_path": image_path, "temp_path": temp_path},
+                )
 
-            # Cleanup
-            os.remove(temp_path)
+                # Download image from S3 to temp file
+                import boto3
+
+                s3 = boto3.client("s3")
+                s3.download_file("demeter-photos-original", image_path, temp_path)
+                processing_path = temp_path
+                temp_file_created = True
+
+                logger.info(
+                    f"Successfully downloaded image from S3 to {temp_path}",
+                    extra={"s3_path": image_path, "temp_path": temp_path},
+                )
+
+        # Initialize ML services (dependency injection)
+        # Services handle model loading/caching via ModelCache singleton
+        segmentation_service = SegmentationService()
+        sahi_service = SAHIDetectionService(worker_id=0)  # Worker 0 (GPU-exclusive)
+        band_estimation_service = BandEstimationService()
+
+        # Initialize pipeline coordinator
+        coordinator = MLPipelineCoordinator(
+            segmentation_service=segmentation_service,
+            sahi_service=sahi_service,
+            band_estimation_service=band_estimation_service,
+        )
+
+        # Run complete ML pipeline (blocking, async coordination handled internally)
+        # This is CPU/GPU intensive (5-10 mins CPU, 1-3 mins GPU)
+        import asyncio
+
+        logger.info(
+            f"Processing image: {processing_path}",
+            extra={"processing_path": processing_path, "is_local": is_local_file},
+        )
+
+        result: PipelineResult = asyncio.run(
+            coordinator.process_complete_pipeline(
+                session_id=session_id,
+                image_path=processing_path,
+                worker_id=0,  # GPU worker 0
+                conf_threshold_segment=0.30,
+                conf_threshold_detect=0.25,
+            )
+        )
+
+        # Cleanup temp file only if we just created it
+        if temp_file_created and Path(processing_path).exists():
+            os.remove(processing_path)
+            logger.info(
+                f"Cleaned up temporary file: {processing_path}",
+                extra={"temp_path": processing_path},
+            )
 
         logger.info(
             f"ML child task completed for session {session_id}, image {image_id}: "

@@ -64,7 +64,7 @@ class SegmentResult:
     def __post_init__(self) -> None:
         """Validate fields after initialization."""
         # Validate container type
-        valid_types = {"plug", "box", "segment"}
+        valid_types = {"plug", "almacigo", "cajon", "segmento", "claro-cajon", "claro_cajon", "segment", "box"}
         if self.container_type not in valid_types:
             raise ValueError(
                 f"Invalid container_type: {self.container_type}. Must be one of {valid_types}"
@@ -119,9 +119,12 @@ class SegmentationService:
     # Container type remapping (YOLO class → standardized type)
     CONTAINER_TYPE_MAPPING = {
         "claro-cajon": "segment",  # Large containers
-        "caja": "box",  # Medium containers
-        "charola": "plug",  # Small trays
-        "bandeja": "plug",  # Alternative name for trays
+        "claro_cajon": "segment",  # Large containers
+        "segmento": "segment",  # Large containers
+        "segment": "segment",  # Large containers
+        "cajon": "box",  # Medium containers
+        "plug": "plug",  # Small trays
+        "almacigo": "almacigo",  # Alternative name for trays
     }
 
     def __init__(self) -> None:

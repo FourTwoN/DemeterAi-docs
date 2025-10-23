@@ -1,3 +1,30 @@
+# ============================================
+# DemeterAI v2.0 - Docker Compose Configuration
+# ============================================
+#
+# BUILD OPTIMIZATION NOTES:
+# -------------------------
+# 1. Single image build: All services use `demeterai-base:latest` to avoid
+#    rebuilding the same image 5 times (saves ~400s per build)
+#
+# 2. BuildKit cache: The `api` service has `cache_from` configured to reuse
+#    previous build layers. Enable BuildKit for best performance:
+#    $ export DOCKER_BUILDKIT=1
+#    $ export COMPOSE_DOCKER_CLI_BUILD=1
+#
+# 3. Development workflow tips:
+#    - For code changes only: `docker compose restart <service>`
+#    - For dependency changes: `docker compose build --no-cache api && docker compose up -d`
+#    - FastAPI auto-reload is enabled (--reload flag) for instant code updates
+#    - Use bind mounts (see commented section below) for even faster iteration
+#
+# 4. Pre-pull base images to save time:
+#    $ docker pull python:3.12-slim
+#    $ docker pull postgis/postgis:18-3.6
+#    $ docker pull redis:7-alpine
+#
+# ============================================
+
 services:
   # ==========================================
   # PostgreSQL 18 + PostGIS 3.6 (Development)
@@ -110,6 +137,10 @@ services:
   # ==========================================
   # FastAPI Application - Development Mode
   # ==========================================
+  # BUILD OPTIMIZATION: This service builds the base image once and tags it as
+  # `demeterai-base:latest`. All other services reuse this image to avoid
+  # redundant builds (saves ~10 minutes on full rebuild).
+  # ==========================================
   api:
     build:
       context: .
@@ -122,6 +153,13 @@ services:
     container_name: demeterai-api
     ports:
       - "8000:8000"
+    # OPTIONAL: For ultra-fast development, uncomment bind mounts below to get
+    # instant code updates without rebuilding. Requires commenting out the
+    # corresponding COPY commands in Dockerfile.
+    # volumes:
+    #   - ./app:/app/app:ro              # Application code (read-only)
+    #   - ./alembic:/app/alembic:ro      # Alembic migrations (read-only)
+    #   - ./scripts:/app/scripts:ro      # Helper scripts (read-only)
     env_file:
       - .env
     environment:
@@ -184,6 +222,8 @@ services:
   # ==========================================
   # Celery CPU Worker (Prefork Pool)
   # ==========================================
+  # BUILD OPTIMIZATION: Reuses demeterai-base:latest (no rebuild needed)
+  # ==========================================
   celery_cpu:
     image: demeterai-base:latest
     container_name: demeterai-celery-cpu
@@ -214,6 +254,8 @@ services:
   # ==========================================
   # In production, this runs on GPU hardware with pool=solo
   # For development/testing on CPU-only machines, uses pool=solo with single process
+  # BUILD OPTIMIZATION: Reuses demeterai-base:latest (no rebuild needed)
+  # ==========================================
   celery_gpu:
     image: demeterai-base:latest
     container_name: demeterai-celery-gpu
@@ -244,6 +286,8 @@ services:
   # ==========================================
   # Celery I/O Worker (Gevent Pool)
   # ==========================================
+  # BUILD OPTIMIZATION: Reuses demeterai-base:latest (no rebuild needed)
+  # ==========================================
   celery_io:
     image: demeterai-base:latest
     container_name: demeterai-celery-io
@@ -268,6 +312,8 @@ services:
 
   # ==========================================
   # Flower (Celery Monitoring)
+  # ==========================================
+  # BUILD OPTIMIZATION: Reuses demeterai-base:latest (no rebuild needed)
   # ==========================================
   flower:
     image: demeterai-base:latest
