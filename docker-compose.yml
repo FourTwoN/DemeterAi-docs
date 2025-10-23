@@ -136,9 +136,9 @@ services:
       # Logging
       - LOG_LEVEL=DEBUG
       - DEBUG=true
-      # OpenTelemetry configuration
+      # OpenTelemetry configuration (pointing to LGTM container gRPC endpoint)
       - OTEL_ENABLED=true
-      - OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4318
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://lgtm-demeter:4317
       - OTEL_SERVICE_NAME=demeterai-api
       - APP_ENV=development
       # Auth0 configuration (override with .env)
@@ -195,6 +195,11 @@ services:
       - CELERY_BROKER_URL=redis://redis:6379/0
       - CELERY_RESULT_BACKEND=redis://redis:6379/1
       - PYTHONPATH=/app
+      # OpenTelemetry configuration (pointing to LGTM container)
+      - OTEL_ENABLED=true
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://lgtm-demeter:4317
+      - OTEL_SERVICE_NAME=demeterai-celery-cpu
+      - APP_ENV=development
     depends_on:
       db:
         condition: service_healthy
@@ -219,6 +224,11 @@ services:
       - REDIS_URL=redis://redis:6379/0
       - CELERY_BROKER_URL=redis://redis:6379/0
       - CELERY_RESULT_BACKEND=redis://redis:6379/1
+      # OpenTelemetry configuration (pointing to LGTM container)
+      - OTEL_ENABLED=true
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://lgtm-demeter:4317
+      - OTEL_SERVICE_NAME=demeterai-celery-io
+      - APP_ENV=development
     depends_on:
       redis:
         condition: service_healthy
@@ -240,6 +250,11 @@ services:
     environment:
       - CELERY_BROKER_URL=redis://redis:6379/0
       - CELERY_RESULT_BACKEND=redis://redis:6379/1
+      # OpenTelemetry configuration (pointing to LGTM container)
+      - OTEL_ENABLED=true
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://lgtm-demeter:4317
+      - OTEL_SERVICE_NAME=demeterai-flower
+      - APP_ENV=development
     depends_on:
       redis:
         condition: service_healthy
