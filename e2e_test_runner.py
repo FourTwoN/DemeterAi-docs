@@ -15,7 +15,6 @@ Requirements:
 """
 
 import asyncio
-import json
 import sys
 import time
 from pathlib import Path
@@ -23,7 +22,7 @@ from pathlib import Path
 import httpx
 from geoalchemy2.shape import from_shape
 from shapely.geometry import Point, Polygon
-from sqlalchemy import select, text
+from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 
 sys.path.insert(0, str(Path(__file__).parent))
@@ -92,7 +91,13 @@ async def setup_test_data():
         async with AsyncSession(engine) as session:
             # 1. Create warehouse
             wh_polygon = Polygon(
-                [(-70.75, -33.55), (-70.55, -33.55), (-70.55, -33.35), (-70.75, -33.35), (-70.75, -33.55)]
+                [
+                    (-70.75, -33.55),
+                    (-70.55, -33.55),
+                    (-70.55, -33.35),
+                    (-70.75, -33.35),
+                    (-70.75, -33.55),
+                ]
             )
             warehouse = Warehouse(
                 code="WH-E2E-TEST",
@@ -107,7 +112,13 @@ async def setup_test_data():
 
             # 2. Create storage area
             sa_polygon = Polygon(
-                [(-70.70, -33.50), (-70.60, -33.50), (-70.60, -33.40), (-70.70, -33.40), (-70.70, -33.50)]
+                [
+                    (-70.70, -33.50),
+                    (-70.60, -33.50),
+                    (-70.60, -33.40),
+                    (-70.70, -33.40),
+                    (-70.70, -33.50),
+                ]
             )
             storage_area = StorageArea(
                 warehouse_id=warehouse.warehouse_id,
@@ -119,7 +130,9 @@ async def setup_test_data():
             )
             session.add(storage_area)
             await session.flush()
-            print_success(f"Created storage area: {storage_area.code} (ID={storage_area.storage_area_id})")
+            print_success(
+                f"Created storage area: {storage_area.code} (ID={storage_area.storage_area_id})"
+            )
 
             # 3. Create storage location (INSIDE area polygon)
             loc_point = Point(-70.650, -33.450)  # lon, lat (inside SA polygon)
@@ -134,7 +147,9 @@ async def setup_test_data():
             )
             session.add(storage_location)
             await session.flush()
-            print_success(f"Created storage location: {storage_location.code} (ID={storage_location.location_id})")
+            print_success(
+                f"Created storage location: {storage_location.code} (ID={storage_location.location_id})"
+            )
             print_info(f"  GPS coordinates: longitude={-70.650}, latitude={-33.450}")
 
             # 4. Create user
@@ -322,7 +337,9 @@ async def verify_database_state(test_data: dict, session_id: int):
         async with AsyncSession(engine) as session:
             # 1. Check photo_processing_sessions
             result = await session.execute(
-                text("SELECT id, status, total_images FROM photo_processing_sessions WHERE id = :session_id"),
+                text(
+                    "SELECT id, status, total_images FROM photo_processing_sessions WHERE id = :session_id"
+                ),
                 {"session_id": session_id},
             )
             row = result.first()
@@ -456,10 +473,10 @@ async def main():
         print_success("Test execution finished!")
         print_info("\nManual verification steps:")
         print_info(f"1. Check Flower dashboard: {FLOWER_URL}")
-        print_info(f"2. Check S3 bucket for uploaded images")
+        print_info("2. Check S3 bucket for uploaded images")
         print_info(f"3. Verify database records for session_id={session_id}")
-        print_info(f"4. Check API logs: docker logs demeterai-api")
-        print_info(f"5. Check Celery logs: docker logs demeterai-celery-cpu")
+        print_info("4. Check API logs: docker logs demeterai-api")
+        print_info("5. Check Celery logs: docker logs demeterai-celery-cpu")
 
     except Exception as e:
         print_error(f"E2E test failed with exception: {str(e)}")

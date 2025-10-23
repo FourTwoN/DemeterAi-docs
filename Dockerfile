@@ -36,7 +36,7 @@ ENV PATH="$VIRTUAL_ENV/bin:$PATH"
 # Install dependencies with optimizations
 RUN pip install --no-cache-dir --upgrade pip setuptools wheel && \
     pip install --no-cache-dir -r requirements.txt && \
-    # Remove unnecessary files to reduce size
+# Remove unnecessary files to reduce size
     find /opt/venv -type d -name "__pycache__" -exec rm -rf {} + || true && \
     find /opt/venv -type f -name "*.pyc" -delete || true && \
     find /opt/venv -type f -name "*.pyo" -delete || true
@@ -83,6 +83,7 @@ COPY --chown=appuser:appuser alembic/ alembic/
 COPY --chown=appuser:appuser alembic.ini .
 COPY --chown=appuser:appuser .env.example .env.example
 COPY --chown=appuser:appuser scripts/ scripts/
+COPY --chown=appuser:appuser production_data/ production_data/
 
 # Switch to non-root user
 USER appuser

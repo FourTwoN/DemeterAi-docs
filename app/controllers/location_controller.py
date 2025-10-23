@@ -311,7 +311,7 @@ async def search_by_gps(
             "GPS search successful",
             extra={
                 "warehouse_id": warehouse.warehouse_id if warehouse else None,
-                "location_id": location.location_id,
+                "location_id": location.storage_location_id,
             },
         )
 

@@ -20,10 +20,6 @@ import json
 import os
 import sys
 import time
-import uuid
-from datetime import datetime
-from pathlib import Path
-from typing import Optional
 
 import aiohttp
 import psycopg2
@@ -53,9 +49,9 @@ COLORS = {
 
 def print_header(text: str) -> None:
     """Print section header."""
-    print(f"\n{COLORS['BLUE']}{'='*70}")
+    print(f"\n{COLORS['BLUE']}{'=' * 70}")
     print(f"{text.center(70)}")
-    print(f"{'='*70}{COLORS['RESET']}\n")
+    print(f"{'=' * 70}{COLORS['RESET']}\n")
 
 
 def print_success(text: str) -> None:
@@ -98,14 +94,16 @@ def get_db_connection():
 async def check_api_health() -> bool:
     """Check if API is healthy."""
     try:
-        async with aiohttp.ClientSession() as session:
-            async with session.get(f"{API_URL}/health", timeout=aiohttp.ClientTimeout(total=5)) as resp:
-                if resp.status == 200:
-                    print_success("API is healthy")
-                    return True
-                else:
-                    print_error(f"API health check failed with status {resp.status}")
-                    return False
+        async with (
+            aiohttp.ClientSession() as session,
+            session.get(f"{API_URL}/health", timeout=aiohttp.ClientTimeout(total=5)) as resp,
+        ):
+            if resp.status == 200:
+                print_success("API is healthy")
+                return True
+            else:
+                print_error(f"API health check failed with status {resp.status}")
+                return False
     except Exception as e:
         print_error(f"Failed to connect to API: {e}")
         return False
@@ -115,7 +113,7 @@ async def upload_photo(
     gps_longitude: float,
     gps_latitude: float,
     user_id: int = 1,
-) -> Optional[dict]:
+) -> dict | None:
     """Upload photo via API."""
     if not os.path.exists(TEST_IMAGE_PATH):
         print_error(f"Test image not found at {TEST_IMAGE_PATH}")
@@ -132,25 +130,28 @@ async def upload_photo(
             data.add_field("gps_latitude", str(gps_latitude))
             data.add_field("user_id", str(user_id))
 
-            async with aiohttp.ClientSession() as session:
-                async with session.post(
+            async with (
+                aiohttp.ClientSession() as session,
+                session.post(
                     f"{API_URL}/api/v1/stock/photo",
                     data=data,
                     timeout=aiohttp.ClientTimeout(total=30),
-                ) as resp:
-                    response_data = await resp.json()
+                ) as resp,
+            ):
+                response_data = await resp.json()
 
-                    if resp.status == 202:
-                        print_success(f"Photo uploaded - Status: {resp.status}")
-                        print_info(f"Response: {json.dumps(response_data, indent=2)}")
-                        return response_data
-                    else:
-                        print_error(f"Upload failed with status {resp.status}")
-                        print_error(f"Response: {json.dumps(response_data, indent=2)}")
-                        return None
+                if resp.status == 202:
+                    print_success(f"Photo uploaded - Status: {resp.status}")
+                    print_info(f"Response: {json.dumps(response_data, indent=2)}")
+                    return response_data
+                else:
+                    print_error(f"Upload failed with status {resp.status}")
+                    print_error(f"Response: {json.dumps(response_data, indent=2)}")
+                    return None
     except Exception as e:
         print_error(f"Upload request failed: {e}")
         import traceback
+
         traceback.print_exc()
         return None
 
@@ -186,8 +187,11 @@ async def poll_celery_tasks(task_ids: list[str], max_wait: int = MAX_WAIT_TIME) 
                             print_success("All Celery tasks completed")
                             return response_data
                         else:
-                            pending = sum(1 for t in response_data.get("tasks", [])
-                                        if t.get("status") not in ["SUCCESS", "FAILURE"])
+                            pending = sum(
+                                1
+                                for t in response_data.get("tasks", [])
+                                if t.get("status") not in ["SUCCESS", "FAILURE"]
+                            )
                             print_info(f"Waiting for {pending} tasks...")
                             await asyncio.sleep(5)
                     else:
@@ -215,7 +219,7 @@ def query_database(query: str, params: tuple = ()) -> list[dict]:
         return []
 
 
-def verify_database_state(image_id: Optional[str] = None) -> bool:
+def verify_database_state(image_id: str | None = None) -> bool:
     """Verify the database state after upload."""
     print_header("Database Verification")
 
@@ -254,9 +258,7 @@ def verify_database_state(image_id: Optional[str] = None) -> bool:
 
     # Check detections table
     print_info("Checking detections table...")
-    detections = query_database(
-        "SELECT COUNT(*) as count FROM detections"
-    )
+    detections = query_database("SELECT COUNT(*) as count FROM detections")
     if detections and detections[0]["count"] > 0:
         print_success(f"Found {detections[0]['count']} detections")
     else:
@@ -264,9 +266,7 @@ def verify_database_state(image_id: Optional[str] = None) -> bool:
 
     # Check estimations table
     print_info("Checking estimations table...")
-    estimations = query_database(
-        "SELECT COUNT(*) as count FROM estimations"
-    )
+    estimations = query_database("SELECT COUNT(*) as count FROM estimations")
     if estimations and estimations[0]["count"] > 0:
         print_success(f"Found {estimations[0]['count']} estimations")
     else:
@@ -295,7 +295,9 @@ async def main() -> None:
     if not os.path.exists(TEST_IMAGE_PATH):
         print_error(f"Test image not found at {TEST_IMAGE_PATH}")
         print_info("Create a test image first:")
-        print_info("  python -c \"from PIL import Image; img = Image.new('RGB', (640, 480), color='green'); img.save('/tmp/test_image.jpg')\"")
+        print_info(
+            "  python -c \"from PIL import Image; img = Image.new('RGB', (640, 480), color='green'); img.save('/tmp/test_image.jpg')\""
+        )
         sys.exit(1)
 
     # Step 1: API Health Check
@@ -311,9 +313,7 @@ async def main() -> None:
 
     # Step 3: Get test location
     print_header("Step 3: Find Test Location")
-    locations = query_database(
-        "SELECT location_id, code, name FROM storage_locations LIMIT 1"
-    )
+    locations = query_database("SELECT location_id, code, name FROM storage_locations LIMIT 1")
 
     if not locations:
         print_error("No storage locations found in database")
@@ -381,6 +381,7 @@ if __name__ == "__main__":
         print_info("Creating test image...")
         try:
             from PIL import Image
+
             img = Image.new("RGB", (640, 480), color="green")
             img.save(TEST_IMAGE_PATH)
             print_success(f"Test image created: {TEST_IMAGE_PATH}")

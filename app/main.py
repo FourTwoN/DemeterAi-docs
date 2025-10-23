@@ -56,6 +56,59 @@ app = FastAPI(
 )
 
 
+# =============================================================================
+# Database Initialization on Startup
+# =============================================================================
+
+
+@app.on_event("startup")
+async def startup_event() -> None:
+    """Initialize database on application startup.
+
+    Two modes are available:
+
+    1. Development mode (default):
+       - Drops and recreates all tables on EVERY startup
+       - WARNING: All existing data will be LOST
+       - Only use in development
+
+    2. Production data mode:
+       - Creates tables if they don't exist
+       - Loads production data from GeoJSON and CSV files
+       - Idempotent - safe to run multiple times
+
+    To switch to production data mode, set environment variable:
+        LOAD_PRODUCTION_DATA=true
+
+    Or edit the load_production_data parameter below.
+    """
+    from app.db.init_db import init_database
+
+    logger.info("=" * 80)
+    logger.info("🚀 Starting DemeterAI v2.0 application...")
+    logger.info("=" * 80)
+
+    # Check if we should load production data
+    import os
+
+    load_prod_data = os.getenv("LOAD_PRODUCTION_DATA", "false").lower() == "true"
+
+    # Option 1: Use environment variable (default)
+    # load_prod_data = os.getenv("LOAD_PRODUCTION_DATA", "false").lower() == "true"
+
+    # Option 2: Uncomment to always load production data
+    # load_prod_data = True
+
+    # Option 3: Uncomment for development mode (drop + recreate)
+    # load_prod_data = False
+
+    # Initialize database with appropriate mode
+    await init_database(load_production_data=load_prod_data)
+
+    logger.info("✅ Application startup complete!")
+    logger.info("=" * 80)
+
+
 class CorrelationIdMiddleware(BaseHTTPMiddleware):
     """Middleware to inject correlation IDs into requests.
 
@@ -264,3 +317,12 @@ async def metrics() -> Response:
         content=metrics_data,
         media_type="text/plain; version=0.0.4; charset=utf-8",
     )
+
+
+if __name__ == "__main__":
+    import asyncio
+
+    import uvicorn
+
+    asyncio.set_event_loop_policy(asyncio.DefaultEventLoopPolicy())
+    uvicorn.run("app.main:app", host="0.0.0.0", port=8000, reload=True)

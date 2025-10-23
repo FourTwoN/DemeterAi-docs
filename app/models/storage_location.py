@@ -145,7 +145,7 @@ class StorageLocation(Base):
         area_geom = area.geojson_coordinates
         result = await session.execute(
             select(StorageLocation).where(
-                ST_Contains(area_geom, StorageLocation.coordinates)
+                ST_Contains(area_geom, StorageLocation.geojson_coordinates)
             )
         )
         locations = result.scalars().all()
@@ -207,28 +207,28 @@ class StorageLocation(Base):
     description = Column(Text, nullable=True, comment="Optional detailed description")
 
     # PostGIS geometry columns (SRID 4326 = WGS84 for GPS compatibility)
-    # CRITICAL: Using POINT geometry (not POLYGON) for single GPS coordinate
-    coordinates: Mapped[str] = mapped_column(
-        Geometry("POINT", srid=4326, spatial_index=False),
+    # Using POLYGON geometry to match ERD specification (database.mmd line 41)
+    geojson_coordinates: Mapped[str] = mapped_column(
+        Geometry("POLYGON", srid=4326),
         nullable=False,
-        comment="GPS coordinate where photo is taken (POINT geometry, WGS84)",
+        comment="Storage location boundary polygon (WGS84 coordinates)",
     )
 
     centroid: Mapped[str | None] = mapped_column(
-        Geometry("POINT", srid=4326, spatial_index=False),
+        Geometry("POINT", srid=4326),
         nullable=True,
         insert_default=None,
-        comment="Auto-calculated center point (equals coordinates for POINT geometry)",
+        comment="Auto-calculated center point (database trigger)",
     )
 
-    # Area calculation (GENERATED column - always 0 for POINT geometry)
+    # Area calculation (GENERATED column - auto-calculated by PostgreSQL)
     # NOTE: This column is added via Alembic migration, not here
-    # PostgreSQL syntax: GENERATED ALWAYS AS (0.0) STORED
+    # PostgreSQL syntax: GENERATED ALWAYS AS (ST_Area(geojson_coordinates::geography)) STORED
     area_m2: Mapped[float | None] = mapped_column(
         Numeric(10, 2),
         nullable=True,
         insert_default=None,
-        comment="Auto-calculated area in m² (always 0 for POINT geometry, GENERATED column)",
+        comment="Auto-calculated area in m² (GENERATED column)",
     )
 
     # Position metadata (JSONB for flexible camera/lighting data)
