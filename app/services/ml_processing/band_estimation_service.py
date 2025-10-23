@@ -35,12 +35,8 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
-try:
-    import cv2  # type: ignore[import-not-found]
-    import numpy as np  # type: ignore[import-not-found]
-except ImportError:
-    cv2 = None
-    np = None
+import cv2
+import numpy as np
 
 if TYPE_CHECKING:
     from numpy.typing import NDArray  # type: ignore[import-not-found]

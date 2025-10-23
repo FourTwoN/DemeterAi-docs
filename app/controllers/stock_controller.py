@@ -67,8 +67,6 @@ def get_factory(session: AsyncSession = Depends(get_db_session)) -> ServiceFacto
 )
 async def upload_photo_for_stock_count(
     file: Annotated[UploadFile, File(description="Photo file (max 20MB, JPEG/PNG/WEBP)")],
-    longitude: Annotated[float, Form(description="GPS longitude coordinate")],
-    latitude: Annotated[float, Form(description="GPS latitude coordinate")],
     user_id: Annotated[int, Form(description="User ID for tracking")],
     factory: ServiceFactory = Depends(get_factory),
 ) -> PhotoUploadResponse:
@@ -76,22 +74,25 @@ async def upload_photo_for_stock_count(
 
   Complete workflow:
   1. Validate file (type, size)
-  2. GPS-based location lookup
-  3. Upload to S3
-  4. Create processing session
-  5. Dispatch ML pipeline (Celery)
+  2. Extract GPS coordinates from photo metadata
+  3. GPS-based location lookup
+  4. Upload to S3
+  5. Create processing session
+  6. Dispatch ML pipeline (Celery)
 
   Args:
       file: Photo file (JPEG/PNG/WEBP, max 20MB)
-      longitude: GPS longitude coordinate
-      latitude: GPS latitude coordinate
       user_id: User ID for audit trail
+
+  Note:
+      GPS coordinates are extracted from the photo's metadata by the service.
+      Metadata can be IPTC, XMP, or other embedded formats.
 
   Returns:
       PhotoUploadResponse with task_id for polling
 
   Raises:
-      HTTPException 400: Invalid file type/size
+      HTTPException 400: Invalid file type/size or missing GPS coordinates
       HTTPException 404: GPS location not found
       HTTPException 500: Upload/processing error
 
@@ -100,8 +101,6 @@ async def upload_photo_for_stock_count(
       curl -X POST "http://localhost:8000/api/v1/stock/photo" \\
         -H "Content-Type: multipart/form-data" \\
         -F "file=@photo.jpg" \\
-        -F "longitude=10.5" \\
-        -F "latitude=20.5" \\
         -F "user_id=1"
       ```
   """
@@ -111,14 +110,12 @@ async def upload_photo_for_stock_count(
             extra={
                 "filename": file.filename,
                 "content_type": file.content_type,
-                "longitude": longitude,
-                "latitude": latitude,
                 "user_id": user_id,
             },
         )
 
         service = factory.get_photo_upload_service()
-        result = await service.upload_photo(file, longitude, latitude, user_id)
+        result = await service.upload_photo(file, user_id)
 
         logger.info(
             "Photo upload successful",

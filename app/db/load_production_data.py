@@ -457,7 +457,24 @@ class ProductionDataLoader:
         logger.info(f"  Found {len(storage_areas)} storage areas to map")
 
         count = 0
-        location_counter = 1
+        # Get the highest existing QR code number to avoid duplicates
+        stmt = select(StorageLocation).order_by(StorageLocation.qr_code.desc()).limit(1)
+        result = await self.session.execute(stmt)
+        last_location = result.scalar_one_or_none()
+
+        if last_location and last_location.qr_code:
+            try:
+                # Extract number from QR code like "LOC000001"
+                last_num = int(last_location.qr_code.replace("LOC", ""))
+                location_counter = last_num + 1
+                logger.info(f"  Resuming from QR code LOC{location_counter:06d}")
+            except (ValueError, AttributeError):
+                location_counter = 1
+                logger.info("  Starting fresh QR code counter")
+        else:
+            location_counter = 1
+            logger.info("  Starting fresh QR code counter")
+
         for feature in geojson_data.get("features", []):
             try:
                 name = feature.get("properties", {}).get("Name", "")
@@ -484,19 +501,37 @@ class ProductionDataLoader:
                     existing = result.scalar_one_or_none()
 
                     if not existing:
-                        self.session.add(storage_location)
-                        count += 1
-                        logger.info(
-                            f"  ✓ StorageLocation: {storage_location.name} ({storage_location.code}) -> {storage_area.name}"
+                        # Double-check QR code uniqueness (idempotency safety)
+                        stmt_qr = select(StorageLocation).where(
+                            StorageLocation.qr_code == storage_location.qr_code
                         )
+                        result_qr = await self.session.execute(stmt_qr)
+                        existing_qr = result_qr.scalar_one_or_none()
+
+                        if not existing_qr:
+                            self.session.add(storage_location)
+                            count += 1
+                            logger.info(
+                                f"  ✓ StorageLocation: {storage_location.name} ({storage_location.code}) -> {storage_area.name}"
+                            )
+                        else:
+                            logger.info(f"  ⊘ QR code already exists: {storage_location.qr_code}")
+
                         location_counter += 1
                     else:
                         logger.info(f"  ⊘ StorageLocation already exists: {storage_location.code}")
+                        location_counter += 1
 
             except Exception as e:
                 logger.error(f"  ✗ Error parsing storage location: {str(e)}", exc_info=True)
+                location_counter += 1
+                # Don't stop processing, continue with next location
 
-        await self.session.commit()
+        try:
+            await self.session.commit()
+        except Exception as e:
+            logger.error(f"  ✗ Error committing storage locations: {str(e)}")
+            await self.session.rollback()
         self.loaded_count["storage_locations"] = count
         logger.info(f"✅ Loaded {count} storage locations")
         return count

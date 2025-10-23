@@ -33,9 +33,12 @@ ENV VIRTUAL_ENV=/opt/venv
 RUN python -m venv $VIRTUAL_ENV
 ENV PATH="$VIRTUAL_ENV/bin:$PATH"
 
+RUN pip install uv
+
 # Install dependencies with optimizations
-RUN pip install --no-cache-dir --upgrade pip setuptools wheel && \
-    pip install --no-cache-dir -r requirements.txt && \
+RUN --mount=type=cache,target=/root/.cache/pip \
+    uv pip install --no-cache-dir --upgrade pip setuptools wheel && \
+    uv pip install --no-cache-dir -r requirements.txt && \
 # Remove unnecessary files to reduce size
     find /opt/venv -type d -name "__pycache__" -exec rm -rf {} + || true && \
     find /opt/venv -type f -name "*.pyc" -delete || true && \
@@ -55,6 +58,11 @@ WORKDIR /app
 # Install runtime dependencies only (no build tools)
 # Single RUN command reduces layers
 RUN apt-get update && apt-get install -y --no-install-recommends \
+    libglib2.0-0 \
+    libsm6 \
+    libxrender1 \
+    libxext6 \
+    libgl1 \
     libpq5 \
     curl \
     tini \

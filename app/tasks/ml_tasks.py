@@ -46,6 +46,7 @@ Example:
     >>> # Celery spawns 3 child tasks, aggregates results in callback
 """
 
+import os
 from datetime import datetime
 from pathlib import Path
 from typing import Any
@@ -58,10 +59,6 @@ from app.core.exceptions import (
     ValidationException,
 )
 from app.core.logging import get_logger
-from app.db.session import get_db_session
-from app.repositories.photo_processing_session_repository import (
-    PhotoProcessingSessionRepository,
-)
 from app.services.ml_processing.band_estimation_service import BandEstimationService
 from app.services.ml_processing.pipeline_coordinator import (
     MLPipelineCoordinator,
@@ -69,9 +66,6 @@ from app.services.ml_processing.pipeline_coordinator import (
 )
 from app.services.ml_processing.sahi_detection_service import SAHIDetectionService
 from app.services.ml_processing.segmentation_service import SegmentationService
-from app.services.photo.photo_processing_session_service import (
-    PhotoProcessingSessionService,
-)
 
 logger = get_logger(__name__)
 
@@ -373,37 +367,84 @@ def ml_child_task(
     )
 
     try:
-        # Validate image exists
+        # Check if image_path is a local file or S3 key
+        # For S3 keys (development mode), we create a mock result
+        # For production, implement S3 download + local processing
         image_file = Path(image_path)
-        if not image_file.exists():
-            raise FileNotFoundError(f"Image not found: {image_path}")
+        is_local_file = image_file.exists()
 
-        # Initialize ML services (dependency injection)
-        # Services handle model loading/caching via ModelCache singleton
-        segmentation_service = SegmentationService()
-        sahi_service = SAHIDetectionService(worker_id=0)  # Worker 0 (GPU-exclusive)
-        band_estimation_service = BandEstimationService()
-
-        # Initialize pipeline coordinator
-        coordinator = MLPipelineCoordinator(
-            segmentation_service=segmentation_service,
-            sahi_service=sahi_service,
-            band_estimation_service=band_estimation_service,
-        )
-
-        # Run complete ML pipeline (blocking, async coordination handled internally)
-        # This is CPU/GPU intensive (5-10 mins CPU, 1-3 mins GPU)
-        import asyncio
-
-        result: PipelineResult = asyncio.run(
-            coordinator.process_complete_pipeline(
-                session_id=session_id,
-                image_path=image_path,
-                worker_id=0,  # GPU worker 0
-                conf_threshold_segment=0.30,
-                conf_threshold_detect=0.25,
+        if is_local_file:
+            # Production mode: local file processing
+            logger.info(
+                f"Processing local image file: {image_path}",
+                extra={"image_path": image_path},
             )
-        )
+
+            # Initialize ML services (dependency injection)
+            # Services handle model loading/caching via ModelCache singleton
+            segmentation_service = SegmentationService()
+            sahi_service = SAHIDetectionService(worker_id=0)  # Worker 0 (GPU-exclusive)
+            band_estimation_service = BandEstimationService()
+
+            # Initialize pipeline coordinator
+            coordinator = MLPipelineCoordinator(
+                segmentation_service=segmentation_service,
+                sahi_service=sahi_service,
+                band_estimation_service=band_estimation_service,
+            )
+
+            # Run complete ML pipeline (blocking, async coordination handled internally)
+            # This is CPU/GPU intensive (5-10 mins CPU, 1-3 mins GPU)
+            import asyncio
+
+            result: PipelineResult = asyncio.run(
+                coordinator.process_complete_pipeline(
+                    session_id=session_id,
+                    image_path=image_path,
+                    worker_id=0,  # GPU worker 0
+                    conf_threshold_segment=0.30,
+                    conf_threshold_detect=0.25,
+                )
+            )
+        else:
+            # Production mode: Download from S3 and process
+            logger.info(f"Downloading image from S3: {image_path}")
+
+            # Initialize ML services (dependency injection)
+            # Services handle model loading/caching via ModelCache singleton
+            segmentation_service = SegmentationService()
+            sahi_service = SAHIDetectionService(worker_id=0)  # Worker 0 (GPU-exclusive)
+            band_estimation_service = BandEstimationService()
+
+            # Initialize pipeline coordinator
+            coordinator = MLPipelineCoordinator(
+                segmentation_service=segmentation_service,
+                sahi_service=sahi_service,
+                band_estimation_service=band_estimation_service,
+            )
+
+            # Download image from S3 to temp file
+            import boto3
+
+            s3 = boto3.client("s3")
+            temp_path = f"/tmp/{image_id}.jpg"
+            s3.download_file("demeter-photos-original", image_path, temp_path)
+
+            # Run actual ML pipeline
+            import asyncio
+
+            result: PipelineResult = asyncio.run(
+                coordinator.process_complete_pipeline(
+                    session_id=session_id,
+                    image_path=temp_path,
+                    worker_id=0,
+                    conf_threshold_segment=0.30,
+                    conf_threshold_detect=0.25,
+                )
+            )
+
+            # Cleanup
+            os.remove(temp_path)
 
         logger.info(
             f"ML child task completed for session {session_id}, image {image_id}: "
@@ -636,16 +677,48 @@ def _mark_session_processing(session_id: int, celery_task_id: str) -> None:
         session_id: PhotoProcessingSession database ID
         celery_task_id: Parent Celery task ID for tracking
     """
-    import asyncio
+    from sqlalchemy import create_engine
+    from sqlalchemy.orm import sessionmaker
 
-    async def _update() -> None:
-        async for session in get_db_session():
-            repo = PhotoProcessingSessionRepository(session)
-            service = PhotoProcessingSessionService(repo)
-            await service.mark_session_processing(session_id, celery_task_id)
-            await session.commit()
+    from app.core.config import settings
 
-    asyncio.run(_update())
+    # Create synchronous engine for Celery tasks
+    # Celery workers run in separate processes with prefork pool
+    # Can't use async engine in synchronous context
+    sync_engine = create_engine(
+        settings.DATABASE_URL.replace("postgresql+asyncpg", "postgresql"),
+        pool_size=5,
+        max_overflow=10,
+        pool_pre_ping=True,
+        pool_recycle=3600,
+    )
+
+    SyncSession = sessionmaker(bind=sync_engine, autocommit=False, autoflush=False)
+    session = SyncSession()
+
+    try:
+        from app.models.photo_processing_session import PhotoProcessingSession as SessionModel
+
+        db_session = session.query(SessionModel).filter_by(id=session_id).first()
+        if db_session:
+            db_session.status = "processing"
+            db_session.celery_task_id = celery_task_id
+            session.commit()
+            logger.info(
+                "Session marked as processing",
+                extra={"session_id": db_session.session_id, "celery_task_id": celery_task_id},
+            )
+    except Exception as e:
+        session.rollback()
+        logger.error(
+            f"Failed to mark session processing: {e}",
+            extra={"session_id": session_id, "error": str(e)},
+            exc_info=True,
+        )
+        raise
+    finally:
+        session.close()
+        sync_engine.dispose()
 
 
 def _mark_session_completed(
@@ -668,24 +741,57 @@ def _mark_session_completed(
         category_counts: Detection counts by category
         processed_image_id: S3 image ID for visualization
     """
-    import asyncio
+    from sqlalchemy import create_engine
+    from sqlalchemy.orm import sessionmaker
 
-    async def _update() -> None:
-        async for session in get_db_session():
-            repo = PhotoProcessingSessionRepository(session)
-            service = PhotoProcessingSessionService(repo)
-            await service.mark_session_completed(
-                session_id=session_id,
-                total_detected=total_detected,
-                total_estimated=total_estimated,
-                total_empty_containers=total_empty_containers,
-                avg_confidence=avg_confidence,
-                category_counts=category_counts,
-                processed_image_id=processed_image_id,
+    from app.core.config import settings
+
+    # Create synchronous engine for Celery tasks
+    sync_engine = create_engine(
+        settings.DATABASE_URL.replace("postgresql+asyncpg", "postgresql"),
+        pool_size=5,
+        max_overflow=10,
+        pool_pre_ping=True,
+        pool_recycle=3600,
+    )
+
+    SyncSession = sessionmaker(bind=sync_engine, autocommit=False, autoflush=False)
+    session = SyncSession()
+
+    try:
+        from app.models.photo_processing_session import PhotoProcessingSession as SessionModel
+
+        db_session = session.query(SessionModel).filter_by(id=session_id).first()
+        if db_session:
+            db_session.status = "completed"
+            db_session.total_detected = total_detected
+            db_session.total_estimated = total_estimated
+            db_session.total_empty_containers = total_empty_containers
+            db_session.avg_confidence = avg_confidence
+            db_session.category_counts = category_counts
+            db_session.processed_image_id = processed_image_id
+            db_session.processing_end_time = datetime.utcnow()
+            session.commit()
+            logger.info(
+                "Session marked as completed",
+                extra={
+                    "session_id": db_session.session_id,
+                    "total_detected": total_detected,
+                    "total_estimated": total_estimated,
+                    "avg_confidence": avg_confidence,
+                },
             )
-            await session.commit()
-
-    asyncio.run(_update())
+    except Exception as e:
+        session.rollback()
+        logger.error(
+            f"Failed to mark session completed: {e}",
+            extra={"session_id": session_id, "error": str(e)},
+            exc_info=True,
+        )
+        raise
+    finally:
+        session.close()
+        sync_engine.dispose()
 
 
 def _mark_session_failed(session_id: int, error_message: str) -> None:
@@ -695,13 +801,44 @@ def _mark_session_failed(session_id: int, error_message: str) -> None:
         session_id: PhotoProcessingSession database ID
         error_message: Error description
     """
-    import asyncio
+    from sqlalchemy import create_engine
+    from sqlalchemy.orm import sessionmaker
 
-    async def _update() -> None:
-        async for session in get_db_session():
-            repo = PhotoProcessingSessionRepository(session)
-            service = PhotoProcessingSessionService(repo)
-            await service.mark_session_failed(session_id, error_message)
-            await session.commit()
+    from app.core.config import settings
 
-    asyncio.run(_update())
+    # Create synchronous engine for Celery tasks
+    sync_engine = create_engine(
+        settings.DATABASE_URL.replace("postgresql+asyncpg", "postgresql"),
+        pool_size=5,
+        max_overflow=10,
+        pool_pre_ping=True,
+        pool_recycle=3600,
+    )
+
+    SyncSession = sessionmaker(bind=sync_engine, autocommit=False, autoflush=False)
+    session = SyncSession()
+
+    try:
+        from app.models.photo_processing_session import PhotoProcessingSession as SessionModel
+
+        db_session = session.query(SessionModel).filter_by(id=session_id).first()
+        if db_session:
+            db_session.status = "failed"
+            db_session.error_message = error_message
+            db_session.processing_end_time = datetime.utcnow()
+            session.commit()
+            logger.warning(
+                "Session marked as failed",
+                extra={"session_id": db_session.session_id, "error_message": error_message},
+            )
+    except Exception as e:
+        session.rollback()
+        logger.error(
+            f"Failed to mark session as failed: {e}",
+            extra={"session_id": session_id, "error": str(e)},
+            exc_info=True,
+        )
+        # Silently ignore - can't update database if connection is broken
+    finally:
+        session.close()
+        sync_engine.dispose()

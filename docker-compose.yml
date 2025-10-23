@@ -116,6 +116,9 @@ services:
       dockerfile: Dockerfile
       args:
         APP_ENV: development
+      cache_from:
+        - demeterai-base:latest
+    image: demeterai-base:latest
     container_name: demeterai-api
     ports:
       - "8000:8000"
@@ -182,9 +185,7 @@ services:
   # Celery CPU Worker (Prefork Pool)
   # ==========================================
   celery_cpu:
-    build:
-      context: .
-      dockerfile: Dockerfile
+    image: demeterai-base:latest
     container_name: demeterai-celery-cpu
     env_file:
       - .env
@@ -209,12 +210,42 @@ services:
     command: python /app/scripts/start_celery_worker.py
 
   # ==========================================
+  # Celery GPU Worker (Solo Pool) - CPU-Based for Development
+  # ==========================================
+  # In production, this runs on GPU hardware with pool=solo
+  # For development/testing on CPU-only machines, uses pool=solo with single process
+  celery_gpu:
+    image: demeterai-base:latest
+    container_name: demeterai-celery-gpu
+    env_file:
+      - .env
+    environment:
+      - DATABASE_URL=postgresql+asyncpg://demeter:demeter_dev_password@db:5432/demeterai
+      - DATABASE_URL_SYNC=postgresql+psycopg2://demeter:demeter_dev_password@db:5432/demeterai
+      - REDIS_URL=redis://redis:6379/0
+      - CELERY_BROKER_URL=redis://redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://redis:6379/1
+      - PYTHONPATH=/app
+      # OpenTelemetry configuration
+      - OTEL_ENABLED=true
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://lgtm-demeter:4317
+      - OTEL_SERVICE_NAME=demeterai-celery-gpu
+      - APP_ENV=development
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+    # Solo pool: single process (required for GPU/CUDA, safe for CPU testing)
+    # Concurrency=1: no parallel processing in this process
+    command: celery -A app.celery_app worker --pool=solo --concurrency=1 --queues=gpu_queue --loglevel=info
+
+  # ==========================================
   # Celery I/O Worker (Gevent Pool)
   # ==========================================
   celery_io:
-    build:
-      context: .
-      dockerfile: Dockerfile
+    image: demeterai-base:latest
     container_name: demeterai-celery-io
     env_file:
       - .env
@@ -239,9 +270,7 @@ services:
   # Flower (Celery Monitoring)
   # ==========================================
   flower:
-    build:
-      context: .
-      dockerfile: Dockerfile
+    image: demeterai-base:latest
     container_name: demeterai-flower
     ports:
       - "5555:5555"

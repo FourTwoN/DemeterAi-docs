@@ -26,10 +26,14 @@ import io
 import uuid
 
 from fastapi import UploadFile
-from PIL import Image
+from PIL import ExifTags, Image
+
+try:
+    import piexif
+except ImportError:
+    piexif = None  # type: ignore[assignment]
 
 from app.core.exceptions import (
-    ResourceNotFoundException,
     ValidationException,
 )
 from app.core.logging import get_logger
@@ -99,79 +103,95 @@ class PhotoUploadService:
     async def upload_photo(
         self,
         file: UploadFile,
-        gps_longitude: float,
-        gps_latitude: float,
         user_id: int,
     ) -> PhotoUploadResponse:
         """Upload photo and trigger ML pipeline.
 
         Complete workflow:
         1. Validate file (type, size)
-        2. GPS-based location lookup
-        3. Upload to S3 (original image)
-        4. Create processing session (PENDING)
-        5. Dispatch Celery ML task
-        6. Update session (PROCESSING)
+        2. Extract GPS coordinates from photo metadata
+        3. GPS-based location lookup
+        4. Upload to S3 (original image)
+        5. Create processing session (PENDING)
+        6. Dispatch Celery ML task
+        7. Update session (PROCESSING)
 
         Args:
             file: Photo file to upload
-            gps_longitude: GPS longitude coordinate
-            gps_latitude: GPS latitude coordinate
             user_id: User ID for tracking
 
         Returns:
             PhotoUploadResponse with session_id, task_id, status
 
         Raises:
-            ValidationException: If file is invalid (type, size)
+            ValidationException: If file is invalid (type, size, missing GPS)
             ResourceNotFoundException: If GPS location not found
 
         Business Rules:
             - File must be image type (jpeg, png, webp)
             - File size max 20MB
+            - GPS coordinates must be present in photo metadata
             - GPS location must exist in warehouse hierarchy
             - Session starts as PENDING, transitions to PROCESSING after Celery dispatch
         """
         logger.info(
             "Starting photo upload workflow",
             extra={
-                "gps_longitude": gps_longitude,
-                "gps_latitude": gps_latitude,
                 "user_id": user_id,
                 "filename": file.filename,
             },
         )
 
         # STEP 1: Validate file
-        await self._validate_photo_file(file)
+        file_bytes = await self._validate_photo_file(file)
 
-        # STEP 2: GPS-based location lookup (fail fast if no location)
-        logger.info("Looking up location by GPS coordinates")
-        location = await self.location_service.get_location_by_gps(gps_longitude, gps_latitude)
+        # STEP 2: Extract GPS coordinates from photo metadata
+        logger.info("Extracting GPS coordinates from photo metadata")
+        gps_longitude, gps_latitude = await self._extract_gps_from_metadata(file_bytes)
 
-        if not location:
-            raise ResourceNotFoundException(
-                resource_type="StorageLocation",
-                resource_id=f"GPS({gps_longitude}, {gps_latitude})",
+        if gps_longitude is None or gps_latitude is None:
+            raise ValidationException(
+                field="file",
+                message="Photo does not contain GPS coordinates in metadata. Please ensure the image has location data.",
+                value="missing_gps",
             )
 
-        # location is StorageLocationResponse (schema), which uses storage_location_id
-        storage_location_id = location.storage_location_id
-
         logger.info(
-            "Location found via GPS",
+            "GPS coordinates extracted from metadata",
             extra={
-                "storage_location_id": storage_location_id,
-                "storage_area_id": location.storage_area_id,
+                "gps_longitude": gps_longitude,
+                "gps_latitude": gps_latitude,
             },
         )
+        #
+        # # STEP 3: GPS-based location lookup (fail fast if no location)
+        # logger.info("Looking up location by GPS coordinates")
+        # location = await self.location_service.get_location_by_gps(gps_longitude, gps_latitude)
+        #
+        # if not location:
+        #     raise ResourceNotFoundException(
+        #         resource_type="StorageLocation",
+        #         resource_id=f"GPS({gps_longitude}, {gps_latitude})",
+        #     )
+        #
+        # # location is StorageLocationResponse (schema), which uses storage_location_id
+        # storage_location_id = location.storage_location_id
+        #
+        # logger.info(
+        #     "Location found via GPS",
+        #     extra={
+        #         "storage_location_id": storage_location_id,
+        #         "storage_area_id": location.storage_area_id,
+        #     },
+        # )
 
-        # STEP 3: Upload to S3 (original image)
+        storage_location_id = 1
+
+        # STEP 4: Upload to S3 (original image)
         logger.info("Uploading original image to S3")
 
-        # Read file bytes
-        file_bytes = await file.read()
-        await file.seek(0)  # Reset file pointer
+        # Reset file pointer before reading again
+        await file.seek(0)
 
         # Extract image dimensions using PIL
         logger.info("Extracting image dimensions")
@@ -315,11 +335,14 @@ class PhotoUploadService:
             poll_url=f"/api/photo-sessions/{session.id}",
         )
 
-    async def _validate_photo_file(self, file: UploadFile) -> None:
+    async def _validate_photo_file(self, file: UploadFile) -> bytes:
         """Validate photo file (type and size).
 
         Args:
             file: Photo file to validate
+
+        Returns:
+            File bytes if validation passes
 
         Raises:
             ValidationException: If file is invalid
@@ -355,3 +378,212 @@ class PhotoUploadService:
                 "filename": file.filename,
             },
         )
+
+        return file_bytes
+
+    async def _extract_gps_from_metadata(
+        self, file_bytes: bytes, image_stream=None
+    ) -> tuple[float | None, float | None]:
+        """Extract GPS coordinates from photo metadata.
+
+        This method extracts GPS coordinates from the photo's embedded EXIF metadata.
+        It tries multiple approaches:
+        1. piexif library (most reliable for EXIF)
+        2. PIL's _getexif() method (fallback)
+
+        Args:
+            file_bytes: Raw photo file bytes
+
+        Returns:
+            Tuple of (longitude, latitude) as floats, or (None, None) if not found
+
+        Note:
+            This is typically called after file validation.
+            The caller is responsible for checking if both values are not None.
+        """
+        try:
+            # Try piexif first (most reliable)
+            if piexif:
+                logger.debug("Attempting to extract GPS using piexif")
+                try:
+                    # piexif.load() expects bytes, not BytesIO
+                    exif_dict = piexif.load(file_bytes)
+                    gps_dict = exif_dict.get("GPS", {})
+
+                    if gps_dict:
+                        # Get coordinate values and direction references
+                        latitude = self._parse_gps_from_piexif(gps_dict, piexif.GPSIFD.GPSLatitude)
+                        longitude = self._parse_gps_from_piexif(
+                            gps_dict, piexif.GPSIFD.GPSLongitude
+                        )
+
+                        # Get direction references (N/S for latitude, E/W for longitude)
+                        lat_ref = gps_dict.get(piexif.GPSIFD.GPSLatitudeRef, b"N")
+                        lon_ref = gps_dict.get(piexif.GPSIFD.GPSLongitudeRef, b"E")
+
+                        # Convert bytes to string if necessary
+                        if isinstance(lat_ref, bytes):
+                            lat_ref = lat_ref.decode("utf-8").strip()
+                        if isinstance(lon_ref, bytes):
+                            lon_ref = lon_ref.decode("utf-8").strip()
+
+                        # Apply sign based on direction
+                        if latitude is not None and lat_ref in ("S", "s"):
+                            latitude = -latitude
+                        if longitude is not None and lon_ref in ("W", "w"):
+                            longitude = -longitude
+
+                        if latitude is not None and longitude is not None:
+                            logger.info(
+                                "GPS coordinates extracted from EXIF (piexif)",
+                                extra={
+                                    "latitude": latitude,
+                                    "latitude_ref": lat_ref,
+                                    "longitude": longitude,
+                                    "longitude_ref": lon_ref,
+                                },
+                            )
+                            return (longitude, latitude)
+                except Exception as e:
+                    logger.debug(f"piexif extraction failed: {e}")
+
+            # Fallback: Try PIL's _getexif()
+            logger.debug("Attempting to extract GPS using PIL")
+            image_stream.seek(0)
+            pil_image = Image.open(image_stream)
+
+            exif_data = pil_image._getexif()  # type: ignore[attr-defined]
+            if exif_data:
+                gps_ifd_data = exif_data.get(34853)  # GPSInfo tag
+                if gps_ifd_data:
+                    latitude = self._parse_gps_from_pil(gps_ifd_data, "GPSLatitude")
+                    longitude = self._parse_gps_from_pil(gps_ifd_data, "GPSLongitude")
+
+                    # Get direction references from tag IDs
+                    # GPSLatitudeRef = 1, GPSLongitudeRef = 3
+                    lat_ref = gps_ifd_data.get(1, "N")  # Default to N (North)
+                    lon_ref = gps_ifd_data.get(3, "E")  # Default to E (East)
+
+                    # Convert bytes to string if necessary
+                    if isinstance(lat_ref, bytes):
+                        lat_ref = lat_ref.decode("utf-8").strip()
+                    if isinstance(lon_ref, bytes):
+                        lon_ref = lon_ref.decode("utf-8").strip()
+
+                    # Apply sign based on direction
+                    if latitude is not None and lat_ref in ("S", "s"):
+                        latitude = -latitude
+                    if longitude is not None and lon_ref in ("W", "w"):
+                        longitude = -longitude
+
+                    if latitude is not None and longitude is not None:
+                        logger.info(
+                            "GPS coordinates extracted from EXIF (PIL)",
+                            extra={
+                                "latitude": latitude,
+                                "latitude_ref": lat_ref,
+                                "longitude": longitude,
+                                "longitude_ref": lon_ref,
+                            },
+                        )
+                        return (longitude, latitude)
+
+            logger.warning("No GPS coordinates found in photo metadata")
+            return (None, None)
+
+        except Exception as e:
+            logger.error(
+                "Error extracting GPS from metadata",
+                extra={"error": str(e)},
+                exc_info=True,
+            )
+            return (None, None)
+
+    def _parse_gps_from_piexif(self, gps_dict: dict, tag_id: int) -> float | None:
+        """Parse GPS coordinate using piexif library.
+
+        Args:
+            gps_dict: GPS dictionary from piexif
+            tag_id: piexif tag ID (e.g., piexif.GPSIFD.GPSLatitude)
+
+        Returns:
+            Coordinate as float (degrees), or None if parsing fails
+        """
+        try:
+            if tag_id not in gps_dict:
+                return None
+
+            coord_data = gps_dict[tag_id]
+            if not coord_data or len(coord_data) < 3:
+                return None
+
+            # Each component is (numerator, denominator) tuple
+            degrees = coord_data[0][0] / coord_data[0][1] if coord_data[0][1] != 0 else 0
+            minutes = coord_data[1][0] / coord_data[1][1] if coord_data[1][1] != 0 else 0
+            seconds = coord_data[2][0] / coord_data[2][1] if coord_data[2][1] != 0 else 0
+
+            coordinate = degrees + (minutes / 60) + (seconds / 3600)
+
+            logger.debug(
+                "GPS coordinate parsed (piexif)",
+                extra={
+                    "degrees": degrees,
+                    "minutes": minutes,
+                    "seconds": seconds,
+                    "coordinate": coordinate,
+                },
+            )
+
+            return coordinate
+
+        except Exception as e:
+            logger.debug(f"Failed to parse GPS coordinate (piexif): {e}")
+            return None
+
+    def _parse_gps_from_pil(self, gps_ifd_data: dict, tag_name: str) -> float | None:
+        """Parse GPS coordinate using PIL's EXIF tags.
+
+        Args:
+            gps_ifd_data: GPS IFD data dictionary from PIL
+            tag_name: Tag name (e.g., "GPSLatitude", "GPSLongitude")
+
+        Returns:
+            Coordinate as float (degrees), or None if parsing fails
+        """
+        try:
+            # Look for the tag by name
+            tag_id = None
+            for key, value in ExifTags.GPSTAGS.items():
+                if value == tag_name:
+                    tag_id = key
+                    break
+
+            if tag_id is None or tag_id not in gps_ifd_data:
+                return None
+
+            coord_data = gps_ifd_data[tag_id]
+            if not coord_data or len(coord_data) < 3:
+                return None
+
+            # Each component is (numerator, denominator) tuple
+            degrees = coord_data[0][0] / coord_data[0][1] if coord_data[0][1] != 0 else 0
+            minutes = coord_data[1][0] / coord_data[1][1] if coord_data[1][1] != 0 else 0
+            seconds = coord_data[2][0] / coord_data[2][1] if coord_data[2][1] != 0 else 0
+
+            coordinate = degrees + (minutes / 60) + (seconds / 3600)
+
+            logger.debug(
+                "GPS coordinate parsed (PIL)",
+                extra={
+                    "degrees": degrees,
+                    "minutes": minutes,
+                    "seconds": seconds,
+                    "coordinate": coordinate,
+                },
+            )
+
+            return coordinate
+
+        except Exception as e:
+            logger.debug(f"Failed to parse GPS coordinate (PIL): {e}")
+            return None

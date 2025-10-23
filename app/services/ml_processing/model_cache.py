@@ -108,4 +108,4 @@ class ModelCache:
             Paths should be configured via environment variables in production.
             Default paths assume models are mounted at /models/ in Docker.
         """
-        return ("/models/segment.pt", "/models/detect.pt")
+        return ("/checkpoints/segment.pt", "/checkpoints/detect.pt")

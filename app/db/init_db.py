@@ -109,6 +109,41 @@ async def init_database(load_production_data: bool = False) -> None:
         logger.info(f"✅ Database schema ready! {table_count} tables")
         logger.info("=" * 80)
 
+        # Insert example user in development mode
+        logger.info("📝 Inserting example user...")
+
+        # Insert example user after tables are created (development mode only)
+        if load_production_data:
+            from passlib.context import CryptContext
+            from sqlalchemy.ext.asyncio import AsyncSession
+
+            from app.models.user import User
+
+            pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+
+            async with AsyncSession(engine) as session:
+                # Check if user already exists
+                from sqlalchemy import select
+
+                result = await session.execute(select(User).where(User.id == 1))
+                existing_user = result.scalar_one_or_none()
+
+                if existing_user is None:
+                    example_user = User(
+                        id=1,
+                        first_name="prueba",
+                        last_name="prueba",
+                        email="prueba@42n.com.ar",
+                        password_hash="$2b$12$M2CVsKr4GSXHVN8k/90YZuzEvuuxztEAY16W2myXtumQFE390X0/2",
+                        active=True,
+                        role="admin",
+                    )
+                    session.add(example_user)
+                    await session.commit()
+                    logger.info("✅ Example user inserted (username: admin, password: admin123)")
+                else:
+                    logger.info("ℹ️  Example user already exists")
+
         # Load production data if requested
         if load_production_data:
             logger.info("")
