@@ -14,6 +14,7 @@ Tests get a fresh database state for each test function (scope="function").
 # Test Database Configuration
 # =============================================================================
 import os
+from datetime import UTC
 
 import pytest
 import pytest_asyncio
@@ -1095,6 +1096,415 @@ def product_state_factory(db_session):
         return state
 
     return _create
+
+
+# =============================================================================
+# SQL Fixtures (Realistic Test Data)
+# =============================================================================
+
+
+@pytest_asyncio.fixture(scope="function")
+async def sql_fixtures(db_session):
+    """Load realistic test data using ORM models (single transaction).
+
+    This fixture creates pre-configured test data including:
+    - 1 warehouse (greenhouse in Buenos Aires)
+    - 1 storage_area (North section)
+    - 1 storage_location (Mesa Norte A1)
+    - 1 storage_bin (Segment 001)
+    - Product taxonomy: 1 category, 1 family, 1 product (Echeveria 'Lola')
+    - Packaging: 1 type, 1 material, 1 color, 1 catalog item (8cm black pot)
+    - 1 user (admin)
+    - Product states: semilla, plantula, crecimiento, venta (SEED DATA)
+    - Product sizes: XS, S, M, L, XL (SEED DATA)
+    - Storage bin types: SEGMENT_STANDARD, PLUG_TRAY_288
+
+    Key Advantages over SQL:
+        - Uses ORM models (type-safe, no SQL injection)
+        - Single transaction (visible to test, auto-rollback)
+        - No subprocess/docker exec required
+        - Easier to maintain and debug
+
+    Usage:
+        @pytest.mark.asyncio
+        async def test_e2e_workflow(sql_fixtures):
+            # Test code here - all fixtures are pre-loaded
+            # Warehouse, area, location, bin, product, user are ready
+            pass
+
+    Note:
+        - All geometries are VALID PostGIS (SRID 4326)
+        - All FKs are satisfied
+        - Data is REALISTIC (Buenos Aires coordinates)
+        - Data is CLEANED UP after each test (db_session rollback)
+    """
+    from datetime import datetime
+
+    from geoalchemy2 import WKTElement
+
+    from app.models.packaging_catalog import PackagingCatalog
+    from app.models.packaging_color import PackagingColor
+    from app.models.packaging_material import PackagingMaterial
+    from app.models.packaging_type import PackagingType
+    from app.models.product import Product
+    from app.models.product_category import ProductCategory
+    from app.models.product_family import ProductFamily
+    from app.models.product_size import ProductSize
+    from app.models.product_state import ProductState
+    from app.models.storage_area import StorageArea
+    from app.models.storage_bin import StorageBin
+    from app.models.storage_bin_type import StorageBinType
+    from app.models.storage_location import StorageLocation
+    from app.models.storage_location_config import StorageLocationConfig
+
+    # Import ALL models needed
+    from app.models.user import User
+    from app.models.warehouse import Warehouse, WarehouseTypeEnum
+
+    # =========================================================================
+    # 1. USER (DB028) - Required for stock_movements.user_id
+    # =========================================================================
+    user = User(
+        email="admin@demeter.ai",
+        password_hash="$2b$12$LQv3c1yqBWVHxkd0LHAkCOYz6TtxMQJqhN8/LewY5LE2KBfZSTNx6",  # 'test_password_123'
+        first_name="System",
+        last_name="Administrator",
+        role="admin",
+        active=True,
+        created_at=datetime.now(UTC),
+    )
+    db_session.add(user)
+    await db_session.flush()
+
+    # =========================================================================
+    # 2. PRODUCT STATES (DB019) - SEED DATA
+    # =========================================================================
+    states = [
+        ProductState(
+            code="SEMILLA",
+            name="Semilla",
+            description="Etapa de semilla (pre-germinación)",
+            is_sellable=False,
+            sort_order=1,
+        ),
+        ProductState(
+            code="PLANTULA",
+            name="Plántula",
+            description="Etapa de plántula (post-germinación, pre-transplante)",
+            is_sellable=False,
+            sort_order=2,
+        ),
+        ProductState(
+            code="CRECIMIENTO",
+            name="Crecimiento",
+            description="Etapa de crecimiento vegetativo",
+            is_sellable=False,
+            sort_order=3,
+        ),
+        ProductState(
+            code="VENTA",
+            name="Listo para venta",
+            description="Producto terminado en condiciones de venta",
+            is_sellable=True,
+            sort_order=4,
+        ),
+    ]
+    for state in states:
+        db_session.add(state)
+    await db_session.flush()
+
+    # =========================================================================
+    # 3. PRODUCT SIZES (DB018) - SEED DATA
+    # =========================================================================
+    # NOTE: Codes must be 3-50 chars per ProductSize validator
+    sizes = [
+        ProductSize(
+            code="SIZE_XS",
+            name="Extra Small",
+            description="Altura 0-5 cm",
+            min_height_cm=0,
+            max_height_cm=5,
+            sort_order=1,
+        ),
+        ProductSize(
+            code="SIZE_S",
+            name="Small",
+            description="Altura 5-10 cm",
+            min_height_cm=5,
+            max_height_cm=10,
+            sort_order=2,
+        ),
+        ProductSize(
+            code="SIZE_M",
+            name="Medium",
+            description="Altura 10-20 cm",
+            min_height_cm=10,
+            max_height_cm=20,
+            sort_order=3,
+        ),
+        ProductSize(
+            code="SIZE_L",
+            name="Large",
+            description="Altura 20-40 cm",
+            min_height_cm=20,
+            max_height_cm=40,
+            sort_order=4,
+        ),
+        ProductSize(
+            code="SIZE_XL",
+            name="Extra Large",
+            description="Altura 40+ cm",
+            min_height_cm=40,
+            max_height_cm=None,
+            sort_order=5,
+        ),
+    ]
+    for size in sizes:
+        db_session.add(size)
+    await db_session.flush()
+
+    # =========================================================================
+    # 4. WAREHOUSE (DB001) - Greenhouse in Buenos Aires
+    # =========================================================================
+    # PostGIS POLYGON: 100m x 50m rectangular greenhouse in Palermo, Buenos Aires
+    # Coordinates: WGS84 (SRID 4326)
+    warehouse_wkt = """POLYGON((
+        -58.42000 -34.57500,
+        -58.41900 -34.57500,
+        -58.41900 -34.57550,
+        -58.42000 -34.57550,
+        -58.42000 -34.57500
+    ))"""
+
+    warehouse = Warehouse(
+        code="GH-BA-001",
+        name="Greenhouse Buenos Aires - Palermo",
+        warehouse_type=WarehouseTypeEnum.GREENHOUSE,  # Use enum, not string
+        geojson_coordinates=WKTElement(warehouse_wkt, srid=4326),
+        active=True,
+        created_at=datetime.now(UTC),
+    )
+    db_session.add(warehouse)
+    await db_session.flush()
+
+    # =========================================================================
+    # 5. STORAGE AREA (DB002) - North section INSIDE warehouse
+    # =========================================================================
+    # PostGIS POLYGON: 50m x 25m area INSIDE warehouse bounds
+    area_wkt = """POLYGON((
+        -58.41980 -34.57510,
+        -58.41950 -34.57510,
+        -58.41950 -34.57530,
+        -58.41980 -34.57530,
+        -58.41980 -34.57510
+    ))"""
+
+    storage_area = StorageArea(
+        warehouse_id=warehouse.warehouse_id,
+        code="GH-BA-001-NORTH",
+        name="North Propagation Zone",
+        position="N",
+        geojson_coordinates=WKTElement(area_wkt, srid=4326),
+        active=True,
+        created_at=datetime.now(UTC),
+    )
+    db_session.add(storage_area)
+    await db_session.flush()
+
+    # =========================================================================
+    # 6. STORAGE LOCATION (DB003) - Mesa Norte A1 (POINT geometry)
+    # =========================================================================
+    # PostGIS POINT: Center of storage area
+    # NOTE: StorageLocation uses 'coordinates' field, not 'geojson_coordinates'
+    location_wkt = "POINT(-58.41965 -34.57520)"
+
+    storage_location = StorageLocation(
+        storage_area_id=storage_area.storage_area_id,
+        code="GH-BA-001-NORTH-A1",
+        name="Mesa Norte A1",
+        qr_code="QR-MESA-A1",
+        coordinates=WKTElement(location_wkt, srid=4326),  # 'coordinates', not 'geojson_coordinates'
+        active=True,
+        created_at=datetime.now(UTC),
+    )
+    db_session.add(storage_location)
+    await db_session.flush()
+
+    # =========================================================================
+    # 7. STORAGE BIN TYPES (DB005) - Reference data
+    # =========================================================================
+    bin_types = [
+        StorageBinType(
+            code="SEGMENT_STANDARD",
+            name="Individual Segment",
+            category="segment",
+            description="Individual segment detected by ML (no fixed dimensions)",
+            rows=None,
+            columns=None,
+            capacity=None,
+            is_grid=False,
+            created_at=datetime.now(UTC),
+        ),
+        StorageBinType(
+            code="PLUG_TRAY_288",
+            name="288-Cell Plug Tray",
+            category="plug",
+            description="Standard 288-cell plug tray (18 rows × 16 columns)",
+            rows=18,
+            columns=16,
+            capacity=288,
+            is_grid=True,
+            created_at=datetime.now(UTC),
+        ),
+    ]
+    for bin_type in bin_types:
+        db_session.add(bin_type)
+    await db_session.flush()
+
+    # =========================================================================
+    # 8. STORAGE BIN (DB004) - Segment 001 with ML metadata
+    # =========================================================================
+    segment_bin_type = [bt for bt in bin_types if bt.code == "SEGMENT_STANDARD"][0]
+
+    storage_bin = StorageBin(
+        storage_location_id=storage_location.location_id,
+        storage_bin_type_id=segment_bin_type.bin_type_id,
+        code="GH-BA-001-NORTH-A1-SEG001",
+        label="Segment 001",
+        description="Segment detected by ML segmentation pipeline",
+        position_metadata={
+            "bbox": {"x": 100, "y": 200, "width": 300, "height": 150},
+            "confidence": 0.92,
+            "container_type": "segmento",
+            "ml_model_version": "yolov11-seg-v2.3",
+            "detected_at": datetime.now(UTC).isoformat(),
+        },
+        status="active",
+        created_at=datetime.now(UTC),
+    )
+    db_session.add(storage_bin)
+    await db_session.flush()
+
+    # =========================================================================
+    # 9. PRODUCT CATEGORY (DB015) - Succulent category
+    # =========================================================================
+    product_category = ProductCategory(
+        code="SUCCULENT",
+        name="Suculentas",
+        description="Plantas suculentas (cactáceas, crasuláceas, etc.)",
+    )
+    db_session.add(product_category)
+    await db_session.flush()
+
+    # =========================================================================
+    # 10. PRODUCT FAMILY (DB016) - Echeveria family
+    # =========================================================================
+    product_family = ProductFamily(
+        category_id=product_category.id,  # ProductCategory uses 'id', not 'category_id'
+        name="Echeveria",
+        scientific_name="Echeveria sp.",
+        description="Género de suculentas con rosetas compactas (Familia Crassulaceae)",
+    )
+    db_session.add(product_family)
+    await db_session.flush()
+
+    # =========================================================================
+    # 11. PRODUCT (DB017) - Echeveria 'Lola'
+    # =========================================================================
+    product = Product(
+        family_id=product_family.family_id,
+        sku="ECHEV-LOLA-001",
+        common_name="Echeveria 'Lola'",
+        scientific_name="Echeveria lilacina × Echeveria derenbergii",
+        description="Suculenta roseta compacta con hojas azul-grisáceas",
+        custom_attributes={
+            "color": "blue-gray",
+            "variegation": False,
+            "growth_rate": "slow",
+            "bloom_season": "spring",
+            "cold_hardy": False,
+        },
+    )
+    db_session.add(product)
+    await db_session.flush()
+
+    # =========================================================================
+    # 12. PACKAGING TYPE (DB009) - Pot type
+    # =========================================================================
+    packaging_type = PackagingType(
+        code="POT", name="Maceta", description="Maceta plástica redonda estándar"
+    )
+    db_session.add(packaging_type)
+    await db_session.flush()
+
+    # =========================================================================
+    # 13. PACKAGING MATERIAL (DB021) - Plastic material
+    # =========================================================================
+    packaging_material = PackagingMaterial(
+        code="PLASTIC", name="Plástico", description="Material plástico estándar (polipropileno)"
+    )
+    db_session.add(packaging_material)
+    await db_session.flush()
+
+    # =========================================================================
+    # 14. PACKAGING COLOR (DB010) - Black color
+    # =========================================================================
+    packaging_color = PackagingColor(name="Black", hex_code="#000000")
+    db_session.add(packaging_color)
+    await db_session.flush()
+
+    # =========================================================================
+    # 15. PACKAGING CATALOG (DB022) - 8cm black plastic pot
+    # =========================================================================
+    packaging_catalog = PackagingCatalog(
+        packaging_type_id=packaging_type.id,  # PackagingType uses 'id'
+        packaging_material_id=packaging_material.id,  # PackagingMaterial uses 'id'
+        packaging_color_id=packaging_color.id,  # PackagingColor uses 'id'
+        sku="POT-8CM-BLACK",
+        name="Maceta 8cm negra",
+        volume_liters=0.25,
+        diameter_cm=8.0,
+        height_cm=8.0,
+    )
+    db_session.add(packaging_catalog)
+    await db_session.flush()
+
+    # =========================================================================
+    # 16. STORAGE LOCATION CONFIG (DB024) - Expected product configuration
+    # =========================================================================
+    crecimiento_state = [s for s in states if s.code == "CRECIMIENTO"][0]
+
+    storage_location_config = StorageLocationConfig(
+        storage_location_id=storage_location.location_id,
+        product_id=product.product_id,  # Product Python attr is 'product_id' (DB column is 'id')
+        packaging_catalog_id=packaging_catalog.id,  # PackagingCatalog uses 'id'
+        expected_product_state_id=crecimiento_state.product_state_id,  # ProductState uses 'product_state_id'
+        area_cm2=500.00,  # 500 cm² available area
+        active=True,
+        notes="Configuration for Echeveria Lola in 8cm pots (growth stage)",
+        created_at=datetime.now(UTC),
+    )
+    db_session.add(storage_location_config)
+    await db_session.flush()
+
+    logger.info(
+        "ORM fixtures created",
+        warehouses=1,
+        storage_areas=1,
+        storage_locations=1,
+        storage_bins=1,
+        products=1,
+        users=1,
+        packaging_items=4,
+        states=4,
+        sizes=5,
+        bin_types=2,
+    )
+
+    # Yield to test - all data is visible in the same transaction
+    yield
+
+    # Cleanup happens automatically via db_session rollback
 
 
 # =============================================================================
