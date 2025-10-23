@@ -21,7 +21,6 @@ from app.services.photo.photo_upload_service import (
     PhotoUploadService,
 )
 
-
 # =============================================================================
 # Fixtures
 # =============================================================================
@@ -137,9 +136,9 @@ async def test_validate_invalid_content_type_fails(photo_upload_service):
     with pytest.raises(ValidationException) as exc_info:
         await photo_upload_service._validate_photo_file(file)
 
-    assert exc_info.value.field == "file"
-    assert "Invalid file type" in exc_info.value.message
-    assert "application/pdf" in exc_info.value.message
+    assert exc_info.value.extra.get("field") == "file"
+    assert "Invalid file type" in exc_info.value.user_message
+    assert "application/pdf" in exc_info.value.user_message
 
 
 @pytest.mark.asyncio
@@ -156,8 +155,8 @@ async def test_validate_unsupported_image_type_fails(photo_upload_service):
     with pytest.raises(ValidationException) as exc_info:
         await photo_upload_service._validate_photo_file(file)
 
-    assert exc_info.value.field == "file"
-    assert "image/gif" in exc_info.value.message
+    assert exc_info.value.extra.get("field") == "file"
+    assert "image/gif" in exc_info.value.user_message
 
 
 # =============================================================================
@@ -216,9 +215,9 @@ async def test_validate_file_exceeds_size_limit_fails(photo_upload_service):
     with pytest.raises(ValidationException) as exc_info:
         await photo_upload_service._validate_photo_file(file)
 
-    assert exc_info.value.field == "file"
-    assert "File size exceeds" in exc_info.value.message
-    assert "20MB" in exc_info.value.message
+    assert exc_info.value.extra.get("field") == "file"
+    assert "File size exceeds" in exc_info.value.user_message
+    assert "20MB" in exc_info.value.user_message
 
 
 @pytest.mark.asyncio
@@ -279,4 +278,4 @@ async def test_allowed_content_types_configuration():
 def test_max_file_size_configuration():
     """Test MAX_FILE_SIZE_BYTES constant is correctly configured."""
     expected_size = 20 * 1024 * 1024  # 20MB
-    assert MAX_FILE_SIZE_BYTES == expected_size
+    assert expected_size == MAX_FILE_SIZE_BYTES

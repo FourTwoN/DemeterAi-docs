@@ -13,6 +13,7 @@ Coverage target: ≥80%
 
 import io
 import uuid
+from datetime import datetime
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
@@ -21,11 +22,9 @@ from fastapi import UploadFile
 from app.core.exceptions import ResourceNotFoundException, ValidationException
 from app.models.photo_processing_session import ProcessingSessionStatusEnum
 from app.models.s3_image import ContentTypeEnum, UploadSourceEnum
-from app.schemas.photo_processing_session_schema import PhotoProcessingSessionResponse
 from app.schemas.s3_image_schema import S3ImageResponse
 from app.schemas.storage_location_schema import StorageLocationResponse
 from app.services.photo.photo_upload_service import PhotoUploadService
-
 
 # =============================================================================
 # Fixtures
@@ -73,6 +72,8 @@ def mock_s3_service():
         uploaded_by_user_id=1,
         status="uploaded",
         gps_coordinates={"latitude": -33.043, "longitude": -68.701},
+        created_at=datetime.now(),
+        updated_at=datetime.now(),
     )
 
     service.upload_original = AsyncMock(return_value=mock_s3_response)
@@ -520,7 +521,9 @@ async def test_upload_photo_links_session_to_location_and_image(
         session_request = call_args.args[0]
 
         # Verify location link
-        expected_location_id = mock_location_service.get_location_by_gps.return_value.storage_location_id
+        expected_location_id = (
+            mock_location_service.get_location_by_gps.return_value.storage_location_id
+        )
         assert session_request.storage_location_id == expected_location_id
 
         # Verify original image link
