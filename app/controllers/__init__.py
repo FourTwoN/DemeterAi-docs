@@ -9,14 +9,18 @@ Controllers:
     - product_controller: Product management (7 endpoints)
     - config_controller: Configuration (3 endpoints)
     - analytics_controller: Analytics and reporting (3 endpoints)
+    - photo_controller: Photo gallery and session endpoints
 
-Total: 30 endpoints (C001-C026 + Auth endpoints)
+Total: 30+ endpoints (C001-C026 + Auth endpoints)
 """
 
+from app.controllers.admin_controller import router as admin_router
 from app.controllers.analytics_controller import router as analytics_router
 from app.controllers.auth_controller import router as auth_router
 from app.controllers.config_controller import router as config_router
 from app.controllers.location_controller import router as location_router
+from app.controllers.map_controller import router as map_router
+from app.controllers.photo_controller import router as photo_router
 from app.controllers.product_controller import router as product_router
 from app.controllers.stock_controller import router as stock_router
 
@@ -27,4 +31,7 @@ __all__ = [
     "product_router",
     "config_router",
     "analytics_router",
+    "photo_router",
+    "map_router",
+    "admin_router",
 ]

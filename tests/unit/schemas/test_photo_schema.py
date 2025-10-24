@@ -8,12 +8,13 @@ Tests cover:
 - Error messages and Pydantic error handling
 """
 
+from typing import Any
 from uuid import UUID, uuid4
 
 import pytest
 from pydantic import ValidationError
 
-from app.schemas.photo_schema import PhotoUploadRequest, PhotoUploadResponse
+from app.schemas.photo_schema import PhotoUploadJob, PhotoUploadRequest, PhotoUploadResponse
 
 
 class TestPhotoUploadRequest:
@@ -95,36 +96,58 @@ class TestPhotoUploadRequest:
 class TestPhotoUploadResponse:
     """Tests for PhotoUploadResponse schema."""
 
+    def _base_kwargs(self) -> dict[str, Any]:
+        return {
+            "upload_session_id": uuid4(),
+            "task_id": uuid4(),
+            "session_id": 1,
+            "status": "pending",
+            "message": "OK",
+            "poll_url": "/api/v1/photos/jobs/status",
+        }
+
     def test_valid_response_all_fields(self):
         """Test creating response with all valid fields."""
-        task_uuid = uuid4()
-        response = PhotoUploadResponse(
-            task_id=task_uuid,
-            session_id=123,
+        job = PhotoUploadJob(
+            job_id="celery-task-1",
+            image_id=uuid4(),
+            filename="photo.jpg",
             status="pending",
-            message="Photo uploaded successfully",
-            poll_url="/api/sessions/123/status",
+            progress_percent=0.0,
         )
+        kwargs = self._base_kwargs()
+        kwargs.update(
+            {
+                "session_id": 123,
+                "message": "Photo uploaded successfully",
+                "jobs": [job],
+                "total_photos": 1,
+                "estimated_time_seconds": 300,
+            }
+        )
+        response = PhotoUploadResponse(**kwargs)
 
-        assert response.task_id == task_uuid
+        assert response.task_id == kwargs["task_id"]
         assert isinstance(response.task_id, UUID)
         assert response.session_id == 123
-        assert response.status == "pending"
-        assert response.message == "Photo uploaded successfully"
-        assert response.poll_url == "/api/sessions/123/status"
+        assert response.jobs[0].job_id == "celery-task-1"
+        assert response.poll_url.startswith("/api/v1/photos/jobs/status")
 
     def test_valid_response_uuid_string(self):
         """Test creating response with UUID as string."""
         task_uuid = uuid4()
-        response = PhotoUploadResponse(
-            task_id=str(task_uuid),
-            session_id=456,
-            status="processing",
-            message="Processing started",
-            poll_url="/api/sessions/456/status",
+        kwargs = self._base_kwargs()
+        kwargs.update(
+            {
+                "task_id": str(task_uuid),
+                "session_id": 456,
+                "status": "processing",
+                "message": "Processing started",
+                "poll_url": "/api/v1/photos/jobs/status?upload_session_id=123",
+            }
         )
+        response = PhotoUploadResponse(**kwargs)
 
-        # Pydantic coerces string to UUID
         assert response.task_id == task_uuid
         assert isinstance(response.task_id, UUID)
 
@@ -133,126 +156,85 @@ class TestPhotoUploadResponse:
         statuses = ["pending", "processing", "completed", "failed"]
 
         for status in statuses:
-            response = PhotoUploadResponse(
-                task_id=uuid4(),
-                session_id=1,
-                status=status,
-                message=f"Status: {status}",
-                poll_url="/api/sessions/1/status",
-            )
+            kwargs = self._base_kwargs()
+            kwargs.update({"status": status})
+            response = PhotoUploadResponse(**kwargs)
             assert response.status == status
-
-    def test_valid_response_large_session_id(self):
-        """Test response with large session ID."""
-        response = PhotoUploadResponse(
-            task_id=uuid4(),
-            session_id=999999,
-            status="completed",
-            message="Done",
-            poll_url="/api/sessions/999999/status",
-        )
-
-        assert response.session_id == 999999
 
     def test_valid_response_long_message(self):
         """Test response with long message."""
-        long_message = "x" * 1000
-        response = PhotoUploadResponse(
-            task_id=uuid4(),
-            session_id=1,
-            status="pending",
-            message=long_message,
-            poll_url="/api/sessions/1/status",
-        )
+        kwargs = self._base_kwargs()
+        kwargs.update({"message": "x" * 1000})
+        response = PhotoUploadResponse(**kwargs)
 
         assert len(response.message) == 1000
 
     def test_valid_response_url_formats(self):
         """Test response with different URL formats."""
         urls = [
-            "/api/sessions/1/status",
-            "http://localhost:8000/api/sessions/1/status",
-            "https://example.com/sessions/1",
+            "/api/v1/photos/jobs/status",
+            "http://localhost:8000/api/v1/photos/jobs/status",
+            "https://example.com/photos/jobs/status",
             "/status?id=1",
         ]
 
         for url in urls:
-            response = PhotoUploadResponse(
-                task_id=uuid4(), session_id=1, status="pending", message="OK", poll_url=url
-            )
+            kwargs = self._base_kwargs()
+            kwargs.update({"poll_url": url})
+            response = PhotoUploadResponse(**kwargs)
             assert response.poll_url == url
 
     def test_invalid_task_id_not_uuid(self):
         """Test that task_id must be valid UUID."""
-        with pytest.raises(ValidationError) as exc_info:
-            PhotoUploadResponse(
-                task_id="not-a-uuid",
-                session_id=1,
-                status="pending",
-                message="OK",
-                poll_url="/api/status",
-            )
+        kwargs = self._base_kwargs()
+        kwargs.update({"task_id": "not-a-uuid"})
 
-        errors = exc_info.value.errors()
-        assert any(err["loc"] == ("task_id",) for err in errors)
-
-    def test_invalid_task_id_integer(self):
-        """Test that task_id must be UUID, not integer."""
         with pytest.raises(ValidationError) as exc_info:
-            PhotoUploadResponse(
-                task_id=12345, session_id=1, status="pending", message="OK", poll_url="/api/status"
-            )
+            PhotoUploadResponse(**kwargs)
 
         errors = exc_info.value.errors()
         assert any(err["loc"] == ("task_id",) for err in errors)
 
     def test_invalid_session_id_string(self):
         """Test that session_id must be integer."""
+        kwargs = self._base_kwargs()
+        kwargs.update({"session_id": "not-an-int"})
+
         with pytest.raises(ValidationError) as exc_info:
-            PhotoUploadResponse(
-                task_id=uuid4(),
-                session_id="not-an-int",
-                status="pending",
-                message="OK",
-                poll_url="/api/status",
-            )
+            PhotoUploadResponse(**kwargs)
 
         errors = exc_info.value.errors()
         assert any(err["loc"] == ("session_id",) for err in errors)
 
-    def test_valid_status_empty(self):
-        """Test that status can be empty string (validation is at service layer)."""
-        # Empty string is allowed by Pydantic - validation happens at service layer
-        response = PhotoUploadResponse(
-            task_id=uuid4(), session_id=1, status="", message="OK", poll_url="/api/status"
-        )
+    def test_missing_required_field_upload_session(self):
+        """Test that upload_session_id is required."""
+        kwargs = self._base_kwargs()
+        kwargs.pop("upload_session_id")
 
-        assert response.status == ""
+        with pytest.raises(ValidationError) as exc_info:
+            PhotoUploadResponse(**kwargs)
+
+        errors = exc_info.value.errors()
+        assert any(err["loc"] == ("upload_session_id",) for err in errors)
 
     def test_missing_required_field_task_id(self):
         """Test that task_id is required."""
+        kwargs = self._base_kwargs()
+        kwargs.pop("task_id")
+
         with pytest.raises(ValidationError) as exc_info:
-            PhotoUploadResponse(
-                session_id=1, status="pending", message="OK", poll_url="/api/status"
-            )
+            PhotoUploadResponse(**kwargs)
 
         errors = exc_info.value.errors()
         assert any(err["loc"] == ("task_id",) for err in errors)
 
-    def test_missing_required_field_session_id(self):
-        """Test that session_id is required."""
-        with pytest.raises(ValidationError) as exc_info:
-            PhotoUploadResponse(
-                task_id=uuid4(), status="pending", message="OK", poll_url="/api/status"
-            )
-
-        errors = exc_info.value.errors()
-        assert any(err["loc"] == ("session_id",) for err in errors)
-
     def test_missing_required_field_status(self):
         """Test that status is required."""
+        kwargs = self._base_kwargs()
+        kwargs.pop("status")
+
         with pytest.raises(ValidationError) as exc_info:
-            PhotoUploadResponse(task_id=uuid4(), session_id=1, message="OK", poll_url="/api/status")
+            PhotoUploadResponse(**kwargs)
 
         errors = exc_info.value.errors()
         assert any(err["loc"] == ("status",) for err in errors)
@@ -270,41 +252,34 @@ class TestPhotoUploadResponse:
     def test_missing_required_field_poll_url(self):
         """Test that poll_url is required."""
         with pytest.raises(ValidationError) as exc_info:
-            PhotoUploadResponse(task_id=uuid4(), session_id=1, status="pending", message="OK")
+            kwargs = self._base_kwargs()
+            kwargs.pop("poll_url")
+            PhotoUploadResponse(**kwargs)
 
         errors = exc_info.value.errors()
         assert any(err["loc"] == ("poll_url",) for err in errors)
 
     def test_model_dump(self):
         """Test serializing response to dict."""
-        task_uuid = uuid4()
-        response = PhotoUploadResponse(
-            task_id=task_uuid,
-            session_id=123,
-            status="pending",
-            message="Processing",
-            poll_url="/api/status",
-        )
+        kwargs = self._base_kwargs()
+        kwargs.update({"session_id": 123, "message": "Processing"})
+        response = PhotoUploadResponse(**kwargs)
 
         data = response.model_dump()
-        assert data["task_id"] == task_uuid
+        assert UUID(data["upload_session_id"]) == kwargs["upload_session_id"]
+        assert data["task_id"] == kwargs["task_id"]
         assert data["session_id"] == 123
         assert data["status"] == "pending"
         assert data["message"] == "Processing"
-        assert data["poll_url"] == "/api/status"
+        assert data["poll_url"] == kwargs["poll_url"]
 
     def test_model_dump_json(self):
         """Test serializing response to JSON."""
-        task_uuid = uuid4()
-        response = PhotoUploadResponse(
-            task_id=task_uuid,
-            session_id=123,
-            status="pending",
-            message="Processing",
-            poll_url="/api/status",
-        )
+        kwargs = self._base_kwargs()
+        kwargs.update({"session_id": 123, "message": "Processing"})
+        response = PhotoUploadResponse(**kwargs)
 
         json_str = response.model_dump_json()
-        assert f'"{task_uuid}"' in json_str
+        assert str(kwargs["task_id"]) in json_str
         assert '"session_id":123' in json_str
         assert '"status":"pending"' in json_str

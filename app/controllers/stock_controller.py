@@ -25,8 +25,10 @@ from typing import Annotated
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, UploadFile, status
+from redis.asyncio import Redis  # type: ignore[import-not-found]
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.dependencies import get_redis
 from app.core.exceptions import ResourceNotFoundException, ValidationException
 from app.core.logging import get_logger
 from app.db.session import get_db_session
@@ -68,6 +70,7 @@ def get_factory(session: AsyncSession = Depends(get_db_session)) -> ServiceFacto
 async def upload_photo_for_stock_count(
     file: Annotated[UploadFile, File(description="Photo file (max 20MB, JPEG/PNG/WEBP)")],
     user_id: Annotated[int, Form(description="User ID for tracking")],
+    redis: Redis = Depends(get_redis),
     factory: ServiceFactory = Depends(get_factory),
 ) -> PhotoUploadResponse:
     """Upload photo for ML-powered stock counting (C001).
@@ -115,7 +118,7 @@ async def upload_photo_for_stock_count(
         )
 
         service = factory.get_photo_upload_service()
-        result = await service.upload_photo(file, user_id)
+        result = await service.upload_photo(file, user_id, redis)
 
         logger.info(
             "Photo upload successful",
@@ -123,6 +126,7 @@ async def upload_photo_for_stock_count(
                 "task_id": str(result.task_id),
                 "session_id": result.session_id,
                 "status": result.status,
+                "upload_session_id": str(result.upload_session_id),
             },
         )
 

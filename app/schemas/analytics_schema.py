@@ -5,6 +5,7 @@ This module defines response schemas for analytics and reporting endpoints.
 """
 
 from datetime import date, datetime
+from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -89,3 +90,48 @@ class DataExportResponse(BaseModel):
             }
         },
     )
+
+
+class AnalyticsFilterOptionsResponse(BaseModel):
+    warehouses: list[dict[str, Any]]
+    product_categories: list[dict[str, Any]]
+    products: list[dict[str, Any]]
+
+
+class AnalyticsManualQueryRequest(BaseModel):
+    warehouse_ids: list[int] | None = None
+    product_category_ids: list[int] | None = None
+    date_from: date | None = None
+    date_to: date | None = None
+    analysis_type: str = "current_stock"
+
+
+class AnalyticsManualQueryResponse(BaseModel):
+    data: list[dict[str, Any]]
+    metadata: dict[str, Any]
+
+
+class AnalyticsAIQueryRequest(BaseModel):
+    prompt: str
+
+
+class AnalyticsAIQueryResponse(BaseModel):
+    answer: str
+    suggested_visualizations: list[str] = Field(default_factory=list)
+
+
+class SalesComparisonRequest(BaseModel):
+    warehouse_ids: list[int] | None = None
+    date_from: date | None = None
+    date_to: date | None = None
+
+
+class SalesComparisonResponse(BaseModel):
+    items: list[dict[str, Any]]
+    summary: dict[str, Any]
+
+
+class LargeExportRequest(BaseModel):
+    export_format: str = Field(..., description="Format: csv or json")
+    warehouse_id: int | None = None
+    product_id: int | None = None

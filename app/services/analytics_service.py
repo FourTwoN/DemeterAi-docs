@@ -19,12 +19,23 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.models.stock_batch import StockBatch
 from app.models.stock_movement import StockMovement
 from app.schemas.analytics_schema import (
+    AnalyticsAIQueryRequest,
+    AnalyticsAIQueryResponse,
+    AnalyticsFilterOptionsResponse,
+    AnalyticsManualQueryRequest,
+    AnalyticsManualQueryResponse,
     DailyPlantCountResponse,
     DataExportResponse,
     InventoryReportResponse,
+    LargeExportRequest,
+    SalesComparisonRequest,
+    SalesComparisonResponse,
 )
+from app.services.product_category_service import ProductCategoryService
+from app.services.product_service import ProductService
 from app.services.stock_batch_service import StockBatchService
 from app.services.stock_movement_service import StockMovementService
+from app.services.warehouse_service import WarehouseService
 
 logger = logging.getLogger(__name__)
 
@@ -44,7 +55,12 @@ class AnalyticsService:
     """
 
     def __init__(
-        self, stock_batch_service: StockBatchService, stock_movement_service: StockMovementService
+        self,
+        stock_batch_service: StockBatchService,
+        stock_movement_service: StockMovementService,
+        warehouse_service: WarehouseService,
+        product_category_service: ProductCategoryService,
+        product_service: ProductService,
     ):
         """
         Initialize AnalyticsService with required dependencies.
@@ -55,6 +71,9 @@ class AnalyticsService:
         """
         self.stock_batch_service = stock_batch_service
         self.stock_movement_service = stock_movement_service
+        self.warehouse_service = warehouse_service
+        self.product_category_service = product_category_service
+        self.product_service = product_service
         logger.info("AnalyticsService initialized")
 
     async def get_inventory_report(
@@ -359,3 +378,62 @@ class AnalyticsService:
                 exc_info=True,
             )
             raise
+
+    async def get_filter_options(self) -> AnalyticsFilterOptionsResponse:
+        warehouses = await self.warehouse_service.get_active_warehouses(include_areas=False)
+        categories = await self.product_category_service.get_all_categories()
+        products = await self.product_service.get_all_products()
+
+        return AnalyticsFilterOptionsResponse(
+            warehouses=[{"id": w.warehouse_id, "name": w.name} for w in warehouses],
+            product_categories=[{"id": c.category_id, "name": c.name} for c in categories],
+            products=[{"id": p.product_id, "name": p.common_name} for p in products],
+        )
+
+    async def run_manual_query(
+        self, request: AnalyticsManualQueryRequest
+    ) -> AnalyticsManualQueryResponse:
+        batches = await self.stock_batch_service.batch_repo.get_multi(limit=1000)
+        aggregated: dict[int, int] = {}
+        for batch in batches:
+            product_id = int(batch.product_id)
+            aggregated[product_id] = aggregated.get(product_id, 0) + int(
+                batch.quantity_current or 0
+            )
+
+        rows = [{"product_id": pid, "total_quantity": qty} for pid, qty in aggregated.items()]
+        metadata = {"row_count": len(rows), "analysis_type": request.analysis_type}
+
+        return AnalyticsManualQueryResponse(data=rows, metadata=metadata)
+
+    async def run_ai_query(self, request: AnalyticsAIQueryRequest) -> AnalyticsAIQueryResponse:
+        batches = await self.stock_batch_service.batch_repo.get_multi(limit=200)
+        total = sum(int(b.quantity_current or 0) for b in batches)
+        answer = (
+            f"Total current quantity across sampled batches is {total}. Prompt: {request.prompt}"
+        )
+        return AnalyticsAIQueryResponse(answer=answer, suggested_visualizations=["bar", "table"])
+
+    async def compare_sales_vs_stock(
+        self, request: SalesComparisonRequest
+    ) -> SalesComparisonResponse:
+        movements = await self.stock_movement_service.get_multi(limit=300)
+        total_sales = sum(int(m.quantity or 0) for m in movements if m.movement_type == "ventas")
+        total_stock = sum(int(m.quantity or 0) for m in movements if m.movement_type != "ventas")
+
+        items = [
+            {"metric": "sales", "value": total_sales},
+            {"metric": "stock", "value": total_stock},
+        ]
+        summary = {"net": total_stock - total_sales}
+        return SalesComparisonResponse(items=items, summary=summary)
+
+    async def export_large_dataset(self, request: LargeExportRequest) -> DataExportResponse:
+        batches = await self.stock_batch_service.batch_repo.get_multi(limit=1000)
+        return DataExportResponse(
+            export_format=request.export_format,
+            file_url=None,
+            file_size=None,
+            record_count=len(batches),
+            generated_at=datetime.utcnow(),
+        )

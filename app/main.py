@@ -9,10 +9,13 @@ from fastapi.responses import JSONResponse, Response
 from starlette.middleware.base import BaseHTTPMiddleware
 
 from app.controllers import (
+    admin_router,
     analytics_router,
     auth_router,
     config_router,
     location_router,
+    map_router,
+    photo_router,
     product_router,
     stock_router,
 )
@@ -255,6 +258,9 @@ app.include_router(location_router)  # C008-C013: Location hierarchy
 app.include_router(product_router)  # C014-C020: Product management
 app.include_router(config_router)  # C021-C023: Configuration
 app.include_router(analytics_router)  # C024-C026: Analytics
+app.include_router(photo_router)  # Photo gallery and detail endpoints
+app.include_router(map_router)  # Map visualizations
+app.include_router(admin_router)  # Admin configuration
 
 
 # =============================================================================

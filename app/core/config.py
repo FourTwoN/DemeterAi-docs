@@ -89,6 +89,11 @@ class Settings(BaseSettings):
     # Metrics configuration
     ENABLE_METRICS: bool = True
 
+    # Redis configuration
+    REDIS_URL: str = "redis://localhost:6379/0"
+    REDIS_UPLOAD_SESSION_TTL: int = 24 * 3600  # 24 hours
+    REDIS_JOB_STATUS_TTL: int = 48 * 3600  # 48 hours
+
     model_config = SettingsConfigDict(
         env_file=".env",
         env_file_encoding="utf-8",

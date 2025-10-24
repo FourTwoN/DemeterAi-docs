@@ -39,6 +39,7 @@ from app.repositories.packaging_color_repository import PackagingColorRepository
 from app.repositories.packaging_material_repository import PackagingMaterialRepository
 from app.repositories.packaging_type_repository import PackagingTypeRepository
 from app.repositories.photo_processing_session_repository import PhotoProcessingSessionRepository
+from app.repositories.photo_read_repository import PhotoReadRepository
 from app.repositories.price_list_repository import PriceListRepository
 from app.repositories.product_category_repository import ProductCategoryRepository
 from app.repositories.product_family_repository import ProductFamilyRepository
@@ -60,6 +61,7 @@ from app.services.analytics_service import AnalyticsService
 from app.services.batch_lifecycle_service import BatchLifecycleService
 from app.services.density_parameter_service import DensityParameterService
 from app.services.location_hierarchy_service import LocationHierarchyService
+from app.services.map_view_service import MapViewService
 from app.services.movement_validation_service import MovementValidationService
 from app.services.packaging_catalog_service import PackagingCatalogService
 from app.services.packaging_color_service import PackagingColorService
@@ -67,7 +69,9 @@ from app.services.packaging_material_service import PackagingMaterialService
 from app.services.packaging_type_service import PackagingTypeService
 from app.services.photo.detection_service import DetectionService
 from app.services.photo.estimation_service import EstimationService
+from app.services.photo.photo_job_service import PhotoJobService
 from app.services.photo.photo_processing_session_service import PhotoProcessingSessionService
+from app.services.photo.photo_query_service import PhotoQueryService
 from app.services.photo.photo_upload_service import PhotoUploadService
 from app.services.photo.s3_image_service import S3ImageService
 from app.services.price_list_service import PriceListService
@@ -330,7 +334,16 @@ class ServiceFactory:
         if "analytics" not in self._services:
             batch_service = self.get_stock_batch_service()
             movement_service = self.get_stock_movement_service()
-            self._services["analytics"] = AnalyticsService(batch_service, movement_service)
+            warehouse_service = self.get_warehouse_service()
+            category_service = self.get_product_category_service()
+            product_service = self.get_product_service()
+            self._services["analytics"] = AnalyticsService(
+                batch_service,
+                movement_service,
+                warehouse_service,
+                category_service,
+                product_service,
+            )
         return cast(AnalyticsService, self._services["analytics"])
 
     # =============================================================================
@@ -373,6 +386,12 @@ class ServiceFactory:
             self._services["movement_validation"] = MovementValidationService()
         return cast(MovementValidationService, self._services["movement_validation"])
 
+    def get_photo_job_service(self) -> PhotoJobService:
+        """Get PhotoJobService instance."""
+        if "photo_job" not in self._services:
+            self._services["photo_job"] = PhotoJobService()
+        return cast(PhotoJobService, self._services["photo_job"])
+
     def get_photo_upload_service(self) -> PhotoUploadService:
         """Get PhotoUploadService instance.
 
@@ -386,5 +405,30 @@ class ServiceFactory:
                 session_service=self.get_photo_processing_session_service(),
                 s3_service=self.get_s3_image_service(),
                 location_service=self.get_storage_location_service(),
+                job_service=self.get_photo_job_service(),
             )
         return cast(PhotoUploadService, self._services["photo_upload"])
+
+    def get_photo_query_service(self) -> PhotoQueryService:
+        """Get PhotoQueryService instance."""
+        if "photo_query" not in self._services:
+            repo = PhotoReadRepository(self.session)
+            self._services["photo_query"] = PhotoQueryService(
+                repo=repo,
+                s3_service=self.get_s3_image_service(),
+                session_service=self.get_photo_processing_session_service(),
+                job_service=self.get_photo_job_service(),
+            )
+        return cast(PhotoQueryService, self._services["photo_query"])
+
+    def get_map_view_service(self) -> MapViewService:
+        """Get MapViewService instance."""
+        if "map_view" not in self._services:
+            self._services["map_view"] = MapViewService(
+                warehouse_service=self.get_warehouse_service(),
+                area_service=self.get_storage_area_service(),
+                location_service=self.get_storage_location_service(),
+                session_service=self.get_photo_processing_session_service(),
+                s3_service=self.get_s3_image_service(),
+            )
+        return cast(MapViewService, self._services["map_view"])

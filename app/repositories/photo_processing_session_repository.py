@@ -57,6 +57,13 @@ class PhotoProcessingSessionRepository(AsyncRepository[PhotoProcessingSession]):
         result = await self.session.execute(stmt)
         return list(result.scalars().all())
 
+    async def get_by_original_image(self, image_id: UUID) -> PhotoProcessingSession | None:
+        """Get session by original image UUID."""
+
+        stmt = select(self.model).where(self.model.original_image_id == image_id)
+        result = await self.session.execute(stmt)
+        return result.scalar_one_or_none()
+
     async def get_by_status(
         self, status: ProcessingSessionStatusEnum, limit: int = 100
     ) -> list[PhotoProcessingSession]:

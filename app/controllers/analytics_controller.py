@@ -26,8 +26,17 @@ from app.core.logging import get_logger
 from app.db.session import get_db_session
 from app.factories.service_factory import ServiceFactory
 from app.schemas.analytics_schema import (
+    AnalyticsAIQueryRequest,
+    AnalyticsAIQueryResponse,
+    AnalyticsFilterOptionsResponse,
+    AnalyticsManualQueryRequest,
+    AnalyticsManualQueryResponse,
     DailyPlantCountResponse,
+    DataExportResponse,
     InventoryReportResponse,
+    LargeExportRequest,
+    SalesComparisonRequest,
+    SalesComparisonResponse,
 )
 
 logger = get_logger(__name__)
@@ -187,6 +196,57 @@ async def get_full_inventory_report(
 
 
 @router.get(
+    "/filter-options",
+    response_model=AnalyticsFilterOptionsResponse,
+    summary="Get analytics filter options",
+)
+async def get_filter_options(
+    factory: ServiceFactory = Depends(get_factory),
+) -> AnalyticsFilterOptionsResponse:
+    service = factory.get_analytics_service()
+    return await service.get_filter_options()
+
+
+@router.post(
+    "/manual-query",
+    response_model=AnalyticsManualQueryResponse,
+    summary="Run manual analytics query",
+)
+async def manual_query(
+    request: AnalyticsManualQueryRequest,
+    factory: ServiceFactory = Depends(get_factory),
+) -> AnalyticsManualQueryResponse:
+    service = factory.get_analytics_service()
+    return await service.run_manual_query(request)
+
+
+@router.post(
+    "/ai-query",
+    response_model=AnalyticsAIQueryResponse,
+    summary="Run AI-assisted analytics query",
+)
+async def ai_query(
+    request: AnalyticsAIQueryRequest,
+    factory: ServiceFactory = Depends(get_factory),
+) -> AnalyticsAIQueryResponse:
+    service = factory.get_analytics_service()
+    return await service.run_ai_query(request)
+
+
+@router.post(
+    "/sales-comparison",
+    response_model=SalesComparisonResponse,
+    summary="Compare sales vs stock",
+)
+async def sales_comparison_endpoint(
+    request: SalesComparisonRequest,
+    factory: ServiceFactory = Depends(get_factory),
+) -> SalesComparisonResponse:
+    service = factory.get_analytics_service()
+    return await service.compare_sales_vs_stock(request)
+
+
+@router.get(
     "/exports/{export_format}",
     summary="Export data",
 )
@@ -284,3 +344,16 @@ async def export_data(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to export data.",
         ) from e
+
+
+@router.post(
+    "/export/large",
+    response_model=DataExportResponse,
+    summary="Export large analytics dataset",
+)
+async def export_large_dataset(
+    request: LargeExportRequest,
+    factory: ServiceFactory = Depends(get_factory),
+) -> DataExportResponse:
+    service = factory.get_analytics_service()
+    return await service.export_large_dataset(request)

@@ -2,6 +2,7 @@
 
 from app.repositories.storage_location_config_repository import StorageLocationConfigRepository
 from app.schemas.storage_location_config_schema import (
+    StorageLocationConfigBulkRequest,
     StorageLocationConfigCreateRequest,
     StorageLocationConfigResponse,
     StorageLocationConfigUpdateRequest,
@@ -86,3 +87,27 @@ class StorageLocationConfigService:
         else:
             # Create new
             return await self.create(request)
+
+    async def bulk_apply(
+        self, request: StorageLocationConfigBulkRequest, create_only: bool = False
+    ) -> list[StorageLocationConfigResponse]:
+        """Apply configuration to multiple locations."""
+
+        results: list[StorageLocationConfigResponse] = []
+
+        for location_id in request.location_ids:
+            single_request = StorageLocationConfigCreateRequest(
+                storage_location_id=location_id,
+                product_id=request.product_id,
+                packaging_catalog_id=request.packaging_catalog_id,
+                expected_product_state_id=request.expected_product_state_id,
+                area_cm2=request.area_cm2,
+                notes=request.notes,
+            )
+
+            if create_only:
+                results.append(await self.create(single_request))
+            else:
+                results.append(await self.create_or_update(single_request))
+
+        return results

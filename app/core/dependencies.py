@@ -50,10 +50,12 @@ from collections.abc import AsyncGenerator, Callable, Coroutine
 from typing import Any
 
 from fastapi import Depends, HTTPException, status
+from redis.asyncio import Redis  # type: ignore[import-not-found]
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.auth import TokenClaims
 from app.core.auth import get_current_user as auth_get_current_user
+from app.core.cache import get_redis_client
 from app.core.logging import get_logger
 from app.db.session import get_db_session
 
@@ -90,6 +92,16 @@ async def get_db() -> AsyncGenerator[AsyncSession, None]:
     """
     async for session in get_db_session():
         yield session
+
+
+async def get_redis() -> AsyncGenerator[Redis, None]:
+    """FastAPI dependency: Provide Redis async client."""
+    client = get_redis_client()
+    try:
+        yield client
+    finally:
+        # Redis client uses connection pool; no need to close per request.
+        pass
 
 
 # =============================================================================

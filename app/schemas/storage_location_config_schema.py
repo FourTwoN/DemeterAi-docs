@@ -65,3 +65,14 @@ class StorageLocationConfigResponse(BaseModel):
             created_at=cast(datetime, model.created_at),
             updated_at=model.updated_at,
         )
+
+
+class StorageLocationConfigBulkRequest(BaseModel):
+    """Bulk configuration request."""
+
+    location_ids: list[int] = Field(..., min_length=1)
+    product_id: int
+    packaging_catalog_id: int | None = None
+    expected_product_state_id: int
+    area_cm2: float = Field(..., gt=0)
+    notes: str | None = None

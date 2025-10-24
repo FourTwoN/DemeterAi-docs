@@ -23,6 +23,7 @@ Critical Rules:
 """
 
 import io
+import uuid
 
 from fastapi import UploadFile
 from PIL import ExifTags, Image
@@ -31,6 +32,8 @@ try:
     import piexif
 except ImportError:
     piexif = None  # type: ignore[assignment]
+
+from redis.asyncio import Redis  # type: ignore[import-not-found]
 
 from app.core.exceptions import (
     ValidationException,
@@ -41,8 +44,9 @@ from app.models.s3_image import ContentTypeEnum, UploadSourceEnum
 from app.schemas.photo_processing_session_schema import (
     PhotoProcessingSessionCreate,
 )
-from app.schemas.photo_schema import PhotoUploadResponse
+from app.schemas.photo_schema import PhotoUploadJob, PhotoUploadResponse
 from app.schemas.s3_image_schema import S3ImageUploadRequest
+from app.services.photo.photo_job_service import PhotoJobService
 from app.services.photo.photo_processing_session_service import (
     PhotoProcessingSessionService,
 )
@@ -87,6 +91,7 @@ class PhotoUploadService:
         session_service: PhotoProcessingSessionService,
         s3_service: S3ImageService,
         location_service: StorageLocationService,
+        job_service: PhotoJobService,
     ) -> None:
         """Initialize PhotoUploadService with dependencies.
 
@@ -94,15 +99,18 @@ class PhotoUploadService:
             session_service: PhotoProcessingSessionService for sessions
             s3_service: S3ImageService for S3 operations
             location_service: StorageLocationService for GPS lookup
+            job_service: PhotoJobService for Redis tracking
         """
         self.session_service = session_service
         self.s3_service = s3_service
         self.location_service = location_service
+        self.job_service = job_service
 
     async def upload_photo(
         self,
         file: UploadFile,
         user_id: int,
+        redis: Redis,
     ) -> PhotoUploadResponse:
         """Upload photo and trigger ML pipeline.
 
@@ -143,6 +151,7 @@ class PhotoUploadService:
                 "filename": file.filename,
             },
         )
+        upload_session_uuid = uuid.uuid4()
 
         # STEP 1: Validate file
         file_bytes = await self._validate_photo_file(file)
@@ -352,6 +361,29 @@ class PhotoUploadService:
         )
         task_id = celery_task.id
 
+        jobs_metadata = [
+            {
+                "job_id": str(task_id),
+                "image_id": str(original_image.image_id),
+                "filename": file.filename,
+            }
+        ]
+
+        await self.job_service.create_upload_session(
+            redis=redis,
+            upload_session_id=str(upload_session_uuid),
+            user_id=user_id,
+            jobs=jobs_metadata,
+        )
+
+        jobs = [
+            PhotoUploadJob(
+                job_id=str(task_id),
+                image_id=original_image.image_id,
+                filename=file.filename,
+            )
+        ]
+
         logger.info(
             "ML pipeline task dispatched",
             extra={
@@ -377,17 +409,22 @@ class PhotoUploadService:
             extra={
                 "session_id": str(session.session_id),
                 "task_id": str(task_id),
+                "upload_session_id": str(upload_session_uuid),
                 "status": "pending",
             },
         )
 
         # Return response
         return PhotoUploadResponse(
+            upload_session_id=upload_session_uuid,
             task_id=task_id,
             session_id=session.id,
             status="pending",
             message="Photo uploaded successfully. Processing will start shortly.",
-            poll_url=f"/api/photo-sessions/{session.id}",
+            poll_url=f"/api/v1/photos/jobs/status?upload_session_id={upload_session_uuid}",
+            total_photos=1,
+            estimated_time_seconds=300,
+            jobs=jobs,
         )
 
     async def _validate_photo_file(self, file: UploadFile) -> bytes:
