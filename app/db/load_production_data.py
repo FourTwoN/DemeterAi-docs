@@ -38,6 +38,8 @@ from app.core.logging import get_logger
 from app.models import (
     PackagingCatalog,
     PackagingColor,
+    PackagingMaterial,
+    PackagingType,
     PriceList,
     Product,
     ProductCategory,
@@ -75,6 +77,8 @@ class ProductionDataLoader:
             "product_states": 0,
             "product_families": 0,
             "products": 0,
+            "packaging_types": 0,
+            "packaging_materials": 0,
             "storage_bin_types": 0,
             "storage_location_config": 0,
             "price_list": 0,
@@ -842,6 +846,86 @@ class ProductionDataLoader:
         return count
 
     # =========================================================================
+    # PackagingType Loading (Seed Data)
+    # =========================================================================
+
+    async def load_packaging_types(self) -> int:
+        """Load default packaging types.
+
+        Creates basic packaging types needed for catalog.
+
+        Returns:
+            Number of types loaded
+        """
+        logger.info("Loading packaging types...")
+
+        packaging_types = [
+            {"code": "RIGID", "name": "Rígida", "description": "Maceta rígida de plástico"},
+            {"code": "FLEXIBLE", "name": "Flexible", "description": "Maceta flexible/bolsa"},
+            {"code": "TERMOFORMADA", "name": "Termoformada", "description": "Maceta termoformada"},
+            {"code": "SOPLADA", "name": "Soplada", "description": "Maceta soplada"},
+        ]
+
+        count = 0
+        for type_data in packaging_types:
+            try:
+                stmt = select(PackagingType).where(PackagingType.code == type_data["code"])
+                result = await self.session.execute(stmt)
+                existing = result.scalar_one_or_none()
+
+                if not existing:
+                    pkg_type = PackagingType(**type_data)
+                    self.session.add(pkg_type)
+                    count += 1
+                    logger.info(f"  ✓ PackagingType: {type_data['code']}")
+                else:
+                    logger.info(f"  ⊘ PackagingType already exists: {type_data['code']}")
+            except Exception as e:
+                logger.error(f"  ✗ Error creating packaging type: {str(e)}", exc_info=True)
+
+        await self.session.commit()
+        self.loaded_count["packaging_types"] = count
+        logger.info(f"✅ Loaded {count} packaging types")
+        return count
+
+    async def load_packaging_materials(self) -> int:
+        """Load default packaging materials.
+
+        Creates basic packaging materials needed for catalog.
+
+        Returns:
+            Number of materials loaded
+        """
+        logger.info("Loading packaging materials...")
+
+        materials = [
+            {"code": "PLASTIC", "name": "Plástico", "description": "Plástico estándar"},
+            {"code": "BIODEGRADABLE", "name": "Biodegradable", "description": "Material biodegradable"},
+        ]
+
+        count = 0
+        for material_data in materials:
+            try:
+                stmt = select(PackagingMaterial).where(PackagingMaterial.code == material_data["code"])
+                result = await self.session.execute(stmt)
+                existing = result.scalar_one_or_none()
+
+                if not existing:
+                    material = PackagingMaterial(**material_data)
+                    self.session.add(material)
+                    count += 1
+                    logger.info(f"  ✓ PackagingMaterial: {material_data['code']}")
+                else:
+                    logger.info(f"  ⊘ PackagingMaterial already exists: {material_data['code']}")
+            except Exception as e:
+                logger.error(f"  ✗ Error creating packaging material: {str(e)}", exc_info=True)
+
+        await self.session.commit()
+        self.loaded_count["packaging_materials"] = count
+        logger.info(f"✅ Loaded {count} packaging materials")
+        return count
+
+    # =========================================================================
     # StorageLocationConfig Loading (Seed Data)
     # =========================================================================
 
@@ -1546,16 +1630,37 @@ class ProductionDataLoader:
 
                 # Get or create packaging catalog
                 stmt = select(PackagingCatalog).where(
-                    PackagingCatalog.description.ilike(f"%{maceta}%")
+                    PackagingCatalog.name.ilike(f"%{maceta}%")
                 )
                 result = await self.session.execute(stmt)
                 packaging = result.scalar_one_or_none()
 
                 if not packaging:
-                    # Create new packaging catalog entry
+                    # Get default packaging type, material, and color
+                    stmt_type = select(PackagingType).limit(1)
+                    result_type = await self.session.execute(stmt_type)
+                    default_type = result_type.scalar_one_or_none()
+
+                    stmt_material = select(PackagingMaterial).limit(1)
+                    result_material = await self.session.execute(stmt_material)
+                    default_material = result_material.scalar_one_or_none()
+
+                    stmt_color = select(PackagingColor).limit(1)
+                    result_color = await self.session.execute(stmt_color)
+                    default_color = result_color.scalar_one_or_none()
+
+                    if not (default_type and default_material and default_color):
+                        logger.warning(f"  ⊘ Missing FK dependencies for PackagingCatalog, skipping: {maceta[:50]}")
+                        skipped_prices += 1
+                        continue
+
+                    # Create new packaging catalog entry with all required FKs
                     packaging = PackagingCatalog(
-                        code=sku[:20] if sku else f"PKG{count:04d}",
-                        description=maceta[:200],
+                        sku=sku[:20] if sku else f"PKG{count:04d}",
+                        name=maceta[:200],
+                        packaging_type_id=default_type.id,
+                        packaging_material_id=default_material.id,
+                        packaging_color_id=default_color.id,
                     )
                     self.session.add(packaging)
                     await self.session.flush()  # Get the ID
@@ -1639,6 +1744,8 @@ class ProductionDataLoader:
             await self.load_product_families()  # NEW
             await self.load_products()  # NEW
             await self.load_storage_bin_types()
+            await self.load_packaging_types()  # NEW - Required for PackagingCatalog
+            await self.load_packaging_materials()  # NEW - Required for PackagingCatalog
             await self.load_storage_location_config()  # NEW - Required for ML flow
             await self.load_price_list()
 
