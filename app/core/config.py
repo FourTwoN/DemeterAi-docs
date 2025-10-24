@@ -60,8 +60,8 @@ class Settings(BaseSettings):
     AWS_ACCESS_KEY_ID: str = ""
     AWS_SECRET_ACCESS_KEY: str = ""
     S3_BUCKET_ORIGINAL: str = "demeter-photos-original"
-    S3_BUCKET_VISUALIZATION: str = "demeter-photos-viz"
     S3_PRESIGNED_URL_EXPIRY_HOURS: int = 24
+    S3_THUMBNAIL_SIZE: int = 300  # Thumbnail size in pixels (width and height)
 
     # Auth0 configuration
     AUTH0_DOMAIN: str = ""  # Example: demeter.us.auth0.com

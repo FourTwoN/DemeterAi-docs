@@ -263,6 +263,16 @@ class MLPipelineCoordinator:
         all_detections: list[DetectionResult] = []
         segment_detection_counts: list[int] = []
 
+        # Load image once to get dimensions for coordinate transformation
+        import cv2  # type: ignore[import-not-found]
+
+        full_img = cv2.imread(str(image_path))
+        if full_img is None:
+            raise RuntimeError(f"Failed to load image for coordinate transformation: {image_path}")
+
+        img_height, img_width = full_img.shape[:2]
+        logger.debug(f"[Session {session_id}] Full image dimensions: {img_width}x{img_height}")
+
         for idx, segment in enumerate(segments, start=1):
             logger.debug(
                 f"[Session {session_id}] Processing segment {idx}/{len(segments)}: "
@@ -278,6 +288,34 @@ class MLPipelineCoordinator:
                     image_path=segment_crop_path,
                     confidence_threshold=conf_threshold_detect,
                 )
+
+                # Transform detection coordinates from segment-relative to full-image coordinates
+                # Segment bbox is in normalized coordinates (0.0-1.0), convert to pixels
+                x1, y1, x2, y2 = segment.bbox
+                x1_px = int(x1 * img_width)
+                y1_px = int(y1 * img_height)
+
+                logger.debug(
+                    f"[Session {session_id}] Segment {idx} bbox offset: "
+                    f"x1={x1_px}px, y1={y1_px}px (from normalized {x1:.3f}, {y1:.3f})"
+                )
+
+                # Transform each detection's center coordinates by adding segment offset
+                for det in detections:
+                    original_x = det.center_x_px
+                    original_y = det.center_y_px
+
+                    # Add segment offset to transform from crop-relative to full-image coordinates
+                    det.center_x_px += x1_px
+                    det.center_y_px += y1_px
+
+                    if idx == 1 and len(detections) > 0 and det == detections[0]:
+                        # Log first detection of first segment for verification
+                        logger.debug(
+                            f"[Session {session_id}] Sample detection transformed: "
+                            f"({original_x:.1f}, {original_y:.1f}) → "
+                            f"({det.center_x_px:.1f}, {det.center_y_px:.1f})"
+                        )
 
                 all_detections.extend(detections)
                 segment_detection_counts.append(len(detections))

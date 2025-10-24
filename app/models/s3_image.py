@@ -17,7 +17,7 @@ Design Decisions:
     - JSONB for GPS coordinates: {lat, lng, altitude, accuracy}
     - GPS validation: lat [-90, +90], lng [-180, +180]
     - File size validation: Max 500MB (BigInteger for large files > 4GB)
-    - Content type enum: image/jpeg, image/png
+    - Content type enum: image/jpeg, image/png, image/webp, image/avif
     - Upload source enum: web, mobile, api
     - Processing status enum: uploaded, processing, ready, failed
     - Unique constraint on s3_key_original: Prevent duplicate uploads
@@ -103,6 +103,7 @@ from sqlalchemy import (
     Enum,
     ForeignKey,
     Integer,
+    LargeBinary,
     String,
     Text,
 )
@@ -131,13 +132,18 @@ class ContentTypeEnum(str, enum.Enum):
     Supported formats:
         - JPEG: image/jpeg (most common, high compression)
         - PNG: image/png (lossless, transparency support)
+        - WEBP: image/webp (modern format, better compression than JPEG)
+        - AVIF: image/avif (next-gen format, excellent compression and quality)
 
     Note: This is a Python enum for type hints. The actual database ENUM
-    is created in the migration file.
+    is created in the migration file. WebP and AVIF support added for
+    ML-generated visualizations.
     """
 
     JPEG = "image/jpeg"
     PNG = "image/png"
+    WEBP = "image/webp"
+    AVIF = "image/avif"
 
 
 class UploadSourceEnum(str, enum.Enum):
@@ -176,6 +182,28 @@ class ProcessingStatusEnum(str, enum.Enum):
     FAILED = "failed"
 
 
+class ImageTypeEnum(str, enum.Enum):
+    """Image type enum for S3 bucket folder organization.
+
+    Image types:
+        - ORIGINAL: Original uploaded image (raw photo from user)
+        - PROCESSED: ML-processed visualization image (YOLO annotations, heatmaps, etc.)
+        - THUMBNAIL: Thumbnail image (300x300px JPEG for previews)
+
+    S3 Key Pattern:
+        - original: {session_id}/original.{ext}
+        - processed: {session_id}/processed.{ext}
+        - thumbnail: {session_id}/thumbnail.{ext}
+
+    Note: This is a Python enum for type hints. The actual database ENUM
+    is created in the migration file.
+    """
+
+    ORIGINAL = "original"
+    PROCESSED = "processed"
+    THUMBNAIL = "thumbnail"
+
+
 class S3Image(Base):
     """S3Image model representing uploaded images with S3 metadata.
 
@@ -196,7 +224,7 @@ class S3Image(Base):
         - GPS coordinates: JSONB with lat/lng/altitude/accuracy
         - GPS validation: lat [-90, +90], lng [-180, +180]
         - File size validation: Max 500MB (BigInteger for large files)
-        - Content type enum: image/jpeg, image/png
+        - Content type enum: image/jpeg, image/png, image/webp, image/avif
         - Upload source enum: web, mobile, api
         - Processing status enum: uploaded, processing, ready, failed
 
@@ -205,7 +233,9 @@ class S3Image(Base):
         s3_bucket: S3 bucket name (e.g., "demeter-photos")
         s3_key_original: S3 key for original image (unique, indexed)
         s3_key_thumbnail: S3 key for thumbnail (nullable)
-        content_type: Image MIME type (image/jpeg, image/png)
+        s3_key_processed: S3 key for ML-processed visualization (nullable)
+        image_type: Image type enum (original, processed, thumbnail)
+        content_type: Image MIME type (image/jpeg, image/png, image/webp, image/avif)
         file_size_bytes: File size in bytes (BigInteger for large files > 4GB)
         width_px: Image width in pixels
         height_px: Image height in pixels
@@ -218,6 +248,7 @@ class S3Image(Base):
         processing_status_updated_at: Timestamp of last status change (nullable)
         created_at: Record creation timestamp (auto)
         updated_at: Last update timestamp (auto)
+        image_data: Binary image data (BYTEA, nullable, deleted after ML processing)
 
     Relationships:
         uploaded_by_user: User who uploaded the image (many-to-one, nullable)
@@ -296,6 +327,24 @@ class S3Image(Base):
         comment="S3 key for thumbnail image (nullable)",
     )
 
+    s3_key_processed = Column(
+        String(512),
+        nullable=True,
+        comment="S3 key for ML-processed visualization image (nullable)",
+    )
+
+    # Image type (for folder organization)
+    image_type = Column(
+        Enum(
+            ImageTypeEnum,
+            name="image_type_enum",
+            values_callable=lambda x: [e.value for e in x],
+        ),
+        nullable=True,
+        default=ImageTypeEnum.ORIGINAL,
+        comment="Image type (original, processed, thumbnail)",
+    )
+
     # File metadata
     content_type = Column(
         Enum(
@@ -304,7 +353,7 @@ class S3Image(Base):
             values_callable=lambda x: [e.value for e in x],
         ),
         nullable=False,
-        comment="Image MIME type (image/jpeg, image/png)",
+        comment="Image MIME type (image/jpeg, image/png, image/webp, image/avif)",
     )
 
     file_size_bytes = Column(
@@ -398,6 +447,13 @@ class S3Image(Base):
         onupdate=func.now(),
         nullable=True,
         comment="Last update timestamp",
+    )
+
+    # Binary image data (PostgreSQL cache for Celery workers)
+    image_data = Column(
+        LargeBinary,
+        nullable=True,
+        comment="Binary image data cached in PostgreSQL (deleted after ML processing)",
     )
 
     # Relationships

@@ -124,7 +124,7 @@ class PhotoProcessingSession(Base):
         id: Primary key (auto-increment)
         session_id: UUID unique identifier (indexed, NOT NULL)
         storage_location_id: Foreign key to storage_locations (CASCADE, NULLABLE)
-        original_image_id: Foreign key to s3_images for input photo (CASCADE, NOT NULL)
+        original_image_id: Foreign key to s3_images for input photo (CASCADE, NULLABLE during creation)
         processed_image_id: Foreign key to s3_images for output photo (CASCADE, NULLABLE)
         total_detected: Total detections count (default 0)
         total_estimated: Total estimations count (default 0)
@@ -142,7 +142,7 @@ class PhotoProcessingSession(Base):
 
     Relationships:
         storage_location: StorageLocation instance (many-to-one, optional)
-        original_image: S3Image instance for input photo (many-to-one)
+        original_image: S3Image instance for input photo (many-to-one, optional during creation)
         processed_image: S3Image instance for output photo (many-to-one, optional)
         validated_by_user: User who validated session (many-to-one, optional)
         detections: List of Detection instances (one-to-many)
@@ -216,13 +216,15 @@ class PhotoProcessingSession(Base):
         comment="Foreign key to storage_locations (CASCADE delete, NULLABLE)",
     )
 
-    # Foreign key to s3_images for original photo (CASCADE delete)
+    # Foreign key to s3_images for original photo (CASCADE delete, nullable temporarily)
+    # NOTE: nullable=True allows creating session BEFORE uploading to S3
+    # This ensures all S3 uploads use the same session.session_id UUID
     original_image_id = Column(
         UUID(as_uuid=True),
         ForeignKey("s3_images.image_id", ondelete="CASCADE"),
-        nullable=False,
+        nullable=True,  # ✅ Allow creating session before S3 upload
         index=True,
-        comment="Foreign key to s3_images for original photo (CASCADE delete)",
+        comment="Foreign key to s3_images for original photo (CASCADE delete, NULLABLE during creation)",
     )
 
     # Foreign key to s3_images for processed photo (CASCADE delete, nullable)
@@ -347,11 +349,11 @@ class PhotoProcessingSession(Base):
         doc="Storage location where photo was taken (optional)",
     )
 
-    # Many-to-one: PhotoProcessingSession → S3Image (original)
-    original_image: Mapped["S3Image"] = relationship(
+    # Many-to-one: PhotoProcessingSession → S3Image (original, optional during creation)
+    original_image: Mapped["S3Image | None"] = relationship(
         "S3Image",
         foreign_keys=[original_image_id],
-        doc="Original input photo",
+        doc="Original input photo (optional during session creation)",
     )
 
     # Many-to-one: PhotoProcessingSession → S3Image (processed)

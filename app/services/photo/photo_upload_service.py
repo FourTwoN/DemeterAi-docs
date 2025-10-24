@@ -23,7 +23,6 @@ Critical Rules:
 """
 
 import io
-import uuid
 
 from fastapi import UploadFile
 from PIL import ExifTags, Image
@@ -111,10 +110,12 @@ class PhotoUploadService:
         1. Validate file (type, size)
         2. Extract GPS coordinates from photo metadata
         3. GPS-based location lookup
-        4. Upload to S3 (original image)
-        5. Create processing session (PENDING)
-        6. Dispatch Celery ML task
-        7. Update session (PROCESSING)
+        4. Create processing session FIRST (PENDING, without original_image_id)
+        5. Upload original to S3 (using session.session_id)
+        6. Upload thumbnail to S3 (using session.session_id)
+        7. Update session with original_image_id
+        8. Dispatch Celery ML task
+        9. Update session (PROCESSING)
 
         Args:
             file: Photo file to upload
@@ -132,6 +133,7 @@ class PhotoUploadService:
             - File size max 20MB
             - GPS coordinates must be present in photo metadata
             - GPS location must exist in warehouse hierarchy
+            - Session created BEFORE S3 upload to ensure single UUID for all images
             - Session starts as PENDING, transitions to PROCESSING after Celery dispatch
         """
         logger.info(
@@ -213,44 +215,13 @@ class PhotoUploadService:
             width_px = 1
             height_px = 1
 
-        # Generate temporary session_id for S3 upload (will be replaced by actual session)
-        temp_session_id = uuid.uuid4()
-
-        # Create upload request with required metadata
-        upload_request = S3ImageUploadRequest(
-            session_id=temp_session_id,
-            filename=file.filename or "photo.jpg",
-            content_type=ContentTypeEnum(file.content_type or "image/jpeg"),
-            file_size_bytes=len(file_bytes),
-            width_px=width_px,  # Extracted from PIL
-            height_px=height_px,  # Extracted from PIL
-            upload_source=UploadSourceEnum.WEB,
-            uploaded_by_user_id=user_id,
-            exif_metadata=None,
-            gps_coordinates={"latitude": gps_latitude, "longitude": gps_longitude},
-        )
-
-        # Upload original image (returns S3ImageResponse)
-        original_image = await self.s3_service.upload_original(
-            file_bytes=file_bytes,
-            session_id=temp_session_id,
-            upload_request=upload_request,
-        )
-
-        logger.info(
-            "Original image uploaded to S3",
-            extra={
-                "s3_key": original_image.s3_key_original,
-                "image_id": str(original_image.image_id),
-            },
-        )
-
-        # STEP 4: Create processing session (PENDING)
-        logger.info("Creating photo processing session")
+        # STEP 4: Create processing session FIRST (without original_image_id)
+        # This ensures all S3 uploads use the same session.session_id UUID
+        logger.info("Creating photo processing session (before S3 upload)")
 
         session_request = PhotoProcessingSessionCreate(
             storage_location_id=storage_location_id,
-            original_image_id=original_image.image_id,
+            original_image_id=None,  # ✅ Will be set after S3 upload
             processed_image_id=None,
             status=ProcessingSessionStatusEnum.PENDING,
             total_detected=0,
@@ -269,11 +240,95 @@ class PhotoUploadService:
             extra={
                 "session_id": str(session.session_id),
                 "session_db_id": session.id,
-                "status": session.status.value,
             },
         )
 
-        # STEP 5: Dispatch ML pipeline (Celery task)
+        # STEP 5: Upload original to S3 using session.session_id
+        logger.info("Uploading original image to S3 with session UUID")
+
+        # Create upload request with session.session_id (NOT temp UUID)
+        upload_request = S3ImageUploadRequest(
+            session_id=session.session_id,  # ✅ Use PhotoProcessingSession UUID
+            filename=file.filename or "photo.jpg",
+            content_type=ContentTypeEnum(file.content_type or "image/jpeg"),
+            file_size_bytes=len(file_bytes),
+            width_px=width_px,  # Extracted from PIL
+            height_px=height_px,  # Extracted from PIL
+            upload_source=UploadSourceEnum.WEB,
+            uploaded_by_user_id=user_id,
+            exif_metadata=None,
+            gps_coordinates={"latitude": gps_latitude, "longitude": gps_longitude},
+        )
+
+        # Upload original image (returns S3ImageResponse)
+        original_image = await self.s3_service.upload_original(
+            file_bytes=file_bytes,
+            session_id=session.session_id,  # ✅ Use PhotoProcessingSession UUID
+            upload_request=upload_request,
+        )
+
+        logger.info(
+            "Original image uploaded to S3",
+            extra={
+                "s3_key": original_image.s3_key_original,
+                "image_id": str(original_image.image_id),
+                "session_id": str(session.session_id),
+            },
+        )
+
+        # STEP 6: Generate and upload thumbnail for ORIGINAL image
+        try:
+            from app.services.photo.s3_image_service import generate_thumbnail
+
+            # Generate thumbnail from original
+            thumbnail_bytes = generate_thumbnail(file_bytes, size=300)  # 300x300px
+
+            # Upload thumbnail using SAME session.session_id
+            thumbnail_image = await self.s3_service.upload_thumbnail(
+                file_bytes=thumbnail_bytes,
+                session_id=session.session_id,  # ✅ Use PhotoProcessingSession UUID
+                size=300,
+                filename="thumbnail_original.jpg",
+            )
+
+            logger.info(
+                "Original thumbnail uploaded to S3",
+                extra={
+                    "s3_key": thumbnail_image.s3_key_thumbnail,
+                    "image_id": str(thumbnail_image.image_id),
+                    "session_id": str(session.session_id),
+                },
+            )
+
+        except Exception as e:
+            # Log but don't fail (thumbnail is optional)
+            logger.warning(
+                "Failed to generate/upload original thumbnail",
+                extra={
+                    "error": str(e),
+                    "session_id": str(session.session_id),
+                },
+            )
+
+        # STEP 7: Update session with original_image_id
+        logger.info("Updating session with original_image_id")
+
+        from app.schemas.photo_processing_session_schema import PhotoProcessingSessionUpdate
+
+        update_request = PhotoProcessingSessionUpdate(original_image_id=original_image.image_id)
+
+        session = await self.session_service.update_session(session.id, update_request)
+
+        logger.info(
+            "Photo processing session updated with original_image_id",
+            extra={
+                "session_id": str(session.session_id),
+                "session_db_id": session.id,
+                "original_image_id": str(original_image.image_id),
+            },
+        )
+
+        # STEP 8: Dispatch ML pipeline (Celery task)
         from app.tasks.ml_tasks import ml_parent_task
 
         # Build image_data for ML task
@@ -309,7 +364,7 @@ class PhotoUploadService:
             },
         )
 
-        # STEP 6: Update session to PROCESSING
+        # STEP 9: Update session to PROCESSING
         # NOTE: In production, this would be done by the ML pipeline
         # For now, we keep it as PENDING until ML pipeline is ready
 

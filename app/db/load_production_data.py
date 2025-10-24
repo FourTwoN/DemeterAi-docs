@@ -39,7 +39,10 @@ from app.models import (
     PackagingCatalog,
     PackagingColor,
     PriceList,
+    Product,
     ProductCategory,
+    ProductFamily,
+    ProductState,
     StorageArea,
     StorageBinType,
     StorageLocation,
@@ -68,6 +71,9 @@ class ProductionDataLoader:
             "storage_areas": 0,
             "storage_locations": 0,
             "product_categories": 0,
+            "product_states": 0,
+            "product_families": 0,
+            "products": 0,
             "storage_bin_types": 0,
             "price_list": 0,
         }
@@ -834,6 +840,460 @@ class ProductionDataLoader:
         return count
 
     # =========================================================================
+    # ProductState Loading (Hardcoded Seed Data)
+    # =========================================================================
+
+    async def load_product_states(self) -> int:
+        """Load product states from seed data.
+
+        Creates the 11 lifecycle states as defined in ProductState model:
+        - SEED → GERMINATING → SEEDLING → JUVENILE → ADULT → FLOWERING →
+          FRUITING → DORMANT → PROPAGATING → DYING → DEAD
+
+        Only ADULT, FLOWERING, FRUITING, DORMANT are sellable.
+
+        Returns:
+            Number of product states loaded/updated
+        """
+        logger.info("Loading product states...")
+
+        # 11 lifecycle states (as per DB018 spec)
+        product_states = [
+            {
+                "code": "SEED",
+                "name": "Semilla",
+                "description": "Semilla sin germinar",
+                "is_sellable": False,
+                "sort_order": 10,
+            },
+            {
+                "code": "GERMINATING",
+                "name": "Germinando",
+                "description": "Semilla en proceso de germinación",
+                "is_sellable": False,
+                "sort_order": 20,
+            },
+            {
+                "code": "SEEDLING",
+                "name": "Plántula",
+                "description": "Plántula recién germinada (primeras hojas)",
+                "is_sellable": False,
+                "sort_order": 30,
+            },
+            {
+                "code": "JUVENILE",
+                "name": "Juvenil",
+                "description": "Planta joven en crecimiento activo",
+                "is_sellable": False,
+                "sort_order": 40,
+            },
+            {
+                "code": "ADULT",
+                "name": "Adulto",
+                "description": "Planta madura, lista para venta",
+                "is_sellable": True,
+                "sort_order": 50,
+            },
+            {
+                "code": "FLOWERING",
+                "name": "Floración",
+                "description": "Planta en floración, alta demanda comercial",
+                "is_sellable": True,
+                "sort_order": 60,
+            },
+            {
+                "code": "FRUITING",
+                "name": "Fructificación",
+                "description": "Planta con frutos/semillas",
+                "is_sellable": True,
+                "sort_order": 70,
+            },
+            {
+                "code": "DORMANT",
+                "name": "Dormante",
+                "description": "Planta en dormancia estacional (vendible)",
+                "is_sellable": True,
+                "sort_order": 80,
+            },
+            {
+                "code": "PROPAGATING",
+                "name": "Propagación",
+                "description": "Planta madre para propagación (no venta)",
+                "is_sellable": False,
+                "sort_order": 90,
+            },
+            {
+                "code": "DYING",
+                "name": "Muriendo",
+                "description": "Planta en deterioro avanzado",
+                "is_sellable": False,
+                "sort_order": 100,
+            },
+            {
+                "code": "DEAD",
+                "name": "Muerta",
+                "description": "Planta muerta, descarte",
+                "is_sellable": False,
+                "sort_order": 110,
+            },
+        ]
+
+        count = 0
+        for state_data in product_states:
+            try:
+                stmt = select(ProductState).where(ProductState.code == state_data["code"])
+                result = await self.session.execute(stmt)
+                existing = result.scalar_one_or_none()
+
+                if not existing:
+                    product_state = ProductState(**state_data)
+                    self.session.add(product_state)
+                    count += 1
+                    logger.info(f"  ✓ ProductState: {state_data['code']} ({state_data['name']})")
+                else:
+                    logger.info(f"  ⊘ ProductState already exists: {state_data['code']}")
+
+            except Exception as e:
+                logger.error(f"  ✗ Error creating product state: {str(e)}", exc_info=True)
+
+        await self.session.commit()
+        self.loaded_count["product_states"] = count
+        logger.info(f"✅ Loaded {count} product states")
+        return count
+
+    # =========================================================================
+    # ProductFamily Loading (Hardcoded Seed Data)
+    # =========================================================================
+
+    async def load_product_families(self) -> int:
+        """Load product families from seed data.
+
+        Creates families for cacti and succulents based on actual production data.
+        Families are mapped to existing categories (CACTUS, SUCULENTAS).
+
+        Returns:
+            Number of product families loaded/updated
+        """
+        logger.info("Loading product families...")
+
+        # Get existing categories
+        stmt = select(ProductCategory).where(ProductCategory.code.in_(["CACTUS", "SUCULENTAS"]))
+        result = await self.session.execute(stmt)
+        categories = {cat.code: cat for cat in result.scalars().all()}
+
+        if not categories:
+            logger.warning(
+                "No categories found (CACTUS, SUCULENTAS). Load product categories first."
+            )
+            return 0
+
+        cactus_id = categories.get("CACTUS").id if "CACTUS" in categories else None
+        suculentas_id = categories.get("SUCULENTAS").id if "SUCULENTAS" in categories else None
+
+        # Product families from actual production CSV data
+        product_families = []
+
+        # Cactus families
+        if cactus_id:
+            product_families.extend(
+                [
+                    {
+                        "category_id": cactus_id,
+                        "name": "Mammillaria",
+                        "scientific_name": "Mammillaria",
+                        "description": "Género con más de 200 especies de cactus pequeños y globulares",
+                    },
+                    {
+                        "category_id": cactus_id,
+                        "name": "Gymnocalycium",
+                        "scientific_name": "Gymnocalycium",
+                        "description": "Cactus globulares sudamericanos con flores grandes",
+                    },
+                    {
+                        "category_id": cactus_id,
+                        "name": "Lobivia",
+                        "scientific_name": "Lobivia",
+                        "description": "Cactus sudamericanos con flores grandes y coloridas",
+                    },
+                    {
+                        "category_id": cactus_id,
+                        "name": "Rebutia",
+                        "scientific_name": "Rebutia",
+                        "description": "Cactus pequeños de Bolivia y Argentina con flores vistosas",
+                    },
+                    {
+                        "category_id": cactus_id,
+                        "name": "Notocactus",
+                        "scientific_name": "Parodia (anteriormente Notocactus)",
+                        "description": "Cactus globulares con espinas llamativas",
+                    },
+                    {
+                        "category_id": cactus_id,
+                        "name": "Matucana",
+                        "scientific_name": "Matucana",
+                        "description": "Cactus peruanos con flores tubulares",
+                    },
+                    {
+                        "category_id": cactus_id,
+                        "name": "Trichocereus",
+                        "scientific_name": "Echinopsis (anteriormente Trichocereus)",
+                        "description": "Cactus columnares sudamericanos de gran tamaño",
+                    },
+                    {
+                        "category_id": cactus_id,
+                        "name": "Echinocereus",
+                        "scientific_name": "Echinocereus",
+                        "description": "Cactus norteamericanos con flores grandes y vistosas",
+                    },
+                    {
+                        "category_id": cactus_id,
+                        "name": "Copiapoa",
+                        "scientific_name": "Copiapoa",
+                        "description": "Cactus chilenos de crecimiento lento",
+                    },
+                    {
+                        "category_id": cactus_id,
+                        "name": "Eriosyce",
+                        "scientific_name": "Eriosyce",
+                        "description": "Género sudamericano de cactus globulares",
+                    },
+                ]
+            )
+
+        # Succulent families
+        if suculentas_id:
+            product_families.extend(
+                [
+                    {
+                        "category_id": suculentas_id,
+                        "name": "Echeveria",
+                        "scientific_name": "Echeveria",
+                        "description": "Suculentas en roseta, muy populares para decoración",
+                    },
+                    {
+                        "category_id": suculentas_id,
+                        "name": "Haworthia",
+                        "scientific_name": "Haworthia",
+                        "description": "Suculentas pequeñas sudafricanas, ideales para interiores",
+                    },
+                    {
+                        "category_id": suculentas_id,
+                        "name": "Crassula",
+                        "scientific_name": "Crassula",
+                        "description": "Género diverso que incluye la famosa 'Planta de Jade'",
+                    },
+                    {
+                        "category_id": suculentas_id,
+                        "name": "Lithops",
+                        "scientific_name": "Lithops",
+                        "description": "Plantas piedra, suculentas mimetizadas muy especializadas",
+                    },
+                    {
+                        "category_id": suculentas_id,
+                        "name": "Adromischus",
+                        "scientific_name": "Adromischus",
+                        "description": "Suculentas compactas sudafricanas con hojas decorativas",
+                    },
+                    {
+                        "category_id": suculentas_id,
+                        "name": "Sempervivum",
+                        "scientific_name": "Sempervivum",
+                        "description": "Siemprevivas europeas, resistentes al frío",
+                    },
+                    {
+                        "category_id": suculentas_id,
+                        "name": "Cotyledon",
+                        "scientific_name": "Cotyledon",
+                        "description": "Suculentas arbustivas con hojas carnosas",
+                    },
+                    {
+                        "category_id": suculentas_id,
+                        "name": "Pleiospilos",
+                        "scientific_name": "Pleiospilos",
+                        "description": "Plantas piedra sudafricanas con flores grandes",
+                    },
+                    {
+                        "category_id": suculentas_id,
+                        "name": "Titanopsis",
+                        "scientific_name": "Titanopsis",
+                        "description": "Suculentas miniatura con textura de piedra caliza",
+                    },
+                    {
+                        "category_id": suculentas_id,
+                        "name": "Rabiea",
+                        "scientific_name": "Rabiea",
+                        "description": "Suculentas compactas sudafricanas de rápido crecimiento",
+                    },
+                ]
+            )
+
+        count = 0
+        for family_data in product_families:
+            try:
+                # Check by name and category_id combination
+                stmt = select(ProductFamily).where(
+                    (ProductFamily.name == family_data["name"])
+                    & (ProductFamily.category_id == family_data["category_id"])
+                )
+                result = await self.session.execute(stmt)
+                existing = result.scalar_one_or_none()
+
+                if not existing:
+                    family = ProductFamily(**family_data)
+                    self.session.add(family)
+                    count += 1
+                    logger.info(f"  ✓ ProductFamily: {family_data['name']}")
+                else:
+                    logger.info(f"  ⊘ ProductFamily already exists: {family_data['name']}")
+
+            except Exception as e:
+                logger.error(f"  ✗ Error creating product family: {str(e)}", exc_info=True)
+
+        await self.session.commit()
+        self.loaded_count["product_families"] = count
+        logger.info(f"✅ Loaded {count} product families")
+        return count
+
+    # =========================================================================
+    # Product Loading (Sample Seed Data)
+    # =========================================================================
+
+    async def load_products(self) -> int:
+        """Load sample products from seed data.
+
+        Creates a few representative products for each family to enable
+        testing and demo. In production, products are created via UI/ML.
+
+        Returns:
+            Number of products loaded/updated
+        """
+        logger.info("Loading sample products...")
+
+        # Get existing families
+        stmt = select(ProductFamily).limit(100)
+        result = await self.session.execute(stmt)
+        families = {fam.name: fam for fam in result.scalars().all()}
+
+        if not families:
+            logger.warning("No product families found. Load product families first.")
+            return 0
+
+        # Sample products (one per family for demo/testing)
+        sample_products = []
+
+        # Cactus products
+        if "Mammillaria" in families:
+            sample_products.append(
+                {
+                    "family_id": families["Mammillaria"].family_id,
+                    "sku": "MAMM-BOCASANA-001",
+                    "common_name": "Mammillaria bocasana",
+                    "scientific_name": "Mammillaria bocasana",
+                    "description": "Cactus globular cubierto de espinas blancas suaves",
+                    "custom_attributes": {
+                        "growth_rate": "medium",
+                        "cold_hardy": False,
+                        "bloom_season": "spring",
+                        "max_size_cm": 15,
+                    },
+                }
+            )
+
+        if "Echeveria" in families:
+            sample_products.append(
+                {
+                    "family_id": families["Echeveria"].family_id,
+                    "sku": "ECHEV-ELEGANS-001",
+                    "common_name": "Echeveria elegans",
+                    "scientific_name": "Echeveria elegans",
+                    "description": "Rosa de alabastro, suculenta en roseta con hojas azul-grisáceas",
+                    "custom_attributes": {
+                        "color": "blue-gray",
+                        "growth_rate": "medium",
+                        "bloom_season": "spring-summer",
+                        "max_rosette_cm": 15,
+                    },
+                }
+            )
+
+        if "Haworthia" in families:
+            sample_products.append(
+                {
+                    "family_id": families["Haworthia"].family_id,
+                    "sku": "HAWOR-COOPERI-001",
+                    "common_name": "Haworthia cooperi",
+                    "scientific_name": "Haworthia cooperi var. truncata",
+                    "description": "Suculenta miniatura con hojas translúcidas tipo ventana",
+                    "custom_attributes": {
+                        "color": "green-translucent",
+                        "growth_rate": "slow",
+                        "light_needs": "partial_shade",
+                        "max_size_cm": 8,
+                    },
+                }
+            )
+
+        if "Lithops" in families:
+            sample_products.append(
+                {
+                    "family_id": families["Lithops"].family_id,
+                    "sku": "LITHO-KARASMONTANA-001",
+                    "common_name": "Lithops karasmontana",
+                    "scientific_name": "Lithops karasmontana subsp. karasmontana",
+                    "description": "Planta piedra viva con patrón marmolado único",
+                    "custom_attributes": {
+                        "color": "gray-brown",
+                        "growth_rate": "very_slow",
+                        "bloom_season": "autumn",
+                        "max_size_cm": 4,
+                        "mimicry": True,
+                    },
+                }
+            )
+
+        if "Crassula" in families:
+            sample_products.append(
+                {
+                    "family_id": families["Crassula"].family_id,
+                    "sku": "CRASS-OVATA-001",
+                    "common_name": "Crassula ovata (Planta de Jade)",
+                    "scientific_name": "Crassula ovata",
+                    "description": "Planta de jade clásica, suculenta arbustiva muy popular",
+                    "custom_attributes": {
+                        "color": "green",
+                        "growth_rate": "medium",
+                        "max_height_cm": 100,
+                        "variegated": False,
+                    },
+                }
+            )
+
+        count = 0
+        for product_data in sample_products:
+            try:
+                stmt = select(Product).where(Product.sku == product_data["sku"])
+                result = await self.session.execute(stmt)
+                existing = result.scalar_one_or_none()
+
+                if not existing:
+                    product = Product(**product_data)
+                    self.session.add(product)
+                    count += 1
+                    logger.info(
+                        f"  ✓ Product: {product_data['sku']} - {product_data['common_name']}"
+                    )
+                else:
+                    logger.info(f"  ⊘ Product already exists: {product_data['sku']}")
+
+            except Exception as e:
+                logger.error(f"  ✗ Error creating product: {str(e)}", exc_info=True)
+
+        await self.session.commit()
+        self.loaded_count["products"] = count
+        logger.info(f"✅ Loaded {count} sample products")
+        return count
+
+    # =========================================================================
     # Packaging & PriceList Loading (from CSV)
     # =========================================================================
 
@@ -1078,8 +1538,11 @@ class ProductionDataLoader:
         2. StorageAreas
         3. StorageLocations
         4. ProductCategories
-        5. StorageBinTypes
-        6. PriceList
+        5. ProductStates (NEW - lifecycle states)
+        6. ProductFamilies (NEW - depends on categories)
+        7. Products (NEW - depends on families)
+        8. StorageBinTypes
+        9. PriceList
 
         Returns:
             Dictionary with counts of loaded items
@@ -1093,6 +1556,9 @@ class ProductionDataLoader:
             await self.load_storage_areas()
             await self.load_storage_locations()
             await self.load_product_categories()
+            await self.load_product_states()  # NEW
+            await self.load_product_families()  # NEW
+            await self.load_products()  # NEW
             await self.load_storage_bin_types()
             await self.load_price_list()
 

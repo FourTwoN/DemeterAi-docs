@@ -1392,3 +1392,20 @@ DB018+DB019)
 **Update Status**: COMPLETE
 **Approval Status**: PENDING Product Owner
 **Next Update**: After approval + first week execution (2025-10-25)
+
+## Task Added: S043 - S3 Bucket Consolidation (2025-10-24 10:13)
+
+- Task ID: S043
+- Epic: epic-011 (Photo Management)
+- Status: Moved to 01_ready/
+- Priority: HIGH (consolidates S3 architecture, reduces complexity)
+- Story Points: 8 (Medium complexity)
+- Scope: Consolidate demeter-photos-original + demeter-photos-viz into single bucket
+- Key Changes:
+  - Remove S3_BUCKET_VISUALIZATION config
+  - New folder structure: {session_id}/original|processed|thumbnail.ext
+  - Add thumbnail generation (300x300px)
+  - Add image_type ENUM to S3Image model
+  - Data migration script for existing viz images
+- Dependencies: None (can start immediately)
+- Impact: Simplifies S3 management, enables lifecycle policies, reduces config complexity

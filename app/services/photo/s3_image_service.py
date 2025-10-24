@@ -35,7 +35,7 @@ from pybreaker import CircuitBreaker, CircuitBreakerError  # type: ignore[import
 from app.core.config import settings
 from app.core.exceptions import S3UploadException, ValidationException
 from app.core.logging import get_logger
-from app.models.s3_image import ProcessingStatusEnum
+from app.models.s3_image import ImageTypeEnum, ProcessingStatusEnum
 from app.repositories.s3_image_repository import S3ImageRepository
 from app.schemas.s3_image_schema import S3ImageResponse, S3ImageUploadRequest
 
@@ -158,8 +158,12 @@ class S3ImageService:
                 value=len(file_bytes),
             )
 
-        # Build S3 key: {session_id}/{filename}
-        s3_key = f"{session_id}/{upload_request.filename}"
+        # Build S3 key: {session_id}/original.{ext}
+        # Extract file extension from filename
+        file_ext = (
+            upload_request.filename.split(".")[-1] if "." in upload_request.filename else "jpg"
+        )
+        s3_key = f"{session_id}/original.{file_ext}"
 
         logger.info(
             "Uploading original image to S3",
@@ -192,11 +196,13 @@ class S3ImageService:
         # Generate image_id (UUID primary key)
         image_id = uuid.uuid4()
 
-        # Store metadata in database
+        # Store metadata and binary data in database
+        # Priority order: PostgreSQL (fastest) → /tmp cache → S3 (fallback)
         s3_image_data = {
             "image_id": image_id,
             "s3_bucket": settings.S3_BUCKET_ORIGINAL,
             "s3_key_original": s3_key,
+            "image_type": ImageTypeEnum.ORIGINAL,  # NEW: Mark as original image
             "content_type": upload_request.content_type,
             "file_size_bytes": len(file_bytes),
             "width_px": upload_request.width_px,
@@ -206,6 +212,7 @@ class S3ImageService:
             "exif_metadata": upload_request.exif_metadata,
             "gps_coordinates": upload_request.gps_coordinates,
             "status": ProcessingStatusEnum.UPLOADED,
+            "image_data": file_bytes,  # Cache binary data in PostgreSQL (deleted after ML processing)
         }
 
         s3_image = await self.repo.create(s3_image_data)
@@ -231,21 +238,21 @@ class S3ImageService:
         filename: str,
         content_type: str = "image/jpeg",
     ) -> S3ImageResponse:
-        """Upload visualization image to S3 (bucket: demeter-photos-viz).
+        """Upload visualization image to S3 (bucket: demeter-photos-original, folder: processed).
 
         Visualization images are processed results from ML pipeline (YOLO annotations,
-        heatmaps, segmentation masks, etc.). Stored in separate bucket for organization.
+        heatmaps, segmentation masks, etc.). Now stored in same bucket with folder structure.
 
         Business rules:
         1. File size must be 1 byte to 500MB
-        2. S3 key format: {session_id}/viz_{filename}
+        2. S3 key format: {session_id}/processed.{ext}
         3. Image metadata stored in database
         4. Circuit breaker protects against S3 failures
 
         Args:
             file_bytes: Image file bytes (max 500MB)
             session_id: Photo processing session UUID
-            filename: Filename for visualization (e.g., "detections_annotated.jpg")
+            filename: Filename for visualization (e.g., "detections_annotated.avif")
             content_type: MIME type (default: image/jpeg)
 
         Returns:
@@ -262,9 +269,9 @@ class S3ImageService:
             result = await service.upload_visualization(
                 file_bytes=viz_bytes,
                 session_id=session_id,
-                filename="detections_annotated.jpg"
+                filename="detections_annotated.avif"
             )
-            logger.debug(f"Visualization uploaded: {result.s3_key_original}")
+            logger.debug(f"Visualization uploaded: {result.s3_key_processed}")
             ```
         """
         # Validate file size
@@ -278,34 +285,36 @@ class S3ImageService:
                 value=len(file_bytes),
             )
 
-        # Build S3 key: {session_id}/viz_{filename}
-        s3_key = f"{session_id}/viz_{filename}"
+        # Build S3 key: {session_id}/processed.{ext}
+        # Extract file extension from content_type or filename
+        file_ext = filename.split(".")[-1] if "." in filename else "jpg"
+        s3_key = f"{session_id}/processed.{file_ext}"
 
         logger.info(
             "Uploading visualization image to S3",
             s3_key=s3_key,
-            bucket=settings.S3_BUCKET_VISUALIZATION,
+            bucket=settings.S3_BUCKET_ORIGINAL,  # NEW: Upload to original bucket
             file_size=len(file_bytes),
             session_id=str(session_id),
         )
 
-        # Upload to S3 with circuit breaker
+        # Upload to S3 with circuit breaker (now to ORIGINAL bucket)
         try:
             await self._upload_to_s3(
                 s3_key=s3_key,
                 file_bytes=file_bytes,
-                bucket=settings.S3_BUCKET_VISUALIZATION,
+                bucket=settings.S3_BUCKET_ORIGINAL,  # NEW: Changed from VISUALIZATION
                 content_type=content_type,
             )
         except CircuitBreakerError as e:
             logger.error(
                 "S3 circuit breaker open - too many failures",
                 s3_key=s3_key,
-                bucket=settings.S3_BUCKET_VISUALIZATION,
+                bucket=settings.S3_BUCKET_ORIGINAL,
             )
             raise S3UploadException(
                 file_name=filename,
-                bucket=settings.S3_BUCKET_VISUALIZATION,
+                bucket=settings.S3_BUCKET_ORIGINAL,
                 error="S3 service temporarily unavailable (circuit breaker open)",
             ) from e
 
@@ -315,8 +324,10 @@ class S3ImageService:
         # Store metadata in database (minimal metadata for visualizations)
         s3_image_data = {
             "image_id": image_id,
-            "s3_bucket": settings.S3_BUCKET_VISUALIZATION,
-            "s3_key_original": s3_key,
+            "s3_bucket": settings.S3_BUCKET_ORIGINAL,  # NEW: Changed from VISUALIZATION
+            "s3_key_original": s3_key,  # Keep for backward compatibility
+            "s3_key_processed": s3_key,  # NEW: Store in processed key column
+            "image_type": ImageTypeEnum.PROCESSED,  # NEW: Mark as processed image
             "content_type": content_type,
             "file_size_bytes": len(file_bytes),
             "width_px": 0,  # Unknown for visualizations (set by ML pipeline)
@@ -330,14 +341,140 @@ class S3ImageService:
 
         # Generate presigned URL
         presigned_url = await self.generate_presigned_url(
-            s3_key=s3_key, bucket=settings.S3_BUCKET_VISUALIZATION, expiry_hours=24
+            s3_key=s3_key, bucket=settings.S3_BUCKET_ORIGINAL, expiry_hours=24
         )
 
         logger.info(
             "Visualization image uploaded successfully",
             image_id=str(image_id),
             s3_key=s3_key,
-            bucket=settings.S3_BUCKET_VISUALIZATION,
+            bucket=settings.S3_BUCKET_ORIGINAL,
+        )
+
+        return S3ImageResponse.from_model(s3_image, presigned_url=presigned_url)
+
+    async def upload_thumbnail(
+        self,
+        file_bytes: bytes,
+        session_id: uuid.UUID,
+        size: int | None = None,
+        filename: str | None = None,
+    ) -> S3ImageResponse:
+        """Upload thumbnail image to S3 (bucket: demeter-photos-original, folder: thumbnail).
+
+        Thumbnails are 300x300px JPEG previews generated from original or processed images.
+        Used for gallery views and quick previews.
+
+        Business rules:
+        1. File size must be 1 byte to 500MB
+        2. S3 key format: {session_id}/{filename} (default: thumbnail.jpg)
+        3. Thumbnail is always JPEG format
+        4. Circuit breaker protects against S3 failures
+
+        Args:
+            file_bytes: Thumbnail image bytes (max 500MB)
+            session_id: Photo processing session UUID
+            size: Thumbnail size in pixels (default: from settings.S3_THUMBNAIL_SIZE)
+            filename: Optional filename (default: "thumbnail.jpg", e.g., "thumbnail_original.jpg", "thumbnail_processed.jpg")
+
+        Returns:
+            S3ImageResponse with S3 key and presigned URL
+
+        Raises:
+            ValidationException: If file size is invalid
+            S3UploadException: If S3 upload fails
+            CircuitBreakerError: If circuit breaker is open
+
+        Example:
+            ```python
+            service = S3ImageService(repo)
+            # Generate thumbnail from original
+            thumbnail_bytes = generate_thumbnail(original_bytes, size=300)
+            result = await service.upload_thumbnail(
+                file_bytes=thumbnail_bytes,
+                session_id=session_id,
+                filename="thumbnail_original.jpg"  # Specify original vs processed
+            )
+            logger.debug(f"Thumbnail uploaded: {result.s3_key_thumbnail}")
+            ```
+        """
+        # Validate file size
+        if not file_bytes or len(file_bytes) == 0:
+            raise ValidationException(field="file_bytes", message="File cannot be empty", value=0)
+
+        if len(file_bytes) > 500_000_000:  # 500MB
+            raise ValidationException(
+                field="file_bytes",
+                message="File size exceeds 500MB limit",
+                value=len(file_bytes),
+            )
+
+        # Build S3 key: {session_id}/{filename}
+        # Default to "thumbnail.jpg" for backward compatibility
+        thumbnail_filename = filename or "thumbnail.jpg"
+        s3_key = f"{session_id}/{thumbnail_filename}"
+
+        logger.info(
+            "Uploading thumbnail image to S3",
+            s3_key=s3_key,
+            bucket=settings.S3_BUCKET_ORIGINAL,
+            file_size=len(file_bytes),
+            session_id=str(session_id),
+        )
+
+        # Upload to S3 with circuit breaker
+        try:
+            await self._upload_to_s3(
+                s3_key=s3_key,
+                file_bytes=file_bytes,
+                bucket=settings.S3_BUCKET_ORIGINAL,
+                content_type="image/jpeg",
+            )
+        except CircuitBreakerError as e:
+            logger.error(
+                "S3 circuit breaker open - too many failures",
+                s3_key=s3_key,
+                bucket=settings.S3_BUCKET_ORIGINAL,
+            )
+            raise S3UploadException(
+                file_name=s3_key,
+                bucket=settings.S3_BUCKET_ORIGINAL,
+                error="S3 service temporarily unavailable (circuit breaker open)",
+            ) from e
+
+        # Generate image_id (UUID primary key)
+        image_id = uuid.uuid4()
+
+        # Get thumbnail size from settings if not provided
+        thumbnail_size = size or settings.S3_THUMBNAIL_SIZE
+
+        # Store metadata in database
+        s3_image_data = {
+            "image_id": image_id,
+            "s3_bucket": settings.S3_BUCKET_ORIGINAL,
+            "s3_key_original": s3_key,  # Keep for backward compatibility
+            "s3_key_thumbnail": s3_key,  # Store in thumbnail key column
+            "image_type": ImageTypeEnum.THUMBNAIL,  # Mark as thumbnail image
+            "content_type": "image/jpeg",
+            "file_size_bytes": len(file_bytes),
+            "width_px": thumbnail_size,
+            "height_px": thumbnail_size,
+            "upload_source": "api",  # Thumbnails always generated by API/ML
+            "status": ProcessingStatusEnum.READY,  # Thumbnails are ready immediately
+        }
+
+        s3_image = await self.repo.create(s3_image_data)
+
+        # Generate presigned URL
+        presigned_url = await self.generate_presigned_url(
+            s3_key=s3_key, bucket=settings.S3_BUCKET_ORIGINAL, expiry_hours=24
+        )
+
+        logger.info(
+            "Thumbnail image uploaded successfully",
+            image_id=str(image_id),
+            s3_key=s3_key,
+            bucket=settings.S3_BUCKET_ORIGINAL,
         )
 
         return S3ImageResponse.from_model(s3_image, presigned_url=presigned_url)
@@ -464,10 +601,10 @@ class S3ImageService:
             ) from e
 
     async def delete_image(self, image_id: uuid.UUID) -> bool:
-        """Delete image from S3 and database.
+        """Delete image from S3 and database (cascades to all 3 image types).
 
         Business rules:
-        1. Delete from S3 first (prevents orphaned database records)
+        1. Delete all 3 types from S3 first (original, processed, thumbnail)
         2. Delete from database second
         3. If S3 delete fails, database record remains (manual cleanup)
 
@@ -485,7 +622,7 @@ class S3ImageService:
             service = S3ImageService(repo)
             deleted = await service.delete_image(image_id)
             if deleted:
-                logger.debug("Image deleted successfully")
+                logger.debug("Image deleted successfully (all types)")
             else:
                 logger.debug("Image not found")
             ```
@@ -497,32 +634,62 @@ class S3ImageService:
             return False
 
         logger.info(
-            "Deleting S3 image",
+            "Deleting S3 image (all types)",
             image_id=str(image_id),
-            s3_key=s3_image.s3_key_original,
+            s3_key_original=s3_image.s3_key_original,
+            s3_key_processed=getattr(s3_image, "s3_key_processed", None),
+            s3_key_thumbnail=s3_image.s3_key_thumbnail,
             bucket=s3_image.s3_bucket,
         )
 
-        # Delete from S3 first (prevents orphaned database records)
-        try:
-            await self._delete_from_s3(s3_key=s3_image.s3_key_original, bucket=s3_image.s3_bucket)
-        except CircuitBreakerError as e:
-            logger.error(
-                "S3 circuit breaker open - cannot delete",
-                image_id=str(image_id),
-                s3_key=s3_image.s3_key_original,
-            )
-            raise S3UploadException(
-                file_name=s3_image.s3_key_original or "unknown",
-                bucket=s3_image.s3_bucket or "unknown",
-                error="S3 service temporarily unavailable (circuit breaker open)",
-            ) from e
+        # Delete original from S3 first (prevents orphaned database records)
+        if s3_image.s3_key_original:
+            try:
+                await self._delete_from_s3(
+                    s3_key=s3_image.s3_key_original, bucket=s3_image.s3_bucket
+                )
+            except CircuitBreakerError as e:
+                logger.error(
+                    "S3 circuit breaker open - cannot delete",
+                    image_id=str(image_id),
+                    s3_key=s3_image.s3_key_original,
+                )
+                raise S3UploadException(
+                    file_name=s3_image.s3_key_original or "unknown",
+                    bucket=s3_image.s3_bucket or "unknown",
+                    error="S3 service temporarily unavailable (circuit breaker open)",
+                ) from e
+
+        # Delete processed image if exists
+        if hasattr(s3_image, "s3_key_processed") and s3_image.s3_key_processed:
+            try:
+                await self._delete_from_s3(
+                    s3_key=s3_image.s3_key_processed, bucket=s3_image.s3_bucket
+                )
+                logger.debug(
+                    "Deleted processed image",
+                    image_id=str(image_id),
+                    s3_key=s3_image.s3_key_processed,
+                )
+            except Exception as e:
+                # Log but don't fail (processed image is optional)
+                logger.warning(
+                    "Failed to delete processed image",
+                    image_id=str(image_id),
+                    s3_key=s3_image.s3_key_processed,
+                    error=str(e),
+                )
 
         # Delete thumbnail if exists
         if s3_image.s3_key_thumbnail:
             try:
                 await self._delete_from_s3(
                     s3_key=s3_image.s3_key_thumbnail, bucket=s3_image.s3_bucket
+                )
+                logger.debug(
+                    "Deleted thumbnail",
+                    image_id=str(image_id),
+                    s3_key=s3_image.s3_key_thumbnail,
                 )
             except Exception as e:
                 # Log but don't fail (thumbnail is optional)
@@ -536,7 +703,7 @@ class S3ImageService:
         # Delete from database
         await self.repo.delete(image_id)
 
-        logger.info("S3 image deleted successfully", image_id=str(image_id))
+        logger.info("S3 image deleted successfully (all types)", image_id=str(image_id))
 
         return True
 
@@ -665,3 +832,81 @@ class S3ImageService:
             raise S3UploadException(
                 file_name=s3_key, bucket=bucket, error=f"Delete failed: {str(e)}"
             ) from e
+
+
+# =========================================================================
+# Thumbnail Generation Utility (standalone function)
+# =========================================================================
+
+
+def generate_thumbnail(image_bytes: bytes, size: int = 300) -> bytes:
+    """Generate square thumbnail from image bytes.
+
+    Uses PIL/Pillow to create a square thumbnail with JPEG compression.
+    Maintains aspect ratio and crops to center if needed.
+
+    Args:
+        image_bytes: Original image bytes
+        size: Thumbnail size (width and height in pixels, default: 300)
+
+    Returns:
+        Thumbnail image bytes (JPEG format, quality 85)
+
+    Raises:
+        ValidationException: If image_bytes is invalid or cannot be processed
+
+    Example:
+        ```python
+        original_bytes = await s3_service.download_original(s3_key)
+        thumbnail_bytes = generate_thumbnail(original_bytes, size=300)
+        await s3_service.upload_thumbnail(thumbnail_bytes, session_id)
+        ```
+    """
+    try:
+        from io import BytesIO
+
+        from PIL import Image
+
+        # Open image from bytes
+        image = Image.open(BytesIO(image_bytes))
+
+        # Convert RGBA to RGB if needed (JPEG doesn't support transparency)
+        if image.mode in ("RGBA", "P", "LA"):
+            # Create white background
+            rgb_image = Image.new("RGB", image.size, (255, 255, 255))
+            # Paste image on white background
+            if image.mode == "P":
+                image = image.convert("RGBA")
+            rgb_image.paste(image, mask=image.split()[-1] if len(image.split()) == 4 else None)
+            image = rgb_image
+
+        # Create square thumbnail (maintains aspect ratio, crops to center)
+        # PIL's thumbnail() method maintains aspect ratio
+        image.thumbnail((size, size), Image.Resampling.LANCZOS)
+
+        # Save to bytes as JPEG
+        output = BytesIO()
+        image.save(output, format="JPEG", quality=85, optimize=True)
+        thumbnail_bytes = output.getvalue()
+
+        logger.debug(
+            "Thumbnail generated",
+            original_size=len(image_bytes),
+            thumbnail_size=len(thumbnail_bytes),
+            dimensions=f"{size}x{size}",
+        )
+
+        return thumbnail_bytes
+
+    except Exception as e:
+        logger.error(
+            "Failed to generate thumbnail",
+            error=str(e),
+            original_size=len(image_bytes),
+            exc_info=True,
+        )
+        raise ValidationException(
+            field="image_bytes",
+            message=f"Failed to generate thumbnail: {str(e)}",
+            value=len(image_bytes),
+        ) from e

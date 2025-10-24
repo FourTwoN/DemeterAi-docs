@@ -169,6 +169,50 @@ def record_circuit_breaker_failure() -> None:
 
 
 # ═══════════════════════════════════════════════════════════════════════════
+# Helper: Container Type Mapping
+# ═══════════════════════════════════════════════════════════════════════════
+
+
+def _map_container_type_to_bin_category(container_type: str) -> str:
+    """Map ML container type to StorageBinType category (BinCategoryEnum).
+
+    Converts ML segmentation container types (lowercase) to database enum values.
+    This ensures consistency between ML pipeline output and database schema.
+
+    Args:
+        container_type: Container type from ML pipeline ("segment", "box", "plug", etc.)
+
+    Returns:
+        str: BinCategoryEnum value ("segment", "box", "plug", "seedling_tray", "pot")
+
+    Mapping:
+        - "segment" → "segment"
+        - "box" → "box"
+        - "cajon" → "box" (Spanish synonym)
+        - "plug" → "plug"
+        - "almacigo" → "seedling_tray" (Spanish synonym)
+        - Unknown → "segment" (default fallback)
+
+    Example:
+        >>> _map_container_type_to_bin_category("segment")
+        "segment"
+        >>> _map_container_type_to_bin_category("cajon")
+        "box"
+        >>> _map_container_type_to_bin_category("unknown")
+        "segment"
+    """
+    mapping = {
+        "segment": "segment",
+        "box": "box",
+        "cajon": "box",
+        "plug": "plug",
+        "almacigo": "seedling_tray",
+    }
+    normalized = container_type.lower().strip()
+    return mapping.get(normalized, "segment")
+
+
+# ═══════════════════════════════════════════════════════════════════════════
 # CEL005: ML Parent Task (Chord Orchestration)
 # ═══════════════════════════════════════════════════════════════════════════
 
@@ -367,9 +411,9 @@ def ml_child_task(
     )
 
     try:
-        # Check if image_path is a local file or S3 key
-        # For S3 keys (development mode), we create a mock result
-        # For production, implement S3 download + local processing
+        # Priority order: PostgreSQL → /tmp local cache → S3 download
+        # This enables Celery workers in separate containers to access images efficiently
+
         image_file = Path(image_path)
         is_local_file = image_file.exists() and image_file.is_absolute()
 
@@ -378,36 +422,86 @@ def ml_child_task(
         temp_file_created = False
 
         if not is_local_file:
-            # Check if file was already downloaded to /tmp (e.g., from a previous retry)
             temp_path = f"/tmp/{image_id}.jpg"
             temp_file = Path(temp_path)
 
-            if temp_file.exists():
-                # File already exists in /tmp, use it
-                logger.info(
-                    f"Using cached file from /tmp: {temp_path}",
-                    extra={"image_path": image_path, "temp_path": temp_path},
-                )
-                processing_path = temp_path
-            else:
-                # Download from S3
-                logger.info(
-                    f"Downloading image from S3: {image_path}",
-                    extra={"s3_path": image_path, "temp_path": temp_path},
-                )
+            # PRIORITY 1: Check PostgreSQL for cached binary data (fastest)
+            logger.info(
+                f"Checking PostgreSQL for cached image data: {image_id}",
+                extra={"image_id": image_id},
+            )
 
-                # Download image from S3 to temp file
-                import boto3
+            from sqlalchemy import create_engine
+            from sqlalchemy.orm import sessionmaker
 
-                s3 = boto3.client("s3")
-                s3.download_file("demeter-photos-original", image_path, temp_path)
-                processing_path = temp_path
-                temp_file_created = True
+            from app.core.config import settings
+            from app.models.s3_image import S3Image
 
-                logger.info(
-                    f"Successfully downloaded image from S3 to {temp_path}",
-                    extra={"s3_path": image_path, "temp_path": temp_path},
-                )
+            # Create synchronous engine for Celery tasks
+            sync_engine = create_engine(
+                settings.DATABASE_URL.replace("postgresql+asyncpg", "postgresql"),
+                pool_size=5,
+                max_overflow=10,
+                pool_pre_ping=True,
+                pool_recycle=3600,
+            )
+            SyncSession = sessionmaker(bind=sync_engine, autocommit=False, autoflush=False)
+            db_session = SyncSession()
+
+            try:
+                # Query for image_data from PostgreSQL
+                s3_image = db_session.query(S3Image).filter(S3Image.image_id == image_id).first()
+
+                if s3_image and s3_image.image_data:
+                    # Found binary data in PostgreSQL - write to /tmp
+                    logger.info(
+                        f"Found image data in PostgreSQL ({len(s3_image.image_data)} bytes), writing to {temp_path}",
+                        extra={"image_id": image_id, "size_bytes": len(s3_image.image_data)},
+                    )
+
+                    with open(temp_path, "wb") as f:
+                        f.write(s3_image.image_data)
+
+                    processing_path = temp_path
+                    temp_file_created = True
+
+                    logger.info(
+                        "Successfully loaded image from PostgreSQL",
+                        extra={"image_id": image_id, "temp_path": temp_path},
+                    )
+
+                # PRIORITY 2: Check /tmp local cache (retry optimization)
+                elif temp_file.exists():
+                    # File already exists in /tmp from previous run
+                    logger.info(
+                        f"Using cached file from /tmp: {temp_path}",
+                        extra={"image_path": image_path, "temp_path": temp_path},
+                    )
+                    processing_path = temp_path
+
+                # PRIORITY 3: Download from S3 (fallback)
+                else:
+                    logger.info(
+                        f"Image not found in PostgreSQL or /tmp, downloading from S3: {image_path}",
+                        extra={"s3_path": image_path, "temp_path": temp_path},
+                    )
+
+                    # Download image from S3 to temp file
+                    import boto3
+
+                    s3 = boto3.client("s3")
+                    s3.download_file("demeter-photos-original", image_path, temp_path)
+                    processing_path = temp_path
+                    temp_file_created = True
+
+                    logger.info(
+                        f"Successfully downloaded image from S3 to {temp_path}",
+                        extra={"s3_path": image_path, "temp_path": temp_path},
+                    )
+
+            finally:
+                db_session.close()
+                sync_engine.dispose()
 
         # Initialize ML services (dependency injection)
         # Services handle model loading/caching via ModelCache singleton
@@ -441,13 +535,13 @@ def ml_child_task(
             )
         )
 
-        # Cleanup temp file only if we just created it
-        if temp_file_created and Path(processing_path).exists():
-            os.remove(processing_path)
-            logger.info(
-                f"Cleaned up temporary file: {processing_path}",
-                extra={"temp_path": processing_path},
-            )
+        # PROBLEM 4 FIX: DON'T delete temp file here!
+        # Temp files are needed by _generate_visualization_image in callback
+        # Cleanup happens in ml_aggregation_callback after visualization completes
+        logger.info(
+            f"Keeping temp file for visualization generation: {processing_path}",
+            extra={"temp_path": processing_path, "temp_file_created": temp_file_created},
+        )
 
         logger.info(
             f"ML child task completed for session {session_id}, image {image_id}: "
@@ -464,6 +558,18 @@ def ml_child_task(
         # CEL008: Record success (reset circuit breaker)
         record_circuit_breaker_success()
 
+        # Convert SegmentResult objects to dict format for JSON serialization
+        segments_dict = [
+            {
+                "container_type": seg.container_type,
+                "confidence": seg.confidence,
+                "bbox": seg.bbox,  # (x1, y1, x2, y2) normalized
+                "polygon": seg.polygon,  # List of (x, y) tuples normalized
+                "area_pixels": seg.area_pixels,  # Fixed: was mask_area
+            }
+            for seg in result.segments
+        ]
+
         # Return results for chord callback aggregation
         return {
             "image_id": image_id,
@@ -474,6 +580,7 @@ def ml_child_task(
             "processing_time_seconds": result.processing_time_seconds,
             "detections": result.detections,
             "estimations": result.estimations,
+            "segments": segments_dict,  # NEW: Include segments for StorageBin creation
         }
 
     except FileNotFoundError as e:
@@ -596,14 +703,15 @@ def ml_aggregation_callback(
             if num_valid > 0
             else 0.0
         )
-        # NOTE: total_segments not currently used but tracked for future analytics
 
-        # Aggregate all detections/estimations for bulk insert (future enhancement)
+        # Aggregate all detections/estimations/segments for bulk insert
         all_detections = []
         all_estimations = []
+        all_segments = []
         for r in valid_results:
             all_detections.extend(r.get("detections", []))
             all_estimations.extend(r.get("estimations", []))
+            all_segments.extend(r.get("segments", []))  # NEW: Aggregate segments
 
         logger.info(
             f"ML aggregation callback: Aggregated {num_valid}/{num_total} images for session {session_id}",
@@ -614,8 +722,341 @@ def ml_aggregation_callback(
                 "avg_confidence": avg_confidence,
                 "num_valid": num_valid,
                 "num_total": num_total,
+                "num_detections": len(all_detections),
+                "num_estimations": len(all_estimations),
+                "num_segments": len(all_segments),  # NEW: Log segments count
             },
         )
+
+        # ═══════════════════════════════════════════════════════════════════════════
+        # GET STORAGE_LOCATION_ID FROM PHOTO_PROCESSING_SESSION
+        # ═══════════════════════════════════════════════════════════════════════════
+        # Retrieve storage_location_id for StorageBin creation
+        from sqlalchemy import create_engine
+        from sqlalchemy.orm import sessionmaker
+
+        from app.core.config import settings
+        from app.models.photo_processing_session import PhotoProcessingSession
+
+        sync_engine = create_engine(
+            settings.DATABASE_URL.replace("postgresql+asyncpg", "postgresql"),
+            pool_size=5,
+            max_overflow=10,
+            pool_pre_ping=True,
+            pool_recycle=3600,
+        )
+        SyncSession = sessionmaker(bind=sync_engine, autocommit=False, autoflush=False)
+        db_session = SyncSession()
+
+        try:
+            session_record = (
+                db_session.query(PhotoProcessingSession).filter_by(id=session_id).first()
+            )
+            storage_location_id = session_record.storage_location_id if session_record else None
+
+            logger.info(
+                f"ML aggregation callback: Retrieved storage_location_id={storage_location_id} for session {session_id}",
+                extra={"session_id": session_id, "storage_location_id": storage_location_id},
+            )
+        finally:
+            db_session.close()
+            sync_engine.dispose()
+
+        # ═══════════════════════════════════════════════════════════════════════════
+        # PERSIST DETECTIONS, ESTIMATIONS, AND STORAGE BINS TO DATABASE
+        # ═══════════════════════════════════════════════════════════════════════════
+        logger.info(
+            f"ML aggregation callback: Persisting {len(all_detections)} detections, "
+            f"{len(all_estimations)} estimations, and {len(all_segments)} segments to database for session {session_id}"
+        )
+
+        try:
+            _persist_ml_results(
+                session_id=session_id,
+                detections=all_detections,
+                estimations=all_estimations,
+                segments=all_segments,  # NEW: Pass segments
+                storage_location_id=storage_location_id,  # NEW: Pass storage_location_id
+            )
+            logger.info(
+                f"ML aggregation callback: Successfully persisted ML results for session {session_id}",
+                extra={
+                    "session_id": session_id,
+                    "num_detections": len(all_detections),
+                    "num_estimations": len(all_estimations),
+                },
+            )
+        except Exception as e:
+            # WARNING: Don't crash if persistence fails - mark session with warning
+            logger.error(
+                f"ML aggregation callback: Failed to persist ML results for session {session_id}: {e}",
+                extra={"session_id": session_id, "error": str(e)},
+                exc_info=True,
+            )
+            # Continue processing but mark as warning status
+
+        # ═══════════════════════════════════════════════════════════════════════════
+        # GENERATE VISUALIZATION IMAGE AND UPLOAD TO S3
+        # ═══════════════════════════════════════════════════════════════════════════
+        processed_image_id = None
+
+        try:
+            logger.info(
+                f"ML aggregation callback: Generating visualization for session {session_id}",
+                extra={"session_id": session_id},
+            )
+
+            # Generate visualization image (returns temp file path or None)
+            viz_path = _generate_visualization(
+                session_id=session_id,
+                detections=all_detections,
+                estimations=all_estimations,
+            )
+
+            if viz_path and Path(viz_path).exists():
+                logger.info(
+                    f"ML aggregation callback: Visualization generated at {viz_path}, uploading to S3",
+                    extra={"session_id": session_id, "viz_path": viz_path},
+                )
+
+                # Upload visualization to S3
+
+                # Create synchronous DB session for S3 upload
+                from sqlalchemy import create_engine
+                from sqlalchemy.orm import sessionmaker
+
+                from app.core.config import settings
+
+                sync_engine = create_engine(
+                    settings.DATABASE_URL.replace("postgresql+asyncpg", "postgresql"),
+                    pool_size=5,
+                    max_overflow=10,
+                    pool_pre_ping=True,
+                    pool_recycle=3600,
+                )
+                SyncSession = sessionmaker(bind=sync_engine, autocommit=False, autoflush=False)
+                db_session = SyncSession()
+
+                try:
+                    # Convert sync session to async-compatible (run S3ImageService in sync context)
+                    # Create repo with sync session (wrap async methods with asyncio.run)
+                    from uuid import uuid4
+
+                    # Read visualization file
+                    with open(viz_path, "rb") as f:
+                        viz_bytes = f.read()
+
+                    logger.info(
+                        f"ML aggregation callback: Read visualization file ({len(viz_bytes)} bytes)",
+                        extra={"session_id": session_id, "file_size": len(viz_bytes)},
+                    )
+
+                    # Upload to S3 using boto3 directly (avoid async complexity in Celery)
+                    import boto3
+
+                    s3_client = boto3.client("s3")
+
+                    # PROBLEM 1 FIX: Get UUID session_id from database (session_id param is INTEGER id)
+                    # Query PhotoProcessingSession to get UUID session_id
+                    from app.models.photo_processing_session import (
+                        PhotoProcessingSession as SessionModel,
+                    )
+
+                    session_record = db_session.query(SessionModel).filter_by(id=session_id).first()
+                    if not session_record:
+                        logger.error(
+                            f"ML aggregation callback: Session {session_id} not found for UUID lookup",
+                            extra={"session_id": session_id},
+                        )
+                        raise ValueError(f"Session {session_id} not found")
+
+                    session_uuid = session_record.session_id  # This is the UUID!
+
+                    # S3 key format: {UUID}/processed.avif
+                    viz_s3_key = f"{session_uuid}/processed.avif"
+
+                    logger.info(
+                        f"ML aggregation callback: Uploading visualization to S3: {viz_s3_key}",
+                        extra={
+                            "session_id": session_id,
+                            "session_uuid": str(session_uuid),
+                            "s3_key": viz_s3_key,
+                            "bucket": settings.S3_BUCKET_ORIGINAL,
+                        },
+                    )
+
+                    # Upload processed visualization to original bucket (new folder structure)
+                    s3_client.put_object(
+                        Bucket=settings.S3_BUCKET_ORIGINAL,  # NEW: Changed from S3_BUCKET_VISUALIZATION
+                        Key=viz_s3_key,
+                        Body=viz_bytes,
+                        ContentType="image/avif",
+                    )
+
+                    logger.info(
+                        f"ML aggregation callback: Visualization uploaded to S3: {viz_s3_key}",
+                        extra={"session_id": session_id, "s3_key": viz_s3_key},
+                    )
+
+                    # PROBLEM 5 FIX: Generate TWO thumbnails (original + processed)
+
+                    # THUMBNAIL 1: Original image thumbnail
+                    try:
+                        from app.services.photo.s3_image_service import generate_thumbnail
+
+                        # Read original image from /tmp (already downloaded via 3-tier cache)
+                        original_temp_path = f"/tmp/session_{session_id}_original.jpg"
+                        if Path(original_temp_path).exists():
+                            with open(original_temp_path, "rb") as f:
+                                original_bytes = f.read()
+
+                            # Generate thumbnail from original
+                            thumbnail_original_bytes = generate_thumbnail(
+                                original_bytes, size=settings.S3_THUMBNAIL_SIZE
+                            )
+
+                            # S3 key format: {UUID}/thumbnail_original.jpg
+                            thumbnail_original_s3_key = f"{session_uuid}/thumbnail_original.jpg"
+
+                            logger.info(
+                                f"ML aggregation callback: Uploading original thumbnail to S3: {thumbnail_original_s3_key}",
+                                extra={
+                                    "session_id": session_id,
+                                    "s3_key": thumbnail_original_s3_key,
+                                    "thumbnail_size": len(thumbnail_original_bytes),
+                                },
+                            )
+
+                            # Upload original thumbnail to S3
+                            s3_client.put_object(
+                                Bucket=settings.S3_BUCKET_ORIGINAL,
+                                Key=thumbnail_original_s3_key,
+                                Body=thumbnail_original_bytes,
+                                ContentType="image/jpeg",
+                            )
+
+                            logger.info(
+                                f"ML aggregation callback: Original thumbnail uploaded to S3: {thumbnail_original_s3_key}",
+                                extra={
+                                    "session_id": session_id,
+                                    "s3_key": thumbnail_original_s3_key,
+                                },
+                            )
+
+                        else:
+                            logger.warning(
+                                "ML aggregation callback: Original image not found in /tmp, skipping original thumbnail",
+                                extra={
+                                    "session_id": session_id,
+                                    "expected_path": original_temp_path,
+                                },
+                            )
+
+                    except Exception as thumb_original_error:
+                        # Log but don't fail (thumbnail is optional)
+                        logger.warning(
+                            f"ML aggregation callback: Failed to generate/upload original thumbnail: {thumb_original_error}",
+                            extra={"session_id": session_id, "error": str(thumb_original_error)},
+                        )
+
+                    # THUMBNAIL 2: Processed visualization thumbnail
+                    try:
+                        from app.services.photo.s3_image_service import generate_thumbnail
+
+                        # Generate thumbnail from visualization (processed image)
+                        thumbnail_processed_bytes = generate_thumbnail(
+                            viz_bytes, size=settings.S3_THUMBNAIL_SIZE
+                        )
+
+                        # S3 key format: {UUID}/thumbnail_processed.jpg
+                        thumbnail_processed_s3_key = f"{session_uuid}/thumbnail_processed.jpg"
+
+                        logger.info(
+                            f"ML aggregation callback: Uploading processed thumbnail to S3: {thumbnail_processed_s3_key}",
+                            extra={
+                                "session_id": session_id,
+                                "s3_key": thumbnail_processed_s3_key,
+                                "thumbnail_size": len(thumbnail_processed_bytes),
+                            },
+                        )
+
+                        # Upload processed thumbnail to original bucket
+                        s3_client.put_object(
+                            Bucket=settings.S3_BUCKET_ORIGINAL,
+                            Key=thumbnail_processed_s3_key,
+                            Body=thumbnail_processed_bytes,
+                            ContentType="image/jpeg",
+                        )
+
+                        logger.info(
+                            f"ML aggregation callback: Processed thumbnail uploaded to S3: {thumbnail_processed_s3_key}",
+                            extra={"session_id": session_id, "s3_key": thumbnail_processed_s3_key},
+                        )
+
+                    except Exception as thumb_processed_error:
+                        # Log but don't fail (thumbnail is optional)
+                        logger.warning(
+                            f"ML aggregation callback: Failed to generate/upload processed thumbnail: {thumb_processed_error}",
+                            extra={"session_id": session_id, "error": str(thumb_processed_error)},
+                        )
+
+                    # Create S3Image record in database for processed image
+                    from app.models.s3_image import ImageTypeEnum, ProcessingStatusEnum, S3Image
+
+                    viz_image_id = uuid4()
+                    s3_image = S3Image(
+                        image_id=viz_image_id,
+                        s3_bucket=settings.S3_BUCKET_ORIGINAL,  # NEW: Changed from S3_BUCKET_VISUALIZATION
+                        s3_key_original=viz_s3_key,  # Keep for backward compatibility
+                        s3_key_processed=viz_s3_key,  # NEW: Store in processed key column
+                        image_type=ImageTypeEnum.PROCESSED,  # NEW: Mark as processed image
+                        content_type="image/avif",
+                        file_size_bytes=len(viz_bytes),
+                        width_px=0,  # Unknown (not critical for viz)
+                        height_px=0,
+                        upload_source="api",
+                        status=ProcessingStatusEnum.READY,
+                    )
+                    db_session.add(s3_image)
+                    db_session.commit()
+
+                    processed_image_id = viz_image_id
+
+                    logger.info(
+                        "ML aggregation callback: S3Image record created for visualization",
+                        extra={
+                            "session_id": session_id,
+                            "image_id": str(viz_image_id),
+                            "s3_key": viz_s3_key,
+                        },
+                    )
+
+                finally:
+                    db_session.close()
+                    sync_engine.dispose()
+
+                # Cleanup temp visualization file
+                if Path(viz_path).exists():
+                    os.remove(viz_path)
+                    logger.info(
+                        f"ML aggregation callback: Cleaned up temp visualization file: {viz_path}",
+                        extra={"session_id": session_id},
+                    )
+
+            else:
+                logger.warning(
+                    f"ML aggregation callback: Visualization generation skipped or failed for session {session_id}",
+                    extra={"session_id": session_id},
+                )
+
+        except Exception as e:
+            # WARNING: Don't crash if visualization fails - mark session with warning
+            logger.error(
+                f"ML aggregation callback: Failed to generate/upload visualization for session {session_id}: {e}",
+                extra={"session_id": session_id, "error": str(e)},
+                exc_info=True,
+            )
+            # Continue processing without visualization
 
         # Determine final status
         if num_valid < num_total:
@@ -645,9 +1086,71 @@ def ml_aggregation_callback(
             avg_confidence=avg_confidence,
             category_counts={},
             # NOTE: Category aggregation from detections (future enhancement)
-            processed_image_id=None,
-            # NOTE: Visualization image generation (future enhancement, uses SAHI overlay)
+            processed_image_id=processed_image_id,
+            # Visualization image uploaded to S3 (None if generation failed)
         )
+
+        # CLEANUP: Delete binary data from PostgreSQL after ML processing completes
+        # This saves database space while keeping S3 as the source of truth
+        image_ids_to_cleanup = [r.get("image_id") for r in valid_results if r.get("image_id")]
+        if image_ids_to_cleanup:
+            _cleanup_image_binary_data(image_ids_to_cleanup)
+
+        # PROBLEM 4 FIX: Cleanup temp files after visualization completes
+        # Delete all /tmp/session_{session_id}_*.{jpg,avif,webp} files
+        try:
+            import glob
+
+            temp_pattern = f"/tmp/session_{session_id}_*"
+            temp_files = glob.glob(temp_pattern)
+
+            for temp_file in temp_files:
+                try:
+                    if Path(temp_file).exists():
+                        os.remove(temp_file)
+                        logger.info(
+                            f"Cleaned up temp file: {temp_file}",
+                            extra={"session_id": session_id, "temp_file": temp_file},
+                        )
+                except Exception as cleanup_error:
+                    # Log but don't fail (cleanup is optional)
+                    logger.warning(
+                        f"Failed to cleanup temp file: {temp_file}: {cleanup_error}",
+                        extra={
+                            "session_id": session_id,
+                            "temp_file": temp_file,
+                            "error": str(cleanup_error),
+                        },
+                    )
+
+            # Also cleanup temp files from ml_child_task (/tmp/{image_id}.jpg)
+            for r in valid_results:
+                image_id = r.get("image_id")
+                if image_id:
+                    temp_path = f"/tmp/{image_id}.jpg"
+                    try:
+                        if Path(temp_path).exists():
+                            os.remove(temp_path)
+                            logger.info(
+                                f"Cleaned up child task temp file: {temp_path}",
+                                extra={"session_id": session_id, "image_id": image_id},
+                            )
+                    except Exception as cleanup_error:
+                        logger.warning(
+                            f"Failed to cleanup child task temp file: {temp_path}: {cleanup_error}",
+                            extra={
+                                "session_id": session_id,
+                                "image_id": image_id,
+                                "error": str(cleanup_error),
+                            },
+                        )
+
+        except Exception as e:
+            # Log but don't fail (cleanup is optional)
+            logger.warning(
+                f"Failed to cleanup temp files for session {session_id}: {e}",
+                extra={"session_id": session_id, "error": str(e)},
+            )
 
         return {
             "session_id": session_id,
@@ -844,4 +1347,1071 @@ def _mark_session_failed(session_id: int, error_message: str) -> None:
         # Silently ignore - can't update database if connection is broken
     finally:
         session.close()
+        sync_engine.dispose()
+
+
+def _cleanup_image_binary_data(image_ids: list[str]) -> None:
+    """Delete binary image data from PostgreSQL after ML processing completes.
+
+    This cleanup function removes the cached binary data (image_data column) from
+    s3_images table to save database space. The images remain accessible via S3.
+
+    Args:
+        image_ids: List of S3Image UUIDs (as strings) to cleanup
+
+    Business Rules:
+        - Only called after ML processing completes successfully
+        - Binary data deleted, but metadata preserved
+        - S3 remains the source of truth for images
+        - Failed deletions are logged but don't block workflow
+
+    Note:
+        Uses synchronous SQLAlchemy (Celery context requires sync DB operations)
+    """
+    if not image_ids:
+        return
+
+    from sqlalchemy import create_engine
+    from sqlalchemy.orm import sessionmaker
+
+    from app.core.config import settings
+    from app.models.s3_image import S3Image
+
+    logger.info(
+        f"Cleaning up binary data for {len(image_ids)} images",
+        extra={"num_images": len(image_ids)},
+    )
+
+    # Create synchronous engine for Celery tasks
+    sync_engine = create_engine(
+        settings.DATABASE_URL.replace("postgresql+asyncpg", "postgresql"),
+        pool_size=5,
+        max_overflow=10,
+        pool_pre_ping=True,
+        pool_recycle=3600,
+    )
+
+    SyncSession = sessionmaker(bind=sync_engine, autocommit=False, autoflush=False)
+    session = SyncSession()
+
+    try:
+        # Update all images in batch - set image_data to NULL
+        from sqlalchemy import update
+
+        stmt = update(S3Image).where(S3Image.image_id.in_(image_ids)).values(image_data=None)
+
+        result = session.execute(stmt)
+        session.commit()
+
+        logger.info(
+            f"Successfully cleaned up binary data for {result.rowcount} images",
+            extra={"num_images": result.rowcount, "image_ids": image_ids[:5]},  # Log first 5 IDs
+        )
+
+    except Exception as e:
+        session.rollback()
+        logger.error(
+            f"Failed to cleanup binary data: {e}",
+            extra={"error": str(e), "num_images": len(image_ids)},
+            exc_info=True,
+        )
+        # Don't raise - cleanup failure shouldn't block ML workflow
+    finally:
+        session.close()
+        sync_engine.dispose()
+
+
+def _generate_visualization(
+    session_id: int,
+    detections: list[dict[str, Any]],
+    estimations: list[dict[str, Any]],
+) -> str | None:
+    """Generate visualization image with detection circles and estimation polygons.
+
+    This function creates a visualization overlay on the original image showing:
+    1. Detection circles (green, transparent)
+    2. Estimation polygons (blue, transparent with gaussian blur)
+    3. Text legend (detected count, estimated count, confidence)
+    4. Compressed as AVIF format (50% size reduction)
+    5. Saved to /tmp/processed/ for S3 upload
+
+    Args:
+        session_id: PhotoProcessingSession database ID
+        detections: List of detection dicts with center_x_px, center_y_px, width_px, height_px, confidence
+        estimations: List of estimation dicts with vegetation_polygon, estimated_count
+
+    Returns:
+        Path to generated visualization file in /tmp/processed/, or None if failed
+
+    Raises:
+        No exceptions - logs warnings and returns None on failure
+
+    Business Flow (from Mermaid diagram lines 393-401):
+        1. CALLBACK_LOAD_IMAGE: Load original image from session
+        2. CALLBACK_GET_DETS: Already have detections in memory
+        3. CALLBACK_GET_ESTS: Already have estimations in memory
+        4. CALLBACK_DRAW_DETS: Draw transparent circles for detections
+        5. CALLBACK_DRAW_ESTS: Draw transparent polygons for estimations
+        6. CALLBACK_LEGEND: Add text legend (detected, estimated, confidence)
+        7. CALLBACK_COMPRESS: Compress as AVIF format
+        8. CALLBACK_SAVE_TEMP: Save to /tmp/processed/
+    """
+    import cv2
+    import numpy as np
+    from PIL import Image
+    from sqlalchemy import create_engine
+    from sqlalchemy.orm import sessionmaker
+
+    from app.core.config import settings
+    from app.models.photo_processing_session import PhotoProcessingSession as SessionModel
+
+    logger.info(
+        f"[Session {session_id}] Starting visualization generation",
+        extra={
+            "session_id": session_id,
+            "num_detections": len(detections),
+            "num_estimations": len(estimations),
+        },
+    )
+
+    try:
+        # ═══════════════════════════════════════════════════════════════════════════
+        # STEP 1: Get original image path from PhotoProcessingSession
+        # ═══════════════════════════════════════════════════════════════════════════
+        sync_engine = create_engine(
+            settings.DATABASE_URL.replace("postgresql+asyncpg", "postgresql"),
+            pool_size=5,
+            max_overflow=10,
+            pool_pre_ping=True,
+            pool_recycle=3600,
+        )
+        SyncSession = sessionmaker(bind=sync_engine, autocommit=False, autoflush=False)
+        db_session = SyncSession()
+
+        try:
+            session_record = db_session.query(SessionModel).filter_by(id=session_id).first()
+            if not session_record or not session_record.original_image:
+                logger.warning(
+                    f"[Session {session_id}] No original image found - skipping visualization",
+                    extra={"session_id": session_id},
+                )
+                return None
+
+            # Get S3 key from original_image relationship
+            s3_key = session_record.original_image.s3_key_original
+            s3_bucket = session_record.original_image.s3_bucket
+
+            logger.info(
+                f"[Session {session_id}] Found original image: {s3_key}",
+                extra={"session_id": session_id, "s3_key": s3_key, "bucket": s3_bucket},
+            )
+
+        finally:
+            db_session.close()
+            sync_engine.dispose()
+
+        # ═══════════════════════════════════════════════════════════════════════════
+        # STEP 2: Get original image using 3-tier cache (PROBLEM 3 FIX)
+        # Priority: PostgreSQL → /tmp → S3 (same pattern as ml_child_task lines 370-452)
+        # ═══════════════════════════════════════════════════════════════════════════
+        temp_original_path = f"/tmp/session_{session_id}_original.jpg"
+
+        # PRIORITY 1: Check PostgreSQL for cached binary data (fastest)
+        logger.info(
+            f"[Session {session_id}] Checking PostgreSQL for cached image data",
+            extra={"session_id": session_id, "image_id": str(session_record.original_image_id)},
+        )
+
+        from app.models.s3_image import S3Image
+
+        s3_image = (
+            db_session.query(S3Image)
+            .filter(S3Image.image_id == session_record.original_image_id)
+            .first()
+        )
+
+        if s3_image and s3_image.image_data:
+            # Found binary data in PostgreSQL - write to /tmp
+            logger.info(
+                f"[Session {session_id}] Found image data in PostgreSQL ({len(s3_image.image_data)} bytes), writing to {temp_original_path}",
+                extra={"session_id": session_id, "size_bytes": len(s3_image.image_data)},
+            )
+
+            with open(temp_original_path, "wb") as f:
+                f.write(s3_image.image_data)
+
+            logger.info(
+                f"[Session {session_id}] Successfully loaded image from PostgreSQL cache",
+                extra={"session_id": session_id, "temp_path": temp_original_path},
+            )
+
+        # PRIORITY 2: Check /tmp local cache (retry optimization)
+        elif Path(temp_original_path).exists():
+            # File already exists in /tmp from previous run
+            logger.info(
+                f"[Session {session_id}] Using cached file from /tmp: {temp_original_path}",
+                extra={"session_id": session_id, "temp_path": temp_original_path},
+            )
+
+        # PRIORITY 3: Download from S3 (fallback)
+        else:
+            logger.info(
+                f"[Session {session_id}] Image not found in PostgreSQL or /tmp, downloading from S3",
+                extra={"session_id": session_id, "s3_key": s3_key, "temp_path": temp_original_path},
+            )
+
+            import boto3
+
+            s3_client = boto3.client("s3")
+
+            try:
+                s3_client.download_file(s3_bucket, s3_key, temp_original_path)
+                logger.info(
+                    f"[Session {session_id}] Successfully downloaded image from S3 to {temp_original_path}",
+                    extra={
+                        "session_id": session_id,
+                        "s3_key": s3_key,
+                        "temp_path": temp_original_path,
+                    },
+                )
+            except Exception as e:
+                logger.warning(
+                    f"[Session {session_id}] Failed to download original image from S3: {e}",
+                    extra={"session_id": session_id, "s3_key": s3_key, "error": str(e)},
+                )
+                return None
+
+        # ═══════════════════════════════════════════════════════════════════════════
+        # STEP 3: Load image with OpenCV
+        # ═══════════════════════════════════════════════════════════════════════════
+        logger.info(
+            f"[Session {session_id}] Loading image with OpenCV",
+            extra={"session_id": session_id, "path": temp_original_path},
+        )
+
+        image = cv2.imread(temp_original_path)
+        if image is None:
+            logger.warning(
+                f"[Session {session_id}] Failed to load image with OpenCV",
+                extra={"session_id": session_id, "path": temp_original_path},
+            )
+            return None
+
+        img_height, img_width = image.shape[:2]
+        logger.info(
+            f"[Session {session_id}] Image loaded: {img_width}x{img_height}",
+            extra={"session_id": session_id, "width": img_width, "height": img_height},
+        )
+
+        # ═══════════════════════════════════════════════════════════════════════════
+        # STEP 4: Draw detection circles (cyan, simple, professional)
+        # ═══════════════════════════════════════════════════════════════════════════
+        if detections:
+            logger.info(
+                f"[Session {session_id}] Drawing {len(detections)} detection circles",
+                extra={"session_id": session_id, "num_detections": len(detections)},
+            )
+
+            overlay = image.copy()
+            color_cyan = (255, 255, 0)  # BGR format (cyan) - professional and visible
+
+            for det in detections:
+                center_x = int(det["center_x_px"])
+                center_y = int(det["center_y_px"])
+                width = int(det["width_px"])
+                height = int(det["height_px"])
+
+                # Calculate radius: 75% of the detection box size
+                # Use min(width, height) to ensure circle fits within detection
+                radius = int(min(width, height) * 0.75 / 2)
+
+                # Draw filled circle on overlay (centered at detection center)
+                cv2.circle(overlay, (center_x, center_y), radius, color_cyan, -1)
+
+            # Blend overlay with original (alpha=0.3 for semi-transparency)
+            image = cv2.addWeighted(image, 0.7, overlay, 0.3, 0)
+
+            logger.info(
+                f"[Session {session_id}] Detection circles drawn successfully",
+                extra={"session_id": session_id},
+            )
+
+        # ═══════════════════════════════════════════════════════════════════════════
+        # STEP 5: Draw estimation polygons (blue, transparent with blur)
+        # ═══════════════════════════════════════════════════════════════════════════
+        if estimations:
+            logger.info(
+                f"[Session {session_id}] Drawing {len(estimations)} estimation polygons",
+                extra={"session_id": session_id, "num_estimations": len(estimations)},
+            )
+
+            overlay = image.copy()
+            color_blue = (255, 0, 0)  # BGR format (blue)
+
+            for est in estimations:
+                vegetation_polygon = est.get("vegetation_polygon", {})
+                if not vegetation_polygon or "coordinates" not in vegetation_polygon:
+                    continue
+
+                # Extract coordinates from JSONB polygon
+                coords = vegetation_polygon["coordinates"]
+                if not coords:
+                    continue
+
+                # Convert to numpy array for cv2.fillPoly
+                pts = np.array(coords, dtype=np.int32)
+                pts = pts.reshape((-1, 1, 2))
+
+                # Draw filled polygon on overlay
+                cv2.fillPoly(overlay, [pts], color_blue)
+
+            # Apply gaussian blur to overlay for softer appearance
+            overlay_blurred = cv2.GaussianBlur(overlay, (9, 9), 0)
+
+            # Blend blurred overlay with original (alpha=0.2 for estimations)
+            image = cv2.addWeighted(image, 0.8, overlay_blurred, 0.2, 0)
+
+            logger.info(
+                f"[Session {session_id}] Estimation polygons drawn successfully",
+                extra={"session_id": session_id},
+            )
+
+        # ═══════════════════════════════════════════════════════════════════════════
+        # STEP 6: Add text legend (top-left corner)
+        # ═══════════════════════════════════════════════════════════════════════════
+        total_detected = len(detections)
+        total_estimated = sum(est.get("estimated_count", 0) for est in estimations)
+        avg_confidence = (
+            sum(det.get("confidence", 0.0) for det in detections) / len(detections)
+            if detections
+            else 0.0
+        )
+
+        logger.info(
+            f"[Session {session_id}] Adding legend: {total_detected} detected, {total_estimated} estimated, {avg_confidence:.0%} confidence",
+            extra={
+                "session_id": session_id,
+                "total_detected": total_detected,
+                "total_estimated": total_estimated,
+                "avg_confidence": avg_confidence,
+            },
+        )
+
+        # Text parameters
+        font = cv2.FONT_HERSHEY_SIMPLEX
+        font_scale = 0.8
+        font_thickness = 2
+        color_white = (255, 255, 255)
+        color_black = (0, 0, 0)
+
+        # Draw background rectangle for text (black with transparency)
+        cv2.rectangle(image, (5, 5), (400, 100), color_black, -1)
+
+        # Draw text lines
+        cv2.putText(
+            image,
+            f"Detected: {total_detected}",
+            (10, 30),
+            font,
+            font_scale,
+            color_white,
+            font_thickness,
+        )
+        cv2.putText(
+            image,
+            f"Estimated: {total_estimated}",
+            (10, 60),
+            font,
+            font_scale,
+            color_white,
+            font_thickness,
+        )
+        cv2.putText(
+            image,
+            f"Confidence: {avg_confidence:.0%}",
+            (10, 90),
+            font,
+            font_scale,
+            color_white,
+            font_thickness,
+        )
+
+        # ═══════════════════════════════════════════════════════════════════════════
+        # STEP 7: Save to temp path and compress as AVIF
+        # ═══════════════════════════════════════════════════════════════════════════
+        output_dir = Path("/tmp/processed")
+        output_dir.mkdir(parents=True, exist_ok=True)
+        output_path = output_dir / f"session_{session_id}_viz.avif"
+
+        logger.info(
+            f"[Session {session_id}] Compressing visualization as AVIF",
+            extra={"session_id": session_id, "output_path": str(output_path)},
+        )
+
+        # Convert BGR to RGB for PIL
+        image_rgb = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+        image_pil = Image.fromarray(image_rgb)
+
+        # Save as AVIF with compression (fallback to WebP if AVIF not supported)
+        try:
+            image_pil.save(str(output_path), "AVIF", quality=85, speed=4)
+            logger.info(
+                f"[Session {session_id}] Visualization saved as AVIF",
+                extra={"session_id": session_id, "output_path": str(output_path)},
+            )
+        except Exception as e:
+            # Fallback to WebP if AVIF not supported
+            logger.warning(
+                f"[Session {session_id}] AVIF not supported, falling back to WebP: {e}",
+                extra={"session_id": session_id, "error": str(e)},
+            )
+            output_path = output_dir / f"session_{session_id}_viz.webp"
+            image_pil.save(str(output_path), "WEBP", quality=85)
+            logger.info(
+                f"[Session {session_id}] Visualization saved as WebP",
+                extra={"session_id": session_id, "output_path": str(output_path)},
+            )
+
+        # Cleanup temp original file
+        if Path(temp_original_path).exists():
+            os.remove(temp_original_path)
+
+        logger.info(
+            f"[Session {session_id}] Visualization generation completed successfully",
+            extra={"session_id": session_id, "output_path": str(output_path)},
+        )
+
+        return str(output_path)
+
+    except Exception as e:
+        logger.error(
+            f"[Session {session_id}] Visualization generation failed: {e}",
+            extra={"session_id": session_id, "error": str(e)},
+            exc_info=True,
+        )
+        return None
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# Helper: Create StorageBins from ML Segments
+# ═══════════════════════════════════════════════════════════════════════════
+
+
+def _create_storage_bins(
+    db_session: Any,
+    session_id: int,
+    storage_location_id: int,
+    segments: list[dict[str, Any]],
+) -> list[int]:
+    """Create StorageBins from ML segmentation results.
+
+    This function creates physical storage bins (containers) from ML segmentation
+    output BEFORE creating stock batches. Each segment becomes a StorageBin with
+    position_metadata containing the ML output.
+
+    Args:
+        db_session: Synchronous SQLAlchemy session
+        session_id: PhotoProcessingSession ID
+        storage_location_id: Parent storage location ID
+        segments: List of segment dicts with container_type, bbox, polygon, confidence
+
+    Returns:
+        list[int]: List of created StorageBin IDs
+
+    Raises:
+        Exception: If StorageBinType lookup or StorageBin creation fails
+
+    Business Logic:
+        1. For each unique container_type, get or create StorageBinType
+        2. For each segment, create a StorageBin with:
+           - Unique code: ML-{session_id}-{container_type}-{index}-{timestamp}
+           - position_metadata: Full ML output (bbox, polygon, confidence)
+           - storage_bin_type_id: Mapped from container_type
+        3. Return list of created bin IDs for StockBatch creation
+
+    Example:
+        >>> segments = [
+        ...     {"container_type": "segment", "bbox": [0.1, 0.2, 0.3, 0.4], "confidence": 0.92, ...},
+        ...     {"container_type": "box", "bbox": [0.5, 0.6, 0.7, 0.8], "confidence": 0.88, ...},
+        ... ]
+        >>> bin_ids = _create_storage_bins(db_session, 123, 1, segments)
+        >>> # Returns: [1, 2] (two new StorageBin IDs)
+    """
+    from app.models.storage_bin import StorageBin
+    from app.models.storage_bin_type import StorageBinType
+    from app.models.storage_location import StorageLocation
+
+    if not segments:
+        logger.warning(
+            f"[Session {session_id}] No segments provided, skipping StorageBin creation",
+            extra={"session_id": session_id},
+        )
+        return []
+
+    logger.info(
+        f"[Session {session_id}] Creating {len(segments)} StorageBins from ML segments",
+        extra={
+            "session_id": session_id,
+            "num_segments": len(segments),
+            "storage_location_id": storage_location_id,
+        },
+    )
+
+    # Validate storage_location exists
+    storage_location = (
+        db_session.query(StorageLocation).filter_by(location_id=storage_location_id).first()
+    )
+    if not storage_location:
+        raise ValueError(f"StorageLocation {storage_location_id} not found")
+
+    # Get parent codes for StorageBin.code construction
+    # Format: WAREHOUSE-AREA-LOCATION-BIN (4 parts)
+    location_code = storage_location.code  # e.g., "INV01-NORTH-A1"
+
+    created_bin_ids: list[int] = []
+    timestamp = datetime.utcnow().strftime("%Y%m%d%H%M%S")
+
+    for idx, segment in enumerate(segments, start=1):
+        container_type = segment.get("container_type", "segment")
+        confidence = segment.get("confidence", 0.0)
+        bbox = segment.get("bbox", [])
+        polygon = segment.get("polygon", [])
+        area_pixels = segment.get("area_pixels", 0)  # Fixed: was mask_area
+
+        # Map container_type to BinCategoryEnum
+        bin_category = _map_container_type_to_bin_category(container_type)
+
+        # Get or create StorageBinType
+        bin_type = db_session.query(StorageBinType).filter_by(category=bin_category).first()
+
+        if not bin_type:
+            # Create default StorageBinType if not exists
+            bin_type_code = f"ML_{bin_category.upper()}_DEFAULT"
+            bin_type = StorageBinType(
+                code=bin_type_code,
+                name=f"ML-Detected {bin_category.capitalize()}",
+                category=bin_category,
+                is_grid=False,
+                description=f"Auto-generated bin type for ML-detected {bin_category} containers",
+            )
+            db_session.add(bin_type)
+            db_session.flush()
+            db_session.refresh(bin_type)
+
+            logger.info(
+                f"[Session {session_id}] Created new StorageBinType: {bin_type_code} (category={bin_category})",
+                extra={
+                    "session_id": session_id,
+                    "bin_type_id": bin_type.bin_type_id,
+                    "category": bin_category,
+                },
+            )
+
+        # Create unique StorageBin code
+        # Format: WAREHOUSE-AREA-LOCATION-BIN (e.g., "INV01-NORTH-A1-ML-SEG001-20251024143000")
+        bin_code = f"{location_code}-ML-{container_type.upper()}{idx:03d}-{timestamp}"
+
+        # Create position_metadata JSONB
+        position_metadata = {
+            "segmentation_mask": polygon,  # Polygon vertices (normalized coordinates)
+            "bbox": {
+                "x1": bbox[0] if len(bbox) >= 4 else 0.0,
+                "y1": bbox[1] if len(bbox) >= 4 else 0.0,
+                "x2": bbox[2] if len(bbox) >= 4 else 0.0,
+                "y2": bbox[3] if len(bbox) >= 4 else 0.0,
+            },
+            "confidence": confidence,
+            "ml_model_version": "yolov11n-seg-v1.0.0",
+            "detected_at": datetime.utcnow().isoformat(),
+            "container_type": container_type,
+            "area_pixels": area_pixels,  # Fixed: was mask_area
+            "session_id": session_id,
+        }
+
+        # Create StorageBin
+        storage_bin = StorageBin(
+            storage_location_id=storage_location_id,
+            storage_bin_type_id=bin_type.bin_type_id,
+            code=bin_code,
+            label=f"ML {container_type.capitalize()} #{idx}",
+            description=f"ML-detected {container_type} from session {session_id} (confidence: {confidence:.3f})",
+            position_metadata=position_metadata,
+            status="active",
+        )
+        db_session.add(storage_bin)
+        db_session.flush()
+        db_session.refresh(storage_bin)
+
+        created_bin_ids.append(storage_bin.bin_id)
+
+        logger.debug(
+            f"[Session {session_id}] Created StorageBin: bin_id={storage_bin.bin_id}, code={bin_code}, "
+            f"type={container_type}, confidence={confidence:.3f}",
+            extra={
+                "session_id": session_id,
+                "bin_id": storage_bin.bin_id,
+                "bin_code": bin_code,
+                "container_type": container_type,
+                "confidence": confidence,
+            },
+        )
+
+    logger.info(
+        f"[Session {session_id}] Successfully created {len(created_bin_ids)} StorageBins",
+        extra={
+            "session_id": session_id,
+            "num_bins_created": len(created_bin_ids),
+            "bin_ids": created_bin_ids,
+        },
+    )
+
+    return created_bin_ids
+
+
+def _persist_ml_results(
+    session_id: int,
+    detections: list[dict[str, Any]],
+    estimations: list[dict[str, Any]],
+    segments: list[dict[str, Any]] | None = None,
+    storage_location_id: int | None = None,
+) -> None:
+    """Persist detections and estimations to database (called by callback).
+
+    This function creates StorageBins from ML segments, then creates a StockBatch
+    and StockMovement, and bulk inserts all detections and estimations.
+
+    Args:
+        session_id: PhotoProcessingSession database ID
+        detections: List of detection dicts from ML pipeline
+        estimations: List of estimation dicts from ML pipeline
+        segments: List of segment dicts with container_type, bbox, polygon (optional)
+        storage_location_id: Storage location ID for StorageBin creation (optional)
+
+    Raises:
+        ValueError: If storage_location_id is NULL and cannot be retrieved
+        Exception: If database operations fail
+
+    Business Flow:
+        0. Validate storage_location_id (from param or PhotoProcessingSession)
+        0b. Create StorageBins from ML segments (if provided)
+        1. Create StockBatch (using first created bin_id or default=1)
+        2. Create StockMovement (movement_type=foto, source_type=ia)
+        3. Get or create Classification (default: product_id=1)
+        4. Transform detections to match Detection model schema
+        5. Transform estimations to match Estimation model schema
+        6. Bulk insert detections with FKs (session_id, stock_movement_id, classification_id)
+        7. Bulk insert estimations with FKs (session_id, stock_movement_id, classification_id)
+    """
+    from sqlalchemy import create_engine
+    from sqlalchemy.orm import sessionmaker
+
+    from app.core.config import settings
+
+    logger.info(
+        f"Persisting ML results: {len(detections)} detections, {len(estimations)} estimations",
+        extra={
+            "session_id": session_id,
+            "num_detections": len(detections),
+            "num_estimations": len(estimations),
+        },
+    )
+
+    # Create synchronous engine for Celery tasks
+    sync_engine = create_engine(
+        settings.DATABASE_URL.replace("postgresql+asyncpg", "postgresql"),
+        pool_size=5,
+        max_overflow=10,
+        pool_pre_ping=True,
+        pool_recycle=3600,
+    )
+
+    SyncSession = sessionmaker(bind=sync_engine, autocommit=False, autoflush=False)
+    db_session = SyncSession()
+
+    try:
+        from app.models.classification import Classification
+        from app.models.detection import Detection
+        from app.models.estimation import Estimation
+        from app.models.photo_processing_session import PhotoProcessingSession
+        from app.models.stock_batch import StockBatch
+        from app.models.stock_movement import StockMovement
+        from app.models.storage_location_config import StorageLocationConfig
+
+        # ═══════════════════════════════════════════════════════════════════════════
+        # STEP 0: Validate storage_location_id and create StorageBins from segments
+        # ═══════════════════════════════════════════════════════════════════════════
+        logger.info(
+            f"[Session {session_id}] Step 0: Validating storage_location_id and creating StorageBins",
+            extra={"session_id": session_id, "storage_location_id": storage_location_id},
+        )
+
+        # If storage_location_id not provided, try to get from PhotoProcessingSession
+        if storage_location_id is None:
+            session_record = (
+                db_session.query(PhotoProcessingSession).filter_by(id=session_id).first()
+            )
+            if session_record and session_record.storage_location_id:
+                storage_location_id = session_record.storage_location_id
+                logger.info(
+                    f"[Session {session_id}] Retrieved storage_location_id from session: {storage_location_id}",
+                    extra={"session_id": session_id, "storage_location_id": storage_location_id},
+                )
+            else:
+                raise ValueError(
+                    f"storage_location_id is NULL for session {session_id}. "
+                    "Cannot create StorageBins without location context."
+                )
+
+        # Create StorageBins from ML segments
+        created_bin_ids: list[int] = []
+        if segments and len(segments) > 0:
+            created_bin_ids = _create_storage_bins(
+                db_session=db_session,
+                session_id=session_id,
+                storage_location_id=storage_location_id,
+                segments=segments,
+            )
+            logger.info(
+                f"[Session {session_id}] Created {len(created_bin_ids)} StorageBins from segments",
+                extra={
+                    "session_id": session_id,
+                    "num_bins": len(created_bin_ids),
+                    "bin_ids": created_bin_ids,
+                },
+            )
+        else:
+            logger.warning(
+                f"[Session {session_id}] No segments provided, cannot create StorageBins. "
+                "Using default bin_id=1 for StockBatch.",
+                extra={"session_id": session_id},
+            )
+
+        # ═══════════════════════════════════════════════════════════════════════════
+        # STEP 0b: Look up StorageLocationConfig for product and packaging info
+        # ═══════════════════════════════════════════════════════════════════════════
+        logger.info(
+            f"[Session {session_id}] Step 0b: Looking up StorageLocationConfig",
+            extra={"session_id": session_id, "storage_location_id": storage_location_id},
+        )
+
+        # Try to get configuration for this storage location
+        config = (
+            db_session.query(StorageLocationConfig)
+            .filter_by(storage_location_id=storage_location_id, active=True)
+            .first()
+        )
+
+        # Determine product_id, product_state_id, and packaging_catalog_id
+        if config:
+            product_id = config.product_id
+            product_state_id = config.expected_product_state_id
+            packaging_catalog_id = config.packaging_catalog_id  # May be None
+            logger.info(
+                f"[Session {session_id}] Using StorageLocationConfig: product_id={product_id}, "
+                f"product_state_id={product_state_id}, packaging_catalog_id={packaging_catalog_id}",
+                extra={
+                    "session_id": session_id,
+                    "product_id": product_id,
+                    "product_state_id": product_state_id,
+                    "packaging_catalog_id": packaging_catalog_id,
+                },
+            )
+        else:
+            # Fallback: use first available product and a reasonable state (SEEDLING=3)
+            product_id = 1  # We know ID 1 exists (Mammillaria)
+            product_state_id = 3  # SEEDLING is more appropriate than SEED for ML detection
+            packaging_catalog_id = None  # No packaging data available
+            logger.warning(
+                f"[Session {session_id}] No StorageLocationConfig found for storage_location_id={storage_location_id}, "
+                f"using fallback values: product_id={product_id}, product_state_id={product_state_id}, "
+                f"packaging_catalog_id={packaging_catalog_id}",
+                extra={
+                    "session_id": session_id,
+                    "storage_location_id": storage_location_id,
+                    "product_id": product_id,
+                    "product_state_id": product_state_id,
+                    "packaging_catalog_id": packaging_catalog_id,
+                },
+            )
+
+        # ═══════════════════════════════════════════════════════════════════════════
+        # STEP 1: Create StockBatch for this processing session
+        # ═══════════════════════════════════════════════════════════════════════════
+        logger.info(
+            f"[Session {session_id}] Step 1: Creating StockBatch for ML processing",
+            extra={"session_id": session_id},
+        )
+
+        batch_code = f"ML-SESSION-{session_id}-{datetime.utcnow().strftime('%Y%m%d%H%M%S')}"
+
+        # Use first created bin_id, or default to 1 if no bins created
+        current_storage_bin_id = created_bin_ids[0] if created_bin_ids else 1
+
+        stock_batch = StockBatch(
+            batch_code=batch_code,
+            current_storage_bin_id=current_storage_bin_id,
+            product_id=product_id,  # From config or fallback
+            product_state_id=product_state_id,  # From config or fallback (SEEDLING=3)
+            quantity_initial=len(detections)
+            + sum(est.get("estimated_count", 0) for est in estimations),
+            quantity_current=len(detections)
+            + sum(est.get("estimated_count", 0) for est in estimations),
+            quantity_empty_containers=0,
+            has_packaging=bool(packaging_catalog_id),  # True if packaging_catalog_id is not None
+            packaging_catalog_id=packaging_catalog_id,  # None if no packaging data
+        )
+        db_session.add(stock_batch)
+        db_session.flush()  # Get batch_id
+        db_session.refresh(stock_batch)
+
+        logger.info(
+            f"[Session {session_id}] Created StockBatch: batch_id={stock_batch.id}, batch_code={batch_code}, "
+            f"current_storage_bin_id={current_storage_bin_id}, product_id={product_id}, "
+            f"product_state_id={product_state_id}, has_packaging={stock_batch.has_packaging}",
+            extra={
+                "session_id": session_id,
+                "batch_id": stock_batch.id,
+                "batch_code": batch_code,
+                "current_storage_bin_id": current_storage_bin_id,
+                "product_id": product_id,
+                "product_state_id": product_state_id,
+                "packaging_catalog_id": packaging_catalog_id,
+                "has_packaging": stock_batch.has_packaging,
+            },
+        )
+
+        # ═══════════════════════════════════════════════════════════════════════════
+        # STEP 2: Create StockMovement for this ML processing
+        # ═══════════════════════════════════════════════════════════════════════════
+        logger.info(
+            f"[Session {session_id}] Step 2: Creating StockMovement for ML processing",
+            extra={"session_id": session_id},
+        )
+
+        total_quantity = len(detections) + sum(est.get("estimated_count", 0) for est in estimations)
+
+        stock_movement = StockMovement(
+            batch_id=stock_batch.id,
+            movement_type="foto",
+            source_type="ia",
+            is_inbound=True,
+            quantity=total_quantity,
+            processing_session_id=session_id,
+            user_id=1,  # Default ML user (TODO: Get from configuration)
+            reason_description=f"ML photo processing session {session_id}",
+        )
+        db_session.add(stock_movement)
+        db_session.flush()  # Get stock_movement_id
+        db_session.refresh(stock_movement)
+
+        logger.info(
+            f"[Session {session_id}] Created StockMovement: id={stock_movement.id}, quantity={total_quantity}",
+            extra={
+                "session_id": session_id,
+                "stock_movement_id": stock_movement.id,
+                "quantity": total_quantity,
+            },
+        )
+
+        # ═══════════════════════════════════════════════════════════════════════════
+        # STEP 3: Get or create Classification
+        # ═══════════════════════════════════════════════════════════════════════════
+        logger.info(
+            f"[Session {session_id}] Step 3: Getting or creating Classification with product_id={product_id}, "
+            f"packaging_catalog_id={packaging_catalog_id}",
+            extra={
+                "session_id": session_id,
+                "product_id": product_id,
+                "packaging_catalog_id": packaging_catalog_id,
+            },
+        )
+
+        # Query for existing classification based on product_id and packaging_catalog_id
+        # Handle both NULL and non-NULL packaging_catalog_id cases
+        if packaging_catalog_id is not None:
+            classification = (
+                db_session.query(Classification)
+                .filter(
+                    Classification.product_id == product_id,
+                    Classification.packaging_catalog_id == packaging_catalog_id,
+                )
+                .first()
+            )
+        else:
+            classification = (
+                db_session.query(Classification)
+                .filter(
+                    Classification.product_id == product_id,
+                    Classification.packaging_catalog_id.is_(None),
+                )
+                .first()
+            )
+
+        if not classification:
+            # Create new classification
+            classification = Classification(
+                product_id=product_id,
+                packaging_catalog_id=packaging_catalog_id,  # Can be None
+                product_conf=70,  # Default confidence for ML pipeline
+                packaging_conf=70
+                if packaging_catalog_id
+                else None,  # No packaging_conf if no packaging
+                model_version="yolov11n-seg-v1.0.0",
+                name=f"ML Classification - Product {product_id}"
+                + (f" - Packaging {packaging_catalog_id}" if packaging_catalog_id else ""),
+                description=f"Auto-generated classification for ML pipeline (product_id={product_id}, packaging_catalog_id={packaging_catalog_id})",
+            )
+            db_session.add(classification)
+            db_session.flush()
+            db_session.refresh(classification)
+
+            logger.info(
+                f"[Session {session_id}] Created new Classification: classification_id={classification.classification_id}, "
+                f"product_id={product_id}, packaging_catalog_id={packaging_catalog_id}",
+                extra={
+                    "session_id": session_id,
+                    "classification_id": classification.classification_id,
+                    "product_id": product_id,
+                    "packaging_catalog_id": packaging_catalog_id,
+                },
+            )
+        else:
+            logger.info(
+                f"[Session {session_id}] Using existing Classification: classification_id={classification.classification_id}, "
+                f"product_id={product_id}, packaging_catalog_id={packaging_catalog_id}",
+                extra={
+                    "session_id": session_id,
+                    "classification_id": classification.classification_id,
+                    "product_id": product_id,
+                    "packaging_catalog_id": packaging_catalog_id,
+                },
+            )
+
+        # ═══════════════════════════════════════════════════════════════════════════
+        # STEP 4: Transform and bulk insert Detections
+        # ═══════════════════════════════════════════════════════════════════════════
+        if detections:
+            logger.info(
+                f"[Session {session_id}] Step 4: Bulk inserting {len(detections)} detections",
+                extra={"session_id": session_id, "num_detections": len(detections)},
+            )
+
+            detection_records = []
+            for det in detections:
+                # Calculate bbox_coordinates from center + width/height
+                center_x = float(det["center_x_px"])
+                center_y = float(det["center_y_px"])
+                width = int(det["width_px"])
+                height = int(det["height_px"])
+
+                x1 = center_x - (width / 2)
+                y1 = center_y - (height / 2)
+                x2 = center_x + (width / 2)
+                y2 = center_y + (height / 2)
+
+                detection_record = Detection(
+                    session_id=session_id,
+                    stock_movement_id=stock_movement.id,
+                    classification_id=classification.classification_id,
+                    center_x_px=center_x,
+                    center_y_px=center_y,
+                    width_px=width,
+                    height_px=height,
+                    bbox_coordinates={"x1": x1, "y1": y1, "x2": x2, "y2": y2},
+                    detection_confidence=float(det.get("confidence", 0.0)),
+                    is_empty_container=False,
+                    is_alive=True,
+                )
+                detection_records.append(detection_record)
+
+            # Bulk insert detections
+            db_session.bulk_save_objects(detection_records)
+            logger.info(
+                f"[Session {session_id}] Successfully bulk inserted {len(detection_records)} detections",
+                extra={"session_id": session_id, "num_detections": len(detection_records)},
+            )
+        else:
+            logger.info(
+                f"[Session {session_id}] No detections to insert",
+                extra={"session_id": session_id},
+            )
+
+        # ═══════════════════════════════════════════════════════════════════════════
+        # STEP 5: Transform and bulk insert Estimations
+        # ═══════════════════════════════════════════════════════════════════════════
+        if estimations:
+            logger.info(
+                f"[Session {session_id}] Step 5: Bulk inserting {len(estimations)} estimations",
+                extra={"session_id": session_id, "num_estimations": len(estimations)},
+            )
+
+            estimation_records = []
+            for est in estimations:
+                # Create vegetation_polygon from band coordinates
+                band_y_start = est.get("band_y_start", 0)
+                band_y_end = est.get("band_y_end", 0)
+
+                # Simplified polygon (full-width band)
+                # TODO: In production, use actual vegetation mask polygon
+                vegetation_polygon = {
+                    "type": "Polygon",
+                    "coordinates": [
+                        [0, band_y_start],
+                        [4000, band_y_start],  # Assume 4000px wide image
+                        [4000, band_y_end],
+                        [0, band_y_end],
+                        [0, band_y_start],
+                    ],
+                }
+
+                estimation_record = Estimation(
+                    session_id=session_id,
+                    stock_movement_id=stock_movement.id,
+                    classification_id=classification.classification_id,
+                    vegetation_polygon=vegetation_polygon,
+                    detected_area_cm2=float(est.get("processed_area_px", 0.0))
+                    / 100.0,  # Convert px to cm²
+                    estimated_count=int(est.get("estimated_count", 0)),
+                    calculation_method="band_estimation",
+                    estimation_confidence=0.70,  # Default confidence for band estimation
+                    used_density_parameters=False,  # Not using density params (using band method)
+                )
+                estimation_records.append(estimation_record)
+
+            # Bulk insert estimations
+            db_session.bulk_save_objects(estimation_records)
+            logger.info(
+                f"[Session {session_id}] Successfully bulk inserted {len(estimation_records)} estimations",
+                extra={"session_id": session_id, "num_estimations": len(estimation_records)},
+            )
+        else:
+            logger.info(
+                f"[Session {session_id}] No estimations to insert",
+                extra={"session_id": session_id},
+            )
+
+        # Commit transaction
+        db_session.commit()
+        logger.info(
+            f"[Session {session_id}] Successfully committed all ML results to database",
+            extra={
+                "session_id": session_id,
+                "stock_movement_id": stock_movement.id,
+                "batch_id": stock_batch.id,
+                "classification_id": classification.classification_id,
+                "num_detections": len(detections),
+                "num_estimations": len(estimations),
+            },
+        )
+
+    except Exception as e:
+        db_session.rollback()
+        logger.error(
+            f"Failed to persist ML results for session {session_id}: {e}",
+            extra={"session_id": session_id, "error": str(e)},
+            exc_info=True,
+        )
+        raise
+    finally:
+        db_session.close()
         sync_engine.dispose()

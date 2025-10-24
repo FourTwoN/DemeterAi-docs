@@ -16,7 +16,9 @@ class PhotoProcessingSessionCreate(BaseModel):
     """Schema for creating a photo processing session."""
 
     storage_location_id: int | None = Field(None, description="Storage location ID (optional)")
-    original_image_id: UUID = Field(..., description="Original S3 image UUID")
+    original_image_id: UUID | None = Field(
+        None, description="Original S3 image UUID (optional, can be set later)"
+    )
     processed_image_id: UUID | None = Field(None, description="Processed S3 image UUID (optional)")
     status: ProcessingSessionStatusEnum | None = Field(
         ProcessingSessionStatusEnum.PENDING, description="Processing status"
@@ -40,6 +42,7 @@ class PhotoProcessingSessionUpdate(BaseModel):
     """Schema for updating a photo processing session."""
 
     storage_location_id: int | None = Field(None)
+    original_image_id: UUID | None = Field(None)
     processed_image_id: UUID | None = Field(None)
     status: ProcessingSessionStatusEnum | None = Field(None)
     total_detected: int | None = Field(None, ge=0)
@@ -62,7 +65,9 @@ class PhotoProcessingSessionResponse(BaseModel):
     id: int = Field(..., description="Database ID")
     session_id: UUID = Field(..., description="Session UUID")
     storage_location_id: int | None = Field(None)
-    original_image_id: UUID = Field(...)
+    original_image_id: UUID | None = Field(
+        None, description="Original S3 image UUID (set after upload)"
+    )
     processed_image_id: UUID | None = Field(None)
     total_detected: int = Field(...)
     total_estimated: int = Field(...)
