@@ -209,13 +209,3 @@ async def batch_delete_photos(
 ) -> PhotoBatchDeleteResult:
     service = factory.get_photo_query_service()
     return await service.batch_delete_photos(request)
-    except Exception as exc:  # pragma: no cover
-        logger.error(
-            "Failed to get job status",
-            extra={"upload_session_id": str(upload_session_id), "error": str(exc)},
-            exc_info=True,
-        )
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to load job status",
-        ) from exc

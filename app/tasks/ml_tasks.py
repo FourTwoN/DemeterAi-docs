@@ -2065,20 +2065,28 @@ def _persist_ml_results(
         # Create StorageBins from ML segments
         created_bin_ids: list[int] = []
         if segments and len(segments) > 0:
-            created_bin_ids = _create_storage_bins(
-                db_session=db_session,
-                session_id=session_id,
-                storage_location_id=storage_location_id,
-                segments=segments,
-            )
-            logger.info(
-                f"[Session {session_id}] Created {len(created_bin_ids)} StorageBins from segments",
-                extra={
-                    "session_id": session_id,
-                    "num_bins": len(created_bin_ids),
-                    "bin_ids": created_bin_ids,
-                },
-            )
+            try:
+                created_bin_ids = _create_storage_bins(
+                    db_session=db_session,
+                    session_id=session_id,
+                    storage_location_id=storage_location_id,
+                    segments=segments,
+                )
+                logger.info(
+                    f"[Session {session_id}] Created {len(created_bin_ids)} StorageBins from segments",
+                    extra={
+                        "session_id": session_id,
+                        "num_bins": len(created_bin_ids),
+                        "bin_ids": created_bin_ids,
+                    },
+                )
+            except Exception as e:
+                logger.error(
+                    f"[Session {session_id}] Failed to create StorageBins: {e}",
+                    extra={"session_id": session_id, "error": str(e)},
+                    exc_info=True,
+                )
+                raise ValueError(f"Cannot create StorageBins for session {session_id}: {str(e)}") from e
         else:
             logger.warning(
                 f"[Session {session_id}] No segments provided, cannot create StorageBins. "
@@ -2144,8 +2152,14 @@ def _persist_ml_results(
 
         batch_code = f"ML-SESSION-{session_id}-{datetime.utcnow().strftime('%Y%m%d%H%M%S')}"
 
-        # Use first created bin_id, or default to 1 if no bins created
-        current_storage_bin_id = created_bin_ids[0] if created_bin_ids else 1
+        # Validate that StorageBins were created successfully
+        if not created_bin_ids:
+            raise ValueError(
+                f"[Session {session_id}] No StorageBins created. "
+                f"Cannot create StockBatch without valid storage bin. "
+                f"Check that storage_location_id={storage_location_id} exists and segments are valid."
+            )
+        current_storage_bin_id = created_bin_ids[0]
 
         stock_batch = StockBatch(
             batch_code=batch_code,

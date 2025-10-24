@@ -46,6 +46,7 @@ from app.models import (
     StorageArea,
     StorageBinType,
     StorageLocation,
+    StorageLocationConfig,
     Warehouse,
 )
 from app.models.storage_bin_type import BinCategoryEnum
@@ -75,6 +76,7 @@ class ProductionDataLoader:
             "product_families": 0,
             "products": 0,
             "storage_bin_types": 0,
+            "storage_location_config": 0,
             "price_list": 0,
         }
 
@@ -840,6 +842,83 @@ class ProductionDataLoader:
         return count
 
     # =========================================================================
+    # StorageLocationConfig Loading (Seed Data)
+    # =========================================================================
+
+    async def load_storage_location_config(self) -> int:
+        """Load sample storage location configurations.
+
+        Creates config linking storage locations to products and packaging.
+        Required for ML processing flow.
+
+        Returns:
+            Number of configs loaded
+        """
+        logger.info("Loading storage location configs...")
+
+        # Get first storage location
+        stmt = select(StorageLocation).limit(1)
+        result = await self.session.execute(stmt)
+        storage_location = result.scalar_one_or_none()
+
+        if not storage_location:
+            logger.warning("No storage locations found. Load storage locations first.")
+            return 0
+
+        # Get first product
+        stmt = select(Product).limit(1)
+        result = await self.session.execute(stmt)
+        product = result.scalar_one_or_none()
+
+        if not product:
+            logger.warning("No products found. Load products first.")
+            return 0
+
+        # Get SEEDLING product state (id=3)
+        stmt = select(ProductState).where(ProductState.code == "SEEDLING")
+        result = await self.session.execute(stmt)
+        product_state = result.scalar_one_or_none()
+
+        if not product_state:
+            logger.warning("SEEDLING product state not found.")
+            return 0
+
+        # Get first packaging (if available)
+        stmt = select(PackagingCatalog).limit(1)
+        result = await self.session.execute(stmt)
+        packaging = result.scalar_one_or_none()
+
+        # Check if config already exists
+        stmt = select(StorageLocationConfig).where(
+            StorageLocationConfig.storage_location_id == storage_location.location_id
+        )
+        result = await self.session.execute(stmt)
+        existing = result.scalar_one_or_none()
+
+        if existing:
+            logger.info(f"  ⊘ StorageLocationConfig already exists for location {storage_location.location_id}")
+            return 0
+
+        # Create config
+        config = StorageLocationConfig(
+            storage_location_id=storage_location.location_id,
+            product_id=product.id,
+            packaging_catalog_id=packaging.id if packaging else None,
+            expected_product_state_id=product_state.product_state_id,
+            area_cm2=10000.0,  # 1m² default
+            active=True,
+            notes="Auto-generated config for ML testing",
+        )
+
+        self.session.add(config)
+        await self.session.commit()
+
+        logger.info(f"  ✓ StorageLocationConfig: location={storage_location.location_id}, product={product.id}")
+        self.loaded_count["storage_location_config"] = 1
+        logger.info("✅ Loaded 1 storage location config")
+        return 1
+
+    # =========================================================================
     # ProductState Loading (Hardcoded Seed Data)
     # =========================================================================
 
@@ -1560,6 +1639,7 @@ class ProductionDataLoader:
             await self.load_product_families()  # NEW
             await self.load_products()  # NEW
             await self.load_storage_bin_types()
+            await self.load_storage_location_config()  # NEW - Required for ML flow
             await self.load_price_list()
 
             logger.info("=" * 80)
